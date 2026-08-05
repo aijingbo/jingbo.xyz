@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>正四棱锥线面角 · 立体几何 3D 可视化</title>
+
+<!-- MathJax 配置 -->
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  /* ============ 设计系统变量 ============ */
+  :root {
+    --primary: #0ea5e9;            /* 数学-天蓝 */
+    --primary-soft: #e0f2fe;
+    --primary-deep: #0369a1;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-soft: #f1f5f9;
+    --text: #0f172a;
+    --muted: #475569;
+    --border: #e2e8f0;
+    --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
+    --shadow-card: 0 10px 28px rgba(15, 23, 42, 0.05);
+    --radius-card: 14px;
+    --radius-button: 8px;
+    --radius-pill: 999px;
+    --font-ui: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+    /* 3D 场景配色（与右侧一致） */
+    --scene-bg: #0f172a;
+    --c-plane: #0ea5e9;
+    --c-normal: #fb923c;
+    --c-be: #22d3ee;
+    --c-perp: #fb923c;
+    --c-proj: #34d399;
+    --c-angle: #fde047;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font-ui);
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { overflow: hidden; }
+
+  /* ============ 课件布局 ============ */
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100svh;
+  }
+
+  /* 顶部条 */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .subject-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-soft);
+    white-space: nowrap;
+  }
+  .topbar-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+  }
+  .topbar-answer {
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .topbar-answer .ans-label { color: var(--muted); }
+  .topbar-answer .ans-value {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 15px;
+  }
+
+  /* 主内容区 */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* 左侧面板 */
+  .sidebar {
+    width: 420px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+  }
+
+  /* 右侧可视化区 */
+  .canvas-area {
+    flex: 1;
+    position: relative;
+    background: var(--scene-bg);
+    overflow: hidden;
+  }
+  #canvas-container { width: 100%; height: 100%; }
+
+  /* ============ 卡片 ============ */
+  .content-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-card);
+  }
+  .content-card h3 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .problem-text {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+  }
+  .problem-text .hl { color: var(--primary); font-weight: 600; }
+  .answer-card { border-left: 3px solid var(--primary); }
+  .answer-value {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .answer-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* ============ 分步解析 ============ */
+  .steps-wrap { margin-bottom: 6px; }
+  .step-panel {
+    display: none;
+    animation: fadeInUp 0.32s ease;
+  }
+  .step-panel.active { display: block; }
+  .step-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .step-body {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .step-body p { margin-bottom: 8px; }
+  .step-body .lead { color: var(--muted); }
+  .step-body .key { color: var(--primary); font-weight: 600; }
+  .formula-box {
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-button);
+    padding: 10px 14px;
+    margin: 8px 0;
+    overflow-x: auto;
+  }
+  .result-line {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: var(--primary-soft);
+    border-radius: var(--radius-button);
+    color: var(--primary-deep);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  /* ============ 参数控制 ============ */
+  .control-list { display: flex; flex-direction: column; gap: 10px; }
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .ctrl-row .lbl { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; }
+  /* 开关 */
+  .switch { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; cursor: pointer;
+    background: var(--border); border-radius: var(--radius-pill);
+    transition: 0.24s;
+  }
+  .slider::before {
+    content: ""; position: absolute; height: 16px; width: 16px;
+    left: 3px; top: 3px; background: #fff; border-radius: 50%;
+    transition: 0.24s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .switch input:checked + .slider { background: var(--primary); }
+  .switch input:checked + .slider::before { transform: translateX(16px); }
+  .reset-btn {
+    width: 100%;
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-button);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 4px;
+  }
+  .reset-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ============ 底部导航 ============ */
+  .nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-button);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .nav-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+  .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .nav-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .nav-btn.primary:hover:not(:disabled) { opacity: 0.9; }
+  .step-dots { display: flex; gap: 8px; align-items: center; }
+  .step-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: all 0.28s ease;
+  }
+  .step-dot.active { background: var(--primary); width: 26px; border-radius: 5px; }
+  .step-dot:hover { background: var(--primary-deep); }
+
+  /* ============ 3D 区覆盖层 ============ */
+  .legend {
+    position: absolute;
+    top: 16px; left: 16px;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-button);
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 5;
+  }
+  .legend .lg-item { display: flex; align-items: center; gap: 8px; }
+  .legend .lg-sw { width: 16px; height: 3px; border-radius: 2px; }
+  .scene-hint {
+    position: absolute;
+    bottom: 16px; right: 16px;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-pill);
+    padding: 7px 14px;
+    font-size: 12px;
+    color: #94a3b8;
+    z-index: 5;
+  }
+  .step-tag {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: rgba(14, 165, 233, 0.9);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 5;
+    box-shadow: 0 4px 14px rgba(14,165,233,0.4);
+  }
+
+  /* ============ 动画 ============ */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ 滚动条 ============ */
+  .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+  .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* MathJax 字号微调 */
+  mjx-container { font-size: 100% !important; }
+  .formula-box mjx-container svg { max-width: 100%; }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 860px) {
+    .main { flex-direction: column-reverse; }
+    .sidebar { width: 100%; height: 46%; border-right: none; border-top: 1px solid var(--border); }
+    .canvas-area { flex: 1; }
+    .legend { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== 顶部条 ===== -->
+  <header class="topbar">
+    <span class="subject-tag">数学 / 立体几何</span>
+    <div class="topbar-title">正四棱锥线面角问题：直线 BE 与平面 PAC 所成角</div>
+    <div class="topbar-answer">
+      <span class="ans-label">答案</span>
+      <span class="ans-value">sin θ = 2√22 / 11</span>
+    </div>
+  </header>
+
+  <!-- ===== 主内容区 ===== -->
+  <div class="main">
+
+    <!-- 左侧面板 -->
+    <aside class="sidebar">
+      <div class="sidebar-scroll">
+
+        <!-- 题面卡片 -->
+        <section class="content-card">
+          <h3>题面</h3>
+          <p class="problem-text">
+            正四棱锥 <span class="hl">P-ABCD</span>，底面边长为 <span class="hl">2</span>，高为 <span class="hl">1</span>。
+            <span class="hl">E</span> 为 PC 的中点。求直线 <span class="hl">BE</span> 与平面 <span class="hl">PAC</span> 所成角的正弦值。
+          </p>
+        </section>
+
+        <!-- 答案卡片 -->
+        <section class="content-card answer-card">
+          <h3>答案</h3>
+          <div class="answer-value">sin θ = 2√22 / 11</div>
+          <div class="answer-desc">θ 为直线 BE 与平面 PAC 的夹角</div>
+        </section>
+
+        <!-- 分步解析 -->
+        <section class="content-card">
+          <h3>分步解析</h3>
+          <div class="steps-wrap">
+
+            <!-- 步骤 1 -->
+            <div class="step-panel active" data-step="1">
+              <div class="step-head">
+                <span class="step-badge">1</span>
+                <span class="step-title">建立空间直角坐标系</span>
+              </div>
+              <div class="step-body">
+                <p class="lead">以底面中心 <span class="key">O</span> 为原点，底面 ABCD 位于 xOy 平面，棱锥的高沿 z 轴正方向。</p>
+                <div class="formula-box">
+                  $$O(0,0,0),\quad \text{底面在 } xOy,\quad \text{高沿 } z\text{ 轴}$$
+                </div>
+                <p>建立右手系后即可写出各顶点的坐标，为后续向量运算做准备。</p>
+              </div>
+            </div>
+
+            <!-- 步骤 2 -->
+            <div class="step-panel" data-step="2">
+              <div class="step-head">
+                <span class="step-badge">2</span>
+                <span class="step-title">写出关键点坐标</span>
+              </div>
+              <div class="step-body">
+                <p>底面边长为 2，故顶点坐标为：</p>
+                <div class="formula-box">
+                  $$P(0,0,1),\; A(1,-1,0),\; B(1,1,0)$$
+                  $$C(-1,1,0),\; D(-1,-1,0)$$
+                </div>
+                <p>E 为 PC 的中点，由中点公式：</p>
+                <div class="formula-box">
+                  $$E=\frac{P+C}{2}=\left(-\tfrac12,\,\tfrac12,\,\tfrac12\right)$$
+                </div>
+              </div>
+            </div>
+
+            <!-- 步骤 3 -->
+            <div class="step-panel" data-step="3">
+              <div class="step-head">
+                <span class="step-badge">3</span>
+                <span class="step-title">求平面 PAC 的法向量</span>
+              </div>
+              <div class="step-body">
+                <p>取平面内两个向量：</p>
+                <div class="formula-box">
+                  $$\vec{PA}=A-P=(1,-1,-1)$$
+                  $$\vec{PC}=C-P=(-1,1,-1)$$
+                </div>
+                <p>法向量 <span class="key">n</span> = PA × PC：</p>
+                <div class="formula-box">
+                  $$\vec n=\vec{PA}\times\vec{PC}=(2,2,0)$$
+                </div>
+                <p>等比例化简，取 <span class="key">n = (1, 1, 0)</span>。平面方程为 x + y = 0。</p>
+              </div>
+            </div>
+
+            <!-- 步骤 4 -->
+            <div class="step-panel" data-step="4">
+              <div class="step-head">
+                <span class="step-badge">4</span>
+                <span class="step-title">计算 sin θ</span>
+              </div>
+              <div class="step-body">
+                <p>向量 BE = E − B：</p>
+                <div class="formula-box">
+                  $$\vec{BE}=\left(-\tfrac32,\,-\tfrac12,\,\tfrac12\right)$$
+                </div>
+                <p>线面角公式（θ 为线与面的夹角）：</p>
+                <div class="formula-box">
+                  $$\sin\theta=\frac{|\vec{BE}\cdot\vec n|}{|\vec{BE}|\;|\vec n|}$$
+                </div>
+                <p>代入计算：</p>
+                <div class="formula-box">
+                  $$\vec{BE}\cdot\vec n=-\tfrac32-\tfrac12=-2\;\Rightarrow\;|\cdot|=2$$
+                  $$|\vec{BE}|=\sqrt{\tfrac{9}{4}+\tfrac14+\tfrac14}=\tfrac{\sqrt{11}}{2}$$
+                  $$|\vec n|=\sqrt{1+1}=\sqrt2$$
+                </div>
+              </div>
+            </div>
+
+            <!-- 步骤 5 -->
+            <div class="step-panel" data-step="5">
+              <div class="step-head">
+                <span class="step-badge">5</span>
+                <span class="step-title">得出最终答案</span>
+              </div>
+              <div class="step-body">
+                <p>将各量代入线面角公式：</p>
+                <div class="formula-box">
+                  $$\sin\theta=\frac{2}{\dfrac{\sqrt{11}}{2}\cdot\sqrt2}
+                  =\frac{4}{\sqrt{22}}$$
+                </div>
+                <p>分母有理化：</p>
+                <div class="result-line">
+                  $$\sin\theta=\frac{4\sqrt{22}}{22}=\frac{2\sqrt{22}}{11}$$
+                </div>
+                <p class="lead" style="margin-top:10px;">几何直观：B 在平面 PAC 上的投影恰为 O（AC 中点），E 已在平面内，故投影线为 OE，θ 即直角三角形 BOE 中位于 E 处的角。</p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 参数控制 -->
+        <section class="content-card">
+          <h3>参数控制</h3>
+          <div class="control-list">
+            <div class="ctrl-row">
+              <span class="lbl"><span class="swatch" style="background:var(--c-plane)"></span>显示平面 PAC</span>
+              <label class="switch"><input type="checkbox" id="toggle-plane" checked><span class="slider"></span></label>
+            </div>
+            <div class="ctrl-row">
+              <span class="lbl"><span class="swatch" style="background:var(--c-normal)"></span>显示法向量 n</span>
+              <label class="switch"><input type="checkbox" id="toggle-normal" checked><span class="slider"></span></label>
+            </div>
+            <div class="ctrl-row">
+              <span class="lbl"><span class="swatch" style="background:var(--c-be)"></span>显示构造线（BE/BO/OE）</span>
+              <label class="switch"><input type="checkbox" id="toggle-construct" checked><span class="slider"></span></label>
+            </div>
+            <div class="ctrl-row">
+              <span class="lbl"><span class="swatch" style="background:var(--c-angle)"></span>显示角 θ</span>
+              <label class="switch"><input type="checkbox" id="toggle-angle" checked><span class="slider"></span></label>
+            </div>
+            <div class="ctrl-row">
+              <span class="lbl"><span class="swatch" style="background:#ffffff"></span>显示顶点标签</span>
+              <label class="switch"><input type="checkbox" id="toggle-labels" checked><span class="slider"></span></label>
+            </div>
+            <div class="ctrl-row">
+              <span class="lbl">自动旋转</span>
+              <label class="switch"><input type="checkbox" id="toggle-autorotate"><span class="slider"></span></label>
+            </div>
+            <button class="reset-btn" id="reset-view">重置视角</button>
+          </div>
+        </section>
+
+      </div>
+    </aside>
+
+    <!-- 右侧 3D 可视化区 -->
+    <main class="canvas-area">
+      <div id="canvas-container"></div>
+
+      <!-- 图例 -->
+      <div class="legend">
+        <div class="lg-item"><span class="lg-sw" style="background:var(--c-plane)"></span>平面 PAC</div>
+        <div class="lg-item"><span class="lg-sw" style="background:var(--c-normal)"></span>法向量 n / 垂线 BO</div>
+        <div class="lg-item"><span class="lg-sw" style="background:var(--c-be)"></span>直线 BE</div>
+        <div class="lg-item"><span class="lg-sw" style="background:var(--c-proj)"></span>投影 OE</div>
+        <div class="lg-item"><span class="lg-sw" style="background:var(--c-angle)"></span>线面角 θ</div>
+      </div>
+
+      <!-- 当前步骤标签 -->
+      <div class="step-tag" id="scene-step-tag">步骤 1 / 5</div>
+
+      <!-- 操作提示 -->
+      <div class="scene-hint">拖拽旋转 · 滚轮缩放 · 右键平移</div>
+    </main>
+
+  </div>
+
+  <!-- ===== 底部导航 ===== -->
+  <footer class="nav-bar">
+    <button class="nav-btn" id="btn-prev">← 上一步</button>
+    <div class="step-dots" id="step-dots"></div>
+    <button class="nav-btn primary" id="btn-next">下一步 →</button>
+  </footer>
+
+</div>
+
+<!-- ===== Three.js 3D 场景脚本 ===== -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   一、场景初始化
+   ============================================================ */
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f172a);
+// 微弱雾化增加纵深
+scene.fog = new THREE.Fog(0x0f172a, 12, 28);
+
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+// 采用 z 轴朝上的坐标系（与数学一致）
+camera.up.set(0, 0, 1);
+const CAM_INIT = new THREE.Vector3(4.8, -5.2, 3.6);
+const TARGET_INIT = new THREE.Vector3(0, 0, 0.35);
+camera.position.copy(CAM_INIT);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.copy(TARGET_INIT);
+controls.minDistance = 3;
+controls.maxDistance = 16;
+
+/* 光照 */
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+dirLight.position.set(6, -8, 9);
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0x88aaff, 0.25);
+fillLight.position.set(-5, 4, 2);
+scene.add(fillLight);
+
+/* ============================================================
+   二、坐标定义（与数学一致，z 轴向上）
+   ============================================================ */
+const P = new THREE.Vector3(0, 0, 1);
+const A = new THREE.Vector3(1, -1, 0);
+const B = new THREE.Vector3(1, 1, 0);
+const C = new THREE.Vector3(-1, 1, 0);
+const D = new THREE.Vector3(-1, -1, 0);
+const O = new THREE.Vector3(0, 0, 0);
+const E = new THREE.Vector3(-0.5, 0.5, 0.5);
+
+/* ============================================================
+   三、辅助函数
+   ============================================================ */
+// 创建文字标签（Sprite）
+function makeLabel(text, color = '#ffffff') {
+  const canvas = document.createElement('canvas');
+  const size = 128;
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.font = `bold 72px Inter, 'PingFang SC', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = 'rgba(15,23,42,0.9)';
+  ctx.strokeText(text, size / 2, size / 2);
+  ctx.fillStyle = color;
+  ctx.fillText(text, size / 2, size / 2);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.anisotropy = 4;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(0.55, 0.55, 0.55);
+  sprite.renderOrder = 10;
+  return sprite;
+}
+
+// 创建小球顶点
+function makeVertex(pos, color = 0xffffff, radius = 0.07) {
+  const geo = new THREE.SphereGeometry(radius, 24, 24);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.1, emissive: color, emissiveIntensity: 0.15 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(pos);
+  return mesh;
+}
+
+// 创建线段（可选虚线）
+function makeLine(p1, p2, color, width = 2, dashed = false) {
+  const pts = [p1, p2];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = dashed
+    ? new THREE.LineDashedMaterial({ color, linewidth: width, dashSize: 0.18, gapSize: 0.12, transparent: true })
+    : new THREE.LineBasicMaterial({ color, transparent: true });
+  const line = new THREE.Line(geo, mat);
+  if (dashed) line.computeLineDistances();
+  return line;
+}
+
+// 创建圆弧（在 v1、v2 之间，圆心 center，半径 radius）
+function makeArc(center, v1, v2, radius, color, segments = 28) {
+  const a = v1.clone().sub(center).normalize();
+  const b = v2.clone().sub(center).normalize();
+  const dot = THREE.MathUtils.clamp(a.dot(b), -1, 1);
+  const omega = Math.acos(dot);
+  const pts = [];
+  const sinO = Math.sin(omega);
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    let dir;
+    if (sinO < 1e-5) {
+      dir = a.clone();
+    } else {
+      const w1 = Math.sin((1 - t) * omega) / sinO;
+      const w2 = Math.sin(t * omega) / sinO;
+      dir = a.clone().multiplyScalar(w1).add(b.clone().multiplyScalar(w2));
+    }
+    pts.push(center.clone().add(dir.multiplyScalar(radius)));
+  }
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color, transparent: true });
+  return new THREE.Line(geo, mat);
+}
+
+// 直角标记（小方块）
+function makeRightAngleMarker(corner, dir1, dir2, size, color) {
+  const u = dir1.clone().normalize().multiplyScalar(size);
+  const v = dir2.clone().normalize().multiplyScalar(size);
+  const p0 = corner.clone();
+  const p1 = corner.clone().add(u);
+  const p2 = corner.clone().add(u).add(v);
+  const p3 = corner.clone().add(v);
+  const pts = [p1, p2, p3];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color, transparent: true });
+  return new THREE.Line(geo, mat);
+}
+
+// 通用：对组内所有材质设置透明与目标透明度，并记录当前透明度
+function prepGroup(group) {
+  group.userData.opacity = 1;
+  group.userData.targetOpacity = 1;
+  group.traverse(o => {
+    if (o.material) {
+      o.material.transparent = true;
+      if (o.userData._baseOpacity === undefined) o.userData._baseOpacity = o.material.opacity ?? 1;
+    }
+  });
+}
+
+/* ============================================================
+   四、构建 3D 元素分组
+   ============================================================ */
+
+/* --- 4.1 底面参考网格 --- */
+const grid = new THREE.GridHelper(6, 12, 0x1e293b, 0x1e293b);
+grid.rotation.x = Math.PI / 2; // 放入 xOy 平面
+grid.material.transparent = true;
+grid.material.opacity = 0.5;
+
+/* --- 4.2 坐标轴 --- */
+const gAxes = new THREE.Group();
+const axisLen = 2.4;
+const axisColors = { x: 0xef4444, y: 0x22c55e, z: 0x3b82f6 };
+const axX = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), O, axisLen, axisColors.x, 0.18, 0.1);
+const axY = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), O, axisLen, axisColors.y, 0.18, 0.1);
+const axZ = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), O, axisLen, axisColors.z, 0.18, 0.1);
+gAxes.add(axX, axY, axZ);
+['x','y','z'].forEach(t => {
+  const lab = makeLabel(t, '#cbd5e1');
+  const pos = { x: new THREE.Vector3(axisLen+0.25,0,0), y: new THREE.Vector3(0,axisLen+0.25,0), z: new THREE.Vector3(0,0,axisLen+0.25) };
+  lab.position.copy(pos[t]);
+  lab.scale.set(0.4,0.4,0.4);
+  gAxes.add(lab);
+});
+scene.add(grid, gAxes);
+
+/* --- 4.3 正四棱锥 --- */
+const gPyramid = new THREE.Group();
+// 底面正方形（半透明填充 + 边）
+const baseGeo = new THREE.BufferGeometry();
+baseGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+  A.x,A.y,A.z, B.x,B.y,B.z, C.x,C.y,C.z,
+  A.x,A.y,A.z, C.x,C.y,C.z, D.x,D.y,D.z
+], 3));
+baseGeo.computeVertexNormals();
+const baseMat = new THREE.MeshStandardMaterial({ color: 0x475569, transparent: true, opacity: 0.18, side: THREE.DoubleSide, roughness: 0.9 });
+const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+gPyramid.add(baseMesh);
+// 侧面（4个三角形，半透明）
+const sideFaces = [[P,A,B],[P,B,C],[P,C,D],[P,D,A]];
+sideFaces.forEach(f => {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([
+    f[0].x,f[0].y,f[0].z, f[1].x,f[1].y,f[1].z, f[2].x,f[2].y,f[2].z
+  ], 3));
+  g.computeVertexNormals();
+  const m = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.08, side: THREE.DoubleSide, roughness: 0.7 });
+  gPyramid.add(new THREE.Mesh(g, m));
+});
+// 棱（线段）
+const edgeColor = 0xe2e8f0;
+[[A,B],[B,C],[C,D],[D,A],[P,A],[P,B],[P,C],[P,D]].forEach(([p,q]) => {
+  gPyramid.add(makeLine(p, q, edgeColor));
+});
+scene.add(gPyramid);
+
+/* --- 4.4 顶点 + 标签 --- */
+const gVertices = new THREE.Group();
+const vertexDefs = [
+  { pos: P, label: 'P', color: 0xffffff, offset: new THREE.Vector3(0.18, 0.0, 0.18) },
+  { pos: A, label: 'A', color: 0xffffff, offset: new THREE.Vector3(0.2, -0.22, 0) },
+  { pos: B, label: 'B', color: 0xffffff, offset: new THREE.Vector3(0.22, 0.22, 0) },
+  { pos: C, label: 'C', color: 0xffffff, offset: new THREE.Vector3(-0.22, 0.22, 0) },
+  { pos: D, label: 'D', color: 0xffffff, offset: new THREE.Vector3(-0.22, -0.22, 0) },
+  { pos: O, label: 'O', color: 0xfde047, offset: new THREE.Vector3(-0.2, -0.22, 0) },
+];
+vertexDefs.forEach(v => {
+  gVertices.add(makeVertex(v.pos, v.color));
+  const lab = makeLabel(v.label, v.color === 0xfde047 ? '#fde047' : '#ffffff');
+  lab.position.copy(v.pos).add(v.offset);
+  gVertices.add(lab);
+});
+scene.add(gVertices);
+
+/* --- 4.5 E 点（中点，高亮） --- */
+const gEPoint = new THREE.Group();
+const eSphere = makeVertex(E, 0xfde047, 0.085);
+eSphere.material.emissiveIntensity = 0.5;
+gEPoint.add(eSphere);
+const eLabel = makeLabel('E', '#fde047');
+eLabel.position.copy(E).add(new THREE.Vector3(-0.22, 0.22, 0.18));
+gEPoint.add(eLabel);
+scene.add(gEPoint);
+
+/* --- 4.6 平面 PAC（半透明三角面 + 边框） --- */
+const gPlane = new THREE.Group();
+const planeGeo = new THREE.BufferGeometry();
+planeGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+  P.x,P.y,P.z, A.x,A.y,A.z, C.x,C.y,C.z
+], 3));
+planeGeo.computeVertexNormals();
+const planeMat = new THREE.MeshStandardMaterial({
+  color: 0x0ea5e9, transparent: true, opacity: 0.22, side: THREE.DoubleSide,
+  roughness: 0.5, metalness: 0.1, emissive: 0x0ea5e9, emissiveIntensity: 0.12
+});
+gPlane.add(new THREE.Mesh(planeGeo, planeMat));
+// 平面边框（PA、PC 已是棱，补充 AC 对角线为虚线）
+gPlane.add(makeLine(A, C, 0x0ea5e9, 1, true));
+scene.add(gPlane);
+
+/* --- 4.7 法向量 n（从 O 指向 B 方向，即 (1,1,0)） --- */
+const gNormal = new THREE.Group();
+const nDir = new THREE.Vector3(1, 1, 0).normalize();
+const nArrow = new THREE.ArrowHelper(nDir, O, 1.25, 0xfb923c, 0.2, 0.12);
+gNormal.add(nArrow);
+const nLabel = makeLabel('n', '#fb923c');
+nLabel.position.copy(O).add(nDir.clone().multiplyScalar(1.45));
+nLabel.scale.set(0.45,0.45,0.45);
+gNormal.add(nLabel);
+scene.add(gNormal);
+
+/* --- 4.8 构造线：BE / BO(垂线) / OE(投影) --- */
+const gConstruct = new THREE.Group();
+// BE 直线
+const beLine = makeLine(B, E, 0x22d3ee);
+beLine.material.linewidth = 3;
+gConstruct.add(beLine);
+// BE 标签
+const beLabel = makeLabel('BE', '#22d3ee');
+beLabel.position.copy(B.clone().lerp(E, 0.5)).add(new THREE.Vector3(0.22, -0.1, 0.05));
+beLabel.scale.set(0.42,0.42,0.42);
+gConstruct.add(beLabel);
+// BO 垂线（从 B 到 O，垂直于平面）虚线
+const boLine = makeLine(B, O, 0xfb923c, 2, true);
+gConstruct.add(boLine);
+// OE 投影线（在平面内）
+const oeLine = makeLine(O, E, 0x34d399);
+oeLine.material.linewidth = 3;
+gConstruct.add(oeLine);
+// OE 标签
+const oeLabel = makeLabel('OE', '#34d399');
+oeLabel.position.copy(O.clone().lerp(E, 0.5)).add(new THREE.Vector3(-0.05, -0.28, 0));
+oeLabel.scale.set(0.4,0.4,0.4);
+gConstruct.add(oeLabel);
+// 直角标记（在 O 处，BO 与 OE 之间）
+const boDir = B.clone().sub(O);
+const oeDir = E.clone().sub(O);
+gConstruct.add(makeRightAngleMarker(O, boDir, oeDir, 0.18, 0xfb923c));
+scene.add(gConstruct);
+
+/* --- 4.9 角 θ 弧（在 E 处，EB 与 EO 之间） --- */
+const gAngle = new THREE.Group();
+const arcRadius = 0.45;
+const arc = makeArc(E, B, O, arcRadius, 0xfde047, 30);
+gAngle.add(arc);
+// θ 标签
+const thetaLabel = makeLabel('θ', '#fde047');
+// 弧中点方向
+const eMidDir = B.clone().sub(E).normalize().add(O.clone().sub(E).normalize()).normalize();
+thetaLabel.position.copy(E).add(eMidDir.multiplyScalar(arcRadius + 0.28));
+thetaLabel.scale.set(0.5,0.5,0.5);
+gAngle.add(thetaLabel);
+scene.add(gAngle);
+
+/* ============================================================
+   五、分组注册与步骤状态管理
+   ============================================================ */
+// 每组：threshold（出现的最小步骤）、active（高亮的步骤列表）、structural（结构性元素，可见时保持完整透明度）
+const groups = {
+  axes:      { obj: gAxes,       threshold: 1, active: [1], structural: true },
+  pyramid:   { obj: gPyramid,    threshold: 1, active: [],  structural: true },
+  vertices:  { obj: gVertices,   threshold: 2, active: [],  structural: true },
+  ePoint:    { obj: gEPoint,     threshold: 2, active: [2], structural: false },
+  plane:     { obj: gPlane,      threshold: 3, active: [3], structural: false },
+  normal:    { obj: gNormal,     threshold: 3, active: [3], structural: false },
+  construct: { obj: gConstruct,  threshold: 4, active: [4,5], structural: false },
+  angle:     { obj: gAngle,      threshold: 4, active: [5], structural: false },
+};
+// 初始化每组基础透明度记录
+Object.values(groups).forEach(g => prepGroup(g.obj));
+// 用户开关映射（默认全部开启）
+const userToggles = {
+  axes: true, pyramid: true, vertices: true, ePoint: true,
+  plane: true, normal: true, construct: true, angle: true,
+};
+
+let currentStep = 1;
+const TOTAL_STEPS = 5;
+
+function updateSceneForStep(step) {
+  for (const [name, g] of Object.entries(groups)) {
+    const stepVisible = step >= g.threshold;
+    const isActive = g.active.includes(step);
+    const userOn = userToggles[name];
+    // 目标透明度：不可见 -> 0
+    //   结构性元素：可见即 1（始终清晰）
+    //   辅助元素：高亮 -> 1；可见但非高亮 -> 0.42（聚焦时弱化）
+    let target = 0;
+    if (stepVisible && userOn) {
+      target = g.structural ? 1 : (isActive ? 1 : 0.42);
+    }
+    g.obj.userData.targetOpacity = target;
+  }
+}
+
+/* ============================================================
+   六、UI 交互：步骤导航
+   ============================================================ */
+const stepPanels = document.querySelectorAll('.step-panel');
+const dotsContainer = document.getElementById('step-dots');
+const btnPrev = document.getElementById('btn-prev');
+const btnNext = document.getElementById('btn-next');
+const sceneStepTag = document.getElementById('scene-step-tag');
+
+// 生成步骤指示点
+for (let i = 1; i <= TOTAL_STEPS; i++) {
+  const dot = document.createElement('div');
+  dot.className = 'step-dot' + (i === 1 ? ' active' : '');
+  dot.dataset.step = i;
+  dot.title = `步骤 ${i}`;
+  dot.addEventListener('click', () => goToStep(i));
+  dotsContainer.appendChild(dot);
+}
+const dots = dotsContainer.querySelectorAll('.step-dot');
+
+function goToStep(step) {
+  currentStep = Math.max(1, Math.min(TOTAL_STEPS, step));
+  // 切换解析面板
+  stepPanels.forEach(p => p.classList.toggle('active', Number(p.dataset.step) === currentStep));
+  // 切换指示点
+  dots.forEach((d, i) => d.classList.toggle('active', i + 1 === currentStep));
+  // 按钮状态
+  btnPrev.disabled = currentStep === 1;
+  btnNext.disabled = currentStep === TOTAL_STEPS;
+  btnNext.textContent = currentStep === TOTAL_STEPS ? '已完成 ✓' : '下一步 →';
+  // 场景标签
+  sceneStepTag.textContent = `步骤 ${currentStep} / ${TOTAL_STEPS}`;
+  // 更新 3D
+  updateSceneForStep(currentStep);
+}
+
+btnPrev.addEventListener('click', () => goToStep(currentStep - 1));
+btnNext.addEventListener('click', () => goToStep(currentStep + 1));
+// 键盘左右切换
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') goToStep(currentStep - 1);
+  if (e.key === 'ArrowRight') goToStep(currentStep + 1);
+});
+
+/* ============================================================
+   七、UI 交互：参数控制开关
+   ============================================================ */
+const toggleMap = {
+  'toggle-plane': 'plane',
+  'toggle-normal': 'normal',
+  'toggle-construct': 'construct',
+  'toggle-angle': 'angle',
+  'toggle-labels': 'vertices',
+};
+Object.entries(toggleMap).forEach(([id, groupName]) => {
+  const el = document.getElementById(id);
+  el.addEventListener('change', () => {
+    userToggles[groupName] = el.checked;
+    // labels 开关同时控制 E 点标签与顶点标签
+    if (groupName === 'vertices') {
+      userToggles.ePoint = el.checked;
+    }
+    updateSceneForStep(currentStep);
+  });
+});
+// 自动旋转
+const autoRotateToggle = document.getElementById('toggle-autorotate');
+autoRotateToggle.addEventListener('change', () => {
+  controls.autoRotate = autoRotateToggle.checked;
+  controls.autoRotateSpeed = 1.2;
+});
+// 重置视角
+document.getElementById('reset-view').addEventListener('click', () => {
+  camera.position.copy(CAM_INIT);
+  controls.target.copy(TARGET_INIT);
+  controls.update();
+});
+
+/* ============================================================
+   八、渲染循环（含透明度平滑过渡）
+   ============================================================ */
+function lerpOpacity(group) {
+  const target = group.userData.targetOpacity;
+  const cur = group.userData.opacity;
+  const next = cur + (target - cur) * 0.12;
+  group.userData.opacity = next;
+  group.traverse(o => {
+    if (o.material) {
+      const base = o.userData._baseOpacity ?? 1;
+      o.material.opacity = base * next;
+    }
+  });
+  group.visible = next > 0.01;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  // 平滑透明度
+  Object.values(groups).forEach(g => lerpOpacity(g.obj));
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* 窗口尺寸自适应 */
+function onResize() {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+/* ============================================================
+   九、启动
+   ============================================================ */
+updateSceneForStep(currentStep);
+animate();
+</script>
+</body>
+</html>

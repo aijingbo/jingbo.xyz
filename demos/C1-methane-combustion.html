@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>甲烷燃烧 · 分子反应 3D 可视化</title>
+
+<!-- KaTeX 样式 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+<!-- KaTeX 脚本 + auto-render -->
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  /* ============ 设计系统变量 ============ */
+  :root {
+    --primary: #f59e0b;          /* 化学-琥珀 */
+    --primary-soft: #fef3c7;
+    --primary-deep: #b45309;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-soft: #f1f5f9;
+    --text: #0f172a;
+    --muted: #475569;
+    --border: #e2e8f0;
+    --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
+    --shadow-card: 0 10px 28px rgba(15, 23, 42, 0.05);
+    --radius-card: 14px;
+    --radius-button: 8px;
+    --radius-pill: 999px;
+    --font-ui: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+    /* 原子配色（与 3D 一致） */
+    --atom-c: #888888;
+    --atom-h: #ffffff;
+    --atom-o: #e74c3c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font-ui);
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ============ 顶部条 ============ */
+  .topbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
+    z-index: 10;
+  }
+
+  .topbar .tag {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--primary-soft);
+    color: var(--primary-deep);
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .topbar .tag .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--primary);
+  }
+
+  .topbar h1 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .topbar .equation {
+    margin-left: auto;
+    padding: 6px 16px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-button);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .topbar .equation .katex { font-size: 1em; }
+
+  /* ============ 主内容区 ============ */
+  .main {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+  }
+
+  /* ============ 侧栏 ============ */
+  .sidebar {
+    flex: 0 0 420px;
+    width: 420px;
+    padding: 18px;
+    overflow-y: auto;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .sidebar::-webkit-scrollbar { width: 8px; }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: var(--border); border-radius: 8px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 16px 18px;
+  }
+  .card h2 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h2::before {
+    content: '';
+    width: 4px; height: 14px;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+
+  /* 反应信息 */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 10px 12px;
+    font-size: 13px;
+  }
+  .info-grid dt {
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .info-grid dd {
+    color: var(--text);
+    font-family: var(--font-mono);
+  }
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    background: var(--primary-soft);
+    color: var(--primary-deep);
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-ui);
+  }
+
+  /* 原子守恒表 */
+  .conserve-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .conserve-table th,
+  .conserve-table td {
+    padding: 8px 6px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .conserve-table th {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .conserve-table td.count { font-family: var(--font-mono); font-weight: 700; }
+  .atom-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 12px;
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+  }
+  .atom-chip.c { background: var(--atom-c); }
+  .atom-chip.h { background: var(--atom-h); color: #444; border: 1px solid var(--border); }
+  .atom-chip.o { background: var(--atom-o); }
+  .conserve-note {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--primary-deep);
+    background: var(--primary-soft);
+    padding: 7px 10px;
+    border-radius: var(--radius-button);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* 分步解析 */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+  .step {
+    display: flex;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-button);
+    background: var(--surface-soft);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .step:hover { border-color: var(--primary); }
+  .step.active {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+  }
+  .step .num {
+    flex: 0 0 26px;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+    color: var(--muted);
+  }
+  .step.active .num { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .step .body h3 { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .step .body p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* 进度滑块 */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .slider-row .label { font-size: 13px; font-weight: 600; }
+  .slider-row .value {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary-deep);
+    background: var(--primary-soft);
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(to right, var(--primary) 0%, var(--primary) var(--p,0%), var(--border) var(--p,0%), var(--border) 100%);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(245,158,11,0.4);
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 3px solid #fff;
+    cursor: pointer;
+  }
+  .slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  /* 能量变化 */
+  .energy {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .energy-bar {
+    flex: 1;
+    height: 44px;
+    position: relative;
+    background: var(--surface-soft);
+    border-radius: var(--radius-button);
+    overflow: hidden;
+  }
+  .energy-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 70%;
+    background: linear-gradient(180deg, #f87171 0%, #f59e0b 100%);
+    border-radius: var(--radius-button);
+  }
+  .energy-arrow {
+    position: absolute;
+    right: 30%;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .energy-text { flex: 0 0 auto; text-align: right; }
+  .energy-text .delta {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: #dc2626;
+  }
+  .energy-text .desc { font-size: 11px; color: var(--muted); }
+
+  /* ============ 画布区 ============ */
+  .canvas-area {
+    flex: 1 1 auto;
+    position: relative;
+    background: #0a0a1a;
+    min-width: 0;
+  }
+  #scene { display: block; width: 100%; height: 100%; }
+
+  /* 画布上的浮动标签 */
+  .canvas-overlay {
+    position: absolute;
+    left: 18px; top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .stage-badge {
+    align-self: flex-start;
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: var(--radius-pill);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+  .stage-badge .accent { color: var(--primary); }
+
+  .legend {
+    position: absolute;
+    right: 18px; bottom: 18px;
+    display: flex;
+    gap: 14px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-button);
+    pointer-events: none;
+    z-index: 5;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    color: #e2e8f0; font-size: 12px;
+  }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
+  }
+
+  .hint {
+    position: absolute;
+    left: 18px; bottom: 18px;
+    color: rgba(226,232,240,0.6);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ============ 底部导航 ============ */
+  .nav-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
+  }
+  .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: var(--radius-button);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-family: var(--font-ui);
+  }
+  .nav-btn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary-deep);
+    background: var(--primary-soft);
+  }
+  .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .nav-btn.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .nav-btn.primary:hover { background: var(--primary-deep); }
+
+  .dots {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .dot-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+  }
+  .dot-step .pip {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.2s ease;
+  }
+  .dot-step.active .pip {
+    background: var(--primary);
+    transform: scale(1.4);
+    box-shadow: 0 0 0 4px rgba(245,158,11,0.15);
+  }
+  .dot-step .name {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .dot-step.active .name { color: var(--primary-deep); }
+
+  /* 响应式（窄屏堆叠） */
+  @media (max-width: 980px) {
+    .main { flex-direction: column; }
+    .sidebar { flex: 0 0 auto; width: 100%; max-height: 45vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .canvas-area { min-height: 320px; }
+    .topbar .equation { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ====== 顶部条 ====== -->
+  <header class="topbar">
+    <span class="tag"><span class="dot"></span>化学 / 分子反应</span>
+    <h1>甲烷燃烧 · 3D 分子反应可视化</h1>
+    <div class="equation" id="equation"></div>
+  </header>
+
+  <!-- ====== 主内容区 ====== -->
+  <div class="main">
+
+    <!-- 左侧栏 -->
+    <aside class="sidebar">
+
+      <!-- 反应信息 -->
+      <section class="card">
+        <h2>反应信息</h2>
+        <dl class="info-grid">
+          <dt>反应物</dt><dd>CH₄&nbsp;、&nbsp;O₂</dd>
+          <dt>产物</dt><dd>CO₂&nbsp;、&nbsp;H₂O</dd>
+          <dt>反应类型</dt><dd><span class="pill">氧化还原 · 燃烧</span></dd>
+          <dt>条件</dt><dd>点燃 (Δ)</dd>
+        </dl>
+      </section>
+
+      <!-- 原子守恒 -->
+      <section class="card">
+        <h2>原子守恒</h2>
+        <table class="conserve-table">
+          <thead>
+            <tr>
+              <th>原子</th>
+              <th>反应前</th>
+              <th>反应后</th>
+              <th>是否守恒</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="atom-chip c">C</span></td>
+              <td class="count">1</td>
+              <td class="count">1</td>
+              <td style="color:#16a34a;font-weight:700">✓</td>
+            </tr>
+            <tr>
+              <td><span class="atom-chip h">H</span></td>
+              <td class="count">4</td>
+              <td class="count">4</td>
+              <td style="color:#16a34a;font-weight:700">✓</td>
+            </tr>
+            <tr>
+              <td><span class="atom-chip o">O</span></td>
+              <td class="count">4</td>
+              <td class="count">4</td>
+              <td style="color:#16a34a;font-weight:700">✓</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="conserve-note">
+          <span>⚖</span><span>反应前后各原子种类与数目均不变，符合质量守恒定律。</span>
+        </div>
+      </section>
+
+      <!-- 反应进度 -->
+      <section class="card">
+        <h2>反应进度</h2>
+        <div class="slider-row">
+          <span class="label">进度</span>
+          <span class="value" id="progressValue">0%</span>
+        </div>
+        <input type="range" id="progressSlider" min="0" max="100" value="0" step="1" />
+        <div class="slider-ticks">
+          <span>0% 反应物</span>
+          <span>50% 过渡</span>
+          <span>100% 产物</span>
+        </div>
+      </section>
+
+      <!-- 分步解析 -->
+      <section class="card">
+        <h2>分步解析</h2>
+        <div class="steps" id="steps">
+          <div class="step active" data-step="1">
+            <div class="num">1</div>
+            <div class="body">
+              <h3>混合阶段</h3>
+              <p>CH₄（正四面体）与 2 个 O₂（双原子）分子各自独立存在，展示稳定分子结构。</p>
+            </div>
+          </div>
+          <div class="step" data-step="2">
+            <div class="num">2</div>
+            <div class="body">
+              <h3>点燃阶段</h3>
+              <p>C—H 键与 O=O 键断裂，原子获得能量后重新排列、自由移动，处于过渡态。</p>
+            </div>
+          </div>
+          <div class="step" data-step="3">
+            <div class="num">3</div>
+            <div class="body">
+              <h3>产物阶段</h3>
+              <p>形成 C=O 键与 O—H 键，生成直线型 CO₂ 与两个弯曲型 H₂O 分子。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 能量变化 -->
+      <section class="card">
+        <h2>能量变化</h2>
+        <div class="energy">
+          <div class="energy-bar">
+            <div class="energy-fill" id="energyFill"></div>
+            <span class="energy-arrow">↓</span>
+          </div>
+          <div class="energy-text">
+            <div class="delta">ΔH = −890 kJ/mol</div>
+            <div class="desc">放热反应 · 体系能量降低</div>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- 右侧画布 -->
+    <main class="canvas-area">
+      <canvas id="scene"></canvas>
+      <div class="canvas-overlay">
+        <div class="stage-badge">当前阶段 · <span class="accent" id="stageLabel">混合阶段</span></div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot" style="background:#888888"></span>C 碳</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ffffff"></span>H 氢</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#e74c3c"></span>O 氧</div>
+      </div>
+      <div class="hint">拖拽旋转 · 滚轮缩放 · 右键平移</div>
+    </main>
+  </div>
+
+  <!-- ====== 底部导航 ====== -->
+  <footer class="nav-bar">
+    <button class="nav-btn" id="prevBtn">‹ 上一步</button>
+    <div class="dots" id="dots">
+      <div class="dot-step active" data-step="1"><span class="pip"></span><span class="name">混合</span></div>
+      <div class="dot-step" data-step="2"><span class="pip"></span><span class="name">点燃</span></div>
+      <div class="dot-step" data-step="3"><span class="pip"></span><span class="name">产物</span></div>
+    </div>
+    <button class="nav-btn primary" id="nextBtn">下一步 ›</button>
+  </footer>
+
+<!-- ====== Three.js 模块脚本 ====== -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// 1. 原子数据定义
+//    每个原子包含：类型(C/H/O)、反应物位置 start、产物位置 end
+//    索引顺序：C1, H1~H4, O1~O4 （共 9 个原子）
+// ============================================================
+const ATOM_DEFS = {
+  C: { color: 0x888888, radius: 0.5 },   // 碳：灰色
+  H: { color: 0xffffff, radius: 0.3 },   // 氢：白色
+  O: { color: 0xe74c3c, radius: 0.45 },  // 氧：红色
+};
+
+// 正四面体方向（归一化）用于 CH4 的 4 个 H
+const tetraDirs = [
+  [ 1,  1,  1],
+  [ 1, -1, -1],
+  [-1,  1, -1],
+  [-1, -1,  1],
+].map(v => { const n = Math.hypot(...v); return v.map(x => x / n); });
+
+const BOND = 0.95; // 视觉键长
+
+// 原子定义（start = 反应物布局，end = 产物布局）
+const atoms = [
+  // C1 —— CH4 中心 → CO2 中心
+  { type: 'C', start: [-5, 0, 0], end: [-4, 2, 0] },
+  // H1~H4 —— CH4 四个顶点 → 分别进入两个 H2O
+  { type: 'H', start: addVec([-5,0,0], scaleVec(tetraDirs[0], BOND)), end: [3.4, 2.6, 0] },
+  { type: 'H', start: addVec([-5,0,0], scaleVec(tetraDirs[1], BOND)), end: [3.4, 1.4, 0] },
+  { type: 'H', start: addVec([-5,0,0], scaleVec(tetraDirs[2], BOND)), end: [1.3, -1.4, 0] },
+  { type: 'H', start: addVec([-5,0,0], scaleVec(tetraDirs[3], BOND)), end: [1.3, -2.6, 0] },
+  // O1, O2 —— O2(#1) → CO2 两侧
+  { type: 'O', start: [2.55, 1.5, 0], end: [-5.2, 2, 0] },
+  { type: 'O', start: [3.45, 1.5, 0], end: [-2.8, 2, 0] },
+  // O3 —— O2(#2) → H2O(#1) 的氧
+  { type: 'O', start: [2.55, -1.5, 0], end: [2.6, 2, 0] },
+  // O4 —— O2(#2) → H2O(#2) 的氧
+  { type: 'O', start: [3.45, -1.5, 0], end: [0.5, -2, 0] },
+];
+
+// 为每个原子生成过渡态的随机散布偏移（固定种子，保证一致）
+const scatterOffsets = atoms.map((_, i) => {
+  const rng = mulberry(i + 7);
+  return [
+    (rng() - 0.5) * 2.4,
+    (rng() - 0.5) * 2.4,
+    (rng() - 0.5) * 2.4,
+  ];
+});
+
+// ============================================================
+// 2. 化学键定义
+//    phase: 'reactant' 反应物键 / 'product' 产物键
+//    order: 1 单键 / 2 双键
+// ============================================================
+const bonds = [
+  // 反应物：4 个 C-H + 2 个 O=O
+  { a: 0, b: 1, phase: 'reactant', order: 1 },
+  { a: 0, b: 2, phase: 'reactant', order: 1 },
+  { a: 0, b: 3, phase: 'reactant', order: 1 },
+  { a: 0, b: 4, phase: 'reactant', order: 1 },
+  { a: 5, b: 6, phase: 'reactant', order: 2 },
+  { a: 7, b: 8, phase: 'reactant', order: 2 },
+  // 产物：2 个 C=O + 4 个 O-H
+  { a: 0, b: 5, phase: 'product', order: 2 },
+  { a: 0, b: 6, phase: 'product', order: 2 },
+  { a: 7, b: 1, phase: 'product', order: 1 },
+  { a: 7, b: 2, phase: 'product', order: 1 },
+  { a: 8, b: 3, phase: 'product', order: 1 },
+  { a: 8, b: 4, phase: 'product', order: 1 },
+];
+
+// ============================================================
+// 3. Three.js 场景搭建
+// ============================================================
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a1a);
+// 微弱环境光晕，增强深度感
+scene.fog = new THREE.Fog(0x0a0a1a, 18, 40);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+camera.position.set(0, 2.5, 13);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 5;
+controls.maxDistance = 30;
+
+// 灯光
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+keyLight.position.set(6, 10, 8);
+scene.add(keyLight);
+const rimLight = new THREE.DirectionalLight(0x6699ff, 0.4);
+rimLight.position.set(-8, -4, -6);
+scene.add(rimLight);
+const fillLight = new THREE.PointLight(0xf59e0b, 0.5, 30);
+fillLight.position.set(0, 0, 6);
+scene.add(fillLight);
+
+// ============================================================
+// 4. 创建原子与化学键网格
+// ============================================================
+const atomGroup = new THREE.Group();
+scene.add(atomGroup);
+
+const atomMeshes = atoms.map(def => {
+  const { color, radius } = ATOM_DEFS[def.type];
+  const geo = new THREE.SphereGeometry(radius, 48, 48);
+  const mat = new THREE.MeshPhongMaterial({
+    color,
+    shininess: 60,
+    specular: 0x333333,
+    // 氢原子加边框以在深色背景中可见
+    emissive: def.type === 'H' ? 0x222222 : 0x000000,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(def.start[0], def.start[1], def.start[2]);
+  atomGroup.add(mesh);
+
+  // 为氢原子添加描边（白色球在深色背景需要轮廓）
+  if (def.type === 'H') {
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(radius * 1.02, 1)),
+      new THREE.LineBasicMaterial({ color: 0x9ca3af, transparent: true, opacity: 0.4 })
+    );
+    mesh.add(edges);
+  }
+  return mesh;
+});
+
+// 化学键：用圆柱体表示，每个键可能含 1~2 个圆柱（双键）
+const bondGroup = new THREE.Group();
+scene.add(bondGroup);
+
+const CYL_RADIUS = 0.07;
+const bondGeo = new THREE.CylinderGeometry(CYL_RADIUS, CYL_RADIUS, 1, 20);
+const bondMatReactant = new THREE.MeshPhongMaterial({ color: 0xcbd5e1, transparent: true, opacity: 0.9, shininess: 40 });
+const bondMatProduct  = new THREE.MeshPhongMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.9, shininess: 40 });
+
+const bondMeshes = bonds.map(b => {
+  const mat = b.phase === 'reactant' ? bondMatReactant : bondMatProduct;
+  const cylinders = [];
+  const count = b.order; // 单键 1 个，双键 2 个
+  for (let i = 0; i < count; i++) {
+    const mesh = new THREE.Mesh(bondGeo, mat);
+    bondGroup.add(mesh);
+    cylinders.push(mesh);
+  }
+  return { def: b, cylinders };
+});
+
+// ============================================================
+// 5. 位置插值与键更新逻辑
+// ============================================================
+let progress = 0; // 0 ~ 1
+
+// 缓动函数
+function smoothstep(t) {
+  t = Math.max(0, Math.min(1, t));
+  return t * t * (3 - 2 * t);
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+// 计算某原子在当前进度下的位置
+// 0 → start，0.5 → 散布过渡点，1 → end
+function atomPosition(i, p) {
+  const a = atoms[i];
+  const start = a.start, end = a.end, sc = scatterOffsets[i];
+  // 主插值
+  const mainT = smoothstep(p);
+  let x = lerp(start[0], end[0], mainT);
+  let y = lerp(start[1], end[1], mainT);
+  let z = lerp(start[2], end[2], mainT);
+  // 过渡态散布：在 p≈0.5 时最大
+  const scatter = Math.sin(p * Math.PI); // 0→0, 0.5→1, 1→0
+  x += sc[0] * scatter;
+  y += sc[1] * scatter;
+  z += sc[2] * scatter;
+  return new THREE.Vector3(x, y, z);
+}
+
+// 计算键的不透明度
+function bondOpacity(b, p) {
+  if (b.phase === 'reactant') {
+    // 0~0.35 全显，0.35~0.5 淡出
+    if (p <= 0.35) return 0.9;
+    return Math.max(0, 0.9 * (1 - (p - 0.35) / 0.15));
+  } else {
+    // 0.5~0.65 淡入，0.65~1 全显
+    if (p >= 0.65) return 0.9;
+    if (p <= 0.5) return 0;
+    return 0.9 * (p - 0.5) / 0.15;
+  }
+}
+
+// 更新键圆柱的位姿（连接两个 3D 点，支持双键偏移）
+const _up = new THREE.Vector3(0, 1, 0);
+const _q = new THREE.Quaternion();
+const _dir = new THREE.Vector3();
+const _mid = new THREE.Vector3();
+const _perp = new THREE.Vector3();
+
+function updateBondCylinders(bond, p1, p2, opacity) {
+  _dir.subVectors(p2, p1);
+  const len = _dir.length();
+  _mid.addVectors(p1, p2).multiplyScalar(0.5);
+  // 朝向：Y 轴对齐到 _dir
+  _dir.normalize();
+  _q.setFromUnitVectors(_up, _dir);
+
+  // 垂直偏移方向（用于双键）
+  _perp.crossVectors(_dir, _up);
+  if (_perp.lengthSq() < 1e-4) _perp.set(1, 0, 0);
+  _perp.normalize();
+
+  const OFFSET = 0.16;
+  bond.cylinders.forEach((cyl, idx) => {
+    cyl.visible = opacity > 0.01;
+    if (!cyl.visible) return;
+    cyl.scale.set(1, Math.max(len, 0.001), 1);
+    cyl.quaternion.copy(_q);
+    // 双键：两个圆柱沿垂直方向偏移
+    if (bond.cylinders.length === 2) {
+      const off = (idx === 0 ? -1 : 1) * OFFSET / 2;
+      cyl.position.copy(_mid).addScaledVector(_perp, off);
+    } else {
+      cyl.position.copy(_mid);
+    }
+    cyl.material.opacity = opacity;
+  });
+}
+
+function updateMolecules() {
+  // 更新原子位置
+  const positions = atomMeshes.map((m, i) => atomPosition(i, progress));
+  atomMeshes.forEach((m, i) => m.position.copy(positions[i]));
+
+  // 更新化学键
+  bondMeshes.forEach(bond => {
+    const op = bondOpacity(bond.def, progress);
+    updateBondCylinders(bond, positions[bond.def.a], positions[bond.def.b], op);
+  });
+}
+
+// ============================================================
+// 6. 简易伪随机（固定散布种子）
+// ============================================================
+function mulberry(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function scaleVec(v, s) { return [v[0]*s, v[1]*s, v[2]*s]; }
+function addVec(a, b) { return [a[0]+b[0], a[1]+b[1], a[2]+b[2]]; }
+
+// ============================================================
+// 7. 渲染循环与自适应
+// ============================================================
+function resize() {
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  if (canvas.width !== w || canvas.height !== h) {
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+}
+
+const clock = new THREE.Clock();
+function animate() {
+  resize();
+  const t = clock.getElapsedTime();
+  // 整体缓慢自转，增强立体感
+  atomGroup.rotation.y = Math.sin(t * 0.15) * 0.15;
+  bondGroup.rotation.y = atomGroup.rotation.y;
+  controls.update();
+  updateMolecules();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+window.addEventListener('resize', resize);
+
+// ============================================================
+// 8. UI 交互：进度滑块 / 步骤导航
+// ============================================================
+const slider = document.getElementById('progressSlider');
+const progressValue = document.getElementById('progressValue');
+const stageLabel = document.getElementById('stageLabel');
+const energyFill = document.getElementById('energyFill');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const stepCards = document.querySelectorAll('#steps .step');
+const dotSteps = document.querySelectorAll('#dots .dot-step');
+
+// 步骤对应的进度值
+const STEP_PROGRESS = [0, 0.5, 1];
+let currentStep = 1;
+
+function setProgress(p, syncSlider = true) {
+  progress = Math.max(0, Math.min(1, p));
+  if (syncSlider) {
+    slider.value = Math.round(progress * 100);
+    slider.style.setProperty('--p', (progress * 100) + '%');
+  }
+  progressValue.textContent = Math.round(progress * 100) + '%';
+
+  // 阶段标签
+  let label;
+  if (progress < 0.33) label = '混合阶段';
+  else if (progress < 0.67) label = '点燃阶段（过渡）';
+  else label = '产物阶段';
+  stageLabel.textContent = label;
+
+  // 能量条：随进度下降（放热）
+  // 起始 100% 宽 → 产物 30% 宽
+  const w = 100 - progress * 70;
+  energyFill.style.width = w + '%';
+}
+
+// 自动根据进度推断步骤高亮
+function syncStepFromProgress() {
+  let s;
+  if (progress < 0.25) s = 1;
+  else if (progress < 0.75) s = 2;
+  else s = 3;
+  setStep(s, false);
+}
+
+function setStep(s, animateTo = true) {
+  currentStep = s;
+  stepCards.forEach(c => c.classList.toggle('active', +c.dataset.step === s));
+  dotSteps.forEach(d => d.classList.toggle('active', +d.dataset.step === s));
+  prevBtn.disabled = s === 1;
+  nextBtn.disabled = s === 3;
+  if (animateTo) {
+    const target = STEP_PROGRESS[s - 1];
+    animateProgressTo(target);
+  }
+}
+
+// 平滑过渡到目标进度
+let animHandle = null;
+function animateProgressTo(target) {
+  if (animHandle) cancelAnimationFrame(animHandle);
+  const start = progress;
+  const startT = performance.now();
+  const DURATION = 700;
+  function tick(now) {
+    const k = Math.min(1, (now - startT) / DURATION);
+    const e = smoothstep(k);
+    setProgress(lerp(start, target, e));
+    if (k < 1) {
+      animHandle = requestAnimationFrame(tick);
+    } else {
+      animHandle = null;
+    }
+  }
+  animHandle = requestAnimationFrame(tick);
+}
+
+// 滑块事件
+slider.addEventListener('input', () => {
+  if (animHandle) { cancelAnimationFrame(animHandle); animHandle = null; }
+  setProgress(parseFloat(slider.value) / 100, false);
+  slider.style.setProperty('--p', slider.value + '%');
+  syncStepFromProgress();
+});
+
+// 步骤卡片点击
+stepCards.forEach(c => c.addEventListener('click', () => setStep(+c.dataset.step)));
+// 圆点点击
+dotSteps.forEach(d => d.addEventListener('click', () => setStep(+d.dataset.step)));
+// 上一步 / 下一步
+prevBtn.addEventListener('click', () => { if (currentStep > 1) setStep(currentStep - 1); });
+nextBtn.addEventListener('click', () => { if (currentStep < 3) setStep(currentStep + 1); });
+
+// 键盘左右切换
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' && currentStep > 1) setStep(currentStep - 1);
+  if (e.key === 'ArrowRight' && currentStep < 3) setStep(currentStep + 1);
+});
+
+// 初始化
+setProgress(0);
+slider.style.setProperty('--p', '0%');
+
+// ============================================================
+// 9. KaTeX 渲染化学方程式
+// ============================================================
+function renderEquation() {
+  const el = document.getElementById('equation');
+  if (window.katex) {
+    katex.render('\\text{CH}_4 + 2\\,\\text{O}_2 \\xrightarrow{\\text{点燃}} \\text{CO}_2 + 2\\,\\text{H}_2\\text{O}', el, {
+      throwOnError: false,
+      displayMode: false,
+    });
+  } else {
+    // KaTeX 尚未加载完成时回退
+    el.textContent = 'CH₄ + 2O₂ → CO₂ + 2H₂O';
+  }
+}
+// KaTeX 是 defer 加载，需等待可用
+if (window.katex) {
+  renderEquation();
+} else {
+  window.addEventListener('load', renderEquation);
+}
+</script>
+
+</body>
+</html>

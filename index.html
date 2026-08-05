@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="景礡之道 — 教育可视化平台，提供交互式学科 Demo 和可下载的 Trae Skill" />
+<title>景礡之道 · EduViz Lab</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<style>
+/* ============ 设计系统变量 ============ */
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-soft: #f1f5f9;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #e2e8f0;
+  --ring: rgba(14, 165, 233, 0.24);
+
+  --accent-math: #0ea5e9;
+  --accent-physics: #8b5cf6;
+  --accent-chem: #f59e0b;
+  --accent-bio: #10b981;
+  --accent-history: #ef4444;
+  --accent-cross: #ec4899;
+
+  --primary: #0ea5e9;
+
+  --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --shadow-panel: 0 18px 42px rgba(15, 23, 42, 0.09);
+  --shadow-card: 0 10px 28px rgba(15, 23, 42, 0.05);
+
+  --radius-container: 24px;
+  --radius-card: 14px;
+  --radius-button: 8px;
+  --radius-pill: 999px;
+
+  --font-ui: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+/* ============ Reset ============ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+
+/* ============ 导航栏 ============ */
+.navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 48px;
+  background: rgba(248, 250, 252, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+.navbar.scrolled {
+  padding: 12px 48px;
+  box-shadow: var(--shadow-card);
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.nav-logo .logo-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent-math), var(--accent-physics));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+}
+.nav-links {
+  display: flex;
+  gap: 32px;
+}
+.nav-links a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text); }
+
+/* ============ Hero ============ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 24px 80px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.5;
+}
+.hero-bg::before {
+  content: '';
+  position: absolute;
+  top: 20%; left: 50%;
+  transform: translateX(-50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  bottom: 10%; right: 15%;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+}
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-card);
+}
+.hero-tag .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent-bio);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.hero h1 {
+  font-size: clamp(40px, 6vw, 64px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 20px;
+}
+.hero h1 .gradient {
+  background: linear-gradient(135deg, var(--accent-math), var(--accent-physics), var(--accent-cross));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero p {
+  font-size: 18px;
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 540px;
+  margin: 0 auto 36px;
+}
+.hero-cta {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: var(--radius-button);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+.btn-primary {
+  background: var(--text);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  border-color: var(--text);
+  transform: translateY(-1px);
+}
+
+/* 学科色条 */
+.subject-strip {
+  display: flex;
+  gap: 0;
+  margin-top: 56px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.subject-strip span {
+  width: 60px;
+  height: 6px;
+}
+.subject-strip .s-math { background: var(--accent-math); }
+.subject-strip .s-physics { background: var(--accent-physics); }
+.subject-strip .s-chem { background: var(--accent-chem); }
+.subject-strip .s-bio { background: var(--accent-bio); }
+.subject-strip .s-history { background: var(--accent-history); }
+.subject-strip .s-cross { background: var(--accent-cross); }
+
+/* ============ 通用 Section ============ */
+.section {
+  padding: 80px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.section-header {
+  margin-bottom: 48px;
+}
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.section-title {
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.section-desc {
+  font-size: 16px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+/* ============ Demo 画廊 ============ */
+.demo-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+.filter-btn {
+  padding: 7px 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-btn.active {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
+}
+.filter-btn:hover:not(.active) {
+  border-color: var(--text);
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+.demo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  transition: all 0.28s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.demo-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-panel);
+  border-color: var(--card-accent, var(--border));
+}
+.demo-thumb {
+  height: 180px;
+  background: var(--surface-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.demo-thumb .thumb-icon {
+  font-size: 48px;
+  opacity: 0.3;
+}
+.demo-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--card-accent, transparent) 0%, transparent 60%);
+  opacity: 0.08;
+}
+.demo-body {
+  padding: 18px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.demo-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.demo-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--card-accent, var(--muted));
+}
+.demo-subject {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  color: var(--card-accent, var(--muted));
+  background: color-mix(in srgb, var(--card-accent, var(--muted)) 10%, transparent);
+}
+.demo-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  margin-left: auto;
+}
+.demo-status.ready {
+  background: color-mix(in srgb, var(--accent-bio) 12%, transparent);
+  color: var(--accent-bio);
+}
+.demo-status.wip {
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+.demo-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.demo-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  flex: 1;
+}
+.demo-link {
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--card-accent, var(--primary));
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.demo-link.disabled {
+  color: var(--muted);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ============ Skills 区 ============ */
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+.skill-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  transition: all 0.28s ease;
+}
+.skill-card:hover {
+  border-color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+.skill-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--surface-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+.skill-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.skill-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+.skill-triggers {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.skill-trigger {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+.skill-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ============ About 区 ============ */
+.about {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.about-content {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+.about-content p {
+  font-size: 17px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+
+/* ============ Footer ============ */
+.footer {
+  padding: 40px 48px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  border-top: 1px solid var(--border);
+}
+.footer a {
+  color: var(--text);
+  font-weight: 600;
+}
+.footer a:hover { text-decoration: underline; }
+
+/* ============ 动画 ============ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease forwards;
+}
+.reveal:nth-child(1) { animation-delay: 0.05s; }
+.reveal:nth-child(2) { animation-delay: 0.1s; }
+.reveal:nth-child(3) { animation-delay: 0.15s; }
+.reveal:nth-child(4) { animation-delay: 0.2s; }
+.reveal:nth-child(5) { animation-delay: 0.25s; }
+.reveal:nth-child(6) { animation-delay: 0.3s; }
+
+/* ============ 响应式 ============ */
+@media (max-width: 768px) {
+  .navbar { padding: 14px 20px; }
+  .nav-links { gap: 20px; }
+  .nav-links a { font-size: 13px; }
+  .section { padding: 60px 20px; }
+  .hero { padding: 100px 20px 60px; }
+  .demo-grid { grid-template-columns: 1fr; }
+  .skills-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 导航栏 ============ -->
+<nav class="navbar" id="navbar">
+  <div class="nav-logo">
+    <span class="logo-mark">景</span>
+    <span>景礡之道</span>
+  </div>
+  <div class="nav-links">
+    <a href="#demos">Demos</a>
+    <a href="#skills">Skills</a>
+    <a href="#about">关于</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+  </div>
+</nav>
+
+<!-- ============ Hero ============ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-tag reveal">
+      <span class="dot"></span>
+      <span>EduViz Lab · 教育可视化实验室</span>
+    </div>
+    <h1 class="reveal">
+      让知识<span class="gradient">可见、可触、可玩</span>
+    </h1>
+    <p class="reveal">
+      12 个交互式学科 Demo + 7 个可下载 Trae Skill，覆盖数学、物理、化学、生物、历史。每个 Demo 既是独立可玩的教学展品，也是对应 Skill 的产出范例。
+    </p>
+    <div class="hero-cta reveal">
+      <a href="#demos" class="btn btn-primary">浏览 Demo →</a>
+      <a href="#skills" class="btn btn-secondary">了解 Skill</a>
+    </div>
+    <div class="subject-strip reveal">
+      <span class="s-math"></span>
+      <span class="s-physics"></span>
+      <span class="s-chem"></span>
+      <span class="s-bio"></span>
+      <span class="s-history"></span>
+      <span class="s-cross"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Demo 画廊 ============ -->
+<section class="section" id="demos">
+  <div class="section-header">
+    <div class="section-label">DEMOS</div>
+    <h2 class="section-title">学科可视化展品</h2>
+    <p class="section-desc">点击任意展品，即开即玩。每个 Demo 都是独立 HTML 文件，离线可用。</p>
+  </div>
+
+  <div class="demo-filters">
+    <button class="filter-btn active" data-filter="all">全部</button>
+    <button class="filter-btn" data-filter="math">数学</button>
+    <button class="filter-btn" data-filter="physics">物理</button>
+    <button class="filter-btn" data-filter="chem">化学</button>
+    <button class="filter-btn" data-filter="bio">生物</button>
+    <button class="filter-btn" data-filter="history">历史</button>
+    <button class="filter-btn" data-filter="cross">跨学科</button>
+  </div>
+
+  <div class="demo-grid" id="demoGrid">
+    <!-- Demo 卡片由 JS 渲染 -->
+  </div>
+</section>
+
+<!-- ============ Skills 区 ============ -->
+<section class="section" id="skills" style="background: var(--surface-soft);">
+  <div class="section-header">
+    <div class="section-label">SKILLS</div>
+    <h2 class="section-title">Trae Skill 下载</h2>
+    <p class="section-desc">下载 Skill 后放入 Trae Agent 的 .trae/skills/ 目录，即可通过自然语言生成交互课件。</p>
+  </div>
+
+  <div class="skills-grid" id="skillsGrid">
+    <!-- Skill 卡片由 JS 渲染 -->
+  </div>
+</section>
+
+<!-- ============ About ============ -->
+<section class="section about" id="about">
+  <div class="about-content">
+    <div class="section-label" style="text-align:center;">ABOUT</div>
+    <h2 class="section-title" style="margin-bottom: 24px;">关于景礡之道</h2>
+    <p>
+      "景礡之道"是一个教育可视化个人网站，秉承"教科书的严谨遇上博物馆的精致"的设计理念。
+    </p>
+    <p>
+      每个 Demo 都是独立的交互式 HTML 文件，无需安装、即开即玩。每个 Demo 对应一个 Trae Skill，教育工作者下载 Skill 后可通过 Trae Agent 生成个性化课件。
+    </p>
+    <p>
+      技术栈：Three.js（3D）、Canvas 2D、KaTeX / MathJax（公式），纯前端实现，离线可用。
+    </p>
+  </div>
+</section>
+
+<!-- ============ Footer ============ -->
+<footer class="footer">
+  <p>景礡之道 · EduViz Lab — 教育可视化平台</p>
+  <p style="margin-top: 6px;">© 2026 jingbo.xyz · <a href="https://github.com" target="_blank">GitHub</a></p>
+</footer>
+
+<script>
+// ============ Demo 数据 ============
+const demos = [
+  { code: 'M1', title: '正四棱锥线面角', subject: '数学', subjectKey: 'math', accent: '#0ea5e9', desc: '3D 立体几何交互解题，正四棱锥中线面角的正弦值求解', status: 'ready', url: 'demos/M1-solid-geometry.html' },
+  { code: 'M2', title: '椭圆数量积范围', subject: '数学', subjectKey: 'math', accent: '#0ea5e9', desc: '2D 解析几何，椭圆过焦点直线的数量积范围探索', status: 'wip' },
+  { code: 'M3', title: '三角函数变换器', subject: '数学', subjectKey: 'math', accent: '#0ea5e9', desc: '振幅、频率、相位滑块驱动正弦曲线实时变换', status: 'wip' },
+  { code: 'P1', title: '小孔成像仿真', subject: '物理', subjectKey: 'physics', accent: '#8b5cf6', desc: '2D 光路图 + 3D 暗室实验室双模式', status: 'wip' },
+  { code: 'P2', title: '抛体运动轨迹', subject: '物理', subjectKey: 'physics', accent: '#8b5cf6', desc: '初速度与角度滑块驱动抛物线轨迹，多星球重力切换', status: 'wip' },
+  { code: 'P3', title: '太阳系 3D 交互', subject: '物理', subjectKey: 'physics', accent: '#8b5cf6', desc: 'Three.js 八大行星轨道，时间流速控制，行星聚焦', status: 'wip' },
+  { code: 'C1', title: '甲烷燃烧', subject: '化学', subjectKey: 'chem', accent: '#f59e0b', desc: '3D 分子反应动画，CH₄ + 2O₂ → CO₂ + 2H₂O', status: 'ready', url: 'demos/C1-methane-combustion.html' },
+  { code: 'C2', title: '酯化反应', subject: '化学', subjectKey: 'chem', accent: '#f59e0b', desc: '3D 分子反应动画，酯化反应机理与过渡态', status: 'wip' },
+  { code: 'B1', title: '人体器官系统', subject: '生物', subjectKey: 'bio', accent: '#10b981', desc: '3D 人体器官系统切换，骨骼/循环/呼吸/消化/神经', status: 'wip' },
+  { code: 'B2', title: '细胞器探索', subject: '生物', subjectKey: 'bio', accent: '#10b981', desc: '2D 交互图，点击细胞器显示结构与功能', status: 'wip' },
+  { code: 'H1', title: '丝绸之路交互', subject: '历史', subjectKey: 'history', accent: '#ef4444', desc: '2D 地图 + 时间轴，汉/唐/元不同时期路线动画', status: 'wip' },
+  { code: 'X1', title: '概念可视化动画', subject: '跨学科', subjectKey: 'cross', accent: '#ec4899', desc: 'AI 驱动科普动画，Vox 风格概念可视化', status: 'wip' },
+];
+
+// ============ Skill 数据 ============
+const skills = [
+  { icon: '📐', name: 'edu-solid-geometry', desc: '立体几何题 → 3D 交互解题网页', triggers: ['立体几何', '线面角', '二面角'] },
+  { icon: '📊', name: 'edu-analytic-geometry', desc: '解析几何题 → 2D 交互解题网页', triggers: ['解析几何', '圆锥曲线', '椭圆'] },
+  { icon: '⚗️', name: 'edu-chem-reaction', desc: '化学反应 → 3D 分子动画网页', triggers: ['化学反应', '分子动画', '燃烧'] },
+  { icon: '🔬', name: 'edu-physics-simulation', desc: '物理仿真 → 交互实验网页', triggers: ['物理仿真', '小孔成像', '抛体运动'] },
+  { icon: '🧬', name: 'edu-biology-explorer', desc: '生物结构 → 交互探索网页', triggers: ['人体解剖', '器官系统', '细胞结构'] },
+  { icon: '📜', name: 'edu-history-timeline', desc: '历史事件 → 交互时间轴地图', triggers: ['历史地图', '丝绸之路', '时间轴'] },
+  { icon: '📈', name: 'edu-function-visualizer', desc: '函数 → 交互变换器网页', triggers: ['函数可视化', '三角函数', '变换器'] },
+];
+
+// ============ 渲染 Demo 卡片 ============
+const demoGrid = document.getElementById('demoGrid');
+function renderDemos(filter = 'all') {
+  const filtered = filter === 'all' ? demos : demos.filter(d => d.subjectKey === filter);
+  demoGrid.innerHTML = filtered.map(d => `
+    <div class="demo-card reveal" style="--card-accent: ${d.accent};" onclick="window.open('${d.url || '#'}', '_blank')">
+      <div class="demo-thumb" style="background: color-mix(in srgb, ${d.accent} 6%, var(--surface-soft));">
+        <span class="thumb-icon">${d.code}</span>
+      </div>
+      <div class="demo-body">
+        <div class="demo-meta">
+          <span class="demo-code">${d.code}</span>
+          <span class="demo-subject">${d.subject}</span>
+          <span class="demo-status ${d.status === 'ready' ? 'ready' : 'wip'}">${d.status === 'ready' ? '可访问' : '开发中'}</span>
+        </div>
+        <div class="demo-title">${d.title}</div>
+        <div class="demo-desc">${d.desc}</div>
+        <div class="demo-link ${d.status === 'ready' ? '' : 'disabled'}">
+          ${d.status === 'ready' ? '打开 Demo →' : '即将上线'}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+renderDemos();
+
+// ============ 筛选 ============
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderDemos(btn.dataset.filter);
+  });
+});
+
+// ============ 渲染 Skill 卡片 ============
+const skillsGrid = document.getElementById('skillsGrid');
+skillsGrid.innerHTML = skills.map(s => `
+  <div class="skill-card reveal">
+    <div class="skill-icon">${s.icon}</div>
+    <div class="skill-name">${s.name}</div>
+    <div class="skill-desc">${s.desc}</div>
+    <div class="skill-triggers">
+      ${s.triggers.map(t => `<span class="skill-trigger">${t}</span>`).join('')}
+    </div>
+    <div class="skill-download">⬇ 即将提供下载</div>
+  </div>
+`).join('');
+
+// ============ 导航栏滚动效果 ============
+window.addEventListener('scroll', () => {
+  const navbar = document.getElementById('navbar');
+  navbar.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ============ Scroll Reveal ============
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.animationPlayState = 'running';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => {
+  el.style.animationPlayState = 'paused';
+  observer.observe(el);
+});
+</script>
+
+</body>
+</html>
