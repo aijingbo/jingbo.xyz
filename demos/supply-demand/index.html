@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>经济学：供需曲线 · 景礴</title>
+  <link rel="stylesheet" href="/assets/css/design-system.css">
+  <link rel="stylesheet" href="/assets/css/demo-framework.css">
+  <style>
+    /* ===== D114 供需曲线 Demo 专属样式 ===== */
+    :root {
+      --econ-demand: #c2410c;     /* 需求曲线：赤陶色 */
+      --econ-supply: #0d9488;     /* 供给曲线：Teal */
+      --econ-equilibrium: #d97706; /* 均衡点：金色 */
+      --econ-grid: #ede8de;
+      --econ-axis: #475569;
+      --econ-shortage: rgba(30, 64, 175, 0.12);
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background: var(--bg);
+    }
+    body.has-info-bar { padding-bottom: 0; }
+
+    .page-wrapper {
+      padding-top: 64px;
+      padding-bottom: 52px;
+      min-height: 100vh;
+    }
+
+    /* ===== 杂志布局 ===== */
+    .magazine-layout {
+      display: grid;
+      grid-template-columns: 40% 60%;
+      gap: var(--spacer-40, 40px);
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: var(--spacer-32) var(--spacer-32);
+      min-height: calc(100vh - 116px);
+    }
+
+    /* ===== 左侧文章区 ===== */
+    .article-side {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-20);
+    }
+
+    .article-header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-12);
+    }
+
+    .article-kicker {
+      font-family: var(--font-mono);
+      font-size: var(--fs-tiny);
+      letter-spacing: 0.12em;
+      color: var(--econ-demand, var(--brand));
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .article-title {
+      font-family: var(--font-serif);
+      font-size: var(--fs-h1);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text);
+    }
+
+    .article-subtitle {
+      font-size: var(--fs-body);
+      color: var(--text-muted);
+      line-height: var(--lh-relaxed);
+      font-style: italic;
+      font-family: var(--font-serif);
+    }
+
+    .article-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-16);
+    }
+
+    .article-body p {
+      font-size: var(--fs-body);
+      line-height: 1.85;
+      color: var(--text);
+    }
+
+    .article-body p.lead {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .article-body strong { font-weight: 600; }
+    .article-body .demand-text { color: var(--econ-demand); font-weight: 600; }
+    .article-body .supply-text { color: var(--econ-supply); font-weight: 600; }
+    .article-body .equilibrium-text { color: var(--econ-equilibrium); font-weight: 600; }
+
+    /* ===== 概念高亮框 ===== */
+    .concept-box {
+      background: linear-gradient(135deg, rgba(194, 65, 12, 0.04), rgba(194, 65, 12, 0.08));
+      border: 1px solid rgba(194, 65, 12, 0.15);
+      border-radius: var(--radius-card);
+      padding: var(--spacer-20);
+      margin: var(--spacer-12) 0;
+    }
+
+    .concept-box-title {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--brand);
+      margin-bottom: var(--spacer-8);
+    }
+
+    .concept-box-text {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    /* ===== 步骤指示器 ===== */
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-12);
+      margin: var(--spacer-4) 0;
+    }
+
+    .step-dots { display: flex; gap: 10px; }
+
+    .step-dot {
+      width: 10px; height: 10px;
+      border-radius: var(--radius-full);
+      background-color: var(--border);
+      transition: all var(--duration-base) var(--ease);
+      cursor: pointer;
+    }
+    .step-dot.active {
+      background-color: var(--brand);
+      transform: scale(1.3);
+    }
+    .step-dot.completed { background-color: var(--text-faint); }
+
+    .step-label {
+      font-family: var(--font-mono);
+      font-size: var(--fs-tiny);
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ===== 步骤内容 ===== */
+    .step-content {
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: var(--spacer-8);
+      transition: opacity var(--duration-slow) var(--ease);
+    }
+    .step-content.fade-out { opacity: 0; }
+
+    .step-content::-webkit-scrollbar { width: 4px; }
+    .step-content::-webkit-scrollbar-track { background: transparent; }
+    .step-content::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .step-title {
+      font-family: var(--font-serif);
+      font-size: var(--fs-h2);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: var(--spacer-16);
+    }
+
+    /* ===== 上一步/下一步 ===== */
+    .step-nav {
+      display: flex;
+      gap: var(--spacer-12);
+      margin-top: var(--spacer-8);
+    }
+    .step-nav .btn { flex: 1; }
+
+    /* ===== 右侧可视化区 ===== */
+    .visual-side {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-20);
+    }
+
+    .visual-wrapper {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      flex: 1;
+      min-height: 460px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .visual-canvas {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacer-16);
+      position: relative;
+    }
+
+    .visual-canvas svg {
+      width: 100%;
+      height: auto;
+      max-height: 100%;
+    }
+
+    .visual-caption {
+      font-size: var(--fs-small);
+      color: var(--text-muted);
+      text-align: center;
+      font-style: italic;
+      font-family: var(--font-serif);
+      padding: 0 var(--spacer-16) var(--spacer-16);
+    }
+
+    /* ===== SVG 元素样式 ===== */
+    .axis-line { stroke: var(--econ-axis); stroke-width: 1.5; }
+    .axis-label {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      fill: var(--text-muted);
+    }
+    .axis-title {
+      font-family: var(--font-serif);
+      font-size: 13px;
+      font-weight: 600;
+      fill: var(--text);
+    }
+    .grid-line { stroke: var(--econ-grid); stroke-width: 1; }
+    .grid-line.major { stroke: #e0d9cd; }
+
+    .demand-curve {
+      stroke: var(--econ-demand);
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+    }
+    .supply-curve {
+      stroke: var(--econ-supply);
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+    }
+    .demand-curve.old, .supply-curve.old {
+      stroke-dasharray: 6 4;
+      opacity: 0.4;
+    }
+
+    .curve-label {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .curve-label.demand { fill: var(--econ-demand); }
+    .curve-label.supply { fill: var(--econ-supply); }
+
+    .equilibrium-point {
+      fill: var(--econ-equilibrium);
+      stroke: white;
+      stroke-width: 3;
+      transition: r var(--duration-base) var(--ease);
+    }
+    .equilibrium-line {
+      stroke: var(--econ-equilibrium);
+      stroke-width: 1.5;
+      stroke-dasharray: 5 4;
+      opacity: 0.6;
+    }
+    .equilibrium-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      fill: var(--econ-equilibrium);
+    }
+
+    .draggable-point {
+      fill: var(--brand);
+      stroke: white;
+      stroke-width: 2.5;
+      cursor: grab;
+      transition: r var(--duration-fast) var(--ease);
+    }
+    .draggable-point:hover { r: 8; }
+    .draggable-point:active { cursor: grabbing; }
+
+    .value-tag {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .value-tag-box {
+      fill: var(--surface);
+      stroke: var(--border);
+      stroke-width: 1;
+      rx: 4;
+    }
+
+    .shift-arrow {
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ===== 交互按钮组 ===== */
+    .visual-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacer-8);
+      padding: var(--spacer-12) var(--spacer-16);
+      border-top: 1px solid var(--border-soft);
+      background: var(--surface-muted);
+    }
+
+    .shift-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: var(--fs-tiny);
+      font-weight: 500;
+      font-family: var(--font-sans);
+      color: var(--text);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease);
+      white-space: nowrap;
+    }
+    .shift-btn:hover {
+      border-color: var(--text-faint);
+      background-color: var(--bg);
+    }
+    .shift-btn.active {
+      background-color: var(--brand-soft);
+      border-color: rgba(194, 65, 12, 0.3);
+      color: var(--brand);
+    }
+    .shift-btn .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .shift-btn .dot.demand { background: var(--econ-demand); }
+    .shift-btn .dot.supply { background: var(--econ-supply); }
+
+    /* ===== 价格滑块 ===== */
+    .price-slider-container {
+      padding: var(--spacer-12) var(--spacer-16);
+      border-top: 1px solid var(--border-soft);
+      background: var(--surface-muted);
+    }
+
+    .price-slider-row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-12);
+    }
+
+    .price-slider-label {
+      font-size: var(--fs-tiny);
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .price-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 1;
+      height: 4px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(to right, var(--econ-supply) 0%, var(--econ-equilibrium) 50%, var(--econ-demand) 100%);
+      outline: none;
+      cursor: pointer;
+    }
+    .price-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--econ-equilibrium);
+      border: 3px solid var(--surface);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      cursor: pointer;
+    }
+    .price-slider::-moz-range-thumb {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--econ-equilibrium);
+      border: 3px solid var(--surface);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      cursor: pointer;
+      border: none;
+    }
+
+    .price-slider-value {
+      font-family: var(--font-mono);
+      font-size: var(--fs-small);
+      font-weight: 700;
+      color: var(--econ-equilibrium);
+      min-width: 70px;
+      text-align: right;
+    }
+
+    /* ===== 市场场景插画 ===== */
+    .market-scene-icon {
+      fill: var(--econ-demand);
+      opacity: 0.85;
+    }
+    .market-scene-icon.supply { fill: var(--econ-supply); }
+    .market-scene-label {
+      font-family: var(--font-serif);
+      font-size: 12px;
+      font-weight: 600;
+      fill: var(--text-muted);
+    }
+
+    /* ===== 短缺/过剩区域 ===== */
+    .shortage-area { fill: rgba(30, 64, 175, 0.12); }
+    .surplus-area { fill: rgba(234, 88, 12, 0.12); }
+    .area-label {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .area-label.shortage { fill: #1e40af; }
+    .area-label.surplus { fill: #ea580c; }
+
+    /* ===== 动画 ===== */
+    @keyframes drawLine {
+      from { stroke-dashoffset: 600; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    .animate-draw {
+      stroke-dasharray: 600;
+      animation: drawLine 1.2s var(--ease) forwards;
+    }
+
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.5); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .animate-pop {
+      opacity: 0;
+      animation: fadeInScale 0.6s var(--ease) 0.8s forwards;
+      transform-origin: center;
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 1024px) {
+      .magazine-layout {
+        grid-template-columns: 1fr;
+        gap: var(--spacer-24);
+      }
+      .visual-wrapper { min-height: 380px; }
+      .step-content { max-height: 400px; }
+    }
+
+    @media (max-width: 768px) {
+      .magazine-layout {
+        padding: var(--spacer-20) var(--spacer-16);
+      }
+      .visual-wrapper { min-height: 320px; }
+      .step-content { max-height: 350px; }
+    }
+  </style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">跨学科</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">经济学：供需曲线</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-cross">跨学科</span>
+      <a href="/skills/jingbo-edu-humanities-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="article-side">
+        <div class="article-header">
+          <div class="article-kicker">ECONOMICS · 经济学</div>
+          <h1 class="article-title">供需曲线<br>市场的语言</h1>
+          <p class="article-subtitle">价格如何被决定？一只"看不见的手"如何协调亿万人的交易？</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="step-indicator">
+          <div class="step-dots" id="stepDots"></div>
+          <span class="step-label" id="stepLabel">第 1 / 8 步</span>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="step-content" id="stepContent"></div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="step-nav">
+          <button class="btn btn-secondary" id="prevBtn">
+            <span>←</span> 上一步
+          </button>
+          <button class="btn btn-primary" id="nextBtn">
+            下一步 <span>→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="visual-side">
+        <div class="visual-wrapper">
+          <div class="visual-canvas">
+            <svg id="chartSvg" viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+          <div class="visual-controls" id="visualControls" style="display:none;"></div>
+          <div class="price-slider-container" id="priceSliderContainer" style="display:none;">
+            <div class="price-slider-row">
+              <span class="price-slider-label">调节价格</span>
+              <input type="range" class="price-slider" id="priceSlider" min="0" max="40" value="20" step="1">
+              <span class="price-slider-value" id="priceSliderValue">¥20 /杯</span>
+            </div>
+          </div>
+          <p class="visual-caption" id="visualCaption">图 1 · 咖啡市场的供需模型示意</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">supply-demand-viz</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">Vanilla JS</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-humanities-lecture-v0.1.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   D114 · 经济学：供需曲线 — 交互式杂志讲解
+   ============================================================ */
+
+// ====== 图表坐标系配置 ======
+const CHART = {
+  marginLeft: 70,
+  marginRight: 40,
+  marginTop: 30,
+  marginBottom: 50,
+  width: 600,
+  height: 420,
+  pMax: 50,   // 价格最大值
+  qMax: 200,  // 数量最大值
+};
+
+// 绘图区域
+const PLOT = {
+  x: CHART.marginLeft,
+  y: CHART.marginTop,
+  w: CHART.width - CHART.marginLeft - CHART.marginRight,
+  h: CHART.height - CHART.marginTop - CHART.marginBottom,
+};
+
+// 坐标转换函数
+function toX(q) { return PLOT.x + (q / CHART.qMax) * PLOT.w; }
+function toY(p) { return PLOT.y + PLOT.h - (p / CHART.pMax) * PLOT.h; }
+
+// ====== 供需模型参数 ======
+// 需求曲线: P = 40 - 0.2Q  (向下倾斜)
+// 供给曲线: P = 0.2Q       (向上倾斜)
+// 均衡点:   P* = 20, Q* = 100
+
+function demandP(q) { return Math.max(0, 40 - 0.2 * q); }
+function supplyP(q) { return 0.2 * q; }
+function demandQ(p) { return Math.max(0, (40 - p) / 0.2); }
+function supplyQ(p) { return Math.min(CHART.qMax, p / 0.2); }
+
+// 均衡点
+const EQ_P = 20;
+const EQ_Q = 100;
+
+// 可变状态：曲线偏移量（用于步骤5/6的曲线移动）
+let demandShift = 0;  // 正值=右移(需求增加)
+let supplyShift = 0;  // 正值=右移(供给增加)
+
+function demandP_shifted(q) { return Math.max(0, 40 - 0.2 * (q - demandShift)); }
+function supplyP_shifted(q) { return 0.2 * Math.max(0, (q - supplyShift)); }
+
+// ====== SVG 辅助函数 ======
+const svg = document.getElementById('chartSvg');
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function createEl(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    el.setAttribute(k, v);
+  }
+  return el;
+}
+
+function clearSvg() {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+}
+
+// ====== 绘制坐标轴 ======
+function drawAxes() {
+  const g = createEl('g', {});
+
+  // 网格线
+  for (let p = 10; p <= 40; p += 10) {
+    const y = toY(p);
+    g.appendChild(createEl('line', {
+      x1: PLOT.x, y1: y, x2: PLOT.x + PLOT.w, y2: y,
+      class: 'grid-line'
+    }));
+    g.appendChild(createEl('text', {
+      x: PLOT.x - 10, y: y + 4, class: 'axis-label',
+      'text-anchor': 'end'
+    })).textContent = '¥' + p;
+  }
+  for (let q = 50; q <= 200; q += 50) {
+    const x = toX(q);
+    g.appendChild(createEl('line', {
+      x1: x, y1: PLOT.y, x2: x, y2: PLOT.y + PLOT.h,
+      class: 'grid-line'
+    }));
+    g.appendChild(createEl('text', {
+      x: x, y: PLOT.y + PLOT.h + 20, class: 'axis-label',
+      'text-anchor': 'middle'
+    })).textContent = q;
+  }
+
+  // Y轴
+  g.appendChild(createEl('line', {
+    x1: PLOT.x, y1: PLOT.y, x2: PLOT.x, y2: PLOT.y + PLOT.h,
+    class: 'axis-line'
+  }));
+  // X轴
+  g.appendChild(createEl('line', {
+    x1: PLOT.x, y1: PLOT.y + PLOT.h, x2: PLOT.x + PLOT.w, y2: PLOT.y + PLOT.h,
+    class: 'axis-line'
+  }));
+
+  // 轴标题
+  const pTitle = createEl('text', {
+    x: PLOT.x - 45, y: PLOT.y - 8, class: 'axis-title'
+  });
+  pTitle.textContent = 'P (价格)';
+  g.appendChild(pTitle);
+
+  const qTitle = createEl('text', {
+    x: PLOT.x + PLOT.w, y: PLOT.y + PLOT.h + 38, class: 'axis-title',
+    'text-anchor': 'end'
+  });
+  qTitle.textContent = 'Q (数量)';
+  g.appendChild(qTitle);
+
+  svg.appendChild(g);
+}
+
+// ====== 绘制需求曲线 ======
+function drawDemandCurve(opts = {}) {
+  const { shifted = false, old = false, animated = false, label = true } = opts;
+  const g = createEl('g', {});
+
+  const shift = shifted ? demandShift : 0;
+  const qStart = shift;
+  const qEnd = Math.min(CHART.qMax, shift + 200);
+  const pStart = 40 - 0.2 * 0;
+  const pEnd = Math.max(0, 40 - 0.2 * (qEnd - shift));
+
+  const x1 = toX(qStart), y1 = toY(pStart);
+  const x2 = toX(qEnd), y2 = toY(pEnd);
+
+  const line = createEl('line', {
+    x1, y1, x2, y2,
+    class: 'demand-curve' + (old ? ' old' : '')
+  });
+
+  if (animated) {
+    line.setAttribute('stroke-dasharray', '600');
+    line.style.animation = 'drawLine 1.2s var(--ease) forwards';
+  }
+
+  g.appendChild(line);
+
+  if (label) {
+    const lbl = createEl('text', {
+      x: x2 - 30, y: y2 + 20, class: 'curve-label demand'
+    });
+    lbl.textContent = shifted ? "D'" : 'D';
+    g.appendChild(lbl);
+  }
+
+  svg.appendChild(g);
+  return { x1, y1, x2, y2 };
+}
+
+// ====== 绘制供给曲线 ======
+function drawSupplyCurve(opts = {}) {
+  const { shifted = false, old = false, animated = false, label = true } = opts;
+  const g = createEl('g', {});
+
+  const shift = shifted ? supplyShift : 0;
+  const qStart = shift;
+  const qEnd = Math.min(CHART.qMax, shift + 200);
+  const pStart = 0;
+  const pEnd = Math.min(CHART.pMax, 0.2 * (qEnd - shift));
+
+  const x1 = toX(qStart), y1 = toY(pStart);
+  const x2 = toX(qEnd), y2 = toY(pEnd);
+
+  const line = createEl('line', {
+    x1, y1, x2, y2,
+    class: 'supply-curve' + (old ? ' old' : '')
+  });
+
+  if (animated) {
+    line.setAttribute('stroke-dasharray', '600');
+    line.style.animation = 'drawLine 1.2s var(--ease) 0.3s forwards';
+    line.style.opacity = '0';
+    setTimeout(() => { line.style.opacity = '1'; }, 300);
+  }
+
+  g.appendChild(line);
+
+  if (label) {
+    const lbl = createEl('text', {
+      x: x2 - 30, y: y2 - 12, class: 'curve-label supply'
+    });
+    lbl.textContent = shifted ? "S'" : 'S';
+    g.appendChild(lbl);
+  }
+
+  svg.appendChild(g);
+  return { x1, y1, x2, y2 };
+}
+
+// ====== 绘制均衡点 ======
+function drawEquilibrium(p, q, opts = {}) {
+  const { animated = false, label = true } = opts;
+  const g = createEl('g', {});
+
+  const ex = toX(q);
+  const ey = toY(p);
+
+  // 虚线
+  g.appendChild(createEl('line', {
+    x1: PLOT.x, y1: ey, x2: ex, y2: ey,
+    class: 'equilibrium-line'
+  }));
+  g.appendChild(createEl('line', {
+    x1: ex, y1: PLOT.y + PLOT.h, x2: ex, y2: ey,
+    class: 'equilibrium-line'
+  }));
+
+  // 均衡点
+  const circle = createEl('circle', {
+    cx: ex, cy: ey, r: 7, class: 'equilibrium-point'
+  });
+  if (animated) {
+    circle.classList.add('animate-pop');
+  }
+  g.appendChild(circle);
+
+  if (label) {
+    // P* 标签
+    const pLbl = createEl('text', {
+      x: PLOT.x - 10, y: ey + 4, class: 'equilibrium-label',
+      'text-anchor': 'end'
+    });
+    pLbl.textContent = 'P*=' + p;
+    g.appendChild(pLbl);
+
+    // Q* 标签
+    const qLbl = createEl('text', {
+      x: ex, y: PLOT.y + PLOT.h + 20, class: 'equilibrium-label',
+      'text-anchor': 'middle'
+    });
+    qLbl.textContent = 'Q*=' + q;
+    g.appendChild(qLbl);
+  }
+
+  svg.appendChild(g);
+  return { ex, ey };
+}
+
+// ====== 绘制可拖动点 ======
+let dragPoint = null;
+let dragInfo = null;
+
+function drawDraggablePoint(curveType) {
+  const g = createEl('g', { id: 'dragGroup' });
+
+  // 初始位置在曲线中点
+  const initP = 20;
+  let q;
+  if (curveType === 'demand') {
+    q = demandQ(initP);
+  } else {
+    q = supplyQ(initP);
+  }
+
+  const px = toX(q);
+  const py = toY(initP);
+
+  // 数值标签背景
+  const tagBg = createEl('rect', {
+    x: px + 14, y: py - 30, width: 80, height: 44, rx: 6,
+    class: 'value-tag-box'
+  });
+  g.appendChild(tagBg);
+
+  // P 标签
+  const pTag = createEl('text', {
+    x: px + 22, y: py - 14, class: 'value-tag',
+    fill: 'var(--text)'
+  });
+  pTag.textContent = 'P = ¥' + initP;
+  pTag.id = 'dragPVal';
+  g.appendChild(pTag);
+
+  // Q 标签
+  const qTag = createEl('text', {
+    x: px + 22, y: py + 2, class: 'value-tag',
+    fill: 'var(--text-muted)'
+  });
+  qTag.textContent = 'Q = ' + Math.round(q);
+  qTag.id = 'dragQVal';
+  g.appendChild(qTag);
+
+  // 拖动点
+  const point = createEl('circle', {
+    cx: px, cy: py, r: 6, class: 'draggable-point',
+    id: 'dragPoint'
+  });
+
+  // 拖动事件
+  point.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    point.setPointerCapture(e.pointerId);
+    dragInfo = { curveType, point, tagBg, pTag, qTag };
+  });
+
+  point.addEventListener('pointermove', (e) => {
+    if (!dragInfo) return;
+    const rect = svg.getBoundingClientRect();
+    const scale = CHART.width / rect.width;
+    const svgX = (e.clientX - rect.left) * scale;
+    const svgY = (e.clientY - rect.top) * scale;
+
+    // 限制在绘图区域内
+    const clampedY = Math.max(PLOT.y, Math.min(PLOT.y + PLOT.h, svgY));
+    const p = ((PLOT.y + PLOT.h) - clampedY) / PLOT.h * CHART.pMax;
+    const clampedP = Math.max(0, Math.min(40, p));
+
+    let q;
+    if (dragInfo.curveType === 'demand') {
+      q = demandQ(clampedP);
+    } else {
+      q = supplyQ(clampedP);
+    }
+
+    const nx = toX(q);
+    const ny = toY(clampedP);
+
+    dragInfo.point.setAttribute('cx', nx);
+    dragInfo.point.setAttribute('cy', ny);
+    dragInfo.tagBg.setAttribute('x', nx + 14);
+    dragInfo.tagBg.setAttribute('y', ny - 30);
+    dragInfo.pTag.setAttribute('x', nx + 22);
+    dragInfo.pTag.setAttribute('y', ny - 14);
+    dragInfo.pTag.textContent = 'P = ¥' + Math.round(clampedP);
+    dragInfo.qTag.setAttribute('x', nx + 22);
+    dragInfo.qTag.setAttribute('y', ny + 2);
+    dragInfo.qTag.textContent = 'Q = ' + Math.round(q);
+  });
+
+  point.addEventListener('pointerup', () => { dragInfo = null; });
+  point.addEventListener('pointercancel', () => { dragInfo = null; });
+
+  g.appendChild(point);
+  svg.appendChild(g);
+}
+
+// ====== 绘制价格管制线 ======
+function drawPriceControl(price, type) {
+  const g = createEl('g', {});
+  const y = toY(price);
+
+  const color = type === 'ceiling' ? '#1e40af' : '#ea580c';
+  const label = type === 'ceiling' ? '最高限价' : '最低限价';
+
+  // 价格线
+  g.appendChild(createEl('line', {
+    x1: PLOT.x, y1: y, x2: PLOT.x + PLOT.w, y2: y,
+    stroke: color, 'stroke-width': 2, 'stroke-dasharray': '8 4'
+  }));
+
+  // 标签
+  const lbl = createEl('text', {
+    x: PLOT.x + PLOT.w - 8, y: y - 8,
+    'text-anchor': 'end',
+    'font-family': 'var(--font-sans)', 'font-size': '12px',
+    'font-weight': '600', fill: color
+  });
+  lbl.textContent = label + ' ¥' + price;
+  g.appendChild(lbl);
+
+  // 计算短缺或过剩
+  const qD = demandQ(price);
+  const qS = supplyQ(price);
+
+  if (type === 'ceiling' && price < EQ_P) {
+    // 短缺
+    const xS = toX(qS);
+    const xD = toX(qD);
+    g.appendChild(createEl('rect', {
+      x: xS, y: y - 12, width: xD - xS, height: 24,
+      class: 'shortage-area', rx: 3
+    }));
+    const sLbl = createEl('text', {
+      x: (xS + xD) / 2, y: y + 28, class: 'area-label shortage',
+      'text-anchor': 'middle'
+    });
+    sLbl.textContent = '短缺 ' + Math.round(qD - qS);
+    g.appendChild(sLbl);
+  } else if (type === 'floor' && price > EQ_P) {
+    // 过剩
+    const xS = toX(qS);
+    const xD = toX(qD);
+    g.appendChild(createEl('rect', {
+      x: xD, y: y - 12, width: xS - xD, height: 24,
+      class: 'surplus-area', rx: 3
+    }));
+    const sLbl = createEl('text', {
+      x: (xD + xS) / 2, y: y + 28, class: 'area-label surplus',
+      'text-anchor': 'middle'
+    });
+    sLbl.textContent = '过剩 ' + Math.round(qS - qD);
+    g.appendChild(sLbl);
+  }
+
+  svg.appendChild(g);
+}
+
+// ====== 绘制移动箭头 ======
+function drawShiftArrow(fromX, fromY, toX, toY, color) {
+  const g = createEl('g', {});
+  const midX = (fromX + toX) / 2;
+  const midY = (fromY + toY) / 2 - 20;
+
+  g.appendChild(createEl('path', {
+    d: `M ${fromX} ${fromY} Q ${midX} ${midY} ${toX} ${toY}`,
+    stroke: color, class: 'shift-arrow',
+    'stroke-dasharray': '5 3', opacity: 0.7
+  }));
+
+  // 箭头
+  const angle = Math.atan2(toY - midY, toX - midX);
+  const arrSize = 10;
+  g.appendChild(createEl('path', {
+    d: `M ${toX} ${toY} L ${toX - arrSize * Math.cos(angle - 0.5)} ${toY - arrSize * Math.sin(angle - 0.5)} M ${toX} ${toY} L ${toX - arrSize * Math.cos(angle + 0.5)} ${toY - arrSize * Math.sin(angle + 0.5)}`,
+    stroke: color, 'stroke-width': 2.5, fill: 'none', opacity: 0.7
+  }));
+
+  svg.appendChild(g);
+}
+
+// ====== 绘制市场场景（步骤1） ======
+function drawMarketScene() {
+  const g = createEl('g', {});
+
+  // 咖啡杯图标
+  const cupX = toX(50), cupY = toY(35);
+  g.appendChild(createEl('path', {
+    d: `M ${cupX-15} ${cupY-10} L ${cupX-15} ${cupY+12} Q ${cupX-15} ${cupY+18} ${cupX-8} ${cupY+18} L ${cupX+8} ${cupY+18} Q ${cupX+15} ${cupY+18} ${cupX+15} ${cupY+12} L ${cupX+15} ${cupY-10} Z`,
+    class: 'market-scene-icon', 'stroke-width': 0
+  }));
+  g.appendChild(createEl('path', {
+    d: `M ${cupX+15} ${cupY-6} Q ${cupX+22} ${cupY-6} ${cupX+22} ${cupY+2} Q ${cupX+22} ${cupY+10} ${cupX+15} ${cupY+10}`,
+    class: 'market-scene-icon', 'stroke-width': 0
+  }));
+
+  // 消费者图标
+  const buyerX = toX(20), buyerY = toY(15);
+  g.appendChild(createEl('circle', {
+    cx: buyerX, cy: buyerY - 18, r: 8, class: 'market-scene-icon', 'stroke-width': 0
+  }));
+  g.appendChild(createEl('path', {
+    d: `M ${buyerX} ${buyerY-10} L ${buyerX} ${buyerY+4} M ${buyerX-8} ${buyerY-4} L ${buyerX+8} ${buyerY-4}`,
+    stroke: 'var(--econ-demand)', 'stroke-width': 2.5, 'stroke-linecap': 'round', fill: 'none'
+  }));
+  const buyerLbl = createEl('text', {
+    x: buyerX, y: buyerY + 20, class: 'market-scene-label',
+    'text-anchor': 'middle'
+  });
+  buyerLbl.textContent = '消费者';
+  g.appendChild(buyerLbl);
+
+  // 生产者图标
+  const sellerX = toX(180), sellerY = toY(15);
+  g.appendChild(createEl('rect', {
+    x: sellerX - 10, y: sellerY - 26, width: 20, height: 14, rx: 2,
+    class: 'market-scene-icon supply', 'stroke-width': 0
+  }));
+  g.appendChild(createEl('circle', {
+    cx: sellerX, cy: sellerY - 34, r: 6, class: 'market-scene-icon supply', 'stroke-width': 0
+  }));
+  const sellerLbl = createEl('text', {
+    x: sellerX, y: sellerY + 20, class: 'market-scene-label',
+    'text-anchor': 'middle'
+  });
+  sellerLbl.textContent = '生产者';
+  g.appendChild(sellerLbl);
+
+  // 价格标签
+  const priceTag = createEl('text', {
+    x: toX(100), y: toY(8), class: 'equilibrium-label',
+    'text-anchor': 'middle', 'font-size': '16px'
+  });
+  priceTag.textContent = '市场价格 ¥20/杯';
+  g.appendChild(priceTag);
+
+  // 淡淡的供需曲线轮廓
+  drawDemandCurve({ label: false });
+  drawSupplyCurve({ label: false });
+
+  // 重新获取并设置透明度
+  const lines = svg.querySelectorAll('.demand-curve, .supply-curve');
+  lines.forEach(l => { l.style.opacity = '0.15'; });
+
+  svg.appendChild(g);
+}
+
+// ====== 步骤内容数据 ======
+const steps = [
+  {
+    title: '咖啡的价格谁说了算？',
+    content: `
+      <p class="lead">一杯咖啡卖 20 元——为什么不是 2 元，也不是 200 元？</p>
+      <p>你走进一家咖啡馆，点了一杯拿铁。屏幕上显示 <strong>¥20</strong>。这个价格不是店家拍脑袋定的，也不是消费者说了算。它是市场的<strong>供给</strong>和<strong>需求</strong>两股力量共同作用的结果。</p>
+      <p>经济学用一个简洁的模型来解释这一切——<span class="equilibrium-text">供需模型</span>。需求侧代表消费者（买方），供给侧代表生产者（卖方）。就像剪刀的两片刀刃，任何一片都无法单独剪纸，只有两片合在一起才能裁切。</p>
+      <div class="concept-box">
+        <div class="concept-box-title">核心问题</div>
+        <div class="concept-box-text">
+          价格是如何被决定的？当市场条件变化时，价格又会怎样调整？接下来，我们将用一组交互式图表，从零开始搭建这个模型。
+        </div>
+      </div>
+      <p>右侧是一个咖啡市场的简化示意。你能看到消费者和生产者，以及两条若隐若现的曲线——它们就是接下来要讲的主角。</p>
+    `,
+    caption: '图 1 · 咖啡市场的供需模型示意'
+  },
+  {
+    title: '需求曲线：价格越高，买得越少',
+    content: `
+      <p class="lead">需求定律：在其他条件不变时，<span class="demand-text">价格上升，需求量减少</span>。</p>
+      <p>想象咖啡的价格从 5 元涨到 50 元。价格低时，几乎人人都想买；价格高时，只有少数铁杆粉丝还愿意掏钱。把每个价格下消费者愿意购买的数量画在图上，就得到一条从左上向右下倾斜的<span class="demand-text">需求曲线（D）</span>。</p>
+      <div class="concept-box">
+        <div class="concept-box-title">关键区分</div>
+        <div class="concept-box-text">
+          <strong>需求量变动</strong>：价格变化导致<strong>沿着</strong>需求曲线移动。<br>
+          <strong>需求变动</strong>：收入、偏好等因素变化导致<strong>整条</strong>需求曲线移动。
+        </div>
+      </div>
+      <p>右侧图中，<span class="demand-text">红色曲线</span>就是需求曲线。试着<strong>拖动曲线上的圆点</strong>，上下移动改变价格，观察对应的需求量如何变化。</p>
+      <p>纵轴 P 是价格，横轴 Q 是数量。你会看到：价格越高，对应的数量越小——这就是需求定律的图形表达。</p>
+    `,
+    caption: '图 2 · 需求曲线：价格与需求量的反向关系'
+  },
+  {
+    title: '供给曲线：价格越高，卖得越多',
+    content: `
+      <p class="lead">供给定律：在其他条件不变时，<span class="supply-text">价格上升，供给量增加</span>。</p>
+      <p>现在换到生产者的视角。咖啡价格越高，开店越赚钱，就有越多的人愿意经营咖啡馆，每家店也愿意生产更多杯咖啡。把每个价格下生产者愿意供应的数量画出来，得到一条从左下向右上倾斜的<span class="supply-text">供给曲线（S）</span>。</p>
+      <div class="concept-box">
+        <div class="concept-box-title">供给量的决定因素</div>
+        <div class="concept-box-text">
+          影响供给的核心因素：<strong>生产成本</strong>（原料、人工、租金）、<strong>技术水平</strong>、<strong>预期价格</strong>、<strong>卖者数量</strong>。这些因素变化时，整条供给曲线会发生移动。
+        </div>
+      </div>
+      <p>右侧图中，<span class="supply-text">绿色曲线</span>是供给曲线。同样可以<strong>拖动圆点</strong>来改变价格，观察供给量如何随之变化。注意它与需求曲线方向恰好相反——一个向上，一个向下。</p>
+      <p>这种反向关系，正是市场能够达到均衡的关键所在。</p>
+    `,
+    caption: '图 3 · 供给曲线：价格与供给量的正向关系'
+  },
+  {
+    title: '市场均衡：供需的交点',
+    content: `
+      <p class="lead">当供给等于需求，市场便达到了<span class="equilibrium-text">均衡</span>。</p>
+      <p>把需求曲线和供给曲线放在同一张图上，它们会相交于一点。这个交点就是<strong>市场均衡点</strong>。对应的价格叫<strong>均衡价格（P*）</strong>，对应的数量叫<strong>均衡数量（Q*）</strong>。</p>
+      <p>在咖啡市场的例子中，均衡价格是 <span class="equilibrium-text">¥20/杯</span>，均衡数量是 <span class="equilibrium-text">100 杯/天</span>。在这个价格下，消费者想买 100 杯，生产者也恰好想卖 100 杯——市场"出清"了。</p>
+      <div class="concept-box">
+        <div class="concept-box-title">看不见的手</div>
+        <div class="concept-box-text">
+          如果价格高于均衡价，会出现<strong>过剩</strong>（供大于求），价格趋于下降；如果价格低于均衡价，会出现<strong>短缺</strong>（求大于供），价格趋于上升。亚当·斯密将这种自发调节称为"看不见的手"。
+        </div>
+      </div>
+      <p>右侧图中，<span class="equilibrium-text">金色点</span>就是均衡点，虚线标注了对应的均衡价格和数量。</p>
+    `,
+    caption: '图 4 · 市场均衡：供需交点决定价格与数量'
+  },
+  {
+    title: '需求变动：整条曲线在移动',
+    content: `
+      <p class="lead">当收入增加，需求曲线会怎样变化？</p>
+      <p>假设城市人均收入提高了，人们愿意花更多钱喝咖啡。这不是价格变化引起的，所以不是沿着曲线移动——而是<strong>整条需求曲线向右移动</strong>。在每一个价格水平下，需求量都增加了。</p>
+      <p>新的需求曲线与原来的供给曲线产生新的交点：均衡价格上升，均衡数量也增加。这就是"需求拉动"的价格上涨。</p>
+      <div class="concept-box">
+        <div class="concept-box-title">影响需求移动的因素</div>
+        <div class="concept-box-text">
+          <strong>收入</strong>增加 → D 右移<br>
+          <strong>替代品</strong>涨价（如茶）→ D 右移<br>
+          <strong>偏好</strong>增强 → D 右移<br>
+          <strong>消费者数量</strong>增加 → D 右移<br>
+          预期未来涨价 → D 右移（提前购买）
+        </div>
+      </div>
+      <p>点击右侧按钮，体验不同因素对需求曲线的影响。虚线为原曲线，实线为移动后的新曲线，注意观察均衡点的变化。</p>
+    `,
+    caption: '图 5 · 需求曲线移动与均衡变化'
+  },
+  {
+    title: '供给变动：生产端的冲击',
+    content: `
+      <p class="lead">当技术进步，供给曲线又会怎样？</p>
+      <p>假设咖啡豆的种植技术取得了突破，生产成本下降。生产者在每个价格下都愿意供应更多——<strong>整条供给曲线向右移动</strong>。结果：均衡价格下降，均衡数量增加。消费者买到更便宜的咖啡，整个市场也变得更活跃。</p>
+      <div class="concept-box">
+        <div class="concept-box-title">影响供给移动的因素</div>
+        <div class="concept-box-text">
+          <strong>成本下降</strong> → S 右移<br>
+          <strong>技术进步</strong> → S 右移<br>
+          <strong>卖者数量</strong>增加 → S 右移<br>
+          <strong>成本上升</strong> → S 左移<br>
+          预期涨价 → S 左移（囤积待售）
+        </div>
+      </div>
+      <p>右侧按钮可以模拟不同的供给冲击。观察当供给增加时，价格如何下降而数量如何上升——这与需求增加时价格和数量同升的结论恰好不同。</p>
+      <p>这种对比分析能力，正是经济学思维的核心：理解哪个曲线在动，才能准确预测价格和数量的变化方向。</p>
+    `,
+    caption: '图 6 · 供给曲线移动与均衡变化'
+  },
+  {
+    title: '价格管制：当政府干预市场',
+    content: `
+      <p class="lead">如果均衡价格让一些人不满，政府能强行定价吗？</p>
+      <p>有时政府会设定<strong>最高限价</strong>（价格上限）来保护消费者，或设定<strong>最低限价</strong>（价格下限）来保护生产者。但价格管制往往带来意想不到的后果。</p>
+      <div class="concept-box">
+        <div class="concept-box-title">最高限价 vs 最低限价</div>
+        <div class="concept-box-text">
+          <strong>最高限价</strong>（低于均衡价）：需求量 > 供给量 → <span style="color:#1e40af;font-weight:700;">短缺</span>，排队、黑市出现。<br>
+          <strong>最低限价</strong>（高于均衡价）：供给量 > 需求量 → <span style="color:#ea580c;font-weight:700;">过剩</span>，产品积压。<br><br>
+          经典案例：租金管制导致住房短缺；最低工资导致失业。
+        </div>
+      </div>
+      <p>拖动右侧的价格滑块，将价格调到高于或低于均衡价格（¥20），观察市场出现短缺还是过剩。蓝色区域表示短缺，橙色区域表示过剩。</p>
+      <p>这正是供需模型的预测力：任何偏离均衡价格的人为定价，都会造成市场的不平衡。</p>
+    `,
+    caption: '图 7 · 价格管制：最高限价与最低限价的影响'
+  },
+  {
+    title: '总结：供需模型的力量与边界',
+    content: `
+      <p class="lead">供需模型是经济学的基石——简洁、有力，但也有局限。</p>
+      <p>回顾这趟旅程：我们从一杯咖啡的价格出发，认识了需求曲线和供给曲线，找到了市场均衡点，观察了曲线移动带来的均衡变化，还分析了价格管制的后果。</p>
+      <div class="concept-box">
+        <div class="concept-box-title">核心要点</div>
+        <div class="concept-box-text">
+          <strong>1.</strong> 价格由供需共同决定，不是单方面说了算。<br>
+          <strong>2.</strong> 沿着曲线移动 ≠ 曲线移动。区分这两者是分析的关键。<br>
+          <strong>3.</strong> 市场有自我调节机制，偏离均衡会产生回到均衡的动力。<br>
+          <strong>4.</strong> 价格管制虽出于好意，但常带来短缺或过剩的副作用。
+        </div>
+      </div>
+      <p>供需模型也有局限：它假设完全竞争市场，忽略了信息不对称、外部性、垄断等因素。但在大多数日常经济现象面前，它依然是最强大的分析工具。</p>
+      <p>下次你看到新闻里"猪肉价格上涨"或"油价暴跌"时，不妨问自己：是需求在动，还是供给在动？——这就是经济学思维的开始。</p>
+      <p style="color:var(--brand);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:20px;">
+        —— 市场，是亿万人协商价格的语言。
+      </p>
+    `,
+    caption: '图 8 · 供需模型全景回顾'
+  }
+];
+
+// ====== 步骤绘制函数 ======
+function drawStep(step) {
+  clearSvg();
+  drawAxes();
+  demandShift = 0;
+  supplyShift = 0;
+
+  const controls = document.getElementById('visualControls');
+  const sliderContainer = document.getElementById('priceSliderContainer');
+  controls.style.display = 'none';
+  sliderContainer.style.display = 'none';
+
+  if (step === 0) {
+    drawMarketScene();
+  } else if (step === 1) {
+    drawDemandCurve({ animated: true });
+    drawDraggablePoint('demand');
+  } else if (step === 2) {
+    drawDemandCurve({ label: false });
+    drawSupplyCurve({ animated: true });
+    drawDraggablePoint('supply');
+  } else if (step === 3) {
+    drawDemandCurve({ animated: true });
+    drawSupplyCurve({ animated: true });
+    setTimeout(() => drawEquilibrium(EQ_P, EQ_Q, { animated: true }), 1200);
+  } else if (step === 4) {
+    // 需求移动：初始状态显示原始曲线和均衡点
+    drawDemandCurve({});
+    drawSupplyCurve({});
+    drawEquilibrium(EQ_P, EQ_Q);
+    setupShiftControls('demand');
+  } else if (step === 5) {
+    // 供给移动：初始状态显示原始曲线和均衡点
+    drawDemandCurve({});
+    drawSupplyCurve({});
+    drawEquilibrium(EQ_P, EQ_Q);
+    setupShiftControls('supply');
+  } else if (step === 6) {
+    drawDemandCurve({});
+    drawSupplyCurve({});
+    drawEquilibrium(EQ_P, EQ_Q, { animated: false });
+    setupPriceSlider();
+  } else if (step === 7) {
+    drawDemandCurve({});
+    drawSupplyCurve({});
+    drawEquilibrium(EQ_P, EQ_Q, { animated: false });
+  }
+}
+
+// ====== 设置曲线移动控制按钮 ======
+function setupShiftControls(type) {
+  const controls = document.getElementById('visualControls');
+  controls.style.display = 'flex';
+  controls.innerHTML = '';
+
+  const scenarios = type === 'demand'
+    ? [
+        { label: '收入增加', shift: 40, color: 'demand' },
+        { label: '替代品涨价', shift: 30, color: 'demand' },
+        { label: '偏好增强', shift: 20, color: 'demand' },
+        { label: '恢复正常', shift: 0, color: 'demand' },
+      ]
+    : [
+        { label: '成本下降', shift: 40, color: 'supply' },
+        { label: '技术进步', shift: 30, color: 'supply' },
+        { label: '卖者增加', shift: 20, color: 'supply' },
+        { label: '恢复正常', shift: 0, color: 'supply' },
+      ];
+
+  scenarios.forEach(s => {
+    const btn = createEl_('button', { class: 'shift-btn' });
+    const dot = createEl_('span', { class: 'dot ' + s.color });
+    dot.style.background = s.color === 'demand' ? 'var(--econ-demand)' : 'var(--econ-supply)';
+    btn.appendChild(dot);
+    btn.appendChild(document.createTextNode(s.label));
+    btn.addEventListener('click', () => {
+      if (type === 'demand') demandShift = s.shift;
+      else supplyShift = s.shift;
+
+      // 重绘
+      clearSvg();
+      drawAxes();
+
+      if (s.shift === 0) {
+        // 恢复正常：只画原始曲线和均衡点
+        drawDemandCurve({});
+        drawSupplyCurve({});
+        drawEquilibrium(EQ_P, EQ_Q);
+      } else {
+        // 曲线移动：旧曲线（虚线）+ 新曲线（实线）+ 移动箭头 + 新均衡
+        drawDemandCurve({ old: type === 'demand' });
+        drawSupplyCurve({ old: type === 'supply' });
+
+        let newCurveEnd;
+        if (type === 'demand') {
+          newCurveEnd = drawDemandCurve({ shifted: true, label: true });
+        } else {
+          newCurveEnd = drawSupplyCurve({ shifted: true, label: true });
+        }
+
+        // 绘制移动方向箭头（从旧曲线中点指向新曲线中点）
+        const midP = 20;
+        const oldMidQ = type === 'demand' ? demandQ(midP) : supplyQ(midP);
+        const newMidQ = type === 'demand'
+          ? demandQ(midP) + demandShift
+          : supplyQ(midP) + supplyShift;
+        const arrowColor = type === 'demand' ? '#c2410c' : '#0d9488';
+        drawShiftArrow(toX(oldMidQ), toY(midP), toX(newMidQ), toY(midP), arrowColor);
+
+        // 计算新均衡
+        // 需求: P = 40 - 0.2(Q - demandShift)
+        // 供给: P = 0.2(Q - supplyShift)
+        // 联立: Q = (40 + 0.2*(demandShift + supplyShift)) / 0.4
+        const newQ = (40 + 0.2 * (demandShift + supplyShift)) / 0.4;
+        const newP = 0.2 * (newQ - supplyShift);
+
+        drawEquilibrium(Math.round(newP), Math.round(newQ), { animated: false });
+      }
+
+      // 高亮当前按钮
+      controls.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    controls.appendChild(btn);
+  });
+}
+
+// HTML 元素创建辅助
+function createEl_(tag, attrs) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    el.setAttribute(k, v);
+  }
+  return el;
+}
+
+// ====== 设置价格滑块 ======
+function setupPriceSlider() {
+  const slider = document.getElementById('priceSlider');
+  const valDisplay = document.getElementById('priceSliderValue');
+  const container = document.getElementById('priceSliderContainer');
+  container.style.display = 'block';
+  slider.value = 20;
+  valDisplay.textContent = '¥20 /杯 (均衡)';
+
+  slider.oninput = () => {
+    const price = parseInt(slider.value);
+    valDisplay.textContent = '¥' + price + ' /杯';
+
+    clearSvg();
+    drawAxes();
+    drawDemandCurve({});
+    drawSupplyCurve({});
+
+    if (price < EQ_P) {
+      drawPriceControl(price, 'ceiling');
+    } else if (price > EQ_P) {
+      drawPriceControl(price, 'floor');
+    } else {
+      drawEquilibrium(EQ_P, EQ_Q);
+    }
+  };
+}
+
+// ====== 步骤导航逻辑 ======
+let currentStep = 0;
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDotsContainer = document.getElementById('stepDots');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+// 生成步骤圆点
+steps.forEach((_, i) => {
+  const dot = createEl_('div', { class: 'step-dot' + (i === 0 ? ' active' : '') });
+  dot.dataset.step = i;
+  dot.addEventListener('click', () => goToStep(i));
+  stepDotsContainer.appendChild(dot);
+});
+
+const stepDots = stepDotsContainer.querySelectorAll('.step-dot');
+
+function goToStep(step) {
+  if (step < 0 || step >= steps.length) return;
+  currentStep = step;
+
+  // 淡出
+  stepContent.classList.add('fade-out');
+
+  setTimeout(() => {
+    const s = steps[currentStep];
+    stepContent.innerHTML = `<h3 class="step-title">${s.title}</h3><div class="article-body">${s.content}</div>`;
+    stepContent.classList.remove('fade-out');
+
+    document.getElementById('visualCaption').textContent = s.caption;
+  }, 200);
+
+  stepLabel.textContent = `第 ${currentStep + 1} / ${steps.length} 步`;
+
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === currentStep) dot.classList.add('active');
+    else if (i < currentStep) dot.classList.add('completed');
+  });
+
+  prevBtn.disabled = currentStep === 0;
+  prevBtn.style.opacity = currentStep === 0 ? '0.5' : '1';
+  prevBtn.style.cursor = currentStep === 0 ? 'not-allowed' : 'pointer';
+
+  nextBtn.innerHTML = currentStep === steps.length - 1
+    ? '完成 ✓'
+    : '下一步 <span>→</span>';
+
+  drawStep(currentStep);
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) goToStep(currentStep - 1);
+});
+
+nextBtn.addEventListener('click', () => {
+  if (currentStep < steps.length - 1) goToStep(currentStep + 1);
+});
+
+// ====== 导航栏滚动效果 ======
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 初始化 ======
+goToStep(0);
+</script>
+
+</body>
+</html>

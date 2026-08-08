@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>景礴学院 · 技能库 — 知识可视化 Skill 模板</title>
+  <meta name="description" content="浏览景礴的知识可视化 Skill 模板。20 个技能，覆盖数学、物理、化学、生物、历史、地理、计算机、艺术八大学科。复制链接到 Trae，说一句话就能生成交互式课件。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="assets/css/design-system.css">
+  <style>
+    /* ============================================================
+       景礴学院 · 技能库 — 科学杂志风
+       ============================================================ */
+
+    .jb-kicker {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--brand);
+    }
+
+    /* ---------- Navbar ---------- */
+    .navbar {
+      background-color: rgba(250, 248, 245, 0.88);
+    }
+    .navbar.scrolled {
+      background-color: rgba(250, 248, 245, 0.95);
+      border-bottom-color: var(--border);
+    }
+    .navbar-brand {
+      font-size: 19px;
+      letter-spacing: 0.04em;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+    .navbar-brand .brand-domain {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-faint);
+      letter-spacing: 0.03em;
+      margin-top: 2px;
+    }
+    .navbar-links a {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease);
+      position: relative;
+    }
+    .navbar-links a:hover { color: var(--text); }
+    .navbar-links a.active {
+      color: var(--brand);
+      font-weight: 600;
+    }
+    .navbar-links a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--brand);
+      border-radius: 1px;
+    }
+    .navbar-links { display: flex; gap: 28px; align-items: center; }
+    .nav-search { position: relative; }
+    .nav-search input {
+      width: 200px;
+      padding: 8px 14px 8px 36px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text);
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      outline: none;
+      transition: all var(--duration-base) var(--ease);
+    }
+    .nav-search input::placeholder { color: var(--text-faint); }
+    .nav-search input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px var(--brand-soft);
+      width: 240px;
+    }
+    .nav-search > svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-faint);
+      pointer-events: none;
+    }
+
+    /* ---------- 页面标题 ---------- */
+    .page-head {
+      padding: 110px 24px 36px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .page-head .jb-kicker { display: block; margin-bottom: 12px; }
+    .page-head h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 3.5vw, 36px);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+    .page-head p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-muted);
+      max-width: 620px;
+    }
+    .page-head-meta {
+      margin-top: 12px;
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text-faint);
+      max-width: 620px;
+    }
+
+    /* ---------- 两栏布局 ---------- */
+    .skills-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 0;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+      align-items: start;
+    }
+
+    /* ---------- 左侧边栏 ---------- */
+    .skills-sidebar {
+      position: sticky;
+      top: 88px;
+      padding-right: 20px;
+      border-right: 1px solid var(--border-soft);
+    }
+    .sidebar-section { margin-bottom: 36px; }
+    .sidebar-title {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 12px;
+      padding-left: 12px;
+    }
+    .sidebar-list { list-style: none; padding: 0; margin: 0; }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: var(--radius);
+      transition: all var(--duration-fast) var(--ease);
+      position: relative;
+      user-select: none;
+    }
+    .sidebar-item:hover { color: var(--text); background-color: var(--surface-muted); }
+    .sidebar-item.active { color: var(--brand); background-color: var(--brand-soft); }
+    .sidebar-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 50%;
+      transform: translateY(-50%);
+      width: 3px; height: 55%;
+      background: var(--brand);
+      border-radius: 2px;
+    }
+    .sidebar-item .count {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-faint);
+    }
+    .sidebar-item.active .count { color: var(--brand); }
+
+    .type-filter { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 12px; }
+    .type-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background-color: var(--surface-muted);
+      border: 1px solid transparent;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease);
+      user-select: none;
+    }
+    .type-chip:hover { color: var(--text); border-color: var(--border); }
+    .type-chip.active {
+      color: var(--brand);
+      background-color: var(--brand-soft);
+      border-color: rgba(194, 65, 12, 0.2);
+    }
+    .type-chip .count { font-size: 10px; opacity: 0.7; }
+
+    /* ---------- 右侧主内容 ---------- */
+    .skills-main { padding-left: 40px; min-height: 600px; }
+    .main-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--text);
+    }
+    .main-header h2 {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .main-header .result-count {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-faint);
+      letter-spacing: 0.05em;
+    }
+
+    /* ---------- Skill 卡片列表 ---------- */
+    .skill-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .skill-card {
+      display: flex;
+      flex-direction: row;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: all var(--duration-base) var(--ease);
+      animation: fadeInCard 0.4s var(--ease) both;
+      min-height: 200px;
+    }
+    .skill-card:hover {
+      border-color: var(--border);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+      transform: translateY(-2px);
+    }
+    @keyframes fadeInCard {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 卡片预览图 */
+    .card-preview {
+      width: 360px;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+      background: #0a0a14;
+    }
+    .card-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s var(--ease);
+      display: block;
+    }
+    .skill-card:hover .card-preview img {
+      transform: scale(1.05);
+    }
+    .card-preview .card-type-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      letter-spacing: 0.05em;
+    }
+    .card-preview .card-number {
+      position: absolute;
+      bottom: 10px;
+      right: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.1em;
+    }
+
+    /* 卡片正文 */
+    .card-body {
+      padding: 20px 28px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .card-subject-label {
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--brand);
+      letter-spacing: 0.04em;
+    }
+    .demo-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-faint);
+      letter-spacing: 0.02em;
+    }
+    .card-name {
+      font-family: var(--font-serif);
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .card-desc {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin-bottom: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    .card-link {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--brand);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      padding: 6px 16px;
+      border: 1px solid rgba(194, 65, 12, 0.25);
+      border-radius: var(--radius-full);
+      transition: all var(--duration-fast) var(--ease);
+    }
+    .card-link svg { transition: transform var(--duration-fast) var(--ease); }
+    .skill-card:hover .card-link {
+      background-color: var(--brand);
+      color: #fff;
+      border-color: var(--brand);
+    }
+    .skill-card:hover .card-link svg { transform: translateX(3px); }
+
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 80px 24px;
+    }
+    .empty-state svg {
+      width: 48px; height: 48px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+      color: var(--text-muted);
+    }
+    .empty-state p { font-size: 15px; color: var(--text-muted); }
+
+    /* ---------- Footer ---------- */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .footer-brand {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+    .footer-brand .fd {
+      display: inline-block;
+      width: 5px; height: 5px;
+      background: var(--brand);
+      border-radius: 50%;
+      margin: 0 6px 2px;
+      vertical-align: middle;
+    }
+    .footer-meta {
+      font-size: 12px;
+      color: var(--text-faint);
+      letter-spacing: 0.04em;
+    }
+
+    /* ---------- 响应式 ---------- */
+    @media (max-width: 900px) {
+      .skills-layout { grid-template-columns: 1fr; gap: 24px; }
+      .skills-sidebar {
+        position: static;
+        border-right: none;
+        border-bottom: 1px solid var(--border-soft);
+        padding-right: 0;
+        padding-bottom: 20px;
+      }
+      .skills-main { padding-left: 0; }
+      .sidebar-list { display: flex; flex-wrap: wrap; gap: 4px; }
+      .sidebar-item { padding: 6px 12px; font-size: 14px; }
+      .sidebar-item.active::before { display: none; }
+      .sidebar-title { padding-left: 0; }
+      .type-filter { padding-left: 0; }
+      .card-preview { width: 280px; }
+    }
+    @media (max-width: 600px) {
+      .nav-search input { width: 130px; padding: 6px 12px 6px 32px; font-size: 12px; }
+      .nav-search input:focus { width: 150px; }
+      .nav-search > svg { left: 10px; width: 14px; height: 14px; }
+      .navbar-links { display: none; }
+      .page-head { padding-top: 90px; }
+      .skill-card { flex-direction: column; min-height: auto; }
+      .card-preview { width: 100%; height: 180px; }
+      .card-body { padding: 16px 18px; }
+      .card-desc { -webkit-line-clamp: 3; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; }
+      .skill-card { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ Navbar ============ -->
+  <nav class="navbar" id="navbar">
+    <div class="container-wide flex justify-between items-center" style="width:100%;">
+      <a href="index.html" class="navbar-brand">
+        景礴学院
+        <span class="brand-domain">jingbo.xyz</span>
+      </a>
+      <div class="navbar-links">
+        <a href="index.html">首页</a>
+        <a href="demos.html">课件库</a>
+        <a href="skills.html" class="active">技能库</a>
+        <a href="index.html#about">关于</a>
+      </div>
+      <div class="nav-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="搜索技能…" id="searchInput" autocomplete="off">
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============ 页面标题 ============ -->
+  <div class="page-head">
+    <span class="jb-kicker">技能库</span>
+    <h1>知识可视化 Skill 模板</h1>
+    <p>每个 Skill 是一套「知识画法」模板——获取后安装到 Trae 等 AI 编程助手中，说一句话就能生成对应的交互式可视化课件。</p>
+    <p class="page-head-meta">20 个技能，覆盖八大学科。我们会持续补充更多技能，未来也将开放社区上传——让每个老师都能把教学经验沉淀为 Skill，让知识可视化触手可及。</p>
+  </div>
+
+  <!-- ============ 两栏布局 ============ -->
+  <div class="skills-layout">
+    <aside class="skills-sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">学科分类</div>
+        <ul class="sidebar-list" id="subjectList"></ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">展示形式</div>
+        <div class="type-filter" id="typeFilter"></div>
+      </div>
+    </aside>
+
+    <main class="skills-main">
+      <div class="main-header">
+        <h2 id="resultTitle">全部技能</h2>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <div class="skill-grid" id="skillGrid"></div>
+    </main>
+  </div>
+
+  <!-- ============ Footer ============ -->
+  <footer class="footer">
+    <div class="footer-brand">景礴学院<span class="fd"></span>jingbo.xyz</div>
+    <p class="footer-meta">在 AI 的时代，让每个角落都能看见磅礴 · © 2026 景礴学院</p>
+  </footer>
+
+  <script>
+    // ====== 20 个 Skill 数据 ======
+    const skills = [
+      {
+        id: '3d-bio-structure',
+        name: '3D生物结构探索',
+        subjects: ['bio'],
+        subjectNames: '生物',
+        type: 'immersive',
+        typeName: '沉浸式',
+        desc: '在深色沉浸场景中探索生物微观结构——DNA双螺旋、细胞器、人体器官分层解剖、血液循环、细胞分裂，支持旋转缩放与点击高亮',
+        demoCount: 5,
+        icon: '🧬',
+        showcaseUrl: 'skills/jingbo-edu-3d-bio-structure-v0.1.html'
+      },
+      {
+        id: '3d-micro-structure',
+        name: '3D物质微观结构',
+        subjects: ['chem','physics'],
+        subjectNames: '化学 · 物理',
+        type: 'immersive',
+        typeName: '沉浸式',
+        desc: '3D球棍模型与空间结构探索——分子、晶体、原子、电子云、杂化轨道、VSEPR分子几何，支持多种显示模式与交互',
+        demoCount: 6,
+        icon: '⚛️',
+        showcaseUrl: 'skills/jingbo-edu-3d-micro-structure-v0.1.html'
+      },
+      {
+        id: '3d-celestial-motion',
+        name: '3D天体运动模拟',
+        subjects: ['geo'],
+        subjectNames: '天文 · 地理',
+        type: 'immersive',
+        typeName: '沉浸式',
+        desc: '天体轨道运动的3D沉浸式模拟——太阳系行星运行、月相变化，支持时间流速控制与多视角切换',
+        demoCount: 2,
+        icon: '🪐',
+        showcaseUrl: 'skills/jingbo-edu-3d-celestial-motion-v0.1.html'
+      },
+      {
+        id: '3d-earth-science',
+        name: '3D地球科学探索',
+        subjects: ['geo'],
+        subjectNames: '地理',
+        type: 'immersive',
+        typeName: '沉浸式',
+        desc: '地球科学现象的3D可视化——地球公转与四季成因、板块构造与地震机制、地球地形，支持半剖视与层切换',
+        demoCount: 3,
+        icon: '🌍',
+        showcaseUrl: 'skills/jingbo-edu-3d-earth-science-v0.1.html'
+      },
+      {
+        id: '3d-math-geometry',
+        name: '3D数学几何探索',
+        subjects: ['math'],
+        subjectNames: '数学',
+        type: 'immersive',
+        typeName: '沉浸式',
+        desc: '深色沉浸式3D几何体探索——圆锥截面、多面体截面、立体几何，支持拖拽旋转、截面切割与多显示模式切换',
+        demoCount: 3,
+        icon: '🔷',
+        showcaseUrl: 'skills/jingbo-edu-3d-math-geometry-v0.1.html'
+      },
+      {
+        id: 'math-magazine-lecture',
+        name: '数学概念杂志讲解',
+        subjects: ['math'],
+        subjectNames: '数学',
+        type: 'lecture',
+        typeName: '杂志讲解',
+        desc: '数学核心概念的步骤式深度讲解——傅里叶级数、勾股定理、微积分、贝叶斯定理、导数几何意义、黎曼和、泰勒级数，左文右图分步揭示',
+        demoCount: 7,
+        icon: '📐',
+        showcaseUrl: 'skills/jingbo-edu-math-magazine-lecture-v0.1.html'
+      },
+      {
+        id: 'advanced-calculus',
+        name: '高等微积分可视化',
+        subjects: ['math'],
+        subjectNames: '数学',
+        type: 'lecture',
+        typeName: '杂志讲解',
+        desc: '高等微积分核心概念的杂志式讲解——导数几何意义（割线到切线）、黎曼和与定积分、泰勒级数展开，分步推导配合MathJax公式与动态可视化',
+        demoCount: 3,
+        icon: '∫',
+        showcaseUrl: 'skills/jingbo-edu-advanced-calculus-v0.1.html'
+      },
+      {
+        id: 'probability-stats-viz',
+        name: '概率统计可视化',
+        subjects: ['math'],
+        subjectNames: '数学',
+        type: 'lecture',
+        typeName: '杂志讲解',
+        desc: '概率统计核心概念的杂志式讲解——蒲丰投针实验与π的估算、中心极限定理，配合D3.js模拟动画与交互式图表',
+        demoCount: 1,
+        icon: '🎲',
+        showcaseUrl: 'skills/jingbo-edu-probability-stats-viz-v0.1.html'
+      },
+      {
+        id: 'physics-astronomy-lecture',
+        name: '物理天文理论讲解',
+        subjects: ['physics','geo'],
+        subjectNames: '物理 · 天文',
+        type: 'lecture',
+        typeName: '杂志讲解',
+        desc: '物理与天文理论的杂志式叙事——时间膨胀、电的发现史、宇宙大爆炸，5-6步章节递进揭示科学发现',
+        demoCount: 3,
+        icon: '🔭',
+        showcaseUrl: 'skills/jingbo-edu-physics-astronomy-lecture-v0.1.html'
+      },
+      {
+        id: 'chemistry-lecture',
+        name: '化学理论杂志讲解',
+        subjects: ['chem'],
+        subjectNames: '化学',
+        type: 'lecture',
+        typeName: '杂志讲解',
+        desc: '化学理论的深度讲解——元素周期表两百年演进史、化学平衡与勒夏特列原理，步骤式动画演示',
+        demoCount: 2,
+        icon: '🧪',
+        showcaseUrl: 'skills/jingbo-edu-chemistry-lecture-v0.1.html'
+      },
+      {
+        id: 'life-science-lecture',
+        name: '生命科学杂志讲解',
+        subjects: ['bio'],
+        subjectNames: '生物',
+        type: 'lecture',
+        typeName: '杂志讲解',
+        desc: '生命科学理论的杂志讲解——进化论证据链、光合作用原理、人体免疫系统，从宏观到分子层面递进',
+        demoCount: 3,
+        icon: '🌱',
+        showcaseUrl: 'skills/jingbo-edu-life-science-lecture-v0.1.html'
+      },
+      {
+        id: 'humanities-lecture',
+        name: '社科人文杂志讲解',
+        subjects: ['geo','history'],
+        subjectNames: '地理 · 人文',
+        type: 'lecture',
+        typeName: '杂志讲解',
+        desc: '跨学科社科知识的杂志讲解——全球变暖气候条纹、供需曲线、唐诗黄金时代、宇宙与人类时间轴，数据与人文交融',
+        demoCount: 4,
+        icon: '📜',
+        showcaseUrl: 'skills/jingbo-edu-humanities-lecture-v0.1.html'
+      },
+      {
+        id: 'math-graph-tool',
+        name: '数学图形工具',
+        subjects: ['math'],
+        subjectNames: '数学',
+        type: 'tool',
+        typeName: '交互工具',
+        desc: '参数化数学图形的实时交互工具——圆锥曲线、三角波形、函数绘图、分形几何、复利计算、单位圆、线性变换矩阵，拖滑块即变',
+        demoCount: 7,
+        icon: '📊',
+        showcaseUrl: 'skills/jingbo-edu-math-graph-tool-v0.1.html'
+      },
+      {
+        id: 'trig-circle-viz',
+        name: '三角函数与单位圆',
+        subjects: ['math'],
+        subjectNames: '数学',
+        type: 'tool',
+        typeName: '交互工具',
+        desc: '单位圆与三角函数联动的交互工具——动点旋转实时生成正弦余弦波形，振幅频率相位可调，角度弧度一键切换',
+        demoCount: 1,
+        icon: '🌀',
+        showcaseUrl: 'skills/jingbo-edu-trig-circle-viz-v0.1.html'
+      },
+      {
+        id: 'linear-algebra-viz',
+        name: '线性代数可视化',
+        subjects: ['math'],
+        subjectNames: '数学',
+        type: 'tool',
+        typeName: '交互工具',
+        desc: '线性代数概念的参数化可视化——矩阵与线性变换、2D网格变形、特征值特征向量，调节矩阵元素实时看空间变换',
+        demoCount: 1,
+        icon: '🔲',
+        showcaseUrl: 'skills/jingbo-edu-linear-algebra-viz-v0.1.html'
+      },
+      {
+        id: 'physics-experiment-sim',
+        name: '物理实验模拟器',
+        subjects: ['physics'],
+        subjectNames: '物理',
+        type: 'tool',
+        typeName: '交互工具',
+        desc: '物理实验的参数化模拟——抛体运动、电路、杠杆滑轮、透镜成像、简谐运动、阻尼振动、电场线、透镜面镜、电路搭建器，调节参数看实时变化',
+        demoCount: 9,
+        icon: '🔬',
+        showcaseUrl: 'skills/jingbo-edu-physics-experiment-sim-v0.1.html'
+      },
+      {
+        id: 'cs-algorithm-viz',
+        name: '计算机科学可视化',
+        subjects: ['cs'],
+        subjectNames: '计算机',
+        type: 'tool',
+        typeName: '交互工具',
+        desc: 'CS核心概念的动态可视化——排序算法、二叉树操作、凯撒密码加密解密，过程步骤高亮可追溯',
+        demoCount: 3,
+        icon: '💻',
+        showcaseUrl: 'skills/jingbo-edu-cs-algorithm-viz-v0.1.html'
+      },
+      {
+        id: 'biochem-model-sim',
+        name: '生化模型模拟器',
+        subjects: ['bio','chem'],
+        subjectNames: '生物 · 化学',
+        type: 'tool',
+        typeName: '交互工具',
+        desc: '生物与化学模型的参数化模拟——孟德尔遗传杂交、化学平衡移动、种群增长模型，数据驱动可视化',
+        demoCount: 3,
+        icon: '🧬',
+        showcaseUrl: 'skills/jingbo-edu-biochem-model-sim-v0.1.html'
+      },
+      {
+        id: 'art-music-creative',
+        name: '艺术音乐创意工具',
+        subjects: ['art'],
+        subjectNames: '艺术 · 音乐',
+        type: 'tool',
+        typeName: '交互工具',
+        desc: '跨学科创意可视化——色彩理论与配色方案、钢琴音阶与声波形可视化，视听双重感知',
+        demoCount: 2,
+        icon: '🎨',
+        showcaseUrl: 'skills/jingbo-edu-art-music-creative-v0.1.html'
+      },
+      {
+        id: 'history-map-narrative',
+        name: '历史地图叙事器',
+        subjects: ['history'],
+        subjectNames: '历史',
+        type: 'narrative',
+        typeName: '时空叙事',
+        desc: '地图与时间轴联动的时空叙事——李白人生旅程、丝绸之路、长征路线、大航海时代、朝代疆域演变等，事件节点+路线动画+详情卡片',
+        demoCount: 9,
+        icon: '🗺️',
+        showcaseUrl: 'skills/jingbo-edu-history-map-narrative-v0.1.html'
+      }
+    ];
+
+    // ====== 学科配置 ======
+    const subjects = [
+      { key: 'all',     name: '全部' },
+      { key: 'math',    name: '数学' },
+      { key: 'physics', name: '物理' },
+      { key: 'chem',    name: '化学' },
+      { key: 'bio',     name: '生物' },
+      { key: 'history', name: '历史' },
+      { key: 'geo',     name: '地理' },
+      { key: 'cs',      name: '计算机' },
+      { key: 'art',     name: '艺术' }
+    ];
+
+    // ====== 类型配置 ======
+    const types = [
+      { key: 'all',       name: '全部' },
+      { key: 'immersive', name: '沉浸式' },
+      { key: 'lecture',   name: '杂志讲解' },
+      { key: 'tool',      name: '交互工具' },
+      { key: 'narrative', name: '时空叙事' }
+    ];
+
+    // ====== 状态 ======
+    let currentSubject = 'all';
+    let currentType = 'all';
+    let searchTerm = '';
+
+    // ====== 工具函数 ======
+    function getSubjectCount(key) {
+      if (key === 'all') return skills.length;
+      return skills.filter(s => s.subjects.includes(key)).length;
+    }
+    function getTypeCount(key) {
+      if (key === 'all') return skills.length;
+      return skills.filter(s => s.type === key).length;
+    }
+
+    // ====== 渲染：学科列表 ======
+    function renderSubjects() {
+      const list = document.getElementById('subjectList');
+      list.innerHTML = subjects.map(s => `
+        <li class="sidebar-item ${s.key === currentSubject ? 'active' : ''}" data-subject="${s.key}">
+          <span>${s.name}</span>
+          <span class="count">${getSubjectCount(s.key)}</span>
+        </li>
+      `).join('');
+      list.querySelectorAll('.sidebar-item').forEach(el => {
+        el.addEventListener('click', () => {
+          currentSubject = el.dataset.subject;
+          renderSubjects();
+          renderSkills();
+        });
+      });
+    }
+
+    // ====== 渲染：类型筛选 ======
+    function renderTypes() {
+      const filter = document.getElementById('typeFilter');
+      filter.innerHTML = types.map(t => `
+        <span class="type-chip ${t.key === currentType ? 'active' : ''}" data-type="${t.key}">
+          ${t.name}<span class="count">${getTypeCount(t.key)}</span>
+        </span>
+      `).join('');
+      filter.querySelectorAll('.type-chip').forEach(el => {
+        el.addEventListener('click', () => {
+          currentType = el.dataset.type;
+          renderTypes();
+          renderSkills();
+        });
+      });
+    }
+
+    // ====== 渲染：Skill 卡片 ======
+    function renderSkills() {
+      const grid = document.getElementById('skillGrid');
+      const titleEl = document.getElementById('resultTitle');
+      const countEl = document.getElementById('resultCount');
+
+      let filtered = skills.filter(s => {
+        if (currentSubject !== 'all' && !s.subjects.includes(currentSubject)) return false;
+        if (currentType !== 'all' && s.type !== currentType) return false;
+        if (searchTerm) {
+          const q = searchTerm.toLowerCase();
+          if (!s.name.toLowerCase().includes(q) && !s.desc.toLowerCase().includes(q) && !s.subjectNames.toLowerCase().includes(q)) return false;
+        }
+        return true;
+      });
+
+      const subjConfig = subjects.find(s => s.key === currentSubject);
+      const subjectLabel = currentSubject === 'all' ? '全部' : (subjConfig ? subjConfig.name : '');
+      const typeConfig = types.find(t => t.key === currentType);
+      const typeLabel = currentType === 'all' ? '' : ' · ' + (typeConfig ? typeConfig.name : '');
+      titleEl.textContent = subjectLabel + typeLabel;
+      countEl.textContent = filtered.length + ' 个技能';
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <p>没有找到匹配的技能，换个关键词试试？</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((s, i) => `
+        <a href="${s.showcaseUrl}" class="skill-card" style="animation-delay:${i * 50}ms">
+          <div class="card-preview">
+            <img src="assets/img/skill-previews/${s.id}.jpg" alt="${s.name}" loading="lazy">
+            <span class="card-type-badge">${s.typeName}</span>
+            <span class="card-number">${String(i+1).padStart(2,'0')}</span>
+          </div>
+          <div class="card-body">
+            <div class="card-header">
+              <span class="card-subject-label">${s.subjectNames}</span>
+              <span class="demo-count">${s.demoCount} 个案例</span>
+            </div>
+            <div>
+              <h3 class="card-name">${s.name}</h3>
+              <p class="card-desc">${s.desc}</p>
+            </div>
+            <div class="card-footer">
+              <span class="card-link">
+                获取技能
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </span>
+            </div>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    // ====== 搜索 ======
+    const searchInput = document.getElementById('searchInput');
+    let searchTimer = null;
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        searchTerm = e.target.value.trim();
+        renderSkills();
+      }, 150);
+    });
+
+    // ====== Navbar 滚动 ======
+    const navbar = document.getElementById('navbar');
+    const onScroll = () => navbar.classList.toggle('scrolled', window.scrollY > 24);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // ====== 初始化 ======
+    renderSubjects();
+    renderTypes();
+    renderSkills();
+  </script>
+</body>
+</html>

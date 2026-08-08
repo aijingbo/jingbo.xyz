@@ -1,739 +1,1469 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="景礡之道 — 教育可视化平台，提供交互式学科 Demo 和可下载的 Trae Skill" />
-<title>景礡之道 · EduViz Lab</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>景礴 · 景象磅礴，知识无界</title>
+  <meta name="description" content="景礴 — 打破资源的壁垒，教育的载体，正在被重新定义。不需要写代码，跨越技术的鸿沟，让知识无时无地，抵达每一个角落。景礴，景象磅礴。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="assets/css/design-system.css">
+  <style>
+    /* ============================================================
+       景礴 · 首页 — 科学杂志风 · 赤陶暖调
+       ============================================================ */
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    :root {
+      /* 暖墨色（深色区块用，非纯黑） */
+      --ink: #1c1714;
+      --ink-2: #28201a;
+      --ink-text: #f0e9dc;
+      --ink-muted: #b3a48f;
+      --ink-border: rgba(240, 233, 220, 0.14);
+      /* 暖米黄（历史时间线用） */
+      --parchment-1: #f7eed8;
+      --parchment-2: #ece0c2;
+    }
 
-<style>
-/* ============ 设计系统变量 ============ */
-:root {
-  --bg: #f8fafc;
-  --surface: #ffffff;
-  --surface-soft: #f1f5f9;
-  --text: #0f172a;
-  --muted: #475569;
-  --border: #e2e8f0;
-  --ring: rgba(14, 165, 233, 0.24);
+    html { scroll-behavior: smooth; }
+    body { background-color: var(--bg); overflow-x: hidden; }
 
-  --accent-math: #0ea5e9;
-  --accent-physics: #8b5cf6;
-  --accent-chem: #f59e0b;
-  --accent-bio: #10b981;
-  --accent-history: #ef4444;
-  --accent-cross: #ec4899;
+    /* ---------- 通用排版 ---------- */
+    .jb-kicker {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--brand);
+    }
+    .jb-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+    }
+    .jb-eyebrow .seal {
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: var(--font-serif);
+      font-size: 13px; font-weight: 700;
+      color: #fff;
+      background: var(--brand);
+      border-radius: 4px;
+      letter-spacing: 0;
+    }
 
-  --primary: #0ea5e9;
+    /* ---------- Navbar 覆盖 ---------- */
+    .navbar {
+      background-color: rgba(250, 248, 245, 0.78);
+    }
+    .navbar.scrolled {
+      background-color: rgba(250, 248, 245, 0.94);
+      border-bottom-color: var(--border);
+    }
+    .navbar-brand {
+      font-size: 19px;
+      letter-spacing: 0.04em;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+    .navbar-brand .brand-domain {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-faint);
+      letter-spacing: 0.03em;
+      margin-top: 2px;
+    }
 
-  --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
-  --shadow-panel: 0 18px 42px rgba(15, 23, 42, 0.09);
-  --shadow-card: 0 10px 28px rgba(15, 23, 42, 0.05);
+    /* ============================================================
+       第 1 屏 · Hero
+       ============================================================ */
+    .hero {
+      position: relative;
+      min-height: 82vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 24px 0;
+      overflow: hidden;
+    }
 
-  --radius-container: 24px;
-  --radius-card: 14px;
-  --radius-button: 8px;
-  --radius-pill: 999px;
+    /* 暖光晕 */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(1100px, 120vw);
+      height: min(1100px, 120vw);
+      background: radial-gradient(circle, rgba(194, 65, 12, 0.07) 0%, rgba(194, 65, 12, 0.02) 40%, transparent 68%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    /* 底部渐隐到页面背景 */
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 50px;
+      background: linear-gradient(to top, var(--bg) 20%, transparent);
+      pointer-events: none;
+      z-index: 3;
+    }
 
-  --font-ui: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
-}
+    /* 科学图版 —— 大型背景线描 */
+    .hero-plate {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(960px, 108vw);
+      height: min(960px, 108vw);
+      z-index: 0;
+      opacity: 0.085;
+      pointer-events: none;
+    }
+    .hero-plate svg { width: 100%; height: 100%; display: block; }
 
-/* ============ Reset ============ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-body {
-  font-family: var(--font-ui);
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.6;
-  overflow-x: hidden;
-}
-a { color: inherit; text-decoration: none; }
+    /* 散落的小标本 */
+    .specimen {
+      position: absolute;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.22;
+      will-change: transform;
+    }
+    .specimen svg { display: block; overflow: visible; }
+    .specimen.s1 { top: 16%; left: 7%; width: 150px; animation: floaty 9s ease-in-out infinite; }
+    .specimen.s2 { top: 22%; right: 8%; width: 130px; animation: floaty 11s ease-in-out infinite -2s; }
+    .specimen.s3 { bottom: 20%; left: 10%; width: 170px; animation: floaty 10s ease-in-out infinite -4s; }
+    .specimen.s4 { bottom: 24%; right: 9%; width: 120px; animation: floaty 12s ease-in-out infinite -1s; }
 
-/* ============ 导航栏 ============ */
-.navbar {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 48px;
-  background: rgba(248, 250, 252, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  transition: all 0.3s ease;
-}
-.navbar.scrolled {
-  padding: 12px 48px;
-  box-shadow: var(--shadow-card);
-}
-.nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-.nav-logo .logo-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent-math), var(--accent-physics));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 800;
-}
-.nav-links {
-  display: flex;
-  gap: 32px;
-}
-.nav-links a {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--muted);
-  transition: color 0.2s;
-}
-.nav-links a:hover { color: var(--text); }
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-14px) rotate(1.2deg); }
+    }
 
-/* ============ Hero ============ */
-.hero {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 120px 24px 80px;
-  position: relative;
-  overflow: hidden;
-}
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  opacity: 0.5;
-}
-.hero-bg::before {
-  content: '';
-  position: absolute;
-  top: 20%; left: 50%;
-  transform: translateX(-50%);
-  width: 600px; height: 600px;
-  background: radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%);
-  border-radius: 50%;
-}
-.hero-bg::after {
-  content: '';
-  position: absolute;
-  bottom: 10%; right: 15%;
-  width: 400px; height: 400px;
-  background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
-  border-radius: 50%;
-}
-.hero-content {
-  position: relative;
-  z-index: 1;
-  max-width: 720px;
-}
-.hero-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-  margin-bottom: 28px;
-  box-shadow: var(--shadow-card);
-}
-.hero-tag .dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--accent-bio);
-  animation: pulse 2s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.hero h1 {
-  font-size: clamp(40px, 6vw, 64px);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin-bottom: 20px;
-}
-.hero h1 .gradient {
-  background: linear-gradient(135deg, var(--accent-math), var(--accent-physics), var(--accent-cross));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.hero p {
-  font-size: 18px;
-  color: var(--muted);
-  line-height: 1.7;
-  max-width: 540px;
-  margin: 0 auto 36px;
-}
-.hero-cta {
-  display: flex;
-  gap: 14px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 28px;
-  border-radius: var(--radius-button);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-}
-.btn-primary {
-  background: var(--text);
-  color: #fff;
-}
-.btn-primary:hover {
-  background: #1e293b;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-soft);
-}
-.btn-secondary {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-.btn-secondary:hover {
-  border-color: var(--text);
-  transform: translateY(-1px);
-}
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 880px;
+    }
 
-/* 学科色条 */
-.subject-strip {
-  display: flex;
-  gap: 0;
-  margin-top: 56px;
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
-}
-.subject-strip span {
-  width: 60px;
-  height: 6px;
-}
-.subject-strip .s-math { background: var(--accent-math); }
-.subject-strip .s-physics { background: var(--accent-physics); }
-.subject-strip .s-chem { background: var(--accent-chem); }
-.subject-strip .s-bio { background: var(--accent-bio); }
-.subject-strip .s-history { background: var(--accent-history); }
-.subject-strip .s-cross { background: var(--accent-cross); }
+    .hero-title {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: clamp(40px, 7.2vw, 84px);
+      line-height: 1.12;
+      letter-spacing: -0.015em;
+      color: var(--text);
+      margin: 26px 0 0;
+    }
+    .hero-title .accent {
+      color: var(--brand);
+      position: relative;
+    }
+    .hero-title .accent::after {
+      content: '';
+      position: absolute;
+      left: 4%; right: 4%;
+      bottom: 0.06em;
+      height: 0.14em;
+      background: rgba(194, 65, 12, 0.14);
+      border-radius: 2px;
+      z-index: -1;
+    }
 
-/* ============ 通用 Section ============ */
-.section {
-  padding: 80px 48px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.section-header {
-  margin-bottom: 48px;
-}
-.section-label {
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--primary);
-  margin-bottom: 8px;
-}
-.section-title {
-  font-size: clamp(28px, 4vw, 36px);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-.section-desc {
-  font-size: 16px;
-  color: var(--muted);
-  margin-top: 8px;
-}
+    .hero-sub {
+      font-family: var(--font-sans);
+      font-size: clamp(15px, 1.5vw, 18px);
+      line-height: 1.85;
+      color: var(--text-muted);
+      max-width: 620px;
+      margin: 30px auto 0;
+    }
 
-/* ============ Demo 画廊 ============ */
-.demo-filters {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 32px;
-  flex-wrap: wrap;
-}
-.filter-btn {
-  padding: 7px 18px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.filter-btn.active {
-  background: var(--text);
-  color: #fff;
-  border-color: var(--text);
-}
-.filter-btn:hover:not(.active) {
-  border-color: var(--text);
-}
+    .hero-cta {
+      margin-top: 40px;
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-hero {
+      padding: 14px 30px;
+      font-size: 15px;
+      font-weight: 500;
+      border-radius: 6px;
+    }
+    .btn-hero.btn-primary { box-shadow: 0 6px 20px rgba(194, 65, 12, 0.22); }
+    .btn-hero.btn-secondary { border-color: var(--border); color: var(--text); }
 
-.demo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-}
-.demo-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  transition: all 0.28s ease;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-}
-.demo-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-panel);
-  border-color: var(--card-accent, var(--border));
-}
-.demo-thumb {
-  height: 180px;
-  background: var(--surface-soft);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-.demo-thumb .thumb-icon {
-  font-size: 48px;
-  opacity: 0.3;
-}
-.demo-thumb::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--card-accent, transparent) 0%, transparent 60%);
-  opacity: 0.08;
-}
-.demo-body {
-  padding: 18px 20px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.demo-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.demo-code {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--card-accent, var(--muted));
-}
-.demo-subject {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  color: var(--card-accent, var(--muted));
-  background: color-mix(in srgb, var(--card-accent, var(--muted)) 10%, transparent);
-}
-.demo-status {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  margin-left: auto;
-}
-.demo-status.ready {
-  background: color-mix(in srgb, var(--accent-bio) 12%, transparent);
-  color: var(--accent-bio);
-}
-.demo-status.wip {
-  background: var(--surface-soft);
-  color: var(--muted);
-}
-.demo-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-.demo-desc {
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.5;
-  flex: 1;
-}
-.demo-link {
-  margin-top: 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--card-accent, var(--primary));
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.demo-link.disabled {
-  color: var(--muted);
-  opacity: 0.5;
-  pointer-events: none;
-}
+    .hero-stat {
+      margin-top: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      font-size: 13px;
+      color: var(--text-faint);
+      letter-spacing: 0.04em;
+      flex-wrap: wrap;
+    }
+    .hero-stat .dot {
+      width: 3px; height: 3px; border-radius: 50%;
+      background: var(--text-faint);
+    }
+    .hero-stat strong { color: var(--text-muted); font-weight: 600; }
 
-/* ============ Skills 区 ============ */
-.skills-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-}
-.skill-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: 24px;
-  transition: all 0.28s ease;
-}
-.skill-card:hover {
-  border-color: var(--text);
-  box-shadow: var(--shadow-card);
-}
-.skill-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--surface-soft);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  margin-bottom: 16px;
-}
-.skill-name {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-.skill-desc {
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.5;
-  margin-bottom: 14px;
-}
-.skill-triggers {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.skill-trigger {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: var(--surface-soft);
-  color: var(--muted);
-}
-.skill-download {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  opacity: 0.5;
-  pointer-events: none;
-}
+    .hero-scroll {
+      position: absolute;
+      bottom: 30px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .hero-scroll .line {
+      width: 1px; height: 40px;
+      background: linear-gradient(to bottom, var(--text-faint), transparent);
+      animation: scrollline 2.2s ease-in-out infinite;
+    }
+    @keyframes scrollline {
+      0% { transform: scaleY(0); transform-origin: top; }
+      50% { transform: scaleY(1); transform-origin: top; }
+      51% { transform: scaleY(1); transform-origin: bottom; }
+      100% { transform: scaleY(0); transform-origin: bottom; }
+    }
 
-/* ============ About 区 ============ */
-.about {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-.about-content {
-  max-width: 720px;
-  margin: 0 auto;
-  text-align: center;
-}
-.about-content p {
-  font-size: 17px;
-  color: var(--muted);
-  line-height: 1.8;
-  margin-bottom: 16px;
-}
+    /* ============================================================
+       第 2 屏 · 走进知识
+       ============================================================ */
+    .feature {
+      position: relative;
+      padding: 10px 0 60px;
+      z-index: 5;
+    }
+    .feature-head {
+      max-width: 760px;
+      margin: 0 auto 28px;
+      text-align: center;
+      padding: 0 24px;
+    }
+    .feature-head .jb-kicker { display: block; margin-bottom: 16px; }
+    .feature-title {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: clamp(30px, 4vw, 44px);
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+    .feature-desc {
+      margin-top: 18px;
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text-muted);
+    }
 
-/* ============ Footer ============ */
-.footer {
-  padding: 40px 48px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-  border-top: 1px solid var(--border);
-}
-.footer a {
-  color: var(--text);
-  font-weight: 600;
-}
-.footer a:hover { text-decoration: underline; }
+    /* 学科切换 —— 杂志目录式 */
+    .subject-nav {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      padding: 0 24px;
+      margin-bottom: 32px;
+      max-width: 980px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .subject-tab {
+      position: relative;
+      background: none;
+      border: none;
+      padding: 10px 16px;
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-faint);
+      cursor: pointer;
+      transition: color var(--duration-base) var(--ease);
+      letter-spacing: 0.02em;
+    }
+    .subject-tab:hover { color: var(--text-muted); }
+    .subject-tab.active { color: var(--text); }
+    .subject-tab.active::after {
+      content: '';
+      position: absolute;
+      left: 16px; right: 16px;
+      bottom: 2px;
+      height: 2px;
+      background: var(--brand);
+      border-radius: 1px;
+    }
+    .subject-tab .sdot {
+      display: none;
+    }
 
-/* ============ 动画 ============ */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.reveal {
-  opacity: 0;
-  animation: fadeInUp 0.6s ease forwards;
-}
-.reveal:nth-child(1) { animation-delay: 0.05s; }
-.reveal:nth-child(2) { animation-delay: 0.1s; }
-.reveal:nth-child(3) { animation-delay: 0.15s; }
-.reveal:nth-child(4) { animation-delay: 0.2s; }
-.reveal:nth-child(5) { animation-delay: 0.25s; }
-.reveal:nth-child(6) { animation-delay: 0.3s; }
+    /* 预览区 —— 约束画布 · 圆角容器 */
+    .preview-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .preview-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: var(--ink);
+      border-radius: 14px;
+      box-shadow: 0 12px 48px rgba(28, 20, 12, 0.16), 0 2px 8px rgba(28, 20, 12, 0.08);
+    }
+    .preview-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 700ms var(--ease);
+    }
+    .preview-slide.active { opacity: 1; }
 
-/* ============ 响应式 ============ */
-@media (max-width: 768px) {
-  .navbar { padding: 14px 20px; }
-  .nav-links { gap: 20px; }
-  .nav-links a { font-size: 13px; }
-  .section { padding: 60px 20px; }
-  .hero { padding: 100px 20px 60px; }
-  .demo-grid { grid-template-columns: 1fr; }
-  .skills-grid { grid-template-columns: 1fr; }
-}
-</style>
+    /* iframe 嵌入真实 Demo —— 隐藏 Demo 自身 UI */
+    .preview-iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .preview-slide.active .preview-iframe {
+      pointer-events: auto;
+    }
+
+    /* 加载占位 */
+    .preview-loader {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--ink);
+      z-index: 1;
+      opacity: 1;
+      transition: opacity 500ms var(--ease);
+    }
+    .preview-loader.hidden { opacity: 0; pointer-events: none; }
+    .preview-loader .spinner {
+      width: 32px; height: 32px;
+      border: 2px solid rgba(194, 65, 12, 0.2);
+      border-top-color: var(--brand);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 预览文字层 —— 极简 · 左下角 · 不遮挡画布主体 */
+    .preview-info {
+      position: absolute;
+      left: 0; bottom: 0;
+      max-width: 340px;
+      padding: 48px 28px 20px;
+      z-index: 2;
+      background: linear-gradient(to top, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.2) 55%, transparent 100%);
+      color: #fff;
+      border-radius: 0 0 0 14px;
+      pointer-events: none;
+    }
+    .preview-info.on-light {
+      background: linear-gradient(to top, rgba(250, 248, 245, 0.88) 0%, rgba(250, 248, 245, 0.4) 55%, transparent 100%);
+      color: var(--text);
+    }
+    .preview-info.on-parchment {
+      background: linear-gradient(to top, rgba(247, 238, 216, 0.88) 0%, rgba(247, 238, 216, 0.4) 55%, transparent 100%);
+      color: #3a2f1c;
+    }
+    .preview-info .ptag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      margin-bottom: 8px;
+      opacity: 0.8;
+    }
+    .preview-info .ptag::before {
+      content: '';
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--brand);
+    }
+    .preview-info h3 {
+      font-family: var(--font-serif);
+      font-size: clamp(16px, 1.8vw, 20px);
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 6px;
+      color: inherit;
+    }
+    .preview-info p {
+      font-size: 12px;
+      line-height: 1.55;
+      max-width: 300px;
+      opacity: 0.72;
+      margin-bottom: 0;
+      color: inherit;
+    }
+    .preview-info .open-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: inherit;
+      text-decoration: none;
+      padding-bottom: 2px;
+      border-bottom: 1.5px solid currentColor;
+      transition: gap var(--duration-base) var(--ease);
+      margin-top: 10px;
+      pointer-events: auto;
+    }
+    .preview-info .open-link:hover { gap: 11px; }
+
+    /* 预览右上角序号 */
+    .preview-index {
+      position: absolute;
+      top: 16px; right: 24px;
+      z-index: 2;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.5);
+    }
+    .preview-slide.bg-light .preview-index,
+    .preview-slide.bg-parchment .preview-index { color: rgba(26,26,26,0.3); }
+
+    /* 可交互提示 */
+    .preview-hint {
+      position: absolute;
+      top: 16px; left: 24px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.8);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 400ms var(--ease);
+    }
+    .preview-slide.active .preview-hint { opacity: 1; }
+    .preview-slide.bg-light .preview-hint {
+      background: rgba(26,26,26,0.06);
+      border-color: rgba(26,26,26,0.1);
+      color: rgba(26,26,26,0.55);
+    }
+    .preview-slide.bg-parchment .preview-hint {
+      background: rgba(58,47,28,0.06);
+      border-color: rgba(58,47,28,0.1);
+      color: rgba(58,47,28,0.55);
+    }
+    .preview-hint .pulse {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--brand);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+
+    .feature-foot {
+      text-align: center;
+      margin-top: 32px;
+    }
+
+    /* ============================================================
+       第 3 屏 · 你也可以做
+       ============================================================ */
+    .how {
+      background: var(--surface-muted);
+      padding: 80px 0 90px;
+      position: relative;
+    }
+    .how-head {
+      max-width: 680px;
+      margin: 0 auto 48px;
+      text-align: center;
+      padding: 0 24px;
+    }
+    .how-head .jb-kicker { display: block; margin-bottom: 16px; }
+    .how-title {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: clamp(30px, 4vw, 44px);
+      line-height: 1.2;
+    }
+    .how-desc {
+      margin-top: 18px;
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text-muted);
+    }
+
+    .steps {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+    .step {
+      display: flex;
+      flex-direction: column;
+    }
+    .step-num {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--brand);
+      letter-spacing: 0.12em;
+      margin-bottom: 14px;
+    }
+    .step-mock {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+      height: 230px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 22px;
+      overflow: hidden;
+      box-shadow: 0 2px 14px rgba(60, 40, 20, 0.04);
+    }
+    .step-mock svg { width: 100%; height: 100%; max-height: 180px; }
+    .step h4 {
+      font-family: var(--font-serif);
+      font-size: 21px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .step p {
+      font-size: 14px;
+      line-height: 1.75;
+      color: var(--text-muted);
+    }
+    .step p b { color: var(--text); font-weight: 600; }
+
+    /* 流程连接箭头 */
+    .step-arrow {
+      display: none;
+    }
+
+    /* ============================================================
+       第 4 屏 · 入口 + Footer
+       ============================================================ */
+    .entry {
+      position: relative;
+      padding: 90px 24px 70px;
+      text-align: center;
+      overflow: hidden;
+      background: #f5f0e8;
+      border-top: 1px solid var(--border);
+    }
+    .entry::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 120px; height: 3px;
+      background: var(--brand);
+      border-radius: 2px;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    .entry-inner { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; }
+    .entry-title {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .entry-desc {
+      margin: 18px auto 0;
+      font-size: 15px;
+      line-height: 1.85;
+      color: var(--text-muted);
+      max-width: 520px;
+      text-wrap: balance;
+    }
+    .entry-cta {
+      margin-top: 40px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 36px;
+      background: var(--brand);
+      color: #fff;
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-weight: 500;
+      text-decoration: none;
+      border-radius: 8px;
+      box-shadow: 0 8px 26px rgba(194, 65, 12, 0.24);
+      transition: all var(--duration-base) var(--ease);
+    }
+    .entry-cta:hover {
+      background: var(--brand-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(194, 65, 12, 0.3);
+    }
+    .entry-cta svg { transition: transform var(--duration-base) var(--ease); }
+    .entry-cta:hover svg { transform: translateX(4px); }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .footer-brand {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+    .footer-brand .fd {
+      display: inline-block;
+      width: 5px; height: 5px;
+      background: var(--brand);
+      border-radius: 50%;
+      margin: 0 6px 2px;
+      vertical-align: middle;
+    }
+    .footer-meta {
+      font-size: 12px;
+      color: var(--text-faint);
+      letter-spacing: 0.04em;
+    }
+
+    /* ============================================================
+       第 4 屏 · 关于景礴 — 宣言式排版
+       ============================================================ */
+    .about {
+      padding: 90px 24px 80px;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(to bottom, var(--bg) 0%, #f5f0e8 50%, var(--bg) 100%);
+    }
+    .about::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 1px; height: 50px;
+      background: linear-gradient(to bottom, transparent, var(--border));
+    }
+    .about-inner {
+      max-width: 560px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .about-inner .jb-kicker { display: block; margin-bottom: 20px; }
+    .about-title {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: clamp(22px, 3vw, 32px);
+      line-height: 1.4;
+      letter-spacing: 0.01em;
+      margin: 0 0 50px;
+      color: var(--text);
+      text-wrap: balance;
+    }
+
+    /* Manifesto — 五句话 · 宣言式排版 */
+    .about-manifesto {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .am-line {
+      font-family: var(--font-serif);
+      font-size: clamp(16px, 1.9vw, 20px);
+      line-height: 1.8;
+      color: var(--text);
+      margin: 0;
+      font-weight: 500;
+      text-wrap: balance;
+      max-width: 480px;
+    }
+    .am-line + .am-line {
+      margin-top: 14px;
+    }
+    /* 画龙点睛句 — 赤陶色强调 */
+    .am-punchline {
+      font-family: var(--font-serif);
+      font-size: clamp(16px, 1.9vw, 20px);
+      line-height: 1.8;
+      color: var(--brand);
+      margin: 14px 0 0;
+      font-weight: 600;
+      text-wrap: balance;
+      max-width: 480px;
+    }
+    .am-ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 32px 0 24px;
+    }
+    .am-ornament span {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--text-faint);
+      opacity: 0.4;
+    }
+    .am-ornament span:nth-child(2) {
+      width: 6px; height: 6px;
+      opacity: 0.6;
+    }
+    .am-name {
+      font-family: var(--font-serif);
+      font-size: clamp(24px, 2.8vw, 30px);
+      line-height: 1.5;
+      color: var(--text);
+      margin: 0 0 18px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-wrap: balance;
+    }
+    .am-finale {
+      font-family: var(--font-serif);
+      font-size: clamp(15px, 1.7vw, 18px);
+      line-height: 1.85;
+      color: var(--text-muted);
+      margin: 0;
+      max-width: 440px;
+      font-weight: 400;
+      font-style: italic;
+      text-wrap: balance;
+    }
+
+    /* ============================================================
+       入口区按钮修复
+       ============================================================ */
+    .entry-cta-group {
+      margin-top: 40px;
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .entry-cta--outline {
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      box-shadow: none;
+    }
+    .entry-cta--outline:hover {
+      background: transparent;
+      border-color: var(--brand);
+      color: var(--brand);
+      transform: translateY(-2px);
+      box-shadow: none;
+    }
+
+    /* 历史课件 info 层 — 极简模式，不遮挡地图 */
+    .preview-info--minimal {
+      max-width: 200px;
+      padding: 36px 18px 12px;
+    }
+    .preview-info--minimal h3 { font-size: clamp(13px, 1.4vw, 16px); }
+    .preview-info--minimal .open-link { font-size: 11px; }
+
+    /* 解释浮层 —— 右侧/右上角，半透明卡片，不遮挡左下角标题 */
+    .preview-explain {
+      position: absolute;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+      z-index: 2;
+      max-width: 220px;
+      padding: 16px 20px;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f0e9dc;
+      pointer-events: none;
+    }
+    .preview-explain--top {
+      top: 16px;
+      right: 16px;
+      transform: none;
+      max-width: 240px;
+    }
+    .preview-explain--bottom-right {
+      top: auto;
+      bottom: 20px;
+      right: 20px;
+      transform: none;
+    }
+    .preview-explain .pe-tag {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--brand);
+      margin-bottom: 6px;
+    }
+    .preview-explain .pe-title {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+    .preview-explain .pe-desc {
+      font-size: 12px;
+      line-height: 1.65;
+      opacity: 0.8;
+    }
+    /* 浅色背景的 Demo 用浅色浮层 */
+    .preview-slide.bg-light .preview-explain {
+      background: rgba(250, 248, 245, 0.82);
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .preview-slide.bg-light .preview-explain .pe-tag { color: var(--brand); }
+
+    /* ============================================================
+       响应式
+       ============================================================ */
+    @media (max-width: 900px) {
+      .steps { grid-template-columns: 1fr; gap: 40px; }
+      .step-mock { height: 200px; }
+      .preview-stage { aspect-ratio: 4 / 3; }
+      .preview-visual { padding: 24px; }
+      .preview-info { padding: 30px 24px; }
+      .specimen { opacity: 0.14; }
+      .specimen.s1 { width: 90px; }
+      .specimen.s2 { width: 80px; }
+      .specimen.s3 { width: 100px; }
+      .specimen.s4 { width: 76px; }
+    }
+    @media (max-width: 560px) {
+      .hero { padding: 110px 20px 70px; }
+      .subject-tab { font-size: 15px; padding: 8px 11px; }
+      .hero-stat { gap: 10px; font-size: 12px; }
+      .preview-stage { aspect-ratio: 1 / 1; }
+      .about { padding: 60px 20px; }
+      .entry-title { white-space: normal; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .specimen, .hero-scroll .line { animation: none !important; }
+      * { scroll-behavior: auto !important; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- ============ 导航栏 ============ -->
-<nav class="navbar" id="navbar">
-  <div class="nav-logo">
-    <span class="logo-mark">景</span>
-    <span>景礡之道</span>
-  </div>
-  <div class="nav-links">
-    <a href="#demos">Demos</a>
-    <a href="#skills">Skills</a>
-    <a href="#about">关于</a>
-    <a href="https://github.com/aijingbo/jingbo.xyz" target="_blank">GitHub</a>
-  </div>
-</nav>
-
-<!-- ============ Hero ============ -->
-<section class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-content">
-    <div class="hero-tag reveal">
-      <span class="dot"></span>
-      <span>EduViz Lab · 教育可视化实验室</span>
-    </div>
-    <h1 class="reveal">
-      让知识<span class="gradient">可见、可触、可玩</span>
-    </h1>
-    <p class="reveal">
-      12 个交互式学科 Demo + 7 个可下载 Trae Skill，覆盖数学、物理、化学、生物、历史。每个 Demo 既是独立可玩的教学展品，也是对应 Skill 的产出范例。
-    </p>
-    <div class="hero-cta reveal">
-      <a href="#demos" class="btn btn-primary">浏览 Demo →</a>
-      <a href="#skills" class="btn btn-secondary">了解 Skill</a>
-    </div>
-    <div class="subject-strip reveal">
-      <span class="s-math"></span>
-      <span class="s-physics"></span>
-      <span class="s-chem"></span>
-      <span class="s-bio"></span>
-      <span class="s-history"></span>
-      <span class="s-cross"></span>
-    </div>
-  </div>
-</section>
-
-<!-- ============ Demo 画廊 ============ -->
-<section class="section" id="demos">
-  <div class="section-header">
-    <div class="section-label">DEMOS</div>
-    <h2 class="section-title">学科可视化展品</h2>
-    <p class="section-desc">点击任意展品，即开即玩。每个 Demo 都是独立 HTML 文件，离线可用。</p>
-  </div>
-
-  <div class="demo-filters">
-    <button class="filter-btn active" data-filter="all">全部</button>
-    <button class="filter-btn" data-filter="math">数学</button>
-    <button class="filter-btn" data-filter="physics">物理</button>
-    <button class="filter-btn" data-filter="chem">化学</button>
-    <button class="filter-btn" data-filter="bio">生物</button>
-    <button class="filter-btn" data-filter="history">历史</button>
-    <button class="filter-btn" data-filter="cross">跨学科</button>
-  </div>
-
-  <div class="demo-grid" id="demoGrid">
-    <!-- Demo 卡片由 JS 渲染 -->
-  </div>
-</section>
-
-<!-- ============ Skills 区 ============ -->
-<section class="section" id="skills" style="background: var(--surface-soft);">
-  <div class="section-header">
-    <div class="section-label">SKILLS</div>
-    <h2 class="section-title">Trae Skill 下载</h2>
-    <p class="section-desc">下载 Skill 后放入 Trae Agent 的 .trae/skills/ 目录，即可通过自然语言生成交互课件。</p>
-  </div>
-
-  <div class="skills-grid" id="skillsGrid">
-    <!-- Skill 卡片由 JS 渲染 -->
-  </div>
-</section>
-
-<!-- ============ About ============ -->
-<section class="section about" id="about">
-  <div class="about-content">
-    <div class="section-label" style="text-align:center;">ABOUT</div>
-    <h2 class="section-title" style="margin-bottom: 24px;">关于景礡之道</h2>
-    <p>
-      "景礡之道"是一个教育可视化个人网站，秉承"教科书的严谨遇上博物馆的精致"的设计理念。
-    </p>
-    <p>
-      每个 Demo 都是独立的交互式 HTML 文件，无需安装、即开即玩。每个 Demo 对应一个 Trae Skill，教育工作者下载 Skill 后可通过 Trae Agent 生成个性化课件。
-    </p>
-    <p>
-      技术栈：Three.js（3D）、Canvas 2D、KaTeX / MathJax（公式），纯前端实现，离线可用。
-    </p>
-  </div>
-</section>
-
-<!-- ============ Footer ============ -->
-<footer class="footer">
-  <p>景礡之道 · EduViz Lab — 教育可视化平台</p>
-  <p style="margin-top: 6px;">© 2026 jingbo.xyz · <a href="https://github.com/aijingbo/jingbo.xyz" target="_blank">GitHub</a></p>
-</footer>
-
-<script>
-// ============ Demo 数据 ============
-const demos = [
-  { code: 'M1', title: '正四棱锥线面角', subject: '数学', subjectKey: 'math', accent: '#0ea5e9', desc: '3D 立体几何交互解题，正四棱锥中线面角的正弦值求解', status: 'ready', url: 'demos/M1-solid-geometry.html' },
-  { code: 'M2', title: '椭圆数量积范围', subject: '数学', subjectKey: 'math', accent: '#0ea5e9', desc: '2D 解析几何，椭圆过焦点直线的数量积范围探索', status: 'wip' },
-  { code: 'M3', title: '三角函数变换器', subject: '数学', subjectKey: 'math', accent: '#0ea5e9', desc: '振幅、频率、相位滑块驱动正弦曲线实时变换', status: 'wip' },
-  { code: 'P1', title: '小孔成像仿真', subject: '物理', subjectKey: 'physics', accent: '#8b5cf6', desc: '2D 光路图 + 3D 暗室实验室双模式', status: 'wip' },
-  { code: 'P2', title: '抛体运动轨迹', subject: '物理', subjectKey: 'physics', accent: '#8b5cf6', desc: '初速度与角度滑块驱动抛物线轨迹，多星球重力切换', status: 'wip' },
-  { code: 'P3', title: '太阳系 3D 交互', subject: '物理', subjectKey: 'physics', accent: '#8b5cf6', desc: 'Three.js 八大行星轨道，时间流速控制，行星聚焦', status: 'wip' },
-  { code: 'C1', title: '甲烷燃烧', subject: '化学', subjectKey: 'chem', accent: '#f59e0b', desc: '3D 分子反应动画，CH₄ + 2O₂ → CO₂ + 2H₂O', status: 'ready', url: 'demos/C1-methane-combustion.html' },
-  { code: 'C2', title: '酯化反应', subject: '化学', subjectKey: 'chem', accent: '#f59e0b', desc: '3D 分子反应动画，酯化反应机理与过渡态', status: 'wip' },
-  { code: 'B1', title: '人体器官系统', subject: '生物', subjectKey: 'bio', accent: '#10b981', desc: '3D 人体器官系统切换，骨骼/循环/呼吸/消化/神经', status: 'wip' },
-  { code: 'B2', title: '细胞器探索', subject: '生物', subjectKey: 'bio', accent: '#10b981', desc: '2D 交互图，点击细胞器显示结构与功能', status: 'wip' },
-  { code: 'H1', title: '丝绸之路交互', subject: '历史', subjectKey: 'history', accent: '#ef4444', desc: '2D 地图 + 时间轴，汉/唐/元不同时期路线动画', status: 'wip' },
-  { code: 'X1', title: '概念可视化动画', subject: '跨学科', subjectKey: 'cross', accent: '#ec4899', desc: 'AI 驱动科普动画，Vox 风格概念可视化', status: 'wip' },
-];
-
-// ============ Skill 数据 ============
-const skills = [
-  { icon: '📐', name: 'edu-solid-geometry', desc: '立体几何题 → 3D 交互解题网页', triggers: ['立体几何', '线面角', '二面角'] },
-  { icon: '📊', name: 'edu-analytic-geometry', desc: '解析几何题 → 2D 交互解题网页', triggers: ['解析几何', '圆锥曲线', '椭圆'] },
-  { icon: '⚗️', name: 'edu-chem-reaction', desc: '化学反应 → 3D 分子动画网页', triggers: ['化学反应', '分子动画', '燃烧'] },
-  { icon: '🔬', name: 'edu-physics-simulation', desc: '物理仿真 → 交互实验网页', triggers: ['物理仿真', '小孔成像', '抛体运动'] },
-  { icon: '🧬', name: 'edu-biology-explorer', desc: '生物结构 → 交互探索网页', triggers: ['人体解剖', '器官系统', '细胞结构'] },
-  { icon: '📜', name: 'edu-history-timeline', desc: '历史事件 → 交互时间轴地图', triggers: ['历史地图', '丝绸之路', '时间轴'] },
-  { icon: '📈', name: 'edu-function-visualizer', desc: '函数 → 交互变换器网页', triggers: ['函数可视化', '三角函数', '变换器'] },
-];
-
-// ============ 渲染 Demo 卡片 ============
-const demoGrid = document.getElementById('demoGrid');
-function renderDemos(filter = 'all') {
-  const filtered = filter === 'all' ? demos : demos.filter(d => d.subjectKey === filter);
-  demoGrid.innerHTML = filtered.map(d => `
-    <div class="demo-card reveal" style="--card-accent: ${d.accent};" onclick="window.open('${d.url || '#'}', '_blank')">
-      <div class="demo-thumb" style="background: color-mix(in srgb, ${d.accent} 6%, var(--surface-soft));">
-        <span class="thumb-icon">${d.code}</span>
-      </div>
-      <div class="demo-body">
-        <div class="demo-meta">
-          <span class="demo-code">${d.code}</span>
-          <span class="demo-subject">${d.subject}</span>
-          <span class="demo-status ${d.status === 'ready' ? 'ready' : 'wip'}">${d.status === 'ready' ? '可访问' : '开发中'}</span>
-        </div>
-        <div class="demo-title">${d.title}</div>
-        <div class="demo-desc">${d.desc}</div>
-        <div class="demo-link ${d.status === 'ready' ? '' : 'disabled'}">
-          ${d.status === 'ready' ? '打开 Demo →' : '即将上线'}
-        </div>
+  <!-- ============ Navbar ============ -->
+  <nav class="navbar" id="navbar">
+    <div class="container-wide flex justify-between items-center" style="width:100%;">
+      <a href="/" class="navbar-brand">
+        景礴学院
+        <span class="brand-domain">jingbo.xyz</span>
+      </a>
+      <div class="navbar-links">
+        <a href="index.html" class="active">首页</a>
+        <a href="demos.html">课件库</a>
+        <a href="skills.html">技能库</a>
+        <a href="#about">关于</a>
       </div>
     </div>
-  `).join('');
-}
-renderDemos();
+  </nav>
 
-// ============ 筛选 ============
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderDemos(btn.dataset.filter);
-  });
-});
-
-// ============ 渲染 Skill 卡片 ============
-const skillsGrid = document.getElementById('skillsGrid');
-skillsGrid.innerHTML = skills.map(s => `
-  <div class="skill-card reveal">
-    <div class="skill-icon">${s.icon}</div>
-    <div class="skill-name">${s.name}</div>
-    <div class="skill-desc">${s.desc}</div>
-    <div class="skill-triggers">
-      ${s.triggers.map(t => `<span class="skill-trigger">${t}</span>`).join('')}
+  <!-- ============================================================
+       第 1 屏 · Hero
+       ============================================================ -->
+  <section class="hero">
+    <!-- 科学图版：大型背景线描 -->
+    <div class="hero-plate" aria-hidden="true">
+      <svg viewBox="0 0 800 800" fill="none" stroke="#1a1a1a" stroke-width="1">
+        <!-- 外环 -->
+        <circle cx="400" cy="400" r="360" stroke-width="1.2"/>
+        <circle cx="400" cy="400" r="300"/>
+        <circle cx="400" cy="400" r="220"/>
+        <!-- 刻度环 -->
+        <g opacity="0.6">
+          <g id="ticks"></g>
+        </g>
+        <!-- 椭圆轨道（黄道） -->
+        <ellipse cx="400" cy="400" rx="340" ry="150" transform="rotate(-18 400 400)" stroke-width="1.2"/>
+        <ellipse cx="400" cy="400" rx="150" ry="340" transform="rotate(28 400 400)"/>
+        <!-- 正弦波横贯 -->
+        <path d="M40,400 C120,300 200,300 280,400 S440,500 520,400 S680,300 760,400" stroke-width="1.4"/>
+        <!-- 焦点与椭圆 -->
+        <ellipse cx="400" cy="400" rx="120" ry="80" transform="rotate(35 400 400)"/>
+        <circle cx="345" cy="438" r="3" fill="#c2410c" stroke="none"/>
+        <circle cx="455" cy="362" r="3" fill="#c2410c" stroke="none"/>
+        <!-- 中心十字 -->
+        <line x1="400" y1="370" x2="400" y2="430"/>
+        <line x1="370" y1="400" x2="430" y2="400"/>
+      </svg>
     </div>
-    <div class="skill-download">⬇ 即将提供下载</div>
-  </div>
-`).join('');
 
-// ============ 导航栏滚动效果 ============
-window.addEventListener('scroll', () => {
-  const navbar = document.getElementById('navbar');
-  navbar.classList.toggle('scrolled', window.scrollY > 20);
-});
+    <!-- 散落小标本 -->
+    <div class="specimen s1" aria-hidden="true">
+      <!-- DNA 双螺旋 -->
+      <svg viewBox="0 0 120 200" fill="none" stroke="#1a1a1a" stroke-width="1.4">
+        <path d="M30,10 C90,40 90,60 30,90 C-30,120 -30,140 30,170 C90,200 90,200 30,200"/>
+        <path d="M90,10 C30,40 30,60 90,90 C150,120 150,140 90,170 C30,200 30,200 90,200"/>
+        <line x1="34" y1="30" x2="86" y2="30" stroke="#c2410c" stroke-width="1.2"/>
+        <line x1="40" y1="60" x2="80" y2="60" stroke="#c2410c" stroke-width="1.2"/>
+        <line x1="40" y1="100" x2="80" y2="100" stroke="#c2410c" stroke-width="1.2"/>
+        <line x1="34" y1="140" x2="86" y2="140" stroke="#c2410c" stroke-width="1.2"/>
+        <line x1="40" y1="175" x2="80" y2="175" stroke="#c2410c" stroke-width="1.2"/>
+      </svg>
+    </div>
+    <div class="specimen s2" aria-hidden="true">
+      <!-- 苯环分子 -->
+      <svg viewBox="0 0 140 140" fill="none" stroke="#1a1a1a" stroke-width="1.4">
+        <polygon points="70,15 122,45 122,105 70,135 18,105 18,45"/>
+        <circle cx="70" cy="75" r="32" stroke-width="1"/>
+        <circle cx="70" cy="15" r="4" fill="#c2410c" stroke="none"/>
+        <circle cx="122" cy="45" r="4" fill="#c2410c" stroke="none"/>
+        <circle cx="122" cy="105" r="4" fill="#c2410c" stroke="none"/>
+        <circle cx="70" cy="135" r="4" fill="#c2410c" stroke="none"/>
+        <circle cx="18" cy="105" r="4" fill="#c2410c" stroke="none"/>
+        <circle cx="18" cy="45" r="4" fill="#c2410c" stroke="none"/>
+      </svg>
+    </div>
+    <div class="specimen s3" aria-hidden="true">
+      <!-- 抛物线轨迹 -->
+      <svg viewBox="0 0 200 130" fill="none" stroke="#1a1a1a" stroke-width="1.4">
+        <line x1="10" y1="115" x2="190" y2="115" stroke-width="1"/>
+        <path d="M20,115 Q100,5 180,115" stroke="#c2410c" stroke-dasharray="5 4" stroke-width="1.4"/>
+        <circle cx="100" cy="25" r="5" fill="#c2410c" stroke="none"/>
+        <line x1="100" y1="25" x2="118" y2="25" stroke-width="1"/>
+        <line x1="100" y1="25" x2="100" y2="48" stroke-width="1" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="specimen s4" aria-hidden="true">
+      <!-- 气候条纹 -->
+      <svg viewBox="0 0 120 120" fill="none" stroke="none">
+        <rect x="0" y="10" width="8" height="100" fill="#1e3a8a"/>
+        <rect x="8" y="10" width="8" height="100" fill="#3b82f6"/>
+        <rect x="16" y="10" width="8" height="100" fill="#60a5fa"/>
+        <rect x="24" y="10" width="8" height="100" fill="#93c5fd"/>
+        <rect x="32" y="10" width="8" height="100" fill="#cbd5e1"/>
+        <rect x="40" y="10" width="8" height="100" fill="#fde68a"/>
+        <rect x="48" y="10" width="8" height="100" fill="#fbbf24"/>
+        <rect x="56" y="10" width="8" height="100" fill="#f59e0b"/>
+        <rect x="64" y="10" width="8" height="100" fill="#ea580c"/>
+        <rect x="72" y="10" width="8" height="100" fill="#dc2626"/>
+        <rect x="80" y="10" width="8" height="100" fill="#b91c1c"/>
+        <rect x="88" y="10" width="8" height="100" fill="#dc2626"/>
+        <rect x="96" y="10" width="8" height="100" fill="#ea580c"/>
+        <rect x="104" y="10" width="8" height="100" fill="#991b1b"/>
+        <rect x="112" y="10" width="8" height="100" fill="#7f1d1d"/>
+      </svg>
+    </div>
 
-// ============ Scroll Reveal ============
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.style.animationPlayState = 'running';
+    <div class="hero-content">
+      <h1 class="hero-title">让知识<br>从文字<span class="accent">变成画面</span></h1>
+      <p class="hero-sub">
+        打破资源的壁垒，教育的载体，正在被重新定义。<br>
+        3D 分子、动态几何、历史地图即刻呈现。<br>
+        不需要写代码，跨越技术的鸿沟，让知识无时无地，抵达每一个角落。
+      </p>
+      <div class="hero-cta">
+        <a href="skills.html" class="btn btn-primary btn-hero">立刻开始 →</a>
+        <a href="demos.html" class="btn btn-secondary btn-hero">浏览课件</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       第 2 屏 · 走进知识
+       ============================================================ -->
+  <section class="feature" id="feature">
+    <div class="feature-head">
+      <h2 class="feature-title">课件精选</h2>
+      <p class="feature-desc">教科书里的每个概念，都能被看见、被触碰、被理解。</p>
+    </div>
+
+    <!-- 学科切换 -->
+    <div class="subject-nav" id="subjectNav">
+      <button class="subject-tab active" data-subject="chem">化学</button>
+      <button class="subject-tab" data-subject="bio">生物</button>
+      <button class="subject-tab" data-subject="geo">地理</button>
+      <button class="subject-tab" data-subject="math">数学</button>
+      <button class="subject-tab" data-subject="physics">物理</button>
+    </div>
+
+    <!-- 全出血预览 -->
+    <div class="preview-wrap">
+      <div class="preview-stage" id="previewStage">
+
+        <!-- 化学 · 杂化轨道与化学键 -->
+        <div class="preview-slide active" data-slide="chem">
+          <span class="preview-index">01 / 05</span>
+          <iframe class="preview-iframe" data-src="demos/hybrid-orbitals-bonding/index.html" loading="lazy"></iframe>
+          <div class="preview-loader"><div class="spinner"></div></div>
+          <div class="preview-info">
+            <span class="ptag">化学</span>
+            <h3>杂化轨道 · 化学键的几何</h3>
+            <a href="demos/hybrid-orbitals-bonding/index.html" class="open-link">进入课件 →</a>
+          </div>
+        </div>
+
+        <!-- 生物 · DNA 双螺旋 -->
+        <div class="preview-slide" data-slide="bio">
+          <span class="preview-index">02 / 05</span>
+          <iframe class="preview-iframe" data-src="demos/dna-double-helix/index.html" loading="lazy"></iframe>
+          <div class="preview-loader"><div class="spinner"></div></div>
+          <div class="preview-info">
+            <span class="ptag">生物</span>
+            <h3>DNA 双螺旋 · 生命密码</h3>
+            <a href="demos/dna-double-helix/index.html" class="open-link">进入课件 →</a>
+          </div>
+          <div class="preview-explain preview-explain--top">
+            <div class="pe-tag">双螺旋</div>
+            <div class="pe-title">生命密码的立体结构</div>
+            <div class="pe-desc">两条互补链以右手螺旋方式缠绕，碱基对向内排列。拖拽旋转，观察遗传信息的空间构型。</div>
+          </div>
+        </div>
+
+        <!-- 地理 · 太阳系行星运行 -->
+        <div class="preview-slide" data-slide="geo">
+          <span class="preview-index">03 / 05</span>
+          <iframe class="preview-iframe" data-src="demos/solar-system/index.html" loading="lazy"></iframe>
+          <div class="preview-loader"><div class="spinner"></div></div>
+          <div class="preview-info">
+            <span class="ptag">地理</span>
+            <h3>太阳系 · 行星运行轨道</h3>
+            <a href="demos/solar-system/index.html" class="open-link">进入课件 →</a>
+          </div>
+          <div class="preview-explain preview-explain--top">
+            <div class="pe-tag">天文</div>
+            <div class="pe-title">太阳系 · 八大行星</div>
+            <div class="pe-desc">水星、金星、地球、火星、木星、土星、天王星、海王星，围绕太阳运行。拖拽旋转，俯瞰行星轨道。</div>
+          </div>
+        </div>
+
+        <!-- 数学 · 正四棱锥线面角 -->
+        <div class="preview-slide bg-light" data-slide="math">
+          <span class="preview-index">04 / 05</span>
+          <iframe class="preview-iframe" data-src="demos/M1-solid-geometry.html" loading="lazy"></iframe>
+          <div class="preview-loader"><div class="spinner"></div></div>
+          <div class="preview-info on-light">
+            <span class="ptag">数学</span>
+            <h3>线面角 · 正四棱锥</h3>
+            <a href="demos/M1-solid-geometry.html" class="open-link">进入课件 →</a>
+          </div>
+          <div class="preview-explain">
+            <div class="pe-tag">线面角</div>
+            <div class="pe-title">侧棱与底面所成的角</div>
+            <div class="pe-desc">正四棱锥中，侧棱在底面的射影与侧棱本身，构成线面角。拖拽旋转，观察几何关系的空间本质。</div>
+          </div>
+        </div>
+
+        <!-- 物理 · 原子结构 -->
+        <div class="preview-slide" data-slide="physics">
+          <span class="preview-index">05 / 05</span>
+          <iframe class="preview-iframe" data-src="demos/atomic-structure/index.html" loading="lazy"></iframe>
+          <div class="preview-loader"><div class="spinner"></div></div>
+          <div class="preview-info">
+            <span class="ptag">物理</span>
+            <h3>原子结构 · 微观宇宙</h3>
+            <a href="demos/atomic-structure/index.html" class="open-link">进入课件 →</a>
+          </div>
+          <div class="preview-explain preview-explain--top">
+            <div class="pe-tag">玻尔模型</div>
+            <div class="pe-title">电子的分层轨道</div>
+            <div class="pe-desc">电子在特定能量的轨道上环绕原子核运行，跃迁时吸收或释放光子。拖拽旋转，观察轨道结构。</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="feature-foot">
+      <a href="demos.html" class="btn btn-secondary" style="padding:12px 26px;">浏览课件库 →</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       第 3 屏 · 你也可以做
+       ============================================================ -->
+  <section class="how" id="how">
+    <div class="how-head">
+      <span class="jb-kicker">三步上手</span>
+      <h2 class="how-title">你也可以做</h2>
+      <p class="how-desc">不需要写代码。三步走，你也能做出自己的可视化课件。</p>
+    </div>
+
+    <div class="steps">
+      <!-- Step 1 -->
+      <div class="step">
+        <div class="step-num">STEP 01</div>
+        <div class="step-mock">
+          <!-- Skill 卡片示意 -->
+          <svg viewBox="0 0 280 170" fill="none">
+            <rect x="6" y="6" width="268" height="158" rx="8" fill="#fff" stroke="#e5ded4" stroke-width="1.5"/>
+            <rect x="6" y="6" width="268" height="34" rx="8" fill="#faf8f5"/>
+            <circle cx="24" cy="23" r="5" fill="#c2410c"/>
+            <text x="36" y="27" font-family="Noto Serif SC" font-size="13" font-weight="700" fill="#1a1a1a">几何证明可视化</text>
+            <text x="252" y="27" font-family="Noto Sans SC" font-size="10" fill="#a3a3a3" text-anchor="end">Skill</text>
+            <line x1="6" y1="40" x2="274" y2="40" stroke="#eeeae3"/>
+            <g font-family="JetBrains Mono" font-size="9" fill="#6b6b6b">
+              <text x="20" y="58"># 你是一个几何可视化专家</text>
+              <text x="20" y="74"># 用户给出题目，你生成交互</text>
+              <text x="20" y="90"># 式步骤分解与动态证明图</text>
+            </g>
+            <rect x="20" y="108" width="118" height="10" rx="3" fill="#f3efe9"/>
+            <rect x="20" y="124" width="86" height="10" rx="3" fill="#f3efe9"/>
+            <rect x="20" y="140" width="140" height="10" rx="3" fill="#f3efe9"/>
+            <rect x="190" y="128" width="70" height="26" rx="6" fill="#c2410c"/>
+            <text x="225" y="145" font-family="Noto Sans SC" font-size="11" font-weight="600" fill="#fff" text-anchor="middle">复制</text>
+          </svg>
+        </div>
+        <h4>选一个技能</h4>
+        <p>在<b>技能库</b>找到你需要的方向，点「获取技能」，复制安装链接。</p>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step">
+        <div class="step-num">STEP 02</div>
+        <div class="step-mock">
+          <!-- Trae 编辑器示意 -->
+          <svg viewBox="0 0 280 170" fill="none">
+            <rect x="6" y="6" width="268" height="158" rx="8" fill="#fff" stroke="#e5ded4" stroke-width="1.5"/>
+            <!-- 顶栏 -->
+            <rect x="6" y="6" width="268" height="26" rx="8" fill="#faf8f5"/>
+            <circle cx="22" cy="19" r="4" fill="#e06c5a"/>
+            <circle cx="36" cy="19" r="4" fill="#e3b341"/>
+            <circle cx="50" cy="19" r="4" fill="#5ab877"/>
+            <text x="140" y="23" font-family="Noto Sans SC" font-size="10" fill="#6b6b6b" text-anchor="middle">Trae · AI 助手</text>
+            <!-- 侧栏 -->
+            <rect x="6" y="32" width="64" height="132" fill="#faf8f5"/>
+            <rect x="14" y="44" width="48" height="12" rx="3" fill="#c2410c" opacity="0.85"/>
+            <rect x="14" y="62" width="48" height="12" rx="3" fill="#e5ded4"/>
+            <rect x="14" y="80" width="48" height="12" rx="3" fill="#e5ded4"/>
+            <rect x="14" y="98" width="48" height="12" rx="3" fill="#e5ded4"/>
+            <!-- 文件区 -->
+            <line x1="150" y1="44" x2="266" y2="44" stroke="#eeeae3"/>
+            <text x="78" y="52" font-family="JetBrains Mono" font-size="9" fill="#c2410c">▸ geometry.md</text>
+            <g font-family="JetBrains Mono" font-size="8" fill="#6b6b6b">
+              <text x="78" y="70">name: 几何证明</text>
+              <text x="78" y="84">role: 可视化专家</text>
+              <text x="78" y="98">tools: [canvas]</text>
+              <text x="78" y="112">---</text>
+              <text x="78" y="126" fill="#a3a3a3"># 已就绪 ✓</text>
+            </g>
+            <!-- 光标 -->
+            <rect x="78" y="132" width="6" height="10" fill="#c2410c">
+              <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+            </rect>
+            <text x="92" y="140" font-family="Noto Sans SC" font-size="9" fill="#a3a3a3">模板已装入</text>
+          </svg>
+        </div>
+        <h4>装进 Trae</h4>
+        <p>把技能链接粘贴到 <b>Trae</b> 的对话框，安装后它就懂得这类知识的画法。</p>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step">
+        <div class="step-num">STEP 03</div>
+        <div class="step-mock">
+          <!-- 对话 + 生成课件示意 -->
+          <svg viewBox="0 0 280 170" fill="none">
+            <!-- 用户气泡 -->
+            <rect x="90" y="10" width="170" height="30" rx="15" fill="#c2410c"/>
+            <text x="175" y="29" font-family="Noto Sans SC" font-size="10" fill="#fff" text-anchor="middle">帮我做一道勾股定理的可视化</text>
+            <!-- 箭头 -->
+            <line x1="140" y1="46" x2="140" y2="58" stroke="#c2a76a" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <!-- 生成的课件预览 -->
+            <rect x="30" y="62" width="220" height="100" rx="8" fill="#fff" stroke="#e5ded4" stroke-width="1.5"/>
+            <rect x="30" y="62" width="220" height="22" rx="8" fill="#faf8f5"/>
+            <text x="42" y="77" font-family="Noto Serif SC" font-size="9" font-weight="700" fill="#1a1a1a">勾股定理 · 交互证明</text>
+            <circle cx="238" cy="73" r="3" fill="#5ab877"/>
+            <!-- 三角形 -->
+            <polygon points="70,148 70,98 120,148" fill="none" stroke="#c2410c" stroke-width="2"/>
+            <rect x="70" y="138" width="50" height="10" fill="#c2410c" opacity="0.15"/>
+            <rect x="60" y="98" width="10" height="50" fill="#0d9488" opacity="0.15" transform="rotate(0 60 98)"/>
+            <text x="78" y="118" font-family="JetBrains Mono" font-size="9" fill="#c2410c">a²+b²=c²</text>
+            <!-- 步骤点 -->
+            <circle cx="150" cy="100" r="4" fill="#c2410c"/>
+            <circle cx="165" cy="100" r="4" fill="#e5ded4"/>
+            <circle cx="180" cy="100" r="4" fill="#e5ded4"/>
+            <text x="165" y="124" font-family="Noto Sans SC" font-size="8" fill="#6b6b6b" text-anchor="middle">步骤 1 / 3</text>
+            <text x="140" y="148" font-family="Noto Sans SC" font-size="8" fill="#5ab877" text-anchor="middle">✓ 课件已生成</text>
+          </svg>
+        </div>
+        <h4>说一句话生成</h4>
+        <p>用大白话描述你想要的内容，一份可交互的课件就出现了。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       第 4 屏 · 关于景礴
+       ============================================================ -->
+  <section class="about" id="about">
+    <div class="about-inner">
+      <span class="jb-kicker">关于景礴</span>
+      <h2 class="about-title">让最好的课堂<br>不再取决于你在哪里</h2>
+      <div class="about-manifesto">
+        <p class="am-line">教育的不公平，本质是资源的不公平。</p>
+        <p class="am-line">景礴用 AI 抹平这道鸿沟。</p>
+        <p class="am-line">当每个概念都被看清，教育回到本来的样子。</p>
+        <p class="am-punchline">重复的交予 AI，教育者方能将目光还给人——每一个独一无二的人。</p>
+        <div class="am-ornament"><span></span><span></span><span></span></div>
+        <p class="am-name">景礴，取景象磅礴之意。</p>
+        <p class="am-finale">在 AI 的浪潮中，哪怕身处边缘，也能看见截然不同的广阔天地。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       第 5 屏 · 入口 + Footer
+       ============================================================ -->
+  <section class="entry">
+    <div class="entry-inner">
+      <h2 class="entry-title">让每个人看见磅礴</h2>
+      <p class="entry-desc">知识从文字变成画面，教育从标准化回到因材施教。<br>AI 跨越鸿沟，人赋予温度，让每个角落都看见磅礴。</p>
+      <div class="entry-cta-group">
+        <a href="demos.html" class="entry-cta">
+          浏览课件库
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6"/>
+          </svg>
+        </a>
+        <a href="skills.html" class="entry-cta entry-cta--outline">查看所有技能</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-brand">景礴学院<span class="fd"></span>jingbo.xyz</div>
+    <p class="footer-meta">在 AI 的时代，让每个角落都能看见磅礴 · © 2026 景礴学院</p>
+  </footer>
+
+  <script>
+    // ---- Navbar 滚动效果 ----
+    const navbar = document.getElementById('navbar');
+    const onScroll = () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 24);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // ---- 学科切换 + 自动轮播 ----
+    const tabs = document.querySelectorAll('.subject-tab');
+    const slides = document.querySelectorAll('.preview-slide');
+    const order = ['chem','bio','geo','math','physics'];
+    let currentIdx = 0;
+    let timer = null;
+    let sectionVisible = false;
+
+    // 每个 demo 的定制 CSS 注入规则 —— 隐藏 UI 外壳，保留画布可交互
+    const demoCSS = {
+      // 化学杂化轨道：隐藏导航、控制面板、图例、信息栏、浮动按钮、提示；保留右侧解释面板
+      chem: `.navbar, .controls-panel, .legend-panel, .info-bar, .float-btns-left, .float-btns-right, .scene-hint, .info-panel-close, .loading-overlay { display: none !important; }
+             body { overflow: hidden !important; }
+             #canvas-container { position: fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; }
+             .info-panel { top: auto !important; bottom: 20px !important; right: 20px !important; width: 260px !important; padding: 16px 18px !important; }
+             .info-panel-desc { font-size: 12px !important; line-height: 1.7 !important; }`,
+      // 生物 DNA：隐藏导航、加载屏、模式面板、图例、底部控制、信息面板、序列条、提示
+      bio: `.demo-navbar, #loader, #mode-panel, #legend, #bottom-controls, #info-panel, #sequence-bar, #hint { display: none !important; }
+            body { overflow: hidden !important; }
+            #canvas-container { position: fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; }`,
+      // 地理太阳系：隐藏全部 UI 外壳，画布保持默认 pointer-events 确保 OrbitControls 可拖拽
+      geo: `.navbar, .demo-navbar, #loading, .planet-list, .toggle-panel, .info-card, .view-presets, .bottom-bar, .floating-right, .scene-hint { display: none !important; }
+            body { overflow: hidden !important; margin: 0 !important; padding: 0 !important; background: #050510 !important; }
+            #canvas-container { position: fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; z-index: 1 !important; }
+            #canvas-container canvas { width: 100% !important; height: 100% !important; display: block !important; }`,
+      // 历史李白足迹：隐藏导航、时间轴面板、角花装饰；地图全屏，保留信息卡片
+      history: `.demo-navbar, .narrative-timeline-panel, .lb-corner-deco, .lb-entry { display: none !important; }
+                body { overflow: hidden !important; }
+                .framework-narrative { display: block !important; height: 100vh !important; }
+                .narrative-main { width: 100% !important; height: 100% !important; grid-template-columns: 100% !important; }
+                .narrative-map-area { width: 100% !important; height: 100% !important; border: none !important; }
+                #map { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
+                .narrative-info-card { bottom: 16px !important; left: 16px !important; max-width: 280px !important; }`,
+      // 数学正四棱锥线面角：隐藏顶栏、侧边栏、图例、步骤标签、提示、底部导航；画布全屏
+      math: `.topbar, .sidebar, .legend, .step-tag, .scene-hint, .nav-bar { display: none !important; }
+             body { overflow: hidden !important; }
+             .app { height: 100vh !important; }
+             .main { width: 100% !important; height: 100% !important; }
+             .canvas-area { flex: 1 !important; width: 100% !important; height: 100% !important; }
+             #canvas-container { width: 100% !important; height: 100% !important; }`,
+      // 物理原子结构：隐藏导航栏、加载层、信息面板、图例、元素选择面板、提示、左下角浮动控件、底部信息条（含量子模型/电子云/玻尔轨道）
+      physics: `.navbar-immerse, .demo-navbar, .loading-overlay, .info-panel, .legend-mini, .element-panel, .scene-hint, .floating-controls-left, .floating-controls-right, .info-bar, .mode-switcher { display: none !important; }
+                body { overflow: hidden !important; }
+                #canvas-container { position: fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; }`
+    };
+
+    // 懒加载 iframe —— 仅在课件精选区域进入视口时开始加载
+    function loadIframe(slide) {
+      const iframe = slide.querySelector('.preview-iframe');
+      const loader = slide.querySelector('.preview-loader');
+      if (iframe && !iframe.src) {
+        iframe.src = iframe.dataset.src;
+        const subject = slide.dataset.slide;
+        let injected = false;
+
+        // 轮询注入 CSS —— DOM ready 后立即注入，不等 load 事件（CDN 脚本可能很慢）
+        const poll = setInterval(() => {
+          try {
+            const doc = iframe.contentDocument;
+            if (doc && doc.head && !injected) {
+              injected = true;
+              clearInterval(poll);
+              const style = doc.createElement('style');
+              style.setAttribute('data-jb-injected', '1');
+              const customCSS = demoCSS[subject] || '';
+              style.textContent = customCSS + '\nbody{margin:0!important;padding:0!important;}';
+              doc.head.appendChild(style);
+              if (loader) loader.classList.add('hidden');
+              // 触发 resize 事件，让 Demo 内部重新计算画布尺寸（修复太阳系不可拖拽问题）
+              setTimeout(() => {
+                try { iframe.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {}
+              }, 300);
+              setTimeout(() => {
+                try { iframe.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {}
+              }, 1500);
+              // 对 Leaflet 地图（历史），额外调用 invalidateSize
+              setTimeout(() => {
+                try {
+                  if (iframe.contentWindow.map && iframe.contentWindow.map.invalidateSize) {
+                    iframe.contentWindow.map.invalidateSize();
+                  }
+                } catch(e) {}
+              }, 1000);
+              setTimeout(() => {
+                try {
+                  if (iframe.contentWindow.map && iframe.contentWindow.map.invalidateSize) {
+                    iframe.contentWindow.map.invalidateSize();
+                  }
+                } catch(e) {}
+              }, 3000);
+            }
+          } catch(e) { /* cross-origin */ }
+        }, 200);
+
+        // 超时保护：10 秒后强制停止轮询
+        setTimeout(() => clearInterval(poll), 10000);
+      } else if (iframe && iframe.src && loader) {
+        // 已加载的 iframe，确保 CSS 已注入
+        try {
+          const doc = iframe.contentDocument;
+          if (doc && doc.head) {
+            const existing = doc.querySelectorAll('style[data-jb-injected]');
+            if (existing.length === 0) {
+              const subject = slide.dataset.slide;
+              const style = doc.createElement('style');
+              style.setAttribute('data-jb-injected', '1');
+              const customCSS = demoCSS[subject] || '';
+              style.textContent = customCSS + '\nbody{margin:0!important;padding:0!important;}';
+              doc.head.appendChild(style);
+            }
+          }
+        } catch(e) {}
+        loader.classList.add('hidden');
+      }
     }
-  });
-}, { threshold: 0.1 });
 
-document.querySelectorAll('.reveal').forEach(el => {
-  el.style.animationPlayState = 'paused';
-  observer.observe(el);
-});
-</script>
+    // 预加载下一个 slide 的 iframe
+    function preloadNext() {
+      const nextIdx = (currentIdx + 1) % order.length;
+      const nextSlide = slides[nextIdx];
+      if (nextSlide) loadIframe(nextSlide);
+    }
 
+    function show(subject) {
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.subject === subject));
+      slides.forEach(s => {
+        const isActive = s.dataset.slide === subject;
+        s.classList.toggle('active', isActive);
+        if (isActive) loadIframe(s);
+      });
+      currentIdx = order.indexOf(subject);
+    }
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        show(tab.dataset.subject);
+        restart();
+      });
+    });
+    function next() {
+      currentIdx = (currentIdx + 1) % order.length;
+      show(order[currentIdx]);
+      // 预加载下一个，减少切换时的等待
+      setTimeout(preloadNext, 3000);
+    }
+    function restart() {
+      clearInterval(timer);
+      if (sectionVisible) {
+        timer = setInterval(next, 12000);
+      }
+    }
+
+    // IntersectionObserver —— 课件精选区域进入视口才启动
+    const featureSection = document.getElementById('feature');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          sectionVisible = true;
+          // 首次进入时加载第一个 slide（化学）
+          show('chem');
+          restart();
+          // 3 秒后预加载第二个，给首个 demo 充分加载时间
+          setTimeout(preloadNext, 3000);
+        } else {
+          sectionVisible = false;
+          clearInterval(timer);
+        }
+      });
+    }, { rootMargin: '100px' });
+    io.observe(featureSection);
+
+    const stage = document.getElementById('previewStage');
+    stage.addEventListener('mouseenter', () => clearInterval(timer));
+    stage.addEventListener('mouseleave', restart);
+  </script>
 </body>
 </html>

@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>贝叶斯定理 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+/* ====== 本 Demo 专用配色（覆盖品牌色为蓝绿） ====== */
+.framework-magazine {
+  --brand: #0d9488;
+  --brand-hover: #0a7770;
+  --brand-soft: rgba(13, 148, 136, 0.1);
+  --brand-soft-hover: rgba(13, 148, 136, 0.15);
+}
+:root {
+  --bayes-teal: #0d9488;
+  --bayes-teal-light: #14b8a6;
+  --bayes-teal-soft: rgba(13, 148, 136, 0.08);
+  --bayes-coral: #f472b6;
+  --bayes-coral-soft: rgba(244, 114, 182, 0.12);
+  --bayes-red: #dc2626;
+  --bayes-orange: #f97316;
+  --bayes-green: #22c55e;
+  --bayes-green-light: #86efac;
+  --bayes-gray: #6b7280;
+  --bayes-blue: #3b82f6;
+  --bayes-yellow: #fde047;
+}
+
+/* ====== 可视化区域容器 ====== */
+.magazine-visual-wrapper {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+#visualWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ====== 自动播放按钮 ====== */
+.bayes-autoplay-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: var(--bayes-teal-soft);
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  border-radius: var(--radius-full);
+  color: var(--bayes-teal);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  white-space: nowrap;
+}
+.bayes-autoplay-btn:hover {
+  background: rgba(13, 148, 136, 0.15);
+}
+.bayes-autoplay-btn.playing {
+  background: var(--bayes-teal);
+  color: #fff;
+  border-color: var(--bayes-teal);
+}
+.bayes-autoplay-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 自动播放进度条 */
+.bayes-progress-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border-soft);
+  overflow: hidden;
+  border-radius: 1px;
+}
+.bayes-progress-fill {
+  height: 100%;
+  background: var(--bayes-teal);
+  width: 0%;
+  border-radius: 1px;
+}
+
+/* ====== 步骤 1：小人图标网格 ====== */
+.bayes-icon-grid-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.bayes-icon-grid-svg circle {
+  opacity: 0;
+  animation: iconFadeIn 0.3s ease forwards;
+}
+@keyframes iconFadeIn {
+  to { opacity: 1; }
+}
+.bayes-positive-zoom {
+  margin-top: var(--spacer-16);
+  padding: var(--spacer-16);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-16);
+}
+.bayes-positive-zoom-svg {
+  flex-shrink: 0;
+}
+.bayes-positive-zoom-text {
+  flex: 1;
+}
+.bayes-positive-zoom-text .big-num {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--bayes-coral);
+  line-height: 1.1;
+}
+.bayes-positive-zoom-text .small-desc {
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.bayes-legend {
+  display: flex;
+  gap: var(--spacer-16);
+  margin-top: var(--spacer-12);
+  flex-wrap: wrap;
+}
+.bayes-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+}
+.bayes-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ====== 步骤 2：流程图 ====== */
+.bayes-flow-container {
+  padding: var(--spacer-24);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-20);
+}
+.bayes-flow-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--spacer-12);
+}
+.bayes-flow-box {
+  flex: 1;
+  border-radius: var(--radius-card);
+  padding: var(--spacer-16);
+  text-align: center;
+  border: 2px solid;
+  transition: all var(--duration-base) var(--ease);
+}
+.bayes-flow-box.prior {
+  border-color: var(--bayes-blue);
+  background: rgba(59, 130, 246, 0.05);
+}
+.bayes-flow-box.likelihood {
+  border-color: var(--bayes-teal);
+  background: rgba(13, 148, 136, 0.05);
+}
+.bayes-flow-box.posterior {
+  border-color: var(--bayes-coral);
+  background: rgba(244, 114, 182, 0.05);
+}
+.bayes-flow-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.bayes-flow-symbol {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.bayes-flow-bar-container {
+  height: 8px;
+  background: var(--surface-muted);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+.bayes-flow-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s var(--ease);
+}
+.bayes-flow-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+}
+.bayes-flow-arrow {
+  display: flex;
+  align-items: center;
+  font-size: 24px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.bayes-flow-operation {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+}
+.bayes-slider-container {
+  margin-top: var(--spacer-16);
+  padding: var(--spacer-20);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+}
+.bayes-slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.bayes-slider-label .name {
+  font-size: var(--fs-small);
+  color: var(--text);
+  font-weight: 500;
+}
+.bayes-slider-label .value {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bayes-blue);
+}
+.bayes-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.bayes-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bayes-blue);
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: transform 0.15s ease;
+}
+.bayes-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.bayes-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bayes-blue);
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* ====== 步骤 3：公式 + 维恩图 ====== */
+.bayes-formula-display {
+  padding: var(--spacer-24);
+  text-align: center;
+}
+.bayes-formula {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--spacer-16);
+}
+.bayes-formula .frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+}
+.bayes-formula .frac .num {
+  border-bottom: 2px solid var(--text);
+  padding: 0 8px 4px;
+}
+.bayes-formula .frac .den {
+  padding: 4px 8px 0;
+}
+.formula-part {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.formula-part:hover {
+  transform: translateY(-2px);
+}
+.formula-part.highlighted {
+  filter: brightness(1.1);
+  text-shadow: 0 0 12px currentColor;
+}
+.formula-part[data-part="posterior"] { color: var(--bayes-coral); }
+.formula-part[data-part="likelihood"] { color: var(--bayes-teal); }
+.formula-part[data-part="prior"] { color: var(--bayes-blue); }
+.formula-part[data-part="evidence"] { color: var(--bayes-gray); }
+
+.bayes-calculation {
+  margin-top: var(--spacer-16);
+  padding: var(--spacer-16);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 2;
+  color: var(--text);
+}
+.bayes-calculation .step-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bayes-calculation .calc-num {
+  color: var(--bayes-teal);
+  font-weight: 700;
+}
+
+.bayes-venn-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacer-16);
+  position: relative;
+}
+.bayes-venn-svg {
+  max-width: 100%;
+  height: auto;
+}
+.bayes-venn-svg .venn-circle {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.bayes-venn-svg .venn-label {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* ====== 步骤 4：互动实验 ====== */
+.bayes-experiment {
+  padding: var(--spacer-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+}
+.bayes-exp-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-14, 14px);
+}
+.bayes-exp-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bayes-exp-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bayes-exp-slider-name {
+  font-size: var(--fs-small);
+  color: var(--text);
+  font-weight: 500;
+}
+.bayes-exp-slider-name .sub {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 4px;
+}
+.bayes-exp-slider-val {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+}
+.bayes-exp-slider-val.s1 { color: var(--bayes-blue); }
+.bayes-exp-slider-val.s2 { color: var(--bayes-teal); }
+.bayes-exp-slider-val.s3 { color: var(--bayes-orange); }
+
+.bayes-exp-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.bayes-exp-slider.s1 { background: linear-gradient(to right, var(--bayes-blue), rgba(59,130,246,0.2)); }
+.bayes-exp-slider.s2 { background: linear-gradient(to right, var(--bayes-teal), rgba(13,148,136,0.2)); }
+.bayes-exp-slider.s3 { background: linear-gradient(to right, var(--bayes-orange), rgba(249,115,22,0.2)); }
+.bayes-exp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.bayes-exp-slider.s1::-webkit-slider-thumb { background: var(--bayes-blue); }
+.bayes-exp-slider.s2::-webkit-slider-thumb { background: var(--bayes-teal); }
+.bayes-exp-slider.s3::-webkit-slider-thumb { background: var(--bayes-orange); }
+.bayes-exp-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.bayes-exp-slider.s1::-moz-range-thumb { background: var(--bayes-blue); }
+.bayes-exp-slider.s2::-moz-range-thumb { background: var(--bayes-teal); }
+.bayes-exp-slider.s3::-moz-range-thumb { background: var(--bayes-orange); }
+
+.bayes-exp-result {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-16);
+  padding: var(--spacer-16);
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.05), rgba(244, 114, 182, 0.1));
+  border: 1px solid rgba(244, 114, 182, 0.2);
+  border-radius: var(--radius-card);
+}
+.bayes-exp-posterior {
+  flex-shrink: 0;
+  text-align: center;
+  min-width: 100px;
+}
+.bayes-exp-posterior .label {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.bayes-exp-posterior .value {
+  font-family: var(--font-serif);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--bayes-coral);
+  line-height: 1.1;
+  margin-top: 4px;
+}
+.bayes-exp-posterior .desc {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.bayes-exp-people {
+  flex: 1;
+}
+.bayes-exp-people-svg {
+  width: 100%;
+  height: auto;
+}
+.bayes-exp-people-legend {
+  display: flex;
+  gap: var(--spacer-12);
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.bayes-exp-heatmap-section {
+  margin-top: 4px;
+}
+.bayes-exp-heatmap-title {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.bayes-heatmap-wrapper {
+  position: relative;
+  width: 100%;
+}
+.bayes-heatmap-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius);
+}
+.bayes-heatmap-axes {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.bayes-heatmap-y-label {
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  transform: rotate(-90deg) translateX(50%);
+  transform-origin: center;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ====== 步骤 5：应用卡片 + 自检 ====== */
+.bayes-app-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-12);
+  padding: var(--spacer-16);
+}
+.bayes-app-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--surface);
+  transition: all var(--duration-base) var(--ease);
+}
+.bayes-app-card:hover {
+  border-color: var(--bayes-teal);
+  box-shadow: var(--shadow-soft);
+}
+.bayes-app-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-12);
+  padding: var(--spacer-16);
+  cursor: pointer;
+  user-select: none;
+}
+.bayes-app-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+.bayes-app-card:nth-child(1) .bayes-app-card-icon { background: rgba(13, 148, 136, 0.1); color: var(--bayes-teal); }
+.bayes-app-card:nth-child(2) .bayes-app-card-icon { background: rgba(220, 38, 38, 0.1); color: var(--bayes-red); }
+.bayes-app-card:nth-child(3) .bayes-app-card-icon { background: rgba(59, 130, 246, 0.1); color: var(--bayes-blue); }
+.bayes-app-card-title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+.bayes-app-card-chevron {
+  color: var(--text-faint);
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+.bayes-app-card.expanded .bayes-app-card-chevron {
+  transform: rotate(90deg);
+}
+.bayes-app-card-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s var(--ease);
+}
+.bayes-app-card.expanded .bayes-app-card-body {
+  max-height: 300px;
+}
+.bayes-app-card-content {
+  padding: 0 var(--spacer-16) var(--spacer-16);
+  font-size: var(--fs-small);
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+.bayes-app-card-content strong {
+  color: var(--text);
+}
+
+.bayes-quiz {
+  margin: 0 var(--spacer-16) var(--spacer-16);
+  padding: var(--spacer-20);
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.04), rgba(13, 148, 136, 0.08));
+  border: 1px solid rgba(13, 148, 136, 0.15);
+  border-radius: var(--radius-card);
+}
+.bayes-quiz-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bayes-teal);
+  margin-bottom: 10px;
+}
+.bayes-quiz-scenario {
+  font-size: var(--fs-small);
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: var(--spacer-12);
+}
+.bayes-quiz-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-12);
+  margin-bottom: var(--spacer-12);
+}
+.bayes-quiz-slider-label {
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.bayes-quiz-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.bayes-quiz-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bayes-teal);
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.bayes-quiz-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bayes-teal);
+  cursor: pointer;
+  border: 3px solid #fff;
+}
+.bayes-quiz-guess {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--bayes-teal);
+  min-width: 50px;
+  text-align: right;
+}
+.bayes-quiz-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: var(--bayes-teal);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+}
+.bayes-quiz-btn:hover {
+  background: var(--bayes-teal-light);
+}
+.bayes-quiz-result {
+  margin-top: var(--spacer-12);
+  padding: var(--spacer-12);
+  border-radius: var(--radius);
+  font-size: var(--fs-small);
+  line-height: 1.7;
+  display: none;
+}
+.bayes-quiz-result.show {
+  display: block;
+  animation: fadeInUp 0.3s ease;
+}
+.bayes-quiz-result.correct {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: var(--bayes-green);
+}
+.bayes-quiz-result.wrong {
+  background: rgba(244, 114, 182, 0.08);
+  border: 1px solid rgba(244, 114, 182, 0.2);
+  color: var(--text);
+}
+.bayes-quiz-result .answer-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--bayes-coral);
+  font-size: 18px;
+}
+
+/* ====== 补充动画 ====== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== 杂志文章内嵌样式增强 ====== */
+.magazine-body .bayes-inline-formula {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--bayes-teal);
+  background: var(--bayes-teal-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.magazine-body .bayes-highlight {
+  color: var(--bayes-coral);
+  font-weight: 700;
+}
+.magazine-body .bayes-callout {
+  border-left: 3px solid var(--bayes-teal);
+  padding: var(--spacer-12) var(--spacer-16);
+  background: var(--bayes-teal-soft);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: var(--spacer-12) 0;
+  font-size: var(--fs-small);
+  line-height: 1.7;
+}
+.magazine-body .bayes-stat-row {
+  display: flex;
+  gap: var(--spacer-16);
+  margin: var(--spacer-12) 0;
+}
+.magazine-body .bayes-stat {
+  flex: 1;
+  text-align: center;
+  padding: var(--spacer-12);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+}
+.magazine-body .bayes-stat .num {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  display: block;
+}
+.magazine-body .bayes-stat .desc {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+}
+
+/* ====== 响应式 ====== */
+@media (max-width: 768px) {
+  .bayes-flow-row {
+    flex-direction: column;
+  }
+  .bayes-flow-arrow {
+    transform: rotate(90deg);
+    justify-content: center;
+    padding: 4px 0;
+  }
+  .bayes-exp-result {
+    flex-direction: column;
+  }
+  .bayes-exp-posterior {
+    min-width: auto;
+  }
+  .bayes-formula {
+    font-size: 22px;
+  }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">贝叶斯定理</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-math">数学</span>
+      <a href="/skills/jingbo-edu-math-magazine-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="magazine-article">
+        <div class="magazine-article-header">
+          <div class="magazine-kicker">MATHEMATICS · 概率与统计</div>
+          <h1 class="magazine-title">贝叶斯定理</h1>
+          <p class="magazine-subtitle">为什么 99% 准确率的检测，阳性结果却可能只有 9% 的真病概率？</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="magazine-step-indicator" style="position:relative;">
+          <div class="bayes-progress-track" id="progressTrack" style="display:none;">
+            <div class="bayes-progress-fill" id="progressFill"></div>
+          </div>
+          <div class="magazine-step-dots" id="stepDots">
+            <div class="magazine-step-dot active" data-step="0"></div>
+            <div class="magazine-step-dot" data-step="1"></div>
+            <div class="magazine-step-dot" data-step="2"></div>
+            <div class="magazine-step-dot" data-step="3"></div>
+            <div class="magazine-step-dot" data-step="4"></div>
+          </div>
+          <span class="magazine-step-label" id="stepLabel">第 1 / 5 步</span>
+          <button class="bayes-autoplay-btn" id="autoplayBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            自动播放
+          </button>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="magazine-body">
+          <div class="magazine-step-content" id="stepContent"></div>
+        </div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="magazine-step-nav">
+          <button class="btn btn-secondary" id="prevBtn">
+            <span>←</span> 上一步
+          </button>
+          <button class="btn btn-primary" id="nextBtn">
+            下一步 <span>→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="magazine-visual">
+        <div class="magazine-visual-wrapper" id="visualWrapper">
+          <!-- JS 动态渲染 -->
+        </div>
+        <p class="magazine-visual-caption" id="visualCaption"></p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">bayes-theorem</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">Canvas</span>
+    <span class="demo-tech-tag">JavaScript</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-math-magazine-lecture-v0.1.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   贝叶斯定理 · 杂志讲解型 Demo
+   5 步：反直觉问题 → 概念拆解 → 公式 → 互动 → 应用
+   ============================================================ */
+
+// ====== 工具函数 ======
+function bayes(prior, sensitivity, fpr) {
+  const num = sensitivity * prior;
+  const den = num + fpr * (1 - prior);
+  return den === 0 ? 0 : num / den;
+}
+
+function pct(v, digits) {
+  return (v * 100).toFixed(digits === undefined ? 1 : digits) + '%';
+}
+
+// ====== 步骤内容数据（左侧文章） ======
+const steps = [
+  {
+    title: '一个反直觉的问题',
+    content: `
+      <p class="lead">假设有一种罕见病，患病率是千分之一。检测的准确率是 99%——如果你真的生病，99% 的概率检测为阳性；如果你没病，99% 的概率检测为阴性。</p>
+      <p>现在你检测结果呈阳性。请问，你真的生病的概率是多少？</p>
+      <div class="bayes-callout">
+        大多数人的直觉答案是 <strong>99%</strong>——毕竟检测准确率是 99%。但正确答案是约 <span class="bayes-highlight">9%</span>。
+      </div>
+      <p>这不是脑筋急转弯，而是概率论中最容易被忽视的陷阱：<strong>基础比率谬误</strong>。当一种病非常罕见时，即使检测很准确，假阳性的数量也会远超真阳性。</p>
+      <p>右图展示了 1000 个人中的检测情况——看看阳性结果里，真正生病的有几个？</p>
+    `
+  },
+  {
+    title: '三个关键概念',
+    content: `
+      <p class="lead">贝叶斯推理的核心是三个概率之间的转换关系。</p>
+      <div class="bayes-stat-row">
+        <div class="bayes-stat">
+          <span class="num" style="color:var(--bayes-blue)">P(A)</span>
+          <span class="desc"><strong>先验概率</strong><br>看到证据前，A 发生的概率<br><small>如：患病率 0.1%</small></span>
+        </div>
+        <div class="bayes-stat">
+          <span class="num" style="color:var(--bayes-teal)">P(B|A)</span>
+          <span class="desc"><strong>似然度</strong><br>A 发生时，证据 B 出现的概率<br><small>如：真病时阳性率 99%</small></span>
+        </div>
+        <div class="bayes-stat">
+          <span class="num" style="color:var(--bayes-coral)">P(A|B)</span>
+          <span class="desc"><strong>后验概率</strong><br>看到证据 B 后，A 发生的概率<br><small>如：阳性时真病率 ≈9%</small></span>
+        </div>
+      </div>
+      <p>关键在于：我们已知 <span class="bayes-inline-formula">P(B|A)</span>（真病时检测阳性的概率），但想知道的是 <span class="bayes-inline-formula">P(A|B)</span>（检测阳性时真病的概率）——这两个方向完全不同。</p>
+      <p>拖动右侧滑块改变先验概率，观察后验如何变化。</p>
+    `
+  },
+  {
+    title: '公式登场',
+    content: `
+      <p class="lead">贝叶斯定理用一个简洁的公式，连接了先验、似然和后验：</p>
+      <div class="bayes-callout" style="text-align:center;font-family:var(--font-serif);font-size:22px;padding:var(--spacer-20);">
+        P(A|B) = P(B|A) × P(A) / P(B)
+      </div>
+      <p>其中 P(B) 是证据出现的<strong>总概率</strong>：</p>
+      <div class="bayes-callout" style="font-family:var(--font-mono);font-size:14px;text-align:center;">
+        P(B) = P(B|A)·P(A) + P(B|¬A)·P(¬A)
+      </div>
+      <p>用医疗检测的例子代入：</p>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">1</div>
+        <div class="magazine-proof-text">
+          <strong>分子</strong> = P(B|A) × P(A) = 0.99 × 0.001 = <strong>0.00099</strong><br>
+          <strong>分母</strong> = 0.00099 + 0.01 × 0.999 = 0.00099 + 0.00999 = <strong>0.01098</strong>
+        </div>
+      </div>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">2</div>
+        <div class="magazine-proof-text">
+          P(A|B) = 0.00099 / 0.01098 ≈ <span class="bayes-highlight">0.0902 ≈ 9%</span>
+        </div>
+      </div>
+      <p>公式本身不难，难的是理解什么时候用它。将鼠标悬停在右侧公式的各个部分上，观察维恩图中对应的区域。</p>
+    `
+  },
+  {
+    title: '亲手调节参数',
+    content: `
+      <p class="lead">如果疾病更常见呢？如果检测更准确呢？亲手调节三个参数，体会贝叶斯推理的精妙。</p>
+      <div class="bayes-callout">
+        <strong>患病率（先验）</strong>：疾病在人群中的普遍程度。越罕见，阳性预测值越低。<br>
+        <strong>真阳性率（灵敏度）</strong>：有病的人中，被正确检出的比例。<br>
+        <strong>假阳性率</strong>：没病的人中，被误判为阳性的比例。
+      </div>
+      <p>关键发现：当先验概率很低时，即使检测准确率很高，阳性结果中真病的比例也可能很低——因为健康人群的基数太大了，即使很小的假阳性率也会产生大量假阳性。</p>
+      <p>右侧热力图展示了不同参数组合下的后验概率。你能找到让后验超过 50% 的参数组合吗？</p>
+    `
+  },
+  {
+    title: '一种思维方式',
+    content: `
+      <p class="lead">贝叶斯定理不只是数学公式，更是一种思维方式：根据新证据不断更新自己的信念。</p>
+      <div class="bayes-callout">
+        <strong>关注先验</strong>——不要忽视基础比率<br>
+        <strong>重视证据</strong>——新证据可以改变判断<br>
+        <strong>持续更新</strong>——信念不是一成不变的
+      </div>
+      <p>从垃圾邮件过滤到法庭审判，从医学诊断到机器学习，贝叶斯推理无处不在。点击右侧卡片了解具体应用，最后做一个思维自检吧。</p>
+    `
+  }
+];
+
+// ====== 步骤标题（右上图注） ======
+const captions = [
+  '1000 人中的医疗检测：11 个阳性结果里只有 1 人真正生病',
+  '贝叶斯推理流程：先验概率通过新证据更新为后验概率',
+  '贝叶斯定理的几何直觉：维恩图中的条件概率关系',
+  '亲手调节参数：观察先验、灵敏度和假阳性率如何影响后验',
+  '贝叶斯思维的应用：从垃圾邮件过滤到机器学习'
+];
+
+// ====== 状态 ======
+let currentStep = 0;
+let isAutoPlaying = false;
+let autoPlayTimer = null;
+let progressAnimId = null;
+
+// ====== 导航逻辑 ======
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDots = document.querySelectorAll('.magazine-step-dot');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const visualWrapper = document.getElementById('visualWrapper');
+const visualCaption = document.getElementById('visualCaption');
+const autoplayBtn = document.getElementById('autoplayBtn');
+const progressTrack = document.getElementById('progressTrack');
+const progressFill = document.getElementById('progressFill');
+
+function updateStep() {
+  // 左侧内容
+  stepContent.classList.add('fade-out');
+  setTimeout(() => {
+    const step = steps[currentStep];
+    stepContent.innerHTML = `<h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:12px;color:var(--text);">${step.title}</h3>${step.content}`;
+    stepContent.classList.remove('fade-out');
+    stepContent.classList.add('fade-in');
+    setTimeout(() => stepContent.classList.remove('fade-in'), 300);
+  }, 200);
+
+  // 步骤标签
+  stepLabel.textContent = `第 ${currentStep + 1} / ${steps.length} 步`;
+
+  // 圆点
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === currentStep) dot.classList.add('active');
+    else if (i < currentStep) dot.classList.add('completed');
+  });
+
+  // 按钮
+  prevBtn.disabled = currentStep === 0;
+  prevBtn.style.opacity = currentStep === 0 ? '0.4' : '1';
+  prevBtn.style.cursor = currentStep === 0 ? 'not-allowed' : 'pointer';
+  nextBtn.innerHTML = currentStep === steps.length - 1
+    ? '完成 ✓'
+    : '下一步 <span>→</span>';
+
+  // 右侧可视化
+  visualCaption.textContent = captions[currentStep];
+  renderVisual(currentStep);
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) { currentStep--; updateStep(); resetAutoPlayProgress(); }
+});
+nextBtn.addEventListener('click', () => {
+  if (currentStep < steps.length - 1) { currentStep++; updateStep(); resetAutoPlayProgress(); }
+});
+stepDots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const s = parseInt(dot.dataset.step);
+    if (s !== currentStep) { currentStep = s; updateStep(); resetAutoPlayProgress(); }
+  });
+});
+
+// ====== 自动播放 ======
+function toggleAutoPlay() {
+  if (isAutoPlaying) {
+    stopAutoPlay();
+  } else {
+    startAutoPlay();
+  }
+}
+
+function startAutoPlay() {
+  isAutoPlaying = true;
+  autoplayBtn.classList.add('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>暂停';
+  progressTrack.style.display = 'block';
+  startProgressAnimation();
+  autoPlayTimer = setTimeout(() => {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      updateStep();
+      startAutoPlay();
+    } else {
+      stopAutoPlay();
+    }
+  }, 9000);
+}
+
+function stopAutoPlay() {
+  isAutoPlaying = false;
+  autoplayBtn.classList.remove('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>自动播放';
+  progressTrack.style.display = 'none';
+  progressFill.style.width = '0%';
+  if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+  if (progressAnimId) { cancelAnimationFrame(progressAnimId); progressAnimId = null; }
+}
+
+function resetAutoPlayProgress() {
+  if (isAutoPlaying) {
+    stopAutoPlay();
+  }
+}
+
+function startProgressAnimation() {
+  const startTime = performance.now();
+  const duration = 9000;
+  function animate(now) {
+    if (!isAutoPlaying) return;
+    const elapsed = now - startTime;
+    const pct = Math.min(elapsed / duration * 100, 100);
+    progressFill.style.width = pct + '%';
+    if (elapsed < duration) {
+      progressAnimId = requestAnimationFrame(animate);
+    }
+  }
+  progressAnimId = requestAnimationFrame(animate);
+}
+
+autoplayBtn.addEventListener('click', toggleAutoPlay);
+
+// ====== 导航栏滚动 ======
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 可视化渲染分发 ======
+function renderVisual(step) {
+  visualWrapper.innerHTML = '';
+  switch (step) {
+    case 0: renderStep1(); break;
+    case 1: renderStep2(); break;
+    case 2: renderStep3(); break;
+    case 3: renderStep4(); break;
+    case 4: renderStep5(); break;
+  }
+}
+
+// ============================================================
+// 步骤 1：医疗检测悖论 — 1000 小人图标
+// ============================================================
+function renderStep1() {
+  const cols = 40, rows = 25, total = 1000;
+  const cellSize = 14, r = 3.5;
+  const svgW = cols * cellSize, svgH = rows * cellSize;
+
+  // 计算各类人数
+  const sick = 1;
+  const healthy = 999;
+  const truePos = 1;   // 1 sick × 99% ≈ 1
+  const falsePos = 10;  // 999 healthy × 1% ≈ 10
+  const trueNeg = healthy - falsePos; // 989
+
+  // 生成人格数组：[type, ...] 0=truePos(red), 1=falsePos(orange), 2=trueNeg(green)
+  const types = [];
+  types.push(0); // 1 true positive
+  for (let i = 0; i < falsePos; i++) types.push(1);
+  for (let i = 0; i < trueNeg; i++) types.push(2);
+  // 打乱
+  for (let i = types.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [types[i], types[j]] = [types[j], types[i]];
+  }
+
+  const colors = ['#dc2626', '#f97316', '#86efac'];
+  let circles = '';
+  for (let i = 0; i < total; i++) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const cx = col * cellSize + cellSize / 2;
+    const cy = row * cellSize + cellSize / 2;
+    const color = colors[types[i]];
+    const delay = (i / total) * 1.5;
+    const isPositive = types[i] === 0 || types[i] === 1;
+    const stroke = isPositive ? `stroke="${color}" stroke-width="1.5" stroke-opacity="0.4"` : '';
+    circles += `<circle cx="${cx}" cy="${cy}" r="${isPositive ? r + 1 : r}" fill="${color}" ${stroke} style="animation-delay:${delay}s;"/>`;
+  }
+
+  visualWrapper.innerHTML = `
+    <div style="padding:var(--spacer-16);">
+      <svg class="bayes-icon-grid-svg" viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="xMidYMid meet">
+        ${circles}
+      </svg>
+      <div class="bayes-legend">
+        <div class="bayes-legend-item"><span class="bayes-legend-dot" style="background:#dc2626;"></span>真阳性（有病+阳性）1 人</div>
+        <div class="bayes-legend-item"><span class="bayes-legend-dot" style="background:#f97316;"></span>假阳性（没病+阳性）10 人</div>
+        <div class="bayes-legend-item"><span class="bayes-legend-dot" style="background:#86efac;"></span>真阴性（没病+阴性）989 人</div>
+      </div>
+    </div>
+    <div class="bayes-positive-zoom">
+      <svg class="bayes-positive-zoom-svg" viewBox="0 0 220 60" width="220" height="60">
+        ${(() => {
+          let s = '';
+          for (let i = 0; i < 11; i++) {
+            const cx = 10 + i * 20;
+            const color = i === 0 ? '#dc2626' : '#f97316';
+            const stroke = i === 0 ? 'stroke="#dc2626" stroke-width="2" stroke-opacity="0.3"' : '';
+            s += `<circle cx="${cx}" cy="30" r="8" fill="${color}" ${stroke}/>`;
+          }
+          return s;
+        })()}
+      </svg>
+      <div class="bayes-positive-zoom-text">
+        <div class="big-num">1 / 11 ≈ 9%</div>
+        <div class="small-desc">11 个阳性结果中，只有 1 人真正生病</div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// 步骤 2：先验 → 似然 → 后验 流程图
+// ============================================================
+function renderStep2() {
+  visualWrapper.innerHTML = `
+    <div class="bayes-flow-container">
+      <div class="bayes-flow-row">
+        <div class="bayes-flow-box prior">
+          <div class="bayes-flow-label">先验 PRIOR</div>
+          <div class="bayes-flow-symbol" style="color:var(--bayes-blue)">P(A)</div>
+          <div class="bayes-flow-bar-container">
+            <div class="bayes-flow-bar-fill" id="flowPriorBar" style="background:var(--bayes-blue);width:1%;"></div>
+          </div>
+          <div class="bayes-flow-value" id="flowPriorVal" style="color:var(--bayes-blue)">0.1%</div>
+        </div>
+        <div class="bayes-flow-arrow">→</div>
+        <div class="bayes-flow-box likelihood">
+          <div class="bayes-flow-label">似然 LIKELIHOOD</div>
+          <div class="bayes-flow-symbol" style="color:var(--bayes-teal)">P(B|A)</div>
+          <div class="bayes-flow-bar-container">
+            <div class="bayes-flow-bar-fill" style="background:var(--bayes-teal);width:99%;"></div>
+          </div>
+          <div class="bayes-flow-value" style="color:var(--bayes-teal)">99%</div>
+        </div>
+        <div class="bayes-flow-arrow">→</div>
+        <div class="bayes-flow-box posterior">
+          <div class="bayes-flow-label">后验 POSTERIOR</div>
+          <div class="bayes-flow-symbol" style="color:var(--bayes-coral)">P(A|B)</div>
+          <div class="bayes-flow-bar-container">
+            <div class="bayes-flow-bar-fill" id="flowPosteriorBar" style="background:var(--bayes-coral);width:9%;"></div>
+          </div>
+          <div class="bayes-flow-value" id="flowPosteriorVal" style="color:var(--bayes-coral)">9.0%</div>
+        </div>
+      </div>
+      <div class="bayes-flow-operation">↑ &nbsp; 后验 = 先验 × 似然 ÷ 归一化 &nbsp; ↑</div>
+
+      <div class="bayes-slider-container">
+        <div class="bayes-slider-label">
+          <span class="name">患病率（先验概率 P(A)）</span>
+          <span class="value" id="flowSliderVal">0.1%</span>
+        </div>
+        <input type="range" class="bayes-slider" id="flowPriorSlider"
+          min="0.01" max="50" step="0.01" value="0.1"
+          style="background:linear-gradient(to right, var(--bayes-blue), rgba(59,130,246,0.15));">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);margin-top:4px;font-family:var(--font-mono);">
+          <span>0.01%</span><span>50%</span>
+        </div>
+        <p style="font-size:var(--fs-tiny);color:var(--text-muted);margin-top:10px;line-height:1.6;">
+          灵敏度固定为 99%，假阳性率固定为 1%。拖动滑块改变患病率，观察后验概率如何变化。
+        </p>
+      </div>
+    </div>
+  `;
+
+  const slider = document.getElementById('flowPriorSlider');
+  const sliderVal = document.getElementById('flowSliderVal');
+  const priorBar = document.getElementById('flowPriorBar');
+  const priorVal = document.getElementById('flowPriorVal');
+  const postBar = document.getElementById('flowPosteriorBar');
+  const postVal = document.getElementById('flowPosteriorVal');
+
+  function updateFlow() {
+    const prior = parseFloat(slider.value) / 100;
+    const sens = 0.99, fpr = 0.01;
+    const posterior = bayes(prior, sens, fpr);
+
+    sliderVal.textContent = pct(prior, prior < 0.01 ? 2 : 1);
+    priorVal.textContent = pct(prior, prior < 0.01 ? 2 : 1);
+    priorBar.style.width = Math.max(prior * 100, 1) + '%';
+
+    postVal.textContent = pct(posterior, 1);
+    postBar.style.width = Math.max(posterior * 100, 2) + '%';
+  }
+
+  slider.addEventListener('input', updateFlow);
+  updateFlow();
+}
+
+// ============================================================
+// 步骤 3：公式 + 维恩图联动
+// ============================================================
+function renderStep3() {
+  visualWrapper.innerHTML = `
+    <div class="bayes-formula-display">
+      <div class="bayes-formula">
+        <span class="formula-part" data-part="posterior">P(A|B)</span>
+        <span>=</span>
+        <span class="frac">
+          <span class="num">
+            <span class="formula-part" data-part="likelihood">P(B|A)</span>
+            ·
+            <span class="formula-part" data-part="prior">P(A)</span>
+          </span>
+          <span class="den">
+            <span class="formula-part" data-part="evidence">P(B)</span>
+          </span>
+        </span>
+      </div>
+      <div style="font-size:var(--fs-tiny);color:var(--text-muted);margin-top:4px;">
+        将鼠标悬停在公式各部分上，观察维恩图中对应的区域高亮
+      </div>
+    </div>
+
+    <div class="bayes-venn-container">
+      <svg class="bayes-venn-svg" viewBox="0 0 400 260" width="380">
+        <!-- 圆 A: P(A) — 有病 -->
+        <circle class="venn-circle" id="vennA" cx="160" cy="130" r="90"
+          fill="rgba(59,130,246,0.12)" stroke="var(--bayes-blue)" stroke-width="2"/>
+        <!-- 圆 B: P(B) — 阳性 -->
+        <circle class="venn-circle" id="vennB" cx="250" cy="130" r="90"
+          fill="rgba(107,114,128,0.1)" stroke="var(--bayes-gray)" stroke-width="2"/>
+        <!-- 交集高亮 -->
+        <clipPath id="vennClip">
+          <circle cx="160" cy="130" r="90"/>
+        </clipPath>
+        <circle id="vennIntersect" cx="250" cy="130" r="90"
+          fill="rgba(244,114,182,0)"
+          clip-path="url(#vennClip)"
+          style="transition:fill 0.3s ease;"/>
+        <!-- 标签 -->
+        <text class="venn-label" x="110" y="60" fill="var(--bayes-blue)" text-anchor="middle">A: 有病</text>
+        <text class="venn-label" x="300" y="60" fill="var(--bayes-gray)" text-anchor="middle">B: 阳性</text>
+        <text class="venn-label" x="205" y="135" fill="var(--bayes-coral)" text-anchor="middle" font-size="13">A∩B</text>
+        <!-- 标注 -->
+        <text x="100" y="240" font-size="11" fill="var(--text-muted)" font-family="var(--font-mono)" text-anchor="middle">P(A)=0.1%</text>
+        <text x="205" y="240" font-size="11" fill="var(--bayes-coral)" font-family="var(--font-mono)" text-anchor="middle">P(A|B)≈9%</text>
+        <text x="310" y="240" font-size="11" fill="var(--text-muted)" font-family="var(--font-mono)" text-anchor="middle">P(B)≈1.1%</text>
+      </svg>
+    </div>
+
+    <div class="bayes-calculation">
+      <div class="step-line"><span class="calc-num">P(B|A)</span> = 0.99 &nbsp;&nbsp; (真病时 99% 阳性)</div>
+      <div class="step-line"><span class="calc-num">P(A)</span>&nbsp;&nbsp; = 0.001 &nbsp;(患病率 0.1%)</div>
+      <div class="step-line"><span class="calc-num">P(B)</span>&nbsp;&nbsp; = 0.99×0.001 + 0.01×0.999 = 0.01098</div>
+      <div class="step-line" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">
+        <span class="calc-num">P(A|B)</span> = 0.99 × 0.001 / 0.01098 ≈ <span style="color:var(--bayes-coral);font-weight:700;">0.0902 = 9%</span>
+      </div>
+    </div>
+  `;
+
+  // 公式部分与维恩图联动
+  const parts = visualWrapper.querySelectorAll('.formula-part');
+  const vennA = document.getElementById('vennA');
+  const vennB = document.getElementById('vennB');
+  const vennIntersect = document.getElementById('vennIntersect');
+
+  parts.forEach(part => {
+    part.addEventListener('mouseenter', () => {
+      const which = part.dataset.part;
+      part.classList.add('highlighted');
+      vennA.setAttribute('fill', 'rgba(59,130,246,0.05)');
+      vennB.setAttribute('fill', 'rgba(107,114,128,0.05)');
+
+      if (which === 'prior') {
+        vennA.setAttribute('fill', 'rgba(59,130,246,0.3)');
+        vennA.setAttribute('stroke-width', '3');
+      } else if (which === 'likelihood') {
+        vennIntersect.setAttribute('fill', 'rgba(13,148,136,0.4)');
+        vennA.setAttribute('fill', 'rgba(59,130,246,0.12)');
+        vennA.setAttribute('stroke-width', '2');
+      } else if (which === 'posterior') {
+        vennIntersect.setAttribute('fill', 'rgba(244,114,182,0.4)');
+        vennB.setAttribute('fill', 'rgba(107,114,128,0.12)');
+        vennB.setAttribute('stroke-width', '3');
+      } else if (which === 'evidence') {
+        vennB.setAttribute('fill', 'rgba(107,114,128,0.3)');
+        vennB.setAttribute('stroke-width', '3');
+      }
+    });
+    part.addEventListener('mouseleave', () => {
+      part.classList.remove('highlighted');
+      vennA.setAttribute('fill', 'rgba(59,130,246,0.12)');
+      vennA.setAttribute('stroke-width', '2');
+      vennB.setAttribute('fill', 'rgba(107,114,128,0.1)');
+      vennB.setAttribute('stroke-width', '2');
+      vennIntersect.setAttribute('fill', 'rgba(244,114,182,0)');
+    });
+  });
+
+  // 维恩图圆也可交互
+  [vennA, vennB].forEach(circle => {
+    circle.addEventListener('mouseenter', () => {
+      circle.setAttribute('stroke-width', '3');
+    });
+    circle.addEventListener('mouseleave', () => {
+      circle.setAttribute('stroke-width', '2');
+    });
+  });
+}
+
+// ============================================================
+// 步骤 4：互动实验 — 三滑块 + 100 小人 + 热力图
+// ============================================================
+function renderStep4() {
+  visualWrapper.innerHTML = `
+    <div class="bayes-experiment">
+      <!-- 三个滑块 -->
+      <div class="bayes-exp-sliders">
+        <div class="bayes-exp-slider-group">
+          <div class="bayes-exp-slider-header">
+            <span class="bayes-exp-slider-name">患病率（先验）<span class="sub">P(A)</span></span>
+            <span class="bayes-exp-slider-val s1" id="expVal1">0.1%</span>
+          </div>
+          <input type="range" class="bayes-exp-slider s1" id="expSlider1"
+            min="0.01" max="50" step="0.01" value="0.1">
+        </div>
+        <div class="bayes-exp-slider-group">
+          <div class="bayes-exp-slider-header">
+            <span class="bayes-exp-slider-name">真阳性率（灵敏度）<span class="sub">P(B|A)</span></span>
+            <span class="bayes-exp-slider-val s2" id="expVal2">99.0%</span>
+          </div>
+          <input type="range" class="bayes-exp-slider s2" id="expSlider2"
+            min="50" max="99.9" step="0.1" value="99">
+        </div>
+        <div class="bayes-exp-slider-group">
+          <div class="bayes-exp-slider-header">
+            <span class="bayes-exp-slider-name">假阳性率<span class="sub">P(B|¬A)</span></span>
+            <span class="bayes-exp-slider-val s3" id="expVal3">1.0%</span>
+          </div>
+          <input type="range" class="bayes-exp-slider s3" id="expSlider3"
+            min="0.1" max="50" step="0.1" value="1">
+        </div>
+      </div>
+
+      <!-- 后验结果 + 100 小人 -->
+      <div class="bayes-exp-result">
+        <div class="bayes-exp-posterior">
+          <div class="label">后验概率</div>
+          <div class="value" id="expPosterior">9.0%</div>
+          <div class="desc">阳性时真病率</div>
+        </div>
+        <div class="bayes-exp-people">
+          <svg class="bayes-exp-people-svg" id="expPeopleSvg" viewBox="0 0 300 150" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="bayes-exp-people-legend">
+            <div class="bayes-legend-item"><span class="bayes-legend-dot" style="background:#dc2626;"></span><span id="expLegendTP">真阳性 1</span></div>
+            <div class="bayes-legend-item"><span class="bayes-legend-dot" style="background:#f97316;"></span><span id="expLegendFP">假阳性 10</span></div>
+            <div class="bayes-legend-item"><span class="bayes-legend-dot" style="background:#86efac;"></span><span id="expLegendTN">真阴性 89</span></div>
+            <div class="bayes-legend-item"><span class="bayes-legend-dot" style="background:#6b7280;"></span><span id="expLegendFN">假阴性 0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 热力图 -->
+      <div class="bayes-exp-heatmap-section">
+        <div class="bayes-exp-heatmap-title">后验概率热力图（灵敏度 = 当前值）</div>
+        <div class="bayes-heatmap-wrapper">
+          <canvas class="bayes-heatmap-canvas" id="expHeatmap" width="320" height="200"></canvas>
+        </div>
+        <div class="bayes-heatmap-axes">
+          <span>← 患病率低</span>
+          <span>患病率高 →</span>
+        </div>
+        <div class="bayes-heatmap-axes" style="margin-top:2px;">
+          <span style="color:var(--text-faint);">↑ 假阳性率低 &nbsp;|&nbsp; 假阳性率高 ↓</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const s1 = document.getElementById('expSlider1');
+  const s2 = document.getElementById('expSlider2');
+  const s3 = document.getElementById('expSlider3');
+  const v1 = document.getElementById('expVal1');
+  const v2 = document.getElementById('expVal2');
+  const v3 = document.getElementById('expVal3');
+  const postEl = document.getElementById('expPosterior');
+  const peopleSvg = document.getElementById('expPeopleSvg');
+  const heatmapCanvas = document.getElementById('expHeatmap');
+
+  function updateExp() {
+    const prior = parseFloat(s1.value) / 100;
+    const sens = parseFloat(s2.value) / 100;
+    const fpr = parseFloat(s3.value) / 100;
+    const posterior = bayes(prior, sens, fpr);
+
+    // 更新数值显示
+    v1.textContent = pct(prior, prior < 0.01 ? 2 : 1);
+    v2.textContent = pct(sens, 1);
+    v3.textContent = pct(fpr, 1);
+    postEl.textContent = pct(posterior, 1);
+
+    // 更新 100 小人
+    const N = 100;
+    const sickCount = Math.max(1, Math.round(prior * N));
+    const healthyCount = N - sickCount;
+    const tpCount = Math.round(sickCount * sens);
+    const fnCount = sickCount - tpCount;
+    const fpCount = Math.round(healthyCount * fpr);
+    const tnCount = healthyCount - fpCount;
+
+    // 图例
+    document.getElementById('expLegendTP').textContent = `真阳性 ${tpCount}`;
+    document.getElementById('expLegendFP').textContent = `假阳性 ${fpCount}`;
+    document.getElementById('expLegendTN').textContent = `真阴性 ${tnCount}`;
+    document.getElementById('expLegendFN').textContent = `假阴性 ${fnCount}`;
+
+    // 生成 100 个圆
+    const types = [];
+    for (let i = 0; i < tpCount; i++) types.push(0);
+    for (let i = 0; i < fpCount; i++) types.push(1);
+    for (let i = 0; i < tnCount; i++) types.push(2);
+    for (let i = 0; i < fnCount; i++) types.push(3);
+    while (types.length < N) types.push(2);
+    types.length = N;
+
+    // 打乱
+    for (let i = types.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [types[i], types[j]] = [types[j], types[i]];
+    }
+
+    const colors = ['#dc2626', '#f97316', '#86efac', '#6b7280'];
+    const cols = 20, cellW = 15, r = 5;
+    let circles = '';
+    for (let i = 0; i < N; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = col * cellW + 7.5;
+      const cy = row * cellW + 7.5;
+      const color = colors[types[i]];
+      const isPositive = types[i] === 0 || types[i] === 1;
+      const stroke = isPositive ? `stroke="${color}" stroke-width="1" stroke-opacity="0.3"` : '';
+      circles += `<circle cx="${cx}" cy="${cy}" r="${isPositive ? r + 0.5 : r}" fill="${color}" ${stroke}/>`;
+    }
+    peopleSvg.innerHTML = circles;
+
+    // 绘制热力图
+    drawHeatmap(heatmapCanvas, sens, prior, fpr);
+  }
+
+  s1.addEventListener('input', updateExp);
+  s2.addEventListener('input', updateExp);
+  s3.addEventListener('input', updateExp);
+
+  updateExp();
+}
+
+// ====== 热力图绘制 ======
+function drawHeatmap(canvas, sens, curPrior, curFpr) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cellW = 4, cellH = 4;
+  const cols = Math.floor(w / cellW);
+  const rows = Math.floor(h / cellH);
+
+  // 对数尺度映射
+  const priorMin = 0.0001, priorMax = 0.5;
+  const fprMin = 0.001, fprMax = 0.5;
+
+  function logMap(val, min, max, idx, total) {
+    const lMin = Math.log(min), lMax = Math.log(max);
+    const lVal = lMin + (lMax - lMin) * (idx / (total - 1));
+    return Math.exp(lVal);
+  }
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const prior = logMap(0, priorMin, priorMax, col, cols);
+      const fpr = logMap(0, fprMin, fprMax, rows - 1 - row, rows);
+      const posterior = bayes(prior, sens, fpr);
+      ctx.fillStyle = posteriorToColor(posterior);
+      ctx.fillRect(col * cellW, row * cellH, cellW, cellH);
+    }
+  }
+
+  // 标记当前位置
+  const curX = ((Math.log(curPrior) - Math.log(priorMin)) / (Math.log(priorMax) - Math.log(priorMin))) * w;
+  const curY = h - ((Math.log(curFpr) - Math.log(fprMin)) / (Math.log(fprMax) - Math.log(fprMin))) * h;
+
+  // 光环
+  ctx.beginPath();
+  ctx.arc(curX, curY, 10, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fill();
+  // 中心点
+  ctx.beginPath();
+  ctx.arc(curX, curY, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function posteriorToColor(p) {
+  if (p <= 0) return '#fef3c7';
+  if (p >= 1) return '#7f1d1d';
+  const hue = 60 * (1 - p);
+  const lightness = 72 - p * 35;
+  return `hsl(${hue}, 85%, ${lightness}%)`;
+}
+
+// ============================================================
+// 步骤 5：应用卡片 + 自检互动
+// ============================================================
+function renderStep5() {
+  visualWrapper.innerHTML = `
+    <div class="bayes-app-cards">
+      <div class="bayes-app-card" data-card="0">
+        <div class="bayes-app-card-header">
+          <div class="bayes-app-card-icon">✉</div>
+          <div class="bayes-app-card-title">垃圾邮件过滤</div>
+          <div class="bayes-app-card-chevron">▶</div>
+        </div>
+        <div class="bayes-app-card-body">
+          <div class="bayes-app-card-content">
+            朴素贝叶斯分类器是早期垃圾邮件过滤的核心技术。它计算：<br><br>
+            <strong>P(垃圾邮件 | 含"免费")</strong> = P(含"免费" | 垃圾邮件) × P(垃圾邮件) / P(含"免费")<br><br>
+            如果"免费"在垃圾邮件中出现率为 80%，在正常邮件中为 5%，而垃圾邮件占比 40%——那么收到含"免费"的邮件时，是垃圾邮件的概率高达 <strong>91.4%</strong>。这就是朴素贝叶斯分类器的基本原理。
+          </div>
+        </div>
+      </div>
+
+      <div class="bayes-app-card" data-card="1">
+        <div class="bayes-app-card-header">
+          <div class="bayes-app-card-icon">⚖</div>
+          <div class="bayes-app-card-title">法庭审判与检察官谬误</div>
+          <div class="bayes-app-card-chevron">▶</div>
+        </div>
+        <div class="bayes-app-card-body">
+          <div class="bayes-app-card-content">
+            DNA 匹配概率为百万分之一，检察官说"被告匹配的概率只有百万分之一，所以他几乎肯定有罪"——这是经典的<strong>检察官谬误</strong>。<br><br>
+            正确的贝叶斯推理应该问：在所有可能匹配的人中，被告是罪犯的概率是多少？如果城市有 1000 万人，预期有约 10 人匹配。被告只是 10 个匹配者之一，有罪概率约为 <strong>10%</strong>——远非"几乎确定"。
+          </div>
+        </div>
+      </div>
+
+      <div class="bayes-app-card" data-card="2">
+        <div class="bayes-app-card-header">
+          <div class="bayes-app-card-icon">🤖</div>
+          <div class="bayes-app-card-title">机器学习：朴素贝叶斯</div>
+          <div class="bayes-app-card-chevron">▶</div>
+        </div>
+        <div class="bayes-app-card-body">
+          <div class="bayes-app-card-content">
+            朴素贝叶斯分类器假设特征之间相互独立，对每个特征应用贝叶斯定理：<br><br>
+            <strong>P(类别 | 特征₁, 特征₂, ...)</strong> ∝ P(类别) × P(特征₁|类别) × P(特征₂|类别) × ...<br><br>
+            虽然"独立"假设通常不成立（故称"朴素"），但在文本分类、情感分析等场景中效果出奇地好。它训练快、可解释性强，至今仍是机器学习的重要基线模型。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bayes-quiz">
+      <div class="bayes-quiz-title">贝叶斯思维自检</div>
+      <div class="bayes-quiz-scenario">
+        某公司有 1000 名员工，其中 10 人是工程师（1%）。已知 80% 的工程师戴眼镜，30% 的非工程师也戴眼镜。如果你看到一位戴眼镜的员工，他是工程师的概率是多少？
+      </div>
+      <div class="bayes-quiz-slider-row">
+        <span class="bayes-quiz-slider-label">你的估计：</span>
+        <input type="range" class="bayes-quiz-slider" id="quizSlider" min="0" max="100" step="1" value="50">
+        <span class="bayes-quiz-guess" id="quizGuess">50%</span>
+      </div>
+      <button class="bayes-quiz-btn" id="quizBtn">查看答案</button>
+      <div class="bayes-quiz-result" id="quizResult"></div>
+    </div>
+  `;
+
+  // 卡片展开/折叠
+  const cards = visualWrapper.querySelectorAll('.bayes-app-card');
+  cards.forEach(card => {
+    card.querySelector('.bayes-app-card-header').addEventListener('click', () => {
+      card.classList.toggle('expanded');
+    });
+  });
+
+  // 自检互动
+  const quizSlider = document.getElementById('quizSlider');
+  const quizGuess = document.getElementById('quizGuess');
+  const quizBtn = document.getElementById('quizBtn');
+  const quizResult = document.getElementById('quizResult');
+
+  quizSlider.addEventListener('input', () => {
+    quizGuess.textContent = quizSlider.value + '%';
+  });
+
+  quizBtn.addEventListener('click', () => {
+    const guess = parseInt(quizSlider.value);
+    // P(工程师|眼镜) = 0.8*0.01 / (0.8*0.01 + 0.3*0.99) = 0.008/0.305 ≈ 2.6%
+    const correct = 2.6;
+    const diff = Math.abs(guess - correct);
+
+    if (diff <= 5) {
+      quizResult.className = 'bayes-quiz-result show correct';
+      quizResult.innerHTML = `<strong>恭喜！</strong>你的估计 ${guess}% 非常接近正确答案。贝叶斯推理告诉我们：即使工程师戴眼镜的比例远高于非工程师（80% vs 30%），但由于工程师只占 1%，看到戴眼镜的人是工程师的概率仅为 <span class="answer-num">2.6%</span>。先验概率的力量不容忽视！`;
+    } else {
+      quizResult.className = 'bayes-quiz-result show wrong';
+      quizResult.innerHTML = `正确答案是 <span class="answer-num">${correct}%</span>。<br><br>计算过程：P(工程师|眼镜) = P(眼镜|工程师) × P(工程师) / P(眼镜) = 0.80 × 0.01 / (0.80 × 0.01 + 0.30 × 0.99) = 0.008 / 0.305 ≈ <strong>2.6%</strong>。<br><br>你的估计 ${guess}% 偏高了许多——这正是基础比率谬误的典型表现。虽然"戴眼镜"这个特征更符合工程师的形象，但工程师太稀少了，所以后验概率依然很低。`;
+    }
+  });
+}
+
+// ====== 初始化 ======
+updateStep();
+
+// 键盘导航
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && currentStep > 0) { currentStep--; updateStep(); resetAutoPlayProgress(); }
+  if (e.key === 'ArrowRight' && currentStep < steps.length - 1) { currentStep++; updateStep(); resetAutoPlayProgress(); }
+});
+</script>
+
+</body>
+</html>

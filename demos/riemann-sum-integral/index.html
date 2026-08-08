@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>定积分的本质：黎曼和可视化 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css">
+<link rel="stylesheet" href="/assets/css/demo-framework.css">
+<style>
+/* ===== 黎曼和 Demo 专属样式 ===== */
+:root {
+  --ri-violet: #7c3aed;
+  --ri-violet-light: #8b5cf6;
+  --ri-violet-soft: rgba(124, 58, 237, 0.1);
+  --ri-violet-glow: rgba(124, 58, 237, 0.3);
+  --ri-coral: #f43f5e;
+  --ri-coral-soft: rgba(244, 63, 94, 0.1);
+  --ri-coral-glow: rgba(244, 63, 94, 0.3);
+  --ri-teal: #0d9488;
+  --ri-teal-soft: rgba(13, 148, 136, 0.1);
+  --ri-gray: #94a3b8;
+  --ri-axis: #334155;
+  --ri-fill: rgba(124, 58, 237, 0.08);
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--bg);
+}
+
+/* ===== 杂志布局 ===== */
+.magazine-layout {
+  display: grid;
+  grid-template-columns: 38% 62%;
+  gap: var(--spacer-48);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--spacer-48) var(--spacer-32);
+  min-height: calc(100vh - 64px);
+}
+
+body.has-info-bar .magazine-layout {
+  padding-bottom: calc(var(--spacer-48) + 52px);
+}
+
+/* ===== 左侧文章区 ===== */
+.article-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-24);
+}
+
+.article-header { display: flex; flex-direction: column; gap: var(--spacer-12); }
+
+.article-kicker {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  letter-spacing: 0.12em;
+  color: var(--ri-violet);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.article-title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-h1);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.article-subtitle {
+  font-size: var(--fs-body);
+  color: var(--text-muted);
+  line-height: var(--lh-relaxed);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+.article-body { display: flex; flex-direction: column; gap: var(--spacer-16); }
+
+.article-body p {
+  font-size: var(--fs-body);
+  line-height: 1.85;
+  color: var(--text);
+}
+
+.article-body p.lead {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--ri-violet);
+}
+
+.article-body strong { color: var(--ri-violet); font-weight: 600; }
+.article-body em { color: var(--ri-coral); font-style: italic; font-weight: 500; }
+
+/* ===== 步骤指示器 ===== */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-12);
+  margin: var(--spacer-8) 0;
+  flex-wrap: wrap;
+}
+
+.step-dots { display: flex; gap: 10px; }
+
+.step-dot {
+  width: 10px; height: 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--border);
+  transition: all var(--duration-base) var(--ease);
+  cursor: pointer;
+}
+
+.step-dot.active {
+  background-color: var(--ri-violet);
+  transform: scale(1.3);
+  box-shadow: 0 0 0 4px var(--ri-violet-soft);
+}
+
+.step-dot.completed { background-color: var(--ri-violet-light); opacity: 0.5; }
+
+.step-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.step-nav {
+  display: flex;
+  gap: var(--spacer-12);
+  margin-top: var(--spacer-8);
+}
+
+.step-nav .btn { flex: 1; }
+
+.step-nav .btn-primary {
+  background-color: var(--ri-violet);
+  border-color: var(--ri-violet);
+}
+.step-nav .btn-primary:hover {
+  background-color: #6d28d9;
+  box-shadow: 0 4px 16px var(--ri-violet-glow);
+}
+
+/* ===== 步骤内容 ===== */
+.step-content {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.4s var(--ease);
+  min-height: 320px;
+}
+
+.step-content.fade-out { opacity: 0; transform: translateY(10px); }
+.step-content.fade-in { opacity: 0; transform: translateY(-10px); }
+
+/* ===== 定理/公式高亮框 ===== */
+.theorem-box {
+  background: linear-gradient(135deg, var(--ri-violet-soft), rgba(124, 58, 237, 0.04));
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: var(--radius-card);
+  padding: var(--spacer-20);
+  margin: var(--spacer-16) 0;
+}
+
+.theorem-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ri-violet);
+  margin-bottom: var(--spacer-8);
+}
+
+.theorem-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+/* ===== 证明步骤块 ===== */
+.proof-step {
+  display: flex;
+  gap: var(--spacer-16);
+  margin: var(--spacer-12) 0;
+  padding: var(--spacer-16);
+  background-color: var(--surface-muted);
+  border-radius: var(--radius);
+}
+
+.proof-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background-color: var(--ri-violet);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.proof-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.proof-text strong { color: var(--ri-coral); }
+
+/* ===== 右侧可视化区 ===== */
+.visual-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+}
+
+.visual-wrapper {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+}
+
+.visual-wrapper canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.visual-caption {
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+  font-family: var(--font-serif);
+  padding: var(--spacer-8) var(--spacer-16);
+}
+
+/* ===== 可视化内控件 ===== */
+.viz-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-16);
+  padding: var(--spacer-12) var(--spacer-20);
+  background-color: var(--surface-muted);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.viz-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+  flex: 1;
+}
+
+.viz-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.viz-slider-label {
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.viz-slider-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  color: var(--ri-violet);
+}
+
+.viz-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+.viz-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--ri-violet);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.15s;
+}
+
+.viz-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+.viz-slider::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--ri-violet);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* ===== 函数选择器 ===== */
+.func-selector {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.func-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-tiny);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  white-space: nowrap;
+}
+
+.func-btn:hover { border-color: var(--ri-violet-light); color: var(--ri-violet); }
+
+.func-btn.active {
+  background: var(--ri-violet);
+  border-color: var(--ri-violet);
+  color: white;
+}
+
+/* ===== 采样点选择器 ===== */
+.sample-selector {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sample-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-tiny);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  white-space: nowrap;
+}
+
+.sample-btn:hover { border-color: var(--ri-violet-light); color: var(--ri-violet); }
+
+.sample-btn.active {
+  background: var(--ri-teal);
+  border-color: var(--ri-teal);
+  color: white;
+}
+
+/* ===== 数据浮窗 ===== */
+.viz-data-overlay {
+  position: absolute;
+  top: var(--spacer-16);
+  right: var(--spacer-16);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--spacer-12) var(--spacer-16);
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  min-width: 160px;
+}
+
+.data-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.data-label { font-size: var(--fs-tiny); color: var(--text-muted); font-weight: 500; }
+.data-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--ri-violet);
+}
+.data-value.coral { color: var(--ri-coral); }
+.data-value.teal { color: var(--ri-teal); }
+.data-value .delta { font-size: var(--fs-tiny); color: var(--text-faint); font-weight: 400; }
+
+/* ===== 自动播放按钮 ===== */
+.autoplay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+}
+
+.autoplay-btn:hover { color: var(--ri-violet); border-color: var(--ri-violet-light); }
+.autoplay-btn.playing { background: var(--ri-violet-soft); color: var(--ri-violet); border-color: var(--ri-violet-light); }
+.autoplay-btn svg { width: 12px; height: 12px; }
+
+/* ===== 公式推导行 ===== */
+.formula-derivation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--spacer-16);
+  background-color: var(--surface-muted);
+  border-radius: var(--radius);
+  margin: var(--spacer-12) 0;
+}
+
+.formula-line {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.4s var(--ease);
+}
+
+.formula-line.visible { opacity: 1; transform: translateX(0); }
+.formula-line.highlight { background: var(--ri-coral-soft); color: var(--ri-coral); font-weight: 600; }
+.formula-line.final {
+  background: var(--ri-violet-soft);
+  color: var(--ri-violet);
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+}
+
+/* ===== 收敛指示器 ===== */
+.convergence-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  padding: 8px 14px;
+  background: var(--ri-teal-soft);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+  color: var(--ri-teal);
+}
+
+.convergence-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ri-teal);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ===== 应用场景卡片 ===== */
+.app-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacer-12);
+  padding: var(--spacer-16);
+  background-color: var(--surface-muted);
+  border-radius: var(--radius);
+  margin: var(--spacer-12) 0;
+  border-left: 3px solid var(--ri-violet);
+}
+
+.app-card-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius);
+  background: var(--ri-violet-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.app-card-content { flex: 1; }
+.app-card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.app-card-text { font-size: 13px; line-height: 1.6; color: var(--text-muted); }
+
+/* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .magazine-layout {
+    grid-template-columns: 1fr;
+    gap: var(--spacer-32);
+  }
+}
+
+@media (max-width: 768px) {
+  .magazine-layout {
+    padding: var(--spacer-24) var(--spacer-16);
+  }
+  .viz-data-overlay {
+    top: 8px; right: 8px;
+    padding: 8px 12px;
+    min-width: 100px;
+  }
+  .viz-controls { padding: var(--spacer-8) var(--spacer-12); }
+  .viz-slider-group { min-width: 100px; }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">定积分的本质：黎曼和可视化</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-math">数学</span>
+    <a href="/skills/jingbo-edu-advanced-calculus-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="article-side">
+        <div class="article-header">
+          <div class="article-kicker">MATHEMATICS · 定积分本质</div>
+          <h1 class="article-title">把曲线下的面积<br>切成无数个矩形</h1>
+          <p class="article-subtitle">从古希腊的穷竭法到黎曼和，用最朴素的分割与求和，逼近曲线下的真相。</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="step-indicator">
+          <div class="step-dots" id="stepDots">
+            <div class="step-dot active" data-step="0"></div>
+            <div class="step-dot" data-step="1"></div>
+            <div class="step-dot" data-step="2"></div>
+            <div class="step-dot" data-step="3"></div>
+            <div class="step-dot" data-step="4"></div>
+          </div>
+          <span class="step-label" id="stepLabel">第 1 / 5 步</span>
+          <button class="autoplay-btn" id="autoplayBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>自动播放</span>
+          </button>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="article-body">
+          <div class="step-content" id="stepContent"></div>
+        </div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="step-nav">
+          <button class="btn btn-secondary" id="prevBtn"><span>←</span> 上一步</button>
+          <button class="btn btn-primary" id="nextBtn">下一步 <span>→</span></button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="visual-side">
+        <div class="visual-wrapper" id="visualWrapper">
+          <canvas id="demoCanvas" width="800" height="520"></canvas>
+          <div class="viz-data-overlay" id="dataOverlay" style="display:none;"></div>
+        </div>
+        <p class="visual-caption" id="visualCaption">图 1 · 面积之谜：如何度量曲线下的区域？</p>
+        <!-- 动态控件区 -->
+        <div class="viz-controls" id="vizControls" style="display:none;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">riemann-sum-integral</span>
+    <span class="demo-tech-tag">Canvas</span>
+    <span class="demo-tech-tag">纯 JS</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-advanced-calculus-v0.1.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   定积分的本质：黎曼和可视化
+   杂志讲解型 · 5 步交互可视化
+   ============================================================ */
+
+// ====== 全局配置 ======
+const COLORS = {
+  violet: '#7c3aed',
+  violetLight: '#8b5cf6',
+  violetSoft: 'rgba(124, 58, 237, 0.12)',
+  violetFill: 'rgba(124, 58, 237, 0.08)',
+  coral: '#f43f5e',
+  coralSoft: 'rgba(244, 63, 94, 0.12)',
+  teal: '#0d9488',
+  tealSoft: 'rgba(13, 148, 136, 0.12)',
+  gray: '#94a3b8',
+  axis: '#334155',
+  grid: 'rgba(51, 65, 85, 0.06)',
+  bg: '#ffffff',
+  text: '#1a1a1a',
+  textMuted: '#6b6b6b',
+  surface: '#f3efe9',
+  amber: '#d97706',
+  amberSoft: 'rgba(217, 119, 6, 0.12)'
+};
+
+const canvas = document.getElementById('demoCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+
+// ====== 可用函数 ======
+const FUNCTIONS = {
+  'x²': { fn: x => x * x, label: 'x²', integral: (a, b) => (b**3 - a**3) / 3 },
+  'sin(x)': { fn: x => Math.sin(x), label: 'sin(x)', integral: (a, b) => Math.cos(a) - Math.cos(b) },
+  'x³−x': { fn: x => x*x*x - x, label: 'x³ − x', integral: (a, b) => (b**4/4 - b**2/2) - (a**4/4 - a**2/2) },
+  '√x': { fn: x => Math.sqrt(Math.max(0, x)), label: '√x', integral: (a, b) => (2/3) * (b**1.5 - a**1.5) },
+  'eˣ': { fn: x => Math.exp(x), label: 'eˣ', integral: (a, b) => Math.exp(b) - Math.exp(a) }
+};
+
+// ====== 步骤内容数据 ======
+const steps = [
+  {
+    title: '面积之谜——古老的难题',
+    content: `
+      <p class="lead">我们知道如何求矩形、三角形的面积。但如果边界是一条曲线呢？</p>
+      <p>古希腊的阿基米德用"穷竭法"来逼近曲线图形的面积：用多边形填充曲线内部，不断增加边数，让多边形面积"穷竭"曲线面积。这个两千多年前的思路，正是积分学的萌芽。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">核心问题</div>
+        <div class="theorem-text">
+          给定函数 <em>f(x)</em> 和区间 <em>[a, b]</em>，如何精确计算曲线 <em>y = f(x)</em> 与 x 轴围成的<strong>面积</strong>？<br><br>
+          关键洞察：<strong>把不规则区域切成无数个极小的规则区域</strong>，然后求和。
+        </div>
+      </div>
+      <p>右侧的动画展示了这个分割过程——从粗糙到精细，矩形越来越多，总面积越来越接近真实值。这就是黎曼和的核心思想。</p>
+    `
+  },
+  {
+    title: '矩形逼近——三种取法',
+    content: `
+      <p class="lead">把区间 [a, b] 均匀分成 n 份，每份宽 Δx = (b−a)/n。用矩形近似每份的面积，关键在于：矩形的高度取哪个点？</p>
+      <div class="proof-step">
+        <div class="proof-num">L</div>
+        <div class="proof-text"><strong>左端点</strong>：高度取每个小区间左端 f(x<sub>i</sub>)，矩形可能偏高或偏低。</div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">R</div>
+        <div class="proof-text"><strong>右端点</strong>：高度取右端 f(x<sub>i+1</sub>)，与左端点互补。</div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">M</div>
+        <div class="proof-text"><strong>中点</strong>：高度取中点 f((x<sub>i</sub>+x<sub>i+1</sub>)/2)，通常误差最小。</div>
+      </div>
+      <p>切换右侧的"左端点 / 右端点 / 中点"按钮，观察矩形如何变化。无论哪种取法，当 <em>n → ∞</em> 时，结果都趋近于同一个值。</p>
+    `
+  },
+  {
+    title: '黎曼和——正式定义',
+    content: `
+      <p class="lead">把刚才的直觉写成数学语言，就得到了黎曼和的定义。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">黎曼和</div>
+        <div class="theorem-text">
+          将 [a, b] 分成 n 个子区间，每个子区间取一个采样点 <em>c<sub>i</sub></em>，则：<br><br>
+          <strong style="font-size:18px;font-family:var(--font-mono);">S<sub>n</sub> = Σ<sub>i=1</sub><sup>n</sup> f(c<sub>i</sub>) · Δx</strong><br><br>
+          其中 Δx = (b − a) / n
+        </div>
+      </div>
+      <div class="formula-derivation" id="formulaArea">
+        <div class="formula-line" data-line="0">S<sub>n</sub> = f(c₁)·Δx + f(c₂)·Δx + … + f(c<sub>n</sub>)·Δx</div>
+        <div class="formula-line" data-line="1">= Δx · Σ f(c<sub>i</sub>)</div>
+        <div class="formula-line" data-line="2">当 n → ∞, Δx → 0 时</div>
+        <div class="formula-line final" data-line="3">∫ₐᵇ f(x) dx = lim<sub>n→∞</sub> Σ<sub>i=1</sub><sup>n</sup> f(c<sub>i</sub>) · Δx</div>
+      </div>
+      <p>拖动右侧的 n 滑块，观察矩形数量增加时，黎曼和如何向精确积分值收敛。数据面板实时显示当前近似值与误差。</p>
+    `
+  },
+  {
+    title: '互动实验——亲手验证',
+    content: `
+      <p class="lead">纸上得来终觉浅。现在轮到你来操作了。</p>
+      <p>选择不同的函数，拖动 n 滑块改变分割数，观察黎曼和如何逐步逼近精确积分值。切换采样方式，比较三种取法的收敛速度。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">实验建议</div>
+        <div class="theorem-text">
+          · 试试 <strong>x²</strong> 在 [0, 2] 上：精确值 = 8/3 ≈ 2.667<br>
+          · 试试 <strong>sin(x)</strong> 在 [0, π] 上：精确值 = 2<br>
+          · 当 n = 100 时，误差已经小到几乎看不见<br>
+          · <em>中点法则</em>通常比左右端点更快收敛
+        </div>
+      </div>
+      <p>下方的收敛曲线展示了 n 从 1 到 200 的误差变化——对数坐标下，误差近似线性下降。</p>
+    `
+  },
+  {
+    title: '从和到积——微积分基本定理',
+    content: `
+      <p class="lead">黎曼和不仅仅是计算面积的工具，它连接了微分与积分两大领域。</p>
+      <p>牛顿和莱布尼茨各自独立发现了一个惊人的事实：<strong>定积分可以通过反导数来计算</strong>——不必真的去求无穷和的极限。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">微积分基本定理</div>
+        <div class="theorem-text">
+          如果 F(x) 是 f(x) 的一个原函数（即 F'(x) = f(x)），则：<br><br>
+          <strong style="font-size:18px;font-family:var(--font-mono);">∫ₐᵇ f(x) dx = F(b) − F(a)</strong><br><br>
+          积分 = 反导数在端点的差值。微分与积分互为逆运算。
+        </div>
+      </div>
+      <div class="app-card">
+        <div class="app-card-icon">📐</div>
+        <div class="app-card-content">
+          <div class="app-card-title">物理：路程 = 速度曲线下的面积</div>
+          <div class="app-card-text">v(t) 对时间积分得到位移。右侧动画展示速度曲线下的面积如何累积成总路程。</div>
+        </div>
+      </div>
+      <div class="app-card">
+        <div class="app-card-icon">⚡</div>
+        <div class="app-card-content">
+          <div class="app-card-title">工程：功 = 力对位移的积分</div>
+          <div class="app-card-text">变力做功 W = ∫F(x)dx，正是黎曼和在物理世界中的直接体现。</div>
+        </div>
+      </div>
+      <p style="color:var(--ri-violet);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">
+        —— 从阿基米德的穷竭法到牛顿-莱布尼茨公式，人类用两千年走完了这条路。
+      </p>
+    `
+  }
+];
+
+// ====== 步骤导航逻辑 ======
+let currentStep = 0;
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDots = document.querySelectorAll('.step-dot');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const visualCaption = document.getElementById('visualCaption');
+const dataOverlay = document.getElementById('dataOverlay');
+const vizControls = document.getElementById('vizControls');
+const autoplayBtn = document.getElementById('autoplayBtn');
+
+let autoplayTimer = null;
+let isAutoplaying = false;
+
+const captions = [
+  '图 1 · 面积之谜：从粗糙分割到精细逼近',
+  '图 2 · 矩形逼近：左端点 / 右端点 / 中点',
+  '图 3 · 黎曼和定义：n 增大，近似值收敛',
+  '图 4 · 互动实验：自由选择函数与参数',
+  '图 5 · 微积分基本定理：从和到积'
+];
+
+function updateStep(step) {
+  currentStep = step;
+  const s = steps[step];
+
+  stepContent.classList.add('fade-out');
+  setTimeout(() => {
+    stepContent.innerHTML = `<h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">${s.title}</h3>${s.content}`;
+    stepContent.classList.remove('fade-out');
+    stepContent.classList.add('fade-in');
+    setTimeout(() => stepContent.classList.remove('fade-in'), 400);
+
+    // 触发公式行逐行显示动画
+    if (step === 2) {
+      const lines = document.querySelectorAll('#formulaArea .formula-line');
+      lines.forEach((line, i) => {
+        setTimeout(() => line.classList.add('visible'), 300 + i * 400);
+      });
+    }
+  }, 200);
+
+  stepLabel.textContent = `第 ${step + 1} / ${steps.length} 步`;
+  visualCaption.textContent = captions[step];
+
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === step) dot.classList.add('active');
+    else if (i < step) dot.classList.add('completed');
+  });
+
+  prevBtn.disabled = step === 0;
+  prevBtn.style.opacity = step === 0 ? '0.5' : '1';
+  prevBtn.style.cursor = step === 0 ? 'not-allowed' : 'pointer';
+
+  nextBtn.innerHTML = step === steps.length - 1
+    ? '完成 ✓'
+    : '下一步 <span>→</span>';
+
+  cleanupStep();
+  renderStep(step);
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) updateStep(currentStep - 1);
+});
+
+nextBtn.addEventListener('click', () => {
+  if (currentStep < steps.length - 1) updateStep(currentStep + 1);
+});
+
+stepDots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const s = parseInt(dot.dataset.step);
+    if (s !== currentStep) updateStep(s);
+  });
+});
+
+// 键盘导航
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && currentStep > 0) updateStep(currentStep - 1);
+  if (e.key === 'ArrowRight' && currentStep < steps.length - 1) updateStep(currentStep + 1);
+});
+
+// ====== 自动播放 ======
+autoplayBtn.addEventListener('click', () => {
+  if (isAutoplaying) {
+    stopAutoplay();
+  } else {
+    startAutoplay();
+  }
+});
+
+function startAutoplay() {
+  isAutoplaying = true;
+  autoplayBtn.classList.add('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg><span>暂停</span>';
+  autoplayTimer = setInterval(() => {
+    if (currentStep < steps.length - 1) {
+      updateStep(currentStep + 1);
+    } else {
+      stopAutoplay();
+    }
+  }, 9000);
+}
+
+function stopAutoplay() {
+  isAutoplaying = false;
+  autoplayBtn.classList.remove('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>自动播放</span>';
+  if (autoplayTimer) clearInterval(autoplayTimer);
+  autoplayTimer = null;
+}
+
+// ====== 导航栏滚动 ======
+window.addEventListener('scroll', () => {
+  document.getElementById('demoNavbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ============================================================
+//  通用绘图工具函数
+// ============================================================
+
+function clearCanvas() {
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawGrid(x0, y0, xScale, yScale, xMin, xMax, yMin, yMax) {
+  ctx.strokeStyle = COLORS.grid;
+  ctx.lineWidth = 1;
+
+  // 竖线
+  for (let x = Math.ceil(xMin); x <= xMax; x++) {
+    const px = x0 + x * xScale;
+    if (px >= 0 && px <= W) {
+      ctx.beginPath();
+      ctx.moveTo(px, 0);
+      ctx.lineTo(px, H);
+      ctx.stroke();
+    }
+  }
+
+  // 横线
+  for (let y = Math.ceil(yMin); y <= yMax; y++) {
+    const py = y0 - y * yScale;
+    if (py >= 0 && py <= H) {
+      ctx.beginPath();
+      ctx.moveTo(0, py);
+      ctx.lineTo(W, py);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawAxes(x0, y0, xScale, yScale, xLabel, yLabel, xMin, xMax, yMin, yMax) {
+  ctx.strokeStyle = COLORS.axis;
+  ctx.lineWidth = 1.5;
+  ctx.fillStyle = COLORS.axis;
+  ctx.font = '12px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  // X 轴
+  if (y0 >= 0 && y0 <= H) {
+    ctx.beginPath();
+    ctx.moveTo(Math.max(0, x0 + xMin * xScale), y0);
+    ctx.lineTo(Math.min(W, x0 + xMax * xScale), y0);
+    ctx.stroke();
+
+    // X 轴刻度
+    ctx.font = '11px "JetBrains Mono", monospace';
+    for (let x = Math.ceil(xMin); x <= xMax; x++) {
+      const px = x0 + x * xScale;
+      if (px >= 10 && px <= W - 10) {
+        ctx.beginPath();
+        ctx.moveTo(px, y0 - 3);
+        ctx.lineTo(px, y0 + 3);
+        ctx.stroke();
+        ctx.fillText(String(x), px, y0 + 6);
+      }
+    }
+  }
+
+  // Y 轴
+  if (x0 >= 0 && x0 <= W) {
+    ctx.beginPath();
+    ctx.moveTo(x0, Math.max(0, y0 - yMax * yScale));
+    ctx.lineTo(x0, Math.min(H, y0 - yMin * yScale));
+    ctx.stroke();
+
+    // Y 轴刻度
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yMin); y <= yMax; y++) {
+      if (y === 0) continue;
+      const py = y0 - y * yScale;
+      if (py >= 10 && py <= H - 10) {
+        ctx.beginPath();
+        ctx.moveTo(x0 - 3, py);
+        ctx.lineTo(x0 + 3, py);
+        ctx.stroke();
+        ctx.fillText(String(y), x0 - 6, py);
+      }
+    }
+  }
+
+  // 箭头与标签
+  ctx.strokeStyle = COLORS.axis;
+  ctx.fillStyle = COLORS.axis;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  if (xLabel) {
+    ctx.font = 'italic 14px serif';
+    ctx.fillText(xLabel, W - 20, y0 + 18);
+  }
+  if (yLabel) {
+    ctx.font = 'italic 14px serif';
+    ctx.save();
+    ctx.translate(x0 - 20, 20);
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+  }
+}
+
+function drawCurve(fn, x0, y0, xScale, yScale, a, b, color, lineWidth) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth || 2.5;
+  ctx.beginPath();
+  const steps = 200;
+  for (let i = 0; i <= steps; i++) {
+    const x = a + (b - a) * i / steps;
+    const y = fn(x);
+    const px = x0 + x * xScale;
+    const py = y0 - y * yScale;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+}
+
+// ====== 状态管理 ======
+let animationId = null;
+let stepState = {};
+
+function cleanupStep() {
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+  dataOverlay.style.display = 'none';
+  dataOverlay.innerHTML = '';
+  vizControls.style.display = 'none';
+  vizControls.innerHTML = '';
+  stepState = {};
+}
+
+// ============================================================
+//  步骤渲染入口
+// ============================================================
+function renderStep(step) {
+  clearCanvas();
+  switch (step) {
+    case 0: renderAreaProblem(); break;
+    case 1: renderRectangleMethods(); break;
+    case 2: renderRiemannDefinition(); break;
+    case 3: renderInteractiveLab(); break;
+    case 4: renderFundamentalTheorem(); break;
+  }
+}
+
+// ============================================================
+//  Step 0: 面积之谜——分割动画
+// ============================================================
+function renderAreaProblem() {
+  const fn = FUNCTIONS['x²'].fn;
+  const a = 0, b = 2;
+  const x0 = 80, y0 = H - 60;
+  const xScale = 100, yScale = 50;
+  const xMin = -0.3, xMax = 2.5, yMin = -0.3, yMax = 4.5;
+
+  stepState = { n: 2, phase: 0, animProgress: 0 };
+
+  function draw() {
+    clearCanvas();
+    drawGrid(x0, y0, xScale, yScale, xMin, xMax, yMin, yMax);
+    drawAxes(x0, y0, xScale, yScale, 'x', 'y', xMin, xMax, yMin, yMax);
+
+    const n = stepState.n;
+    const dx = (b - a) / n;
+
+    // 画矩形（从左端点取高度）
+    for (let i = 0; i < n; i++) {
+      const xi = a + i * dx;
+      const yi = fn(xi);
+      const px = x0 + xi * xScale;
+      const py = y0 - yi * yScale;
+      const pw = dx * xScale;
+      const ph = yi * yScale;
+
+      // 矩形填充
+      ctx.fillStyle = stepState.phase === 0
+        ? `rgba(124, 58, 237, ${0.08 + stepState.animProgress * 0.15})`
+        : 'rgba(124, 58, 237, 0.15)';
+      ctx.fillRect(px, py, pw, ph);
+
+      // 矩形边框
+      ctx.strokeStyle = COLORS.violetLight;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(px, py, pw, ph);
+    }
+
+    // 画曲线
+    drawCurve(fn, x0, y0, xScale, yScale, a, b, COLORS.violet, 2.5);
+
+    // 画精确面积填充（半透明）
+    ctx.fillStyle = 'rgba(244, 63, 94, 0.05)';
+    ctx.beginPath();
+    ctx.moveTo(x0 + a * xScale, y0);
+    const steps = 200;
+    for (let i = 0; i <= steps; i++) {
+      const x = a + (b - a) * i / steps;
+      const y = fn(x);
+      ctx.lineTo(x0 + x * xScale, y0 - y * yScale);
+    }
+    ctx.lineTo(x0 + b * xScale, y0);
+    ctx.closePath();
+    ctx.fill();
+
+    // 标注
+    ctx.font = 'bold 14px "Noto Serif SC", serif';
+    ctx.fillStyle = COLORS.violet;
+    ctx.textAlign = 'center';
+    ctx.fillText(`n = ${n} 个矩形`, W / 2, 30);
+
+    // 计算并显示近似面积
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      sum += fn(a + i * dx) * dx;
+    }
+    const exact = 8 / 3;
+
+    ctx.font = '13px "JetBrains Mono", monospace';
+    ctx.fillStyle = COLORS.textMuted;
+    ctx.fillText(`近似面积 ≈ ${sum.toFixed(4)}`, W / 2, 52);
+    ctx.fillStyle = COLORS.coral;
+    ctx.fillText(`精确面积 = ${exact.toFixed(4)}`, W / 2, 70);
+  }
+
+  // 动画：n 递增
+  let lastTime = 0;
+  function animate(time) {
+    if (currentStep !== 0) return;
+    const dt = time - lastTime;
+    lastTime = time;
+
+    if (stepState.phase === 0) {
+      stepState.animProgress += dt / 800;
+      if (stepState.animProgress >= 1) {
+        stepState.animProgress = 0;
+        stepState.n = stepState.n * 2;
+        if (stepState.n > 64) {
+          stepState.n = 2;
+        }
+      }
+    }
+
+    draw();
+    animationId = requestAnimationFrame(animate);
+  }
+
+  draw();
+  animationId = requestAnimationFrame(animate);
+}
+
+// ============================================================
+//  Step 1: 矩形逼近——三种取法
+// ============================================================
+function renderRectangleMethods() {
+  const fn = FUNCTIONS['x²'].fn;
+  const a = 0, b = 2;
+  const x0 = 80, y0 = H - 60;
+  const xScale = 100, yScale = 50;
+  const xMin = -0.3, xMax = 2.5, yMin = -0.3, yMax = 4.5;
+  let sampleMode = 'left'; // left, right, mid
+  let n = 8;
+
+  const colors = {
+    left: { fill: 'rgba(124, 58, 237, 0.15)', stroke: COLORS.violetLight, label: '左端点' },
+    right: { fill: 'rgba(244, 63, 94, 0.15)', stroke: COLORS.coral, label: '右端点' },
+    mid: { fill: 'rgba(13, 148, 136, 0.15)', stroke: COLORS.teal, label: '中点' }
+  };
+
+  function draw() {
+    clearCanvas();
+    drawGrid(x0, y0, xScale, yScale, xMin, xMax, yMin, yMax);
+    drawAxes(x0, y0, xScale, yScale, 'x', 'y', xMin, xMax, yMin, yMax);
+
+    const dx = (b - a) / n;
+    const c = colors[sampleMode];
+
+    // 画矩形
+    for (let i = 0; i < n; i++) {
+      const xi = a + i * dx;
+      let ci;
+      if (sampleMode === 'left') ci = xi;
+      else if (sampleMode === 'right') ci = xi + dx;
+      else ci = xi + dx / 2;
+
+      const yi = fn(ci);
+      const px = x0 + xi * xScale;
+      const py = y0 - yi * yScale;
+      const pw = dx * xScale;
+      const ph = yi * yScale;
+
+      ctx.fillStyle = c.fill;
+      ctx.fillRect(px, py, pw, ph);
+      ctx.strokeStyle = c.stroke;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(px, py, pw, ph);
+
+      // 采样点标记
+      const cpx = x0 + ci * xScale;
+      const cpy = y0 - yi * yScale;
+      ctx.fillStyle = c.stroke;
+      ctx.beginPath();
+      ctx.arc(cpx, cpy, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 画曲线
+    drawCurve(fn, x0, y0, xScale, yScale, a, b, COLORS.axis, 2);
+
+    // 计算近似面积
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      const xi = a + i * dx;
+      let ci;
+      if (sampleMode === 'left') ci = xi;
+      else if (sampleMode === 'right') ci = xi + dx;
+      else ci = xi + dx / 2;
+      sum += fn(ci) * dx;
+    }
+    const exact = 8 / 3;
+
+    // 数据浮窗
+    dataOverlay.style.display = 'flex';
+    dataOverlay.innerHTML = `
+      <div class="data-row"><span class="data-label">采样方式</span><span class="data-value" style="color:${c.stroke}">${c.label}</span></div>
+      <div class="data-row"><span class="data-label">分割数 n</span><span class="data-value">${n}</span></div>
+      <div class="data-row"><span class="data-label">近似值</span><span class="data-value">${sum.toFixed(4)}</span></div>
+      <div class="data-row"><span class="data-label">精确值</span><span class="data-value coral">${exact.toFixed(4)}</span></div>
+      <div class="data-row"><span class="data-label">误差</span><span class="data-value teal">${Math.abs(sum - exact).toFixed(4)}</span></div>
+    `;
+
+    // 标注
+    ctx.font = 'bold 14px "Noto Serif SC", serif';
+    ctx.fillStyle = c.stroke;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${c.label}法则 · n = ${n}`, W / 2, 30);
+  }
+
+  // 控件
+  vizControls.style.display = 'flex';
+  vizControls.innerHTML = `
+    <div class="sample-selector">
+      <button class="sample-btn active" data-mode="left">左端点</button>
+      <button class="sample-btn" data-mode="right">右端点</button>
+      <button class="sample-btn" data-mode="mid">中点</button>
+    </div>
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">分割数 n</span>
+        <span class="viz-slider-value" id="nVal">8</span>
+      </div>
+      <input type="range" class="viz-slider" id="nSlider" min="1" max="50" value="8">
+    </div>
+  `;
+
+  vizControls.querySelectorAll('.sample-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      vizControls.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      sampleMode = btn.dataset.mode;
+      draw();
+    });
+  });
+
+  const nSlider = document.getElementById('nSlider');
+  const nVal = document.getElementById('nVal');
+  nSlider.addEventListener('input', () => {
+    n = parseInt(nSlider.value);
+    nVal.textContent = n;
+    draw();
+  });
+
+  draw();
+}
+
+// ============================================================
+//  Step 2: 黎曼和定义——收敛过程
+// ============================================================
+function renderRiemannDefinition() {
+  const fn = FUNCTIONS['x²'].fn;
+  const a = 0, b = 2;
+  const x0 = 80, y0 = H - 60;
+  const xScale = 100, yScale = 50;
+  const xMin = -0.3, xMax = 2.5, yMin = -0.3, yMax = 4.5;
+  let n = 4;
+
+  function draw() {
+    clearCanvas();
+    drawGrid(x0, y0, xScale, yScale, xMin, xMax, yMin, yMax);
+    drawAxes(x0, y0, xScale, yScale, 'x', 'y', xMin, xMax, yMin, yMax);
+
+    const dx = (b - a) / n;
+
+    // 画矩形（左端点）
+    for (let i = 0; i < n; i++) {
+      const xi = a + i * dx;
+      const yi = fn(xi);
+      const px = x0 + xi * xScale;
+      const py = y0 - yi * yScale;
+      const pw = dx * xScale;
+      const ph = yi * yScale;
+
+      ctx.fillStyle = 'rgba(124, 58, 237, 0.15)';
+      ctx.fillRect(px, py, pw, ph);
+      ctx.strokeStyle = COLORS.violetLight;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px, py, pw, ph);
+    }
+
+    // 画精确面积填充
+    ctx.fillStyle = 'rgba(244, 63, 94, 0.06)';
+    ctx.beginPath();
+    ctx.moveTo(x0 + a * xScale, y0);
+    const steps = 200;
+    for (let i = 0; i <= steps; i++) {
+      const x = a + (b - a) * i / steps;
+      const y = fn(x);
+      ctx.lineTo(x0 + x * xScale, y0 - y * yScale);
+    }
+    ctx.lineTo(x0 + b * xScale, y0);
+    ctx.closePath();
+    ctx.fill();
+
+    // 画曲线
+    drawCurve(fn, x0, y0, xScale, yScale, a, b, COLORS.coral, 2.5);
+
+    // 计算近似面积
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      sum += fn(a + i * dx) * dx;
+    }
+    const exact = 8 / 3;
+    const error = Math.abs(sum - exact);
+    const converged = error < 0.01;
+
+    // 数据浮窗
+    dataOverlay.style.display = 'flex';
+    dataOverlay.innerHTML = `
+      <div class="data-row"><span class="data-label">分割数 n</span><span class="data-value">${n}</span></div>
+      <div class="data-row"><span class="data-label">Δx</span><span class="data-value">${dx.toFixed(4)}</span></div>
+      <div class="data-row"><span class="data-label">黎曼和 S<sub>n</sub></span><span class="data-value">${sum.toFixed(4)}</span></div>
+      <div class="data-row"><span class="data-label">精确值</span><span class="data-value coral">${exact.toFixed(4)}</span></div>
+      <div class="data-row"><span class="data-label">误差</span><span class="data-value teal">${error.toFixed(4)}</span></div>
+    `;
+
+    // Sigma 表达式
+    ctx.font = 'bold 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = COLORS.violet;
+    ctx.textAlign = 'center';
+    ctx.fillText(`S${subscript(n)} = Σ f(xᵢ)·Δx ≈ ${sum.toFixed(4)}`, W / 2, 30);
+
+    if (converged) {
+      ctx.font = '12px "Noto Sans SC", sans-serif';
+      ctx.fillStyle = COLORS.teal;
+      ctx.fillText(`✓ 已收敛：误差 < 0.01`, W / 2, 50);
+    }
+  }
+
+  // 控件
+  vizControls.style.display = 'flex';
+  vizControls.innerHTML = `
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">分割数 n（对数刻度）</span>
+        <span class="viz-slider-value" id="nVal">4</span>
+      </div>
+      <input type="range" class="viz-slider" id="nSlider" min="0" max="100" value="6">
+    </div>
+    <div class="convergence-bar" id="convBar" style="display:none;">
+      <span class="convergence-dot"></span>
+      <span>已收敛</span>
+    </div>
+  `;
+
+  const nSlider = document.getElementById('nSlider');
+  const nVal = document.getElementById('nVal');
+  const convBar = document.getElementById('convBar');
+
+  function updateFromSlider() {
+    const v = parseInt(nSlider.value);
+    // 对数映射：0→1, 100→500
+    n = Math.round(Math.pow(10, v / 100 * 2.7));
+    n = Math.max(1, n);
+    nVal.textContent = n;
+    const error = Math.abs(computeSum(n) - 8/3);
+    convBar.style.display = error < 0.01 ? 'flex' : 'none';
+    draw();
+  }
+
+  function computeSum(n) {
+    const dx = (b - a) / n;
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      sum += fn(a + i * dx) * dx;
+    }
+    return sum;
+  }
+
+  nSlider.addEventListener('input', updateFromSlider);
+  updateFromSlider();
+}
+
+// ============================================================
+//  Step 3: 互动实验——自由探索
+// ============================================================
+function renderInteractiveLab() {
+  const x0 = 80, y0 = H - 60;
+  const xScale = 80, yScale = 60;
+  const xMin = -0.3, xMax = 5, yMin = -2.5, yMax = 6;
+
+  let funcKey = 'x²';
+  let sampleMode = 'left';
+  let n = 10;
+  let a = 0, b = 2;
+
+  // 不同函数的默认区间
+  const ranges = {
+    'x²': [0, 2],
+    'sin(x)': [0, Math.PI],
+    'x³−x': [-1, 1],
+    '√x': [0, 4],
+    'eˣ': [-1, 1]
+  };
+
+  const sampleColors = {
+    left: { fill: 'rgba(124, 58, 237, 0.15)', stroke: COLORS.violetLight, label: '左端点' },
+    right: { fill: 'rgba(244, 63, 94, 0.15)', stroke: COLORS.coral, label: '右端点' },
+    mid: { fill: 'rgba(13, 148, 136, 0.15)', stroke: COLORS.teal, label: '中点' }
+  };
+
+  function draw() {
+    const fn = FUNCTIONS[funcKey].fn;
+    [a, b] = ranges[funcKey];
+
+    clearCanvas();
+    drawGrid(x0, y0, xScale, yScale, xMin, xMax, yMin, yMax);
+    drawAxes(x0, y0, xScale, yScale, 'x', 'y', xMin, xMax, yMin, yMax);
+
+    const dx = (b - a) / n;
+    const c = sampleColors[sampleMode];
+
+    // 画矩形
+    for (let i = 0; i < n; i++) {
+      const xi = a + i * dx;
+      let ci;
+      if (sampleMode === 'left') ci = xi;
+      else if (sampleMode === 'right') ci = xi + dx;
+      else ci = xi + dx / 2;
+
+      const yi = fn(ci);
+      const px = x0 + xi * xScale;
+      const py = y0 - yi * yScale;
+      const pw = dx * xScale;
+      const ph = y0 - py;
+
+      if (yi >= 0) {
+        ctx.fillStyle = c.fill;
+        ctx.fillRect(px, py, pw, ph);
+      } else {
+        ctx.fillStyle = c.fill.replace('0.15', '0.08');
+        ctx.fillRect(px, y0, pw, Math.abs(ph));
+      }
+      ctx.strokeStyle = c.stroke;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px, Math.min(py, y0), pw, Math.abs(ph));
+    }
+
+    // 画曲线
+    drawCurve(fn, x0, y0, xScale, yScale, Math.max(xMin, a - 0.5), Math.min(xMax, b + 0.5), COLORS.axis, 2);
+
+    // 高亮 [a, b] 区间
+    ctx.strokeStyle = COLORS.coral;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x0 + a * xScale, 0);
+    ctx.lineTo(x0 + a * xScale, H);
+    ctx.moveTo(x0 + b * xScale, 0);
+    ctx.lineTo(x0 + b * xScale, H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // a, b 标签
+    ctx.font = 'bold 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = COLORS.coral;
+    ctx.textAlign = 'center';
+    ctx.fillText('a', x0 + a * xScale, y0 + 20);
+    ctx.fillText('b', x0 + b * xScale, y0 + 20);
+
+    // 计算近似面积
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      const xi = a + i * dx;
+      let ci;
+      if (sampleMode === 'left') ci = xi;
+      else if (sampleMode === 'right') ci = xi + dx;
+      else ci = xi + dx / 2;
+      sum += fn(ci) * dx;
+    }
+    const exact = FUNCTIONS[funcKey].integral(a, b);
+    const error = Math.abs(sum - exact);
+
+    // 数据浮窗
+    dataOverlay.style.display = 'flex';
+    dataOverlay.innerHTML = `
+      <div class="data-row"><span class="data-label">函数</span><span class="data-value">${FUNCTIONS[funcKey].label}</span></div>
+      <div class="data-row"><span class="data-label">区间</span><span class="data-value">[${a.toFixed(1)}, ${b.toFixed(2)}]</span></div>
+      <div class="data-row"><span class="data-label">采样</span><span class="data-value" style="color:${c.stroke}">${c.label}</span></div>
+      <div class="data-row"><span class="data-label">n</span><span class="data-value">${n}</span></div>
+      <div class="data-row"><span class="data-label">近似值</span><span class="data-value">${sum.toFixed(4)}</span></div>
+      <div class="data-row"><span class="data-label">精确值</span><span class="data-value coral">${exact.toFixed(4)}</span></div>
+      <div class="data-row"><span class="data-label">误差</span><span class="data-value teal">${error.toFixed(4)}</span></div>
+    `;
+
+    // 标题
+    ctx.font = 'bold 14px "Noto Serif SC", serif';
+    ctx.fillStyle = COLORS.violet;
+    ctx.textAlign = 'center';
+    ctx.fillText(`f(x) = ${FUNCTIONS[funcKey].label} · ${c.label} · n = ${n}`, W / 2, 30);
+  }
+
+  // 控件
+  vizControls.style.display = 'flex';
+  vizControls.innerHTML = `
+    <div class="func-selector">
+      ${Object.keys(FUNCTIONS).map(k => `<button class="func-btn ${k === funcKey ? 'active' : ''}" data-fn="${k}">${FUNCTIONS[k].label}</button>`).join('')}
+    </div>
+    <div class="sample-selector">
+      <button class="sample-btn active" data-mode="left">左</button>
+      <button class="sample-btn" data-mode="right">右</button>
+      <button class="sample-btn" data-mode="mid">中</button>
+    </div>
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">分割数 n</span>
+        <span class="viz-slider-value" id="nVal">${n}</span>
+      </div>
+      <input type="range" class="viz-slider" id="nSlider" min="1" max="100" value="${n}">
+    </div>
+  `;
+
+  vizControls.querySelectorAll('.func-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      vizControls.querySelectorAll('.func-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      funcKey = btn.dataset.fn;
+      draw();
+    });
+  });
+
+  vizControls.querySelectorAll('.sample-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      vizControls.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      sampleMode = btn.dataset.mode;
+      draw();
+    });
+  });
+
+  const nSlider = document.getElementById('nSlider');
+  const nVal = document.getElementById('nVal');
+  nSlider.addEventListener('input', () => {
+    n = parseInt(nSlider.value);
+    nVal.textContent = n;
+    draw();
+  });
+
+  draw();
+}
+
+// ============================================================
+//  Step 4: 微积分基本定理——应用展示
+// ============================================================
+function renderFundamentalTheorem() {
+  // 速度函数 v(t) = t (匀加速运动)
+  const fn = t => t;
+  const a = 0, b = 4;
+  const x0 = 80, y0 = H - 60;
+  const xScale = 80, yScale = 50;
+  const xMin = -0.3, xMax = 5, yMin = -0.5, yMax = 5;
+
+  stepState = { n: 4, animProgress: 0, isAnimating: true, particleT: 0 };
+
+  function draw() {
+    clearCanvas();
+    drawGrid(x0, y0, xScale, yScale, xMin, xMax, yMin, yMax);
+
+    // 自定义坐标轴标签
+    ctx.strokeStyle = COLORS.axis;
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = COLORS.axis;
+    ctx.font = '12px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    // X 轴
+    ctx.beginPath();
+    ctx.moveTo(0, y0);
+    ctx.lineTo(W, y0);
+    ctx.stroke();
+    for (let x = 0; x <= 5; x++) {
+      const px = x0 + x * xScale;
+      ctx.beginPath();
+      ctx.moveTo(px, y0 - 3);
+      ctx.lineTo(px, y0 + 3);
+      ctx.stroke();
+      ctx.fillText(String(x), px, y0 + 6);
+    }
+
+    // Y 轴
+    ctx.beginPath();
+    ctx.moveTo(x0, 0);
+    ctx.lineTo(x0, H);
+    ctx.stroke();
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let y = 0; y <= 5; y++) {
+      if (y === 0) continue;
+      const py = y0 - y * yScale;
+      ctx.beginPath();
+      ctx.moveTo(x0 - 3, py);
+      ctx.lineTo(x0 + 3, py);
+      ctx.stroke();
+      ctx.fillText(String(y), x0 - 6, py);
+    }
+
+    // 标签
+    ctx.font = 'italic 14px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('t (时间)', W - 40, y0 + 18);
+    ctx.save();
+    ctx.translate(x0 - 22, 20);
+    ctx.fillText('v (速度)', 0, 0);
+    ctx.restore();
+
+    // 画精确面积填充
+    const n = stepState.n;
+    const dx = (b - a) / n;
+
+    // 画矩形
+    for (let i = 0; i < n; i++) {
+      const xi = a + i * dx;
+      const yi = fn(xi);
+      const px = x0 + xi * xScale;
+      const py = y0 - yi * yScale;
+      const pw = dx * xScale;
+      const ph = yi * yScale;
+
+      ctx.fillStyle = 'rgba(124, 58, 237, 0.12)';
+      ctx.fillRect(px, py, pw, ph);
+      ctx.strokeStyle = COLORS.violetLight;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px, py, pw, ph);
+    }
+
+    // 画曲线（速度函数）
+    drawCurve(fn, x0, y0, xScale, yScale, a, b, COLORS.violet, 2.5);
+
+    // 精确面积填充
+    ctx.fillStyle = 'rgba(244, 63, 94, 0.06)';
+    ctx.beginPath();
+    ctx.moveTo(x0 + a * xScale, y0);
+    const steps = 100;
+    for (let i = 0; i <= steps; i++) {
+      const t = a + (b - a) * i / steps;
+      ctx.lineTo(x0 + t * xScale, y0 - fn(t) * yScale);
+    }
+    ctx.lineTo(x0 + b * xScale, y0);
+    ctx.closePath();
+    ctx.fill();
+
+    // 运动粒子（沿曲线移动）
+    if (stepState.isAnimating) {
+      const t = stepState.particleT;
+      const px = x0 + t * xScale;
+      const py = y0 - fn(t) * yScale;
+
+      // 粒子轨迹线（垂直）
+      ctx.strokeStyle = 'rgba(13, 148, 136, 0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(px, y0);
+      ctx.lineTo(px, py);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 粒子
+      ctx.fillStyle = COLORS.teal;
+      ctx.beginPath();
+      ctx.arc(px, py, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // 累积面积高亮
+      ctx.fillStyle = 'rgba(13, 148, 136, 0.15)';
+      ctx.beginPath();
+      ctx.moveTo(x0 + a * xScale, y0);
+      for (let i = 0; i <= 50; i++) {
+        const tt = a + (t - a) * i / 50;
+        ctx.lineTo(x0 + tt * xScale, y0 - fn(tt) * yScale);
+      }
+      ctx.lineTo(x0 + t * xScale, y0);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 计算面积
+    const exact = FUNCTIONS['x²'].integral ? (b * b / 2) : 0; // ∫₀⁴ t dt = t²/2 = 8
+    const exactVal = b * b / 2 - a * a / 2;
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      sum += fn(a + i * dx) * dx;
+    }
+
+    // 累积路程
+    const traveledDist = stepState.particleT * stepState.particleT / 2;
+
+    // 数据浮窗
+    dataOverlay.style.display = 'flex';
+    dataOverlay.innerHTML = `
+      <div class="data-row"><span class="data-label">速度函数</span><span class="data-value">v(t) = t</span></div>
+      <div class="data-row"><span class="data-label">当前时刻 t</span><span class="data-value teal">${stepState.particleT.toFixed(2)}s</span></div>
+      <div class="data-row"><span class="data-label">当前速度</span><span class="data-value">${fn(stepState.particleT).toFixed(2)} m/s</span></div>
+      <div class="data-row"><span class="data-label">已走路程</span><span class="data-value coral">${traveledDist.toFixed(2)} m</span></div>
+      <div class="data-row"><span class="data-label">总路程</span><span class="data-value">${exactVal.toFixed(2)} m</span></div>
+    `;
+
+    // 公式标注
+    ctx.font = 'bold 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = COLORS.violet;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`路程 = ∫₀⁴ v(t)dt = t²/2 |₀⁴ = ${exactVal}`, W / 2, 24);
+
+    ctx.font = '12px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = COLORS.teal;
+    ctx.fillText(`矩形面积 ≈ ${sum.toFixed(2)} · 拖动 n 滑块增加精度`, W / 2, 44);
+  }
+
+  // 动画循环
+  function animate() {
+    if (currentStep !== 4) return;
+
+    if (stepState.isAnimating) {
+      stepState.particleT += 0.015;
+      if (stepState.particleT > b) {
+        stepState.particleT = a;
+      }
+    }
+
+    draw();
+    animationId = requestAnimationFrame(animate);
+  }
+
+  // 控件
+  vizControls.style.display = 'flex';
+  vizControls.innerHTML = `
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">分割数 n</span>
+        <span class="viz-slider-value" id="nVal">4</span>
+      </div>
+      <input type="range" class="viz-slider" id="nSlider" min="1" max="50" value="4">
+    </div>
+    <button class="autoplay-btn" id="pauseBtn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      <span>暂停运动</span>
+    </button>
+  `;
+
+  const nSlider = document.getElementById('nSlider');
+  const nVal = document.getElementById('nVal');
+  nSlider.addEventListener('input', () => {
+    stepState.n = parseInt(nSlider.value);
+    nVal.textContent = stepState.n;
+  });
+
+  const pauseBtn = document.getElementById('pauseBtn');
+  pauseBtn.addEventListener('click', () => {
+    stepState.isAnimating = !stepState.isAnimating;
+    if (stepState.isAnimating) {
+      pauseBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg><span>暂停运动</span>';
+    } else {
+      pauseBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>播放运动</span>';
+    }
+  });
+
+  draw();
+  animationId = requestAnimationFrame(animate);
+}
+
+// 辅助函数：下标数字
+function subscript(n) {
+  const subs = '₀₁₂₃₄₅₆₇₈₉';
+  return String(n).split('').map(d => subs[parseInt(d)] || d).join('');
+}
+
+// ====== 初始化 ======
+updateStep(0);
+</script>
+
+</body>
+</html>

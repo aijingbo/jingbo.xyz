@@ -40,3 +40,8 @@ build/
 
 # === Cloudflare ===
 .wrangler/
+
+# === 临时文件 ===
+tmp-wrappers/
+tmp-capture/
+.trae-html-share-packages/

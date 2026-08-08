@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>3D 地球地形探索 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%; margin: 0; padding: 0; overflow: hidden;
+    background: #0a0c12; color: #e5e5e5;
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ====== 加载层 ====== */
+  #loading {
+    position: fixed; inset: 0; z-index: 999;
+    background: #0a0c12;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    transition: opacity 0.8s ease;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+  .loading-ring {
+    width: 48px; height: 48px;
+    border: 2px solid rgba(239,68,68,0.15);
+    border-top-color: #EF4444;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: var(--font-serif); font-size: 14px;
+    color: rgba(255,255,255,0.5); letter-spacing: 0.1em;
+  }
+
+  /* ====== 3D 画布 ====== */
+  #canvas-container { position: fixed; inset: 0; }
+  #scene { display: block; width: 100%; height: 100%; }
+
+  /* ====== 左侧信息面板 ====== */
+  .info-panel {
+    position: fixed; top: 80px; left: 20px; z-index: 50;
+    width: 250px; padding: 18px 20px;
+    background: rgba(10, 12, 18, 0.65);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius-card);
+  }
+  .info-title {
+    font-family: var(--font-serif); font-size: 20px; font-weight: 700;
+    color: #fff; margin-bottom: 4px; line-height: 1.3;
+  }
+  .info-subtitle {
+    font-size: 11px; color: #6b6b6b;
+    font-family: var(--font-mono); margin-bottom: 14px;
+  }
+  .info-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 12px 0; }
+  .info-section-title {
+    font-size: 10px; font-weight: 600; color: #555;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; font-size: 12px;
+  }
+  .info-label { color: #888; }
+  .info-value {
+    font-family: var(--font-mono); font-weight: 600;
+    color: #e5e5e5; font-size: 12px;
+  }
+  .info-value.accent { color: #EF4444; }
+  .info-desc {
+    font-size: 12px; color: #a3a3a3; line-height: 1.6;
+    margin-top: 8px;
+  }
+  .layer-legend {
+    margin-top: 10px; display: flex; flex-direction: column; gap: 5px;
+  }
+  .layer-legend-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: #a3a3a3;
+  }
+  .layer-legend-dot {
+    width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* ====== 右侧特征面板 ====== */
+  .feature-panel {
+    position: fixed; top: 80px; right: 20px; z-index: 50;
+    width: 210px; max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    padding: 16px 14px;
+    background: rgba(10, 12, 18, 0.65);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius-card);
+  }
+  .feature-panel::-webkit-scrollbar { width: 4px; }
+  .feature-panel::-webkit-scrollbar-track { background: transparent; }
+  .feature-panel::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1); border-radius: 2px;
+  }
+  .panel-title {
+    font-family: var(--font-serif); font-size: 13px; font-weight: 600;
+    color: #e5e5e5; margin-bottom: 4px;
+  }
+  .panel-subtitle {
+    font-size: 10px; color: #555;
+    font-family: var(--font-mono); margin-bottom: 12px;
+  }
+  .feature-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; margin-bottom: 4px;
+    border-radius: 6px; cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+  .feature-item:hover {
+    background: rgba(239,68,68,0.08);
+    border-color: rgba(239,68,68,0.15);
+  }
+  .feature-item.active {
+    background: rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.4);
+  }
+  .feature-icon {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: #6b6b6b;
+  }
+  .feature-item.active .feature-icon {
+    background: #EF4444; box-shadow: 0 0 8px rgba(239,68,68,0.6);
+  }
+  .feature-name {
+    font-size: 12px; color: #c5c5c5; font-weight: 500;
+  }
+  .feature-item.active .feature-name { color: #fff; }
+  .feature-type {
+    font-size: 9px; color: #555; margin-left: auto;
+    font-family: var(--font-mono);
+  }
+
+  /* ====== 浮动控件 ====== */
+  .floating-left {
+    position: fixed; bottom: 80px; left: 24px; z-index: 50;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .floating-right {
+    position: fixed; bottom: 80px; right: 24px; z-index: 50;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .icon-btn {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #e5e5e5; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s ease; position: relative;
+  }
+  .icon-btn:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.2);
+    transform: scale(1.05);
+  }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .icon-btn.active {
+    background: rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.4);
+    color: #EF4444;
+  }
+  .icon-btn .tooltip {
+    position: absolute; left: 100%; margin-left: 12px;
+    top: 50%; transform: translateY(-50%);
+    white-space: nowrap; padding: 4px 10px;
+    font-size: 11px; color: #e5e5e5;
+    background: rgba(10,12,18,0.85);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .icon-btn:hover .tooltip { opacity: 1; }
+
+  /* ====== 底部信息条 ====== */
+  .info-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    height: 56px; display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    background: rgba(10,12,18,0.6);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .info-bar-left { display: flex; align-items: center; gap: 12px; }
+  .info-bar-title {
+    font-family: var(--font-mono); font-size: 13px;
+    font-weight: 500; color: #e5e5e5;
+  }
+  .tech-tag {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; font-size: 11px; font-weight: 500;
+    line-height: 1.5; border-radius: var(--radius-full);
+    background: rgba(255,255,255,0.05);
+    color: #a3a3a3; border: 1px solid rgba(255,255,255,0.07);
+  }
+  .mode-switcher {
+    display: flex; align-items: center; gap: 0;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-full); padding: 3px;
+  }
+  .mode-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 16px; font-size: 12px; font-weight: 500;
+    color: #6b6b6b; background: none; border: none;
+    border-radius: var(--radius-full); cursor: pointer;
+    transition: all 0.25s ease; font-family: var(--font-sans);
+  }
+  .mode-btn:hover { color: #a3a3a3; }
+  .mode-btn.active {
+    color: #EF4444; background: rgba(239,68,68,0.12);
+  }
+  .mode-btn svg { width: 14px; height: 14px; }
+  .info-bar-right { display: flex; align-items: center; gap: 12px; }
+  .status-tag {
+    font-size: 11px; font-family: var(--font-mono);
+    color: #6b6b6b; transition: color 0.3s ease;
+  }
+  .status-tag.active { color: #EF4444; }
+
+  /* ====== 操作提示 ====== */
+  .scene-hint {
+    position: fixed; bottom: 68px; left: 50%;
+    transform: translateX(-50%); z-index: 40;
+    color: rgba(255,255,255,0.25); font-size: 11px;
+    font-family: var(--font-mono); pointer-events: none;
+    white-space: nowrap; letter-spacing: 0.05em;
+  }
+
+  /* ====== 地形放大滑块 ====== */
+  .exaggeration-control {
+    position: fixed; top: 80px; left: 290px; z-index: 50;
+    display: none;
+  }
+  .exaggeration-control.show { display: block; }
+  .exag-label {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: #a3a3a3; margin-bottom: 6px;
+    font-family: var(--font-mono);
+  }
+  .exag-value { color: #EF4444; font-weight: 600; }
+
+  /* ====== 响应式 ====== */
+  @media (max-width: 768px) {
+    .demo-nav-center { display: none; }
+    .feature-panel {
+      width: calc(100% - 40px); max-height: 160px;
+      top: auto; bottom: 64px; right: 20px; left: 20px;
+    }
+    .info-panel { width: 180px; padding: 12px 14px; top: 72px; left: 12px; }
+    .info-title { font-size: 16px; }
+    .floating-left { bottom: 240px; }
+    .floating-right { bottom: 240px; }
+    .info-bar-title { display: none; }
+    .scene-hint { display: none; }
+    .exaggeration-control { display: none !important; }
+    .mode-btn span { display: none; }
+    .mode-btn { padding: 6px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 加载层 -->
+<div id="loading">
+  <div class="loading-ring"></div>
+  <div class="loading-text">正在构建地球…</div>
+</div>
+
+<!-- 3D 画布 -->
+<div id="canvas-container">
+  <canvas id="scene"></canvas>
+</div>
+
+<!-- 顶部导航 -->
+<header class="demo-navbar immersive" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">地理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">3D 地球地形探索</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-geo">地理</span>
+    <a href="/skills/jingbo-edu-3d-earth-science-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- 左侧信息面板 -->
+<div class="info-panel" id="infoPanel">
+  <div class="info-title" id="infoTitle">地球 Earth</div>
+  <div class="info-subtitle" id="infoSubtitle">太阳系第三行星 · 直径 12,742 km</div>
+  <div class="info-divider"></div>
+  <div class="info-section-title">基本参数</div>
+  <div class="info-row">
+    <span class="info-label">赤道半径</span>
+    <span class="info-value">6,378 km</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">极半径</span>
+    <span class="info-value">6,357 km</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">表面积</span>
+    <span class="info-value">5.10×10⁸ km²</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">质量</span>
+    <span class="info-value">5.97×10²⁴ kg</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">海陆比例</span>
+    <span class="info-value">71% : 29%</span>
+  </div>
+  <div class="info-divider"></div>
+  <div class="info-section-title">地形图例</div>
+  <div class="layer-legend">
+    <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#0d2840"></span>深海（&lt; -4000m）</div>
+    <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#1a5c9e"></span>浅海（0 ~ -200m）</div>
+    <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#4a7c3a"></span>平原（0 ~ 1000m）</div>
+    <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#8b6f47"></span>高地（1000 ~ 3000m）</div>
+    <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#f0f0f5"></span>山脉（&gt; 3000m）</div>
+  </div>
+</div>
+
+<!-- 右侧特征面板 -->
+<div class="feature-panel" id="featurePanel">
+  <div class="panel-title">地理特征</div>
+  <div class="panel-subtitle">点击查看详情</div>
+  <div id="featureList"></div>
+</div>
+
+<!-- 操作提示 -->
+<div class="scene-hint">拖拽旋转 · 滚轮缩放 · 点击标记查看详情</div>
+
+<!-- 左下浮动控件 -->
+<div class="floating-left">
+  <button class="icon-btn active" id="playPauseBtn">
+    <svg id="playIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    <span class="tooltip">自动旋转</span>
+  </button>
+  <button class="icon-btn" id="resetViewBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    <span class="tooltip">重置视角</span>
+  </button>
+  <button class="icon-btn" id="wireframeBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+    <span class="tooltip">线框模式</span>
+  </button>
+</div>
+
+<!-- 右下浮动控件 -->
+<div class="floating-right">
+  <button class="icon-btn active" id="labelsBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+    <span class="tooltip">显示标签</span>
+  </button>
+  <button class="icon-btn" id="fullscreenBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+    <span class="tooltip">全屏</span>
+  </button>
+</div>
+
+<!-- 底部信息条 -->
+<footer class="info-bar">
+  <div class="info-bar-left">
+    <span class="info-bar-title">earth-terrain-3d</span>
+    <span class="tech-tag">Three.js</span>
+    <span class="tech-tag">WebGL</span>
+    <span class="tech-tag">DEM 地形</span>
+  </div>
+  <div class="mode-switcher">
+    <button class="mode-btn active" data-mode="terrain">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+      <span>地形</span>
+    </button>
+    <button class="mode-btn" data-mode="interior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      <span>内部结构</span>
+    </button>
+  </div>
+  <div class="info-bar-right">
+    <span class="status-tag" id="statusTag">就绪</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   常量
+   ============================================================ */
+const EARTH_RADIUS = 3;
+const SEGMENTS = 128;
+
+/* ============================================================
+   地理特征数据
+   ============================================================ */
+const FEATURES = [
+  { name: '喜马拉雅山脉', type: '山脉', lat: 28.0, lon: 86.9, elev: '8848 m', desc: '世界最高山脉，包含14座海拔超过8000米的山峰，由印度板块与欧亚板块碰撞形成，至今仍在抬升。' },
+  { name: '安第斯山脉', type: '山脉', lat: -32.0, lon: -70.0, elev: '6962 m', desc: '世界最长山脉，全长约7000公里，沿南美洲西海岸延伸，由纳斯卡板块俯冲至南美板块下方形成。' },
+  { name: '落基山脉', type: '山脉', lat: 39.5, lon: -105.8, elev: '4401 m', desc: '北美大陆脊梁，从加拿大延伸至美国新墨西哥州，是大陆分水岭，太平洋与大西洋水系的分界。' },
+  { name: '阿尔卑斯山脉', type: '山脉', lat: 46.4, lon: 8.0, elev: '4810 m', desc: '欧洲最高山脉，横跨8个国家，由非洲板块与欧亚板块碰撞形成，是欧洲重要的气候分界线。' },
+  { name: '马里亚纳海沟', type: '海沟', lat: 11.4, lon: 142.4, elev: '-10994 m', desc: '世界最深海沟，位于西太平洋，最深处挑战者深渊达10994米，是太平洋板块俯冲至马里亚纳板块下方形成。' },
+  { name: '青藏高原', type: '高原', lat: 32.5, lon: 80.0, elev: '4500 m', desc: '世界屋脊，平均海拔4500米以上，面积250万平方公里，是亚洲多条大江大河的发源地。' },
+  { name: '亚马逊平原', type: '盆地', lat: -3.5, lon: -62.2, elev: '200 m', desc: '世界最大盆地，面积约700万平方公里，拥有全球最大的热带雨林，被称为"地球之肺"。' },
+  { name: '撒哈拉沙漠', type: '沙漠', lat: 23.4, lon: 13.2, elev: '300 m', desc: '世界最大热沙漠，面积超过900万平方公里，覆盖北非大部分地区，极端干旱，昼夜温差极大。' },
+  { name: '南极冰盖', type: '冰盖', lat: -82.0, lon: 20.0, elev: '2835 m', desc: '地球最大冰盖，平均厚度约2160米，最厚处达4776米，储存全球约70%的淡水。' },
+  { name: '太平洋', type: '海洋', lat: 0, lon: -160, elev: '-4280 m', desc: '世界最大海洋，面积约1.65亿平方公里，占地球表面积三分之一，平均深度4280米。' },
+];
+
+/* ============================================================
+   地球内部层结构
+   ============================================================ */
+const LAYERS = [
+  { name: '内核', en: 'Inner Core', radius: 0.19, color: 0xfde047, desc: '固态铁镍合金，半径约1216km，温度约5400°C', opacity: 1.0 },
+  { name: '外核', en: 'Outer Core', radius: 0.55, color: 0xf59e0b, desc: '液态铁镍，厚度约2266km，温度约4500°C，产生地球磁场', opacity: 0.35 },
+  { name: '地幔', en: 'Mantle', radius: 0.87, color: 0xc2410c, desc: '硅酸盐岩石，厚约2890km，上地幔软流层是岩浆发源地', opacity: 0.25 },
+  { name: '地壳', en: 'Crust', radius: 1.0, color: 0x5a4a3a, desc: '固态岩石，大陆地壳厚20-70km，大洋地壳厚5-10km', opacity: 0.4 },
+];
+
+/* ============================================================
+   噪声函数
+   ============================================================ */
+function hash3(x, y, z) {
+  let h = ((x | 0) * 374761393 + (y | 0) * 668265263 + (z | 0) * 1274126177) | 0;
+  h = ((h ^ (h >>> 13)) * 1274126177) | 0;
+  h = h ^ (h >>> 16);
+  return ((h >>> 0) & 0x7fffffff) / 0x7fffffff;
+}
+
+function smoothNoise3D(x, y, z) {
+  const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+  const fx = x - ix, fy = y - iy, fz = z - iz;
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+  const uz = fz * fz * (3 - 2 * fz);
+
+  const c000 = hash3(ix, iy, iz);
+  const c100 = hash3(ix+1, iy, iz);
+  const c010 = hash3(ix, iy+1, iz);
+  const c110 = hash3(ix+1, iy+1, iz);
+  const c001 = hash3(ix, iy, iz+1);
+  const c101 = hash3(ix+1, iy, iz+1);
+  const c011 = hash3(ix, iy+1, iz+1);
+  const c111 = hash3(ix+1, iy+1, iz+1);
+
+  const x00 = c000 + (c100 - c000) * ux;
+  const x10 = c010 + (c110 - c010) * ux;
+  const x01 = c001 + (c101 - c001) * ux;
+  const x11 = c011 + (c111 - c011) * ux;
+
+  const y0 = x00 + (x10 - x00) * uy;
+  const y1 = x01 + (x11 - x01) * uy;
+
+  return y0 + (y1 - y0) * uz;
+}
+
+function fbm3D(x, y, z, octaves) {
+  let value = 0, amplitude = 0.5, frequency = 1;
+  for (let i = 0; i < octaves; i++) {
+    value += amplitude * smoothNoise3D(x * frequency, y * frequency, z * frequency);
+    amplitude *= 0.5;
+    frequency *= 2;
+  }
+  return value;
+}
+
+/* ============================================================
+   大陆纹理生成（程序化 Canvas）
+   ============================================================ */
+function createContinentCanvas() {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 512;
+  const ctx = c.getContext('2d');
+
+  // 海洋底色
+  ctx.fillStyle = '#16478c';
+  ctx.fillRect(0, 0, 1024, 512);
+  // 海洋深浅变化
+  for (let i = 0; i < 120; i++) {
+    ctx.fillStyle = `rgba(13,55,120,${Math.random()*0.25})`;
+    ctx.beginPath();
+    ctx.arc(Math.random()*1024, Math.random()*512, Math.random()*55+20, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  const G = '#2d6a3e', DG = '#1b5e20', BR = '#8d6e2f', TN = '#c4a35a';
+
+  function blob(cx, cy, shapes) {
+    shapes.forEach(s => {
+      ctx.fillStyle = s.c || G;
+      ctx.beginPath();
+      ctx.ellipse(cx + (s.dx||0), cy + (s.dy||0), s.rx, s.ry, s.rot||0, 0, Math.PI*2);
+      ctx.fill();
+    });
+  }
+
+  // 北美
+  blob(190, 145, [
+    {rx:72,ry:55,rot:0.15,c:G},{dx:-18,dy:18,rx:48,ry:38,c:DG},
+    {dx:28,dy:-8,rx:32,ry:28,c:BR},{dx:5,dy:50,rx:22,ry:18,c:TN},
+    {dx:-28,dy:-15,rx:28,ry:22,c:DG},{dx:45,dy:30,rx:18,ry:14,c:DG},
+  ]);
+  // 南美
+  blob(285, 335, [
+    {rx:32,ry:52,rot:0.2,c:G},{dx:-4,dy:-18,rx:22,ry:32,c:DG},
+    {dx:8,dy:28,rx:18,ry:35,c:G},{dx:-8,dy:48,rx:13,ry:22,c:TN},
+  ]);
+  // 欧洲
+  blob(515, 145, [
+    {rx:38,ry:22,c:G},{dx:-8,dy:8,rx:22,ry:16,c:DG},
+    {dx:14,dy:-4,rx:18,ry:13,c:BR},{dx:-15,dy:15,rx:15,ry:10,c:G},
+  ]);
+  // 非洲
+  blob(530, 295, [
+    {rx:42,ry:58,c:TN},{dx:-4,dy:-22,rx:32,ry:32,c:G},
+    {dx:4,dy:18,rx:28,ry:38,c:BR},{dx:0,dy:48,rx:18,ry:22,c:G},
+  ]);
+  // 亚洲
+  blob(700, 160, [
+    {rx:95,ry:48,c:G},{dx:-28,dy:8,rx:55,ry:32,c:DG},
+    {dx:38,dy:-4,rx:42,ry:28,c:BR},{dx:18,dy:22,rx:32,ry:22,c:TN},
+    {dx:-45,dy:-8,rx:38,ry:28,c:G},{dx:60,dy:15,rx:25,ry:18,c:DG},
+  ]);
+  // 印度
+  blob(705, 230, [{rx:18,ry:28,rot:0.3,c:G}]);
+  // 东南亚
+  blob(800, 245, [{rx:22,ry:13,c:G},{dx:12,dy:8,rx:10,ry:7,c:DG}]);
+  // 澳大利亚
+  blob(845, 340, [
+    {rx:38,ry:23,rot:0.1,c:TN},{dx:-8,dy:4,rx:22,ry:14,c:BR},
+    {dx:8,dy:-4,rx:18,ry:13,c:G},
+  ]);
+  // 格陵兰
+  blob(375, 85, [{rx:22,ry:18,c:'#e0f2fe'}]);
+  // 日本
+  blob(835, 175, [{rx:8,ry:18,rot:0.4,c:DG}]);
+  // 新西兰
+  blob(905, 370, [{rx:7,ry:12,rot:0.3,c:G}]);
+
+  // 北极冰盖
+  const np = ctx.createLinearGradient(0, 0, 0, 55);
+  np.addColorStop(0, '#f0f8ff');
+  np.addColorStop(1, 'rgba(240,248,255,0)');
+  ctx.fillStyle = np;
+  ctx.fillRect(0, 0, 1024, 55);
+
+  // 南极冰盖
+  const sp = ctx.createLinearGradient(0, 457, 0, 512);
+  sp.addColorStop(0, 'rgba(240,248,255,0)');
+  sp.addColorStop(1, '#f0f8ff');
+  ctx.fillStyle = sp;
+  ctx.fillRect(0, 457, 1024, 55);
+
+  return { canvas: c, imageData: ctx.getImageData(0, 0, 1024, 512) };
+}
+
+/* ============================================================
+   采样大陆数据
+   ============================================================ */
+function sampleContinent(imageData, u, v) {
+  const x = Math.floor(u * 1024) % 1024;
+  const y = Math.floor((1 - v) * 512) % 512;
+  const idx = (y * 1024 + x) * 4;
+  return {
+    r: imageData.data[idx] / 255,
+    g: imageData.data[idx + 1] / 255,
+    b: imageData.data[idx + 2] / 255,
+  };
+}
+
+function isLand(color) {
+  return color.g > color.b + 0.02 || (color.r > 0.5 && color.g > 0.35);
+}
+
+/* ============================================================
+   高程转颜色
+   ============================================================ */
+function elevationToColor(elevation, latitude) {
+  const latAbs = Math.abs(latitude);
+
+  // 极地冰盖
+  if (latAbs > 1.22) { // ~70°
+    return new THREE.Color(0xe8f0f5);
+  }
+
+  if (elevation < -0.02) {
+    return new THREE.Color(0x0d2840);
+  } else if (elevation < -0.005) {
+    const t = (elevation + 0.02) / 0.015;
+    return new THREE.Color().lerpColors(new THREE.Color(0x0d2840), new THREE.Color(0x1a5c9e), t);
+  } else if (elevation < 0.002) {
+    const t = (elevation + 0.005) / 0.007;
+    return new THREE.Color().lerpColors(new THREE.Color(0x1a5c9e), new THREE.Color(0x2d7eb8), t);
+  } else if (elevation < 0.01) {
+    const t = (elevation - 0.002) / 0.008;
+    return new THREE.Color().lerpColors(new THREE.Color(0xc2a878), new THREE.Color(0x4a7c3a), t);
+  } else if (elevation < 0.035) {
+    const t = (elevation - 0.01) / 0.025;
+    return new THREE.Color().lerpColors(new THREE.Color(0x4a7c3a), new THREE.Color(0x2d5a27), t);
+  } else if (elevation < 0.06) {
+    const t = (elevation - 0.035) / 0.025;
+    return new THREE.Color().lerpColors(new THREE.Color(0x8b6f47), new THREE.Color(0xa89888), t);
+  } else {
+    const t = Math.min((elevation - 0.06) / 0.04, 1);
+    return new THREE.Color().lerpColors(new THREE.Color(0xa89888), new THREE.Color(0xf0f0f5), t);
+  }
+}
+
+/* ============================================================
+   经纬度转 3D 坐标
+   ============================================================ */
+function latLonToVec3(lat, lon, radius) {
+  const phi = (lon + 180) * Math.PI / 180;
+  const theta = (lat + 90) * Math.PI / 180;
+  const x = -radius * Math.cos(phi) * Math.sin(theta);
+  const y = radius * Math.cos(theta);
+  const z = radius * Math.sin(phi) * Math.sin(theta);
+  return new THREE.Vector3(x, y, z);
+}
+
+/* ============================================================
+   全局状态
+   ============================================================ */
+let scene, camera, renderer, controls, clock;
+let earthGroup, terrainMesh, wireframeMesh, atmosphereMesh;
+let interiorGroup, interiorLayers = [];
+let markerGroup, markers = [];
+let raycaster, mouse;
+let starField;
+let currentMode = 'terrain';
+let isPlaying = true;
+let showWireframe = false;
+let showLabels = true;
+let entranceProgress = 0;
+let selectedFeature = null;
+const clipPlane = new THREE.Plane(new THREE.Vector3(0.5, 0.3, -1).normalize(), 0);
+
+const continentData = createContinentCanvas();
+
+/* ============================================================
+   场景初始化
+   ============================================================ */
+const container = document.getElementById('canvas-container');
+const canvas = document.getElementById('scene');
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.localClippingEnabled = true;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0c12);
+  scene.fog = new THREE.Fog(0x0a0c12, 25, 60);
+
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
+  camera.position.set(0, 3, 9);
+
+  controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 4;
+  controls.maxDistance = 20;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.5;
+
+  clock = new THREE.Clock();
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  setupLights();
+  setupStars();
+  buildEarth();
+  buildInterior();
+  buildMarkers();
+}
+
+/* ============================================================
+   灯光
+   ============================================================ */
+function setupLights() {
+  scene.add(new THREE.AmbientLight(0x223344, 0.5));
+
+  // 太阳光
+  const sunLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+  sunLight.position.set(8, 3, 5);
+  scene.add(sunLight);
+
+  // 边缘补光（冷色调）
+  const rimLight = new THREE.DirectionalLight(0x4477aa, 0.4);
+  rimLight.position.set(-5, 2, -5);
+  scene.add(rimLight);
+
+  // 底部微光
+  const fillLight = new THREE.PointLight(0xef4444, 0.3, 30);
+  fillLight.position.set(0, -5, 0);
+  scene.add(fillLight);
+}
+
+/* ============================================================
+   星空背景
+   ============================================================ */
+function setupStars() {
+  const starCount = 3000;
+  const geo = new THREE.BufferGeometry();
+  const positions = new Float32Array(starCount * 3);
+  const colors = new Float32Array(starCount * 3);
+  const sizes = new Float32Array(starCount);
+
+  for (let i = 0; i < starCount; i++) {
+    const r = 40 + Math.random() * 50;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 2 - 1);
+    positions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i*3+2] = r * Math.cos(phi);
+
+    const hue = 0.55 + Math.random() * 0.15;
+    const c = new THREE.Color().setHSL(hue, 0.3, 0.4 + Math.random() * 0.4);
+    colors[i*3] = c.r;
+    colors[i*3+1] = c.g;
+    colors[i*3+2] = c.b;
+    sizes[i] = Math.random() * 1.2 + 0.3;
+  }
+
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+  geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      attribute vec3 aColor;
+      attribute float aSize;
+      varying vec3 vColor;
+      varying float vAlpha;
+      uniform float uTime;
+      void main() {
+        vColor = aColor;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = aSize * (300.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+        vAlpha = 0.4 + 0.6 * (0.5 + 0.5 * sin(uTime * 1.5 + position.x * 0.1));
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float d = length(c);
+        if (d > 0.5) discard;
+        float a = (1.0 - d * 2.0) * vAlpha;
+        gl_FragColor = vec4(vColor, a);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+
+  starField = new THREE.Points(geo, mat);
+  scene.add(starField);
+}
+
+/* ============================================================
+   构建 3D 地形地球
+   ============================================================ */
+function buildEarth() {
+  earthGroup = new THREE.Group();
+  scene.add(earthGroup);
+
+  // 高分辨率球体
+  const geo = new THREE.SphereGeometry(EARTH_RADIUS, SEGMENTS, SEGMENTS / 2);
+  const positions = geo.attributes.position;
+  const uvs = geo.attributes.uv;
+  const vertexCount = positions.count;
+
+  const colors = new Float32Array(vertexCount * 3);
+
+  for (let i = 0; i < vertexCount; i++) {
+    const px = positions.getX(i);
+    const py = positions.getY(i);
+    const pz = positions.getZ(i);
+    const u = uvs.getX(i);
+    const v = uvs.getY(i);
+
+    // 采样大陆数据
+    const texColor = sampleContinent(continentData.imageData, u, v);
+    const land = isLand(texColor);
+
+    // 计算纬度（弧度）
+    const len = Math.sqrt(px*px + py*py + pz*pz);
+    const latitude = Math.asin(py / len);
+
+    // 计算高程
+    let elevation;
+    if (land) {
+      // 陆地：基础高度 + 山脉噪声
+      const n1 = fbm3D(px * 4, py * 4, pz * 4, 4);
+      const n2 = fbm3D(px * 8, py * 8, pz * 8, 3) * 0.3;
+      elevation = 0.015 + (n1 + n2) * 0.055;
+
+      // 极地冰盖增加高度
+      if (Math.abs(latitude) > 1.15) {
+        elevation += 0.02;
+      }
+    } else {
+      // 海洋：负高程 + 海底变化
+      const n = fbm3D(px * 3, py * 3, pz * 3, 3);
+      elevation = -0.018 + n * 0.008;
+    }
+
+    // 位移顶点
+    const nx = px / len, ny = py / len, nz = pz / len;
+    const newR = EARTH_RADIUS + elevation * EARTH_RADIUS;
+    positions.setXYZ(i, nx * newR, ny * newR, nz * newR);
+
+    // 顶点颜色
+    const color = elevationToColor(elevation, latitude);
+    colors[i*3] = color.r;
+    colors[i*3+1] = color.g;
+    colors[i*3+2] = color.b;
+  }
+
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+
+  // 地形材质
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    metalness: 0.1,
+    roughness: 0.85,
+    flatShading: false,
+  });
+  terrainMesh = new THREE.Mesh(geo, mat);
+  earthGroup.add(terrainMesh);
+
+  // 线框层
+  const wireGeo = new THREE.SphereGeometry(EARTH_RADIUS * 1.002, SEGMENTS, SEGMENTS / 2);
+  const wireMat = new THREE.MeshBasicMaterial({
+    color: 0xEF4444,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.15,
+    depthWrite: false,
+  });
+  wireframeMesh = new THREE.Mesh(wireGeo, wireMat);
+  wireframeMesh.visible = false;
+  earthGroup.add(wireframeMesh);
+
+  // 大气层光晕
+  buildAtmosphere();
+}
+
+/* ============================================================
+   大气层
+   ============================================================ */
+function buildAtmosphere() {
+  const geo = new THREE.SphereGeometry(EARTH_RADIUS * 1.08, 64, 32);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      uColor: { value: new THREE.Color(0x4a90d9) },
+      uIntensity: { value: 0.6 },
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vWorldPos;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorldPos = wp.xyz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uIntensity;
+      varying vec3 vNormal;
+      varying vec3 vWorldPos;
+      void main() {
+        vec3 viewDir = normalize(cameraPosition - vWorldPos);
+        float fresnel = 1.0 - max(0.0, dot(vNormal, viewDir));
+        float intensity = pow(fresnel, 2.5) * uIntensity;
+        gl_FragColor = vec4(uColor, intensity);
+      }
+    `,
+    transparent: true,
+    side: THREE.BackSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+
+  atmosphereMesh = new THREE.Mesh(geo, mat);
+  earthGroup.add(atmosphereMesh);
+}
+
+/* ============================================================
+   内部结构（剖切模式）
+   ============================================================ */
+function buildInterior() {
+  interiorGroup = new THREE.Group();
+  interiorGroup.visible = false;
+  scene.add(interiorGroup);
+
+  LAYERS.forEach((layer, idx) => {
+    const r = EARTH_RADIUS * layer.radius;
+    const geo = new THREE.SphereGeometry(r, 64, 32);
+    const mat = new THREE.MeshStandardMaterial({
+      color: layer.color,
+      emissive: layer.color,
+      emissiveIntensity: 0.3,
+      metalness: 0.2,
+      roughness: 0.7,
+      transparent: layer.opacity < 1.0,
+      opacity: layer.opacity,
+      clippingPlanes: [clipPlane],
+      side: THREE.DoubleSide,
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.userData.layer = layer;
+    mesh.userData.index = idx;
+    interiorGroup.add(mesh);
+    interiorLayers.push(mesh);
+
+    // 内核发光
+    if (idx === 0) {
+      const glowMat = new THREE.ShaderMaterial({
+        uniforms: { uColor: { value: new THREE.Color(layer.color) } },
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vWorldPos;
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vec4 wp = modelMatrix * vec4(position, 1.0);
+            vWorldPos = wp.xyz;
+            gl_Position = projectionMatrix * viewMatrix * wp;
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 uColor;
+          varying vec3 vNormal;
+          varying vec3 vWorldPos;
+          void main() {
+            vec3 viewDir = normalize(cameraPosition - vWorldPos);
+            float fresnel = 1.0 - max(0.0, dot(vNormal, viewDir));
+            float intensity = pow(fresnel, 2.0) * 0.8;
+            gl_FragColor = vec4(uColor, intensity);
+          }
+        `,
+        transparent: true,
+        side: THREE.BackSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(r * 1.15, 32, 16), glowMat);
+      interiorGroup.add(glow);
+    }
+  });
+
+  // 剖切面边线高亮
+  const cutGeo = new THREE.RingGeometry(0.01, EARTH_RADIUS, 64);
+  const cutMat = new THREE.MeshBasicMaterial({
+    color: 0xEF4444,
+    transparent: true,
+    opacity: 0.3,
+    side: THREE.DoubleSide,
+  });
+  const cutRing = new THREE.Mesh(cutGeo, cutMat);
+  interiorGroup.add(cutRing);
+}
+
+/* ============================================================
+   地理特征标记
+   ============================================================ */
+function buildMarkers() {
+  markerGroup = new THREE.Group();
+  earthGroup.add(markerGroup);
+
+  FEATURES.forEach((feature, idx) => {
+    const pos = latLonToVec3(feature.lat, feature.lon, EARTH_RADIUS * 1.02);
+    const isOcean = feature.elev.startsWith('-');
+
+    // 标记点
+    const markerGeo = new THREE.SphereGeometry(0.05, 16, 16);
+    const markerMat = new THREE.MeshBasicMaterial({
+      color: isOcean ? 0x60a5fa : 0xEF4444,
+    });
+    const marker = new THREE.Mesh(markerGeo, markerMat);
+    marker.position.copy(pos);
+    marker.userData.feature = feature;
+    marker.userData.index = idx;
+    markerGroup.add(marker);
+    markers.push(marker);
+
+    // 发光光晕
+    const glowMat = new THREE.SpriteMaterial({
+      map: createGlowTexture(isOcean ? 0x60a5fa : 0xEF4444),
+      blending: THREE.AdditiveBlending,
+      transparent: true,
+      depthWrite: false,
+    });
+    const glow = new THREE.Sprite(glowMat);
+    glow.scale.set(0.4, 0.4, 1);
+    glow.position.copy(pos);
+    markerGroup.add(glow);
+
+    // 标签线
+    const lineEnd = pos.clone().multiplyScalar(1.12);
+    const lineGeo = new THREE.BufferGeometry().setFromPoints([pos, lineEnd]);
+    const lineMat = new THREE.LineBasicMaterial({
+      color: isOcean ? 0x60a5fa : 0xEF4444,
+      transparent: true,
+      opacity: 0.5,
+    });
+    const line = new THREE.Line(lineGeo, lineMat);
+    markerGroup.add(line);
+
+    // HTML 标签
+    const label = document.createElement('div');
+    label.style.cssText = `
+      position: fixed; z-index: 45; pointer-events: none;
+      font-size: 11px; color: #e5e5e5; white-space: nowrap;
+      font-family: var(--font-sans); font-weight: 500;
+      padding: 2px 8px; background: rgba(10,12,18,0.7);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px; transform: translate(-50%, -100%);
+      transition: opacity 0.3s ease;
+    `;
+    label.textContent = feature.name;
+    document.body.appendChild(label);
+    marker.userData.label = label;
+    marker.userData.labelPos = lineEnd;
+  });
+}
+
+/* ============================================================
+   光晕纹理
+   ============================================================ */
+function createGlowTexture(color) {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 128;
+  const ctx = c.getContext('2d');
+  const col = new THREE.Color(color);
+  const r = Math.round(col.r * 255);
+  const g = Math.round(col.g * 255);
+  const b = Math.round(col.b * 255);
+  const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, `rgba(${r},${g},${b},0.8)`);
+  grad.addColorStop(0.3, `rgba(${r},${g},${b},0.3)`);
+  grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+
+/* ============================================================
+   动画循环
+   ============================================================ */
+function animate() {
+  requestAnimationFrame(animate);
+
+  const t = clock.getElapsedTime();
+  const dt = clock.getDelta();
+
+  // 入场动画
+  if (entranceProgress < 1) {
+    entranceProgress = Math.min(1, entranceProgress + dt * 0.7);
+    const eased = 1 - Math.pow(1 - entranceProgress, 3);
+    earthGroup.scale.setScalar(eased);
+  }
+
+  // 星空闪烁
+  if (starField) {
+    starField.material.uniforms.uTime.value = t;
+    starField.rotation.y = t * 0.005;
+  }
+
+  // 大气微动
+  if (atmosphereMesh) {
+    atmosphereMesh.material.uniforms.uIntensity.value = 0.5 + Math.sin(t * 0.8) * 0.08;
+  }
+
+  // 标记脉动
+  markers.forEach((m, i) => {
+    const pulse = 1 + Math.sin(t * 2 + i * 0.5) * 0.15;
+    m.scale.setScalar(pulse);
+  });
+
+  // 更新标签位置
+  if (showLabels && currentMode === 'terrain') {
+    markers.forEach(m => {
+      const label = m.userData.label;
+      if (!label) return;
+      const worldPos = m.userData.labelPos.clone();
+      earthGroup.localToWorld(worldPos);
+      const screenPos = worldPos.clone().project(camera);
+      const x = (screenPos.x * 0.5 + 0.5) * container.clientWidth;
+      const y = (-screenPos.y * 0.5 + 0.5) * container.clientHeight;
+      label.style.left = x + 'px';
+      label.style.top = y + 'px';
+
+      // 背面隐藏
+      const cameraDir = camera.position.clone().sub(worldPos).normalize();
+      const normal = m.position.clone().normalize();
+      earthGroup.localToWorld(normal.add(m.position));
+      const surfaceNormal = m.position.clone().normalize();
+      earthGroup.localToWorld(surfaceNormal.sub(earthGroup.position));
+      const dot = surfaceNormal.dot(cameraDir);
+      label.style.opacity = dot > 0.1 ? '1' : '0';
+    });
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   UI 交互
+   ============================================================ */
+
+// 构建特征列表
+function buildFeatureList() {
+  const list = document.getElementById('featureList');
+  list.innerHTML = '';
+
+  FEATURES.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'feature-item';
+    item.innerHTML = `
+      <span class="feature-icon"></span>
+      <span class="feature-name">${f.name}</span>
+      <span class="feature-type">${f.type}</span>
+    `;
+    item.addEventListener('click', () => selectFeature(i));
+    list.appendChild(item);
+  });
+}
+
+// 选择特征
+function selectFeature(index) {
+  selectedFeature = FEATURES[index];
+  const f = selectedFeature;
+
+  // 更新列表选中
+  document.querySelectorAll('.feature-item').forEach((item, i) => {
+    item.classList.toggle('active', i === index);
+  });
+
+  // 更新信息面板
+  document.getElementById('infoTitle').textContent = f.name;
+  document.getElementById('infoSubtitle').textContent = `${f.type} · ${f.lat.toFixed(1)}°${f.lat >= 0 ? 'N' : 'S'}, ${f.lon.toFixed(1)}°${f.lon >= 0 ? 'E' : 'W'}`;
+
+  const panel = document.getElementById('infoPanel');
+  panel.innerHTML = `
+    <div class="info-title">${f.name}</div>
+    <div class="info-subtitle">${f.type} · ${f.lat.toFixed(1)}°${f.lat >= 0 ? 'N' : 'S'}, ${Math.abs(f.lon).toFixed(1)}°${f.lon >= 0 ? 'E' : 'W'}</div>
+    <div class="info-divider"></div>
+    <div class="info-section-title">详细信息</div>
+    <div class="info-row">
+      <span class="info-label">类型</span>
+      <span class="info-value accent">${f.type}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">海拔/深度</span>
+      <span class="info-value accent">${f.elev}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">纬度</span>
+      <span class="info-value">${f.lat.toFixed(2)}°</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">经度</span>
+      <span class="info-value">${f.lon.toFixed(2)}°</span>
+    </div>
+    <div class="info-divider"></div>
+    <div class="info-desc">${f.desc}</div>
+  `;
+
+  // 相机飞向标记
+  flyToMarker(index);
+  showStatus(`已选中：${f.name}`);
+}
+
+// 相机飞向标记
+function flyToMarker(index) {
+  const f = FEATURES[index];
+  const targetPos = latLonToVec3(f.lat, f.lon, EARTH_RADIUS);
+  // 将标记位置转换到世界坐标
+  const worldPos = targetPos.clone();
+  earthGroup.localToWorld(worldPos);
+
+  // 相机目标位置：标记方向，距离稍远
+  const camDir = worldPos.clone().normalize();
+  const camTarget = camDir.multiplyScalar(7);
+
+  animateCamera(camTarget, worldPos);
+}
+
+// 相机动画
+function animateCamera(toPos, toLook) {
+  const fromPos = camera.position.clone();
+  const fromLook = controls.target.clone();
+  const startTime = performance.now();
+  const duration = 1000;
+
+  controls.autoRotate = false;
+  isPlaying = false;
+  updatePlayPause();
+
+  function step() {
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    camera.position.lerpVectors(fromPos, toPos, eased);
+    controls.target.lerpVectors(fromLook, toLook, eased);
+    controls.update();
+
+    if (t < 1) requestAnimationFrame(step);
+  }
+  step();
+}
+
+// 播放/暂停
+const playPauseBtn = document.getElementById('playPauseBtn');
+const playIcon = document.getElementById('playIcon');
+const pauseIcon = document.getElementById('pauseIcon');
+
+function updatePlayPause() {
+  playPauseBtn.classList.toggle('active', isPlaying);
+  playIcon.style.display = isPlaying ? 'none' : 'block';
+  pauseIcon.style.display = isPlaying ? 'block' : 'none';
+  controls.autoRotate = isPlaying;
+}
+
+playPauseBtn.addEventListener('click', () => {
+  isPlaying = !isPlaying;
+  updatePlayPause();
+});
+
+// 重置视角
+document.getElementById('resetViewBtn').addEventListener('click', () => {
+  animateCamera(new THREE.Vector3(0, 3, 9), new THREE.Vector3(0, 0, 0));
+  selectedFeature = null;
+  document.querySelectorAll('.feature-item').forEach(item => item.classList.remove('active'));
+  resetInfoPanel();
+  showStatus('视角已重置');
+});
+
+// 线框切换
+document.getElementById('wireframeBtn').addEventListener('click', (e) => {
+  showWireframe = !showWireframe;
+  wireframeMesh.visible = showWireframe && currentMode === 'terrain';
+  e.currentTarget.classList.toggle('active', showWireframe);
+  showStatus(showWireframe ? '线框模式开启' : '线框模式关闭');
+});
+
+// 标签切换
+document.getElementById('labelsBtn').addEventListener('click', (e) => {
+  showLabels = !showLabels;
+  e.currentTarget.classList.toggle('active', showLabels);
+  markers.forEach(m => {
+    if (m.userData.label) {
+      m.userData.label.style.display = showLabels ? 'block' : 'none';
+    }
+  });
+  showStatus(showLabels ? '标签已显示' : '标签已隐藏');
+});
+
+// 全屏
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+});
+
+// 模式切换
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    switchMode(currentMode);
+  });
+});
+
+function switchMode(mode) {
+  if (mode === 'terrain') {
+    earthGroup.visible = true;
+    interiorGroup.visible = false;
+    markerGroup.visible = true;
+    wireframeMesh.visible = showWireframe;
+    controls.autoRotate = isPlaying;
+    resetInfoPanel();
+    showStatus('地形模式');
+  } else {
+    earthGroup.visible = false;
+    interiorGroup.visible = true;
+    markerGroup.visible = false;
+    controls.autoRotate = true;
+    isPlaying = true;
+    updatePlayPause();
+    showInteriorInfo();
+    showStatus('内部结构模式');
+  }
+}
+
+function resetInfoPanel() {
+  const panel = document.getElementById('infoPanel');
+  panel.innerHTML = `
+    <div class="info-title">地球 Earth</div>
+    <div class="info-subtitle">太阳系第三行星 · 直径 12,742 km</div>
+    <div class="info-divider"></div>
+    <div class="info-section-title">基本参数</div>
+    <div class="info-row"><span class="info-label">赤道半径</span><span class="info-value">6,378 km</span></div>
+    <div class="info-row"><span class="info-label">极半径</span><span class="info-value">6,357 km</span></div>
+    <div class="info-row"><span class="info-label">表面积</span><span class="info-value">5.10×10⁸ km²</span></div>
+    <div class="info-row"><span class="info-label">质量</span><span class="info-value">5.97×10²⁴ kg</span></div>
+    <div class="info-row"><span class="info-label">海陆比例</span><span class="info-value">71% : 29%</span></div>
+    <div class="info-divider"></div>
+    <div class="info-section-title">地形图例</div>
+    <div class="layer-legend">
+      <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#0d2840"></span>深海（&lt; -4000m）</div>
+      <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#1a5c9e"></span>浅海（0 ~ -200m）</div>
+      <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#4a7c3a"></span>平原（0 ~ 1000m）</div>
+      <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#8b6f47"></span>高地（1000 ~ 3000m）</div>
+      <div class="layer-legend-row"><span class="layer-legend-dot" style="background:#f0f0f5"></span>山脉（&gt; 3000m）</div>
+    </div>
+  `;
+}
+
+function showInteriorInfo() {
+  const panel = document.getElementById('infoPanel');
+  panel.innerHTML = `
+    <div class="info-title">地球内部结构</div>
+    <div class="info-subtitle">从地表到地心 · 半径 6371 km</div>
+    <div class="info-divider"></div>
+    <div class="info-section-title">分层结构</div>
+    ${LAYERS.slice().reverse().map(layer => `
+      <div class="info-row">
+        <span class="info-label">${layer.name} ${layer.en}</span>
+      </div>
+      <div class="info-desc" style="margin-top:2px;margin-bottom:8px;">${layer.desc}</div>
+    `).join('')}
+    <div class="info-divider"></div>
+    <div class="info-section-title">温度梯度</div>
+    <div class="info-row"><span class="info-label">地表</span><span class="info-value">~15 °C</span></div>
+    <div class="info-row"><span class="info-label">地幔底部</span><span class="info-value">~3000 °C</span></div>
+    <div class="info-row"><span class="info-label">外核</span><span class="info-value">~4500 °C</span></div>
+    <div class="info-row"><span class="info-label">内核</span><span class="info-value accent">~5400 °C</span></div>
+  `;
+}
+
+// 点击交互
+canvas.addEventListener('click', (e) => {
+  if (currentMode !== 'terrain') return;
+
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(markers);
+
+  if (intersects.length > 0) {
+    const marker = intersects[0].object;
+    selectFeature(marker.userData.index);
+  }
+});
+
+// 状态提示
+let statusTimer = null;
+function showStatus(msg) {
+  const tag = document.getElementById('statusTag');
+  tag.textContent = msg;
+  tag.classList.add('active');
+  if (statusTimer) clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => {
+    tag.classList.remove('active');
+    tag.textContent = '就绪';
+  }, 2500);
+}
+
+// 窗口自适应
+function onResize() {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+/* ============================================================
+   启动
+   ============================================================ */
+initScene();
+buildFeatureList();
+animate();
+
+// 隐藏加载层
+setTimeout(() => {
+  document.getElementById('loading').classList.add('hidden');
+}, 800);
+</script>
+
+</body>
+</html>

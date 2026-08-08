@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>细胞结构 3D 探索 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #0a1510;
+    color: #e5e5e5;
+  }
+
+  /* 画布容器 */
+  #canvasContainer {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    cursor: grab;
+  }
+  #canvasContainer:active { cursor: grabbing; }
+
+  /* 背景暗角 */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* 细胞类型切换器 */
+  .cell-type-switch {
+    display: flex; align-items: center; gap: 2px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-full);
+    padding: 3px;
+  }
+  .cell-type-btn {
+    padding: 5px 14px; border: none; background: transparent;
+    color: #888; font-size: 11px; font-weight: 500;
+    font-family: var(--font-sans); cursor: pointer;
+    border-radius: var(--radius-full); transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .cell-type-btn:hover { color: #ccc; }
+  .cell-type-btn.active {
+    background: rgba(5,150,105,0.25); color: #fff;
+  }
+
+  /* 右侧细胞器列表面板 */
+  .organelle-panel {
+    position: fixed; top: 80px; right: 20px; width: 220px;
+    max-height: calc(100vh - 160px); overflow-y: auto; z-index: 50;
+    padding: 14px; background: rgba(10,21,16,0.6);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+  }
+  .organelle-panel-title {
+    font-family: var(--font-serif); font-size: 12px; font-weight: 600;
+    color: #e5e5e5; margin-bottom: 10px; padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .organelle-list { display: flex; flex-direction: column; gap: 2px; }
+  .organelle-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 6px; cursor: pointer;
+    transition: all 0.15s; font-size: 12px; color: #888;
+  }
+  .organelle-item:hover { background: rgba(255,255,255,0.05); color: #ccc; }
+  .organelle-item.active {
+    background: rgba(118,255,3,0.08); color: #76FF03;
+  }
+  .organelle-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .organelle-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .organelle-toggle {
+    width: 22px; height: 22px; border: none; background: transparent;
+    color: #666; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; border-radius: 4px; transition: all 0.15s;
+  }
+  .organelle-toggle:hover { color: #aaa; background: rgba(255,255,255,0.05); }
+  .organelle-toggle.hidden { color: #333; }
+  .organelle-toggle svg { width: 14px; height: 14px; }
+
+  /* 左侧信息面板 */
+  .info-panel {
+    position: fixed; top: 80px; left: 20px; width: 300px; z-index: 50;
+    padding: 20px 24px; background: rgba(10,21,16,0.75);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+    transform: translateX(-360px); opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1); pointer-events: none;
+  }
+  .info-panel.visible {
+    transform: translateX(0); opacity: 1; pointer-events: auto;
+  }
+  .info-close {
+    position: absolute; top: 12px; right: 12px; width: 28px; height: 28px;
+    border: none; background: rgba(255,255,255,0.05); color: #888;
+    font-size: 18px; cursor: pointer; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .info-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .info-color-dot {
+    width: 14px; height: 14px; border-radius: 50%; margin-bottom: 10px;
+    box-shadow: 0 0 12px currentColor;
+  }
+  .info-name {
+    font-family: var(--font-serif); font-size: 20px; font-weight: 700;
+    color: #fff; margin: 0 0 4px 0;
+  }
+  .info-name-en {
+    font-family: var(--font-mono); font-size: 11px; color: #666; margin-bottom: 16px;
+  }
+  .info-section { margin-bottom: 14px; }
+  .info-label {
+    font-size: 11px; font-weight: 600; color: #76FF03;
+    margin-bottom: 4px; letter-spacing: 0.05em;
+  }
+  .info-desc, .info-func {
+    font-size: 13px; line-height: 1.7; color: #aaa; margin: 0;
+  }
+
+  /* 分泌演示标签 */
+  .secretion-label {
+    position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+    z-index: 60; padding: 8px 20px; background: rgba(10,21,16,0.85);
+    backdrop-filter: blur(8px); border: 1px solid rgba(118,255,3,0.25);
+    border-radius: 20px; font-size: 13px; color: #76FF03;
+    font-family: var(--font-sans); white-space: nowrap;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  .secretion-label.visible { opacity: 1; }
+
+  /* 剖切控制面板 */
+  .clip-panel {
+    position: fixed; bottom: 72px; left: 20px; z-index: 55;
+    padding: 12px 16px; background: rgba(10,21,16,0.75);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(118,255,3,0.15); border-radius: 10px;
+    display: none; flex-direction: column; gap: 10px; width: 200px;
+  }
+  .clip-panel.visible { display: flex; }
+  .clip-panel-title {
+    font-family: var(--font-sans); font-size: 11px; font-weight: 600;
+    color: #76FF03; letter-spacing: 0.05em;
+  }
+  .clip-axis-group { display: flex; gap: 4px; }
+  .clip-axis-btn {
+    flex: 1; padding: 4px 0; border: 1px solid rgba(255,255,255,0.1);
+    background: transparent; color: #888; font-size: 11px; font-weight: 600;
+    font-family: var(--font-mono); cursor: pointer; border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .clip-axis-btn:hover { color: #ccc; border-color: rgba(255,255,255,0.2); }
+  .clip-axis-btn.active {
+    background: rgba(118,255,3,0.12); color: #76FF03;
+    border-color: rgba(118,255,3,0.3);
+  }
+  .clip-slider-row { display: flex; align-items: center; gap: 8px; }
+  .clip-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px;
+    outline: none; cursor: pointer;
+  }
+  .clip-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #76FF03; cursor: pointer; box-shadow: 0 0 6px rgba(118,255,3,0.4);
+  }
+  .clip-slider::-moz-range-thumb {
+    width: 12px; height: 12px; border-radius: 50%; border: none;
+    background: #76FF03; cursor: pointer; box-shadow: 0 0 6px rgba(118,255,3,0.4);
+  }
+  .clip-value {
+    font-family: var(--font-mono); font-size: 10px; color: #666;
+    min-width: 30px; text-align: right;
+  }
+
+  /* 移动端适配 */
+  @media (max-width: 768px) {
+    .organelle-panel {
+      top: auto; bottom: 56px; right: 8px; left: 8px;
+      width: auto; max-height: 140px;
+    }
+    .organelle-list { flex-direction: row; overflow-x: auto; gap: 4px; }
+    .organelle-item { flex-shrink: 0; padding: 6px 10px; }
+    .info-panel {
+      top: auto; bottom: 200px; left: 8px; right: 8px; width: auto;
+      transform: translateY(360px);
+    }
+    .info-panel.visible { transform: translateY(0); }
+    .cell-type-switch { transform: scale(0.85); }
+    .clip-panel { left: 8px; right: 8px; width: auto; bottom: 200px; }
+    .demo-mode-btn span { display: inline; }
+  }
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- 顶部导航栏 -->
+<header class="demo-navbar immersive" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">生物</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">细胞结构 3D 探索</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-bio">生物</span>
+      <a href="/skills/jingbo-edu-3d-bio-structure-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- 全屏 3D 画布 -->
+<div class="framework-immersive">
+  <div class="demo-canvas-full" id="canvasContainer"></div>
+</div>
+
+<!-- 加载提示 -->
+<div class="demo-loading active" id="loading">加载中</div>
+
+<!-- 右侧细胞器列表面板 -->
+<div class="organelle-panel" id="organellePanel">
+  <div class="organelle-panel-title">细胞器导航</div>
+  <div class="organelle-list" id="organelleList"></div>
+</div>
+
+<!-- 左侧信息面板 -->
+<div class="info-panel" id="infoPanel">
+  <button class="info-close" id="infoClose">&times;</button>
+  <div class="info-color-dot" id="infoColorDot"></div>
+  <h3 class="info-name" id="infoName"></h3>
+  <div class="info-name-en" id="infoNameEn"></div>
+  <div class="info-section">
+    <div class="info-label">结构特征</div>
+    <p class="info-desc" id="infoDesc"></p>
+  </div>
+  <div class="info-section">
+    <div class="info-label">主要功能</div>
+    <p class="info-func" id="infoFunc"></p>
+  </div>
+</div>
+
+<!-- 分泌演示标签 -->
+<div class="secretion-label" id="secretionLabel"></div>
+
+<!-- 剖切控制面板 -->
+<div class="clip-panel" id="clipPanel">
+  <div class="clip-panel-title">剖切平面</div>
+  <div class="clip-axis-group">
+    <button class="clip-axis-btn active" data-axis="x">X 轴</button>
+    <button class="clip-axis-btn" data-axis="y">Y 轴</button>
+    <button class="clip-axis-btn" data-axis="z">Z 轴</button>
+  </div>
+  <div class="clip-slider-row">
+    <input type="range" class="clip-slider" id="clipSlider" min="-5" max="5" step="0.1" value="0" />
+    <span class="clip-value" id="clipValue">0.0</span>
+  </div>
+</div>
+
+<!-- 操作提示 -->
+<div class="demo-scene-hint">拖拽旋转 · 滚轮缩放 · 点击细胞器查看详情</div>
+
+<!-- 左下浮动控件 -->
+<div class="demo-floating-group demo-floating-left">
+  <button class="demo-icon-btn active" id="spinBtn" data-tooltip="自动旋转">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+  </button>
+  <button class="demo-icon-btn" id="resetBtn" data-tooltip="重置视角">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+  </button>
+  <button class="demo-icon-btn" id="flyBtn" data-tooltip="飞入细胞">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+  </button>
+  <button class="demo-icon-btn" id="clipBtn" data-tooltip="剖切细胞">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z" opacity="0.3"/><path d="M3 3l18 18"/><path d="M21 3L3 21" opacity="0.4"/></svg>
+  </button>
+</div>
+
+<!-- 右下浮动控件 -->
+<div class="demo-floating-group demo-floating-right">
+  <button class="demo-icon-btn" id="secretionBtn" data-tooltip="分泌蛋白演示">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+  </button>
+  <button class="demo-icon-btn" id="fullscreenBtn" data-tooltip="全屏">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+  </button>
+</div>
+
+<!-- 底部信息条 -->
+<footer class="demo-info-bar immersive">
+  <div class="demo-info-left">
+    <span class="demo-info-title">cell-structure</span>
+    <span class="demo-tech-tag">Three.js</span>
+    <span class="demo-tech-tag">WebGL</span>
+  </div>
+  <div class="demo-info-center">
+    <div class="demo-mode-switcher">
+      <button class="demo-mode-btn active" data-mode="solid"><span>实体</span></button>
+      <button class="demo-mode-btn" data-mode="transparent"><span>透明</span></button>
+      <button class="demo-mode-btn" data-mode="wireframe"><span>线框</span></button>
+    </div>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="statusTag">动物细胞</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ===== 细胞器数据 =====
+const ORGANELLE_DATA = [
+  { id:'membrane', name:'细胞膜', nameEn:'Cell Membrane', color:0xC8B4FF, hex:'#C8B4FF',
+    desc:'由磷脂双分子层构成的基本支架，蛋白质镶嵌其中，具有选择透过性。',
+    func:'将细胞与外界环境分隔开，控制物质进出，维持细胞内部环境相对稳定。', type:'both' },
+  { id:'nucleus', name:'细胞核', nameEn:'Nucleus', color:0x8E24AA, hex:'#8E24AA',
+    desc:'由核膜、核仁、染色质组成。核膜上有核孔，是核质间物质交换的通道。',
+    func:'遗传信息库，是细胞代谢和遗传的控制中心。', type:'both' },
+  { id:'mitochondria', name:'线粒体', nameEn:'Mitochondria', color:0xE65100, hex:'#E65100',
+    desc:'双层膜结构，内膜向内折叠形成嵴，扩大了内膜面积。嵴上附着多种酶。',
+    func:'有氧呼吸的主要场所，细胞的"动力车间"，为生命活动提供约95%能量。', type:'both' },
+  { id:'er', name:'内质网', nameEn:'Endoplasmic Reticulum', color:0x64B5F6, hex:'#64B5F6',
+    desc:'由膜连接而成的网状结构。粗面内质网附着核糖体，滑面内质网表面光滑。',
+    func:'蛋白质合成和加工、脂质合成的"车间"。', type:'both' },
+  { id:'golgi', name:'高尔基体', nameEn:'Golgi Apparatus', color:0xFFB300, hex:'#FFB300',
+    desc:'由扁平囊泡和分泌小泡组成，接受来自内质网的产物进行加工。',
+    func:'对蛋白质进行加工、分类、包装和发送的"车间"及"发送站"。', type:'both' },
+  { id:'ribosome', name:'核糖体', nameEn:'Ribosome', color:0x455A64, hex:'#455A64',
+    desc:'无膜结构，由RNA和蛋白质组成。游离在细胞质基质中或附着在内质网上。',
+    func:'蛋白质的合成场所，"生产蛋白质的机器"。', type:'both' },
+  { id:'lysosome', name:'溶酶体', nameEn:'Lysosome', color:0xC62828, hex:'#C62828',
+    desc:'单层膜囊状结构，内含多种水解酶。',
+    func:'细胞的"消化车间"，能分解衰老损伤的细胞器和吞入的颗粒。', type:'both' },
+  { id:'centriole', name:'中心体', nameEn:'Centrosome', color:0xFF9800, hex:'#FF9800',
+    desc:'由两个互相垂直的中心粒组成。动物细胞和低等植物细胞特有。',
+    func:'与细胞有丝分裂有关，参与纺锤体的形成。', type:'animal' },
+  { id:'chloroplast', name:'叶绿体', nameEn:'Chloroplast', color:0x2E7D32, hex:'#2E7D32',
+    desc:'双层膜结构，内部有基粒（类囊体堆叠而成）。基质中含有酶、DNA和核糖体。',
+    func:'光合作用的场所，"养料制造车间"和"能量转换站"。', type:'plant' },
+  { id:'vacuole', name:'液泡', nameEn:'Vacuole', color:0x80DEEA, hex:'#80DEEA',
+    desc:'单层膜囊泡，内含细胞液（糖类、无机盐、色素和蛋白质等）。',
+    func:'调节细胞内环境，维持细胞渗透压，使细胞保持坚挺。', type:'plant' },
+  { id:'cellwall', name:'细胞壁', nameEn:'Cell Wall', color:0x96C896, hex:'#96C896',
+    desc:'由纤维素和果胶构成，位于植物细胞最外层，具有全透性。',
+    func:'支持和保护细胞，维持细胞形态。', type:'plant' }
+];
+
+// ===== 全局变量 =====
+let scene, camera, renderer, controls, clock;
+let cellGroup;
+const organelles = {};
+const allMaterials = [];
+let raycaster, pointer;
+let currentCellType = 'animal';
+let currentDisplayMode = 'solid';
+let selectedId = null;
+let bgParticles, cytoParticles;
+let secretionActive = false;
+let isFlying = false;
+const activeTweens = [];
+let clipPlane = null;
+let clipEnabled = false;
+let clipAxis = 'x';
+let clipPos = 0;
+
+// ===== Tween 工具 =====
+function tween(from, to, duration, onUpdate, onComplete) {
+  const startTime = performance.now();
+  activeTweens.push({ from, to, duration, onUpdate, onComplete, startTime, active: true });
+}
+function updateTweens() {
+  const now = performance.now();
+  for (let i = activeTweens.length - 1; i >= 0; i--) {
+    const tw = activeTweens[i];
+    if (!tw.active) { activeTweens.splice(i, 1); continue; }
+    const p = Math.min((now - tw.startTime) / tw.duration, 1);
+    const e = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;
+    tw.onUpdate(tw.from + (tw.to - tw.from) * e, p);
+    if (p >= 1) { tw.active = false; activeTweens.splice(i, 1); if (tw.onComplete) tw.onComplete(); }
+  }
+}
+
+// ===== 材质创建 =====
+function createMaterial(color, opacity, emissive, emissiveIntensity) {
+  const mat = new THREE.MeshStandardMaterial({
+    color, transparent: true, opacity: opacity ?? 0.85,
+    roughness: 0.35, metalness: 0.0,
+    emissive: emissive || 0x000000,
+    emissiveIntensity: emissiveIntensity || 0,
+    depthWrite: (opacity ?? 0.85) > 0.5
+  });
+  mat.userData.baseOpacity = opacity ?? 0.85;
+  mat.userData.baseEmissive = emissiveIntensity || 0;
+  allMaterials.push(mat);
+  return mat;
+}
+
+function setOrganelleId(group, id) {
+  group.userData.organelleId = id;
+  group.traverse(c => { c.userData.organelleId = id; });
+}
+
+// ===== 初始化 =====
+function init() {
+  const container = document.getElementById('canvasContainer');
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a1510);
+  scene.fog = new THREE.Fog(0x0a1510, 14, 38);
+
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+  camera.position.set(0, 2, 13);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.localClippingEnabled = true;
+  container.appendChild(renderer.domElement);
+
+  // 光照系统
+  scene.add(new THREE.AmbientLight(0x1a3322, 0.5));
+  const key = new THREE.DirectionalLight(0xaaffcc, 0.7);
+  key.position.set(6, 8, 5);
+  scene.add(key);
+  const fill = new THREE.PointLight(0x44aaff, 0.4, 30);
+  fill.position.set(-6, -4, -5);
+  scene.add(fill);
+  const rim = new THREE.PointLight(0xff6688, 0.3, 25);
+  rim.position.set(0, 6, -6);
+  scene.add(rim);
+  const top = new THREE.PointLight(0x88ff88, 0.25, 20);
+  top.position.set(0, 5, 3);
+  scene.add(top);
+
+  // 控制器
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 2;
+  controls.maxDistance = 25;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.5;
+  controls.target.set(0, 0, 0);
+
+  raycaster = new THREE.Raycaster();
+  pointer = new THREE.Vector2();
+  clock = new THREE.Clock();
+
+  // 构建细胞
+  cellGroup = new THREE.Group();
+  buildMembrane();
+  buildNucleus();
+  buildMitochondria();
+  buildER();
+  buildGolgi();
+  buildRibosomes();
+  buildLysosomes();
+  buildCentrioles();
+  buildChloroplasts();
+  buildVacuole();
+  buildCellWall();
+  scene.add(cellGroup);
+
+  // 粒子系统
+  createBackgroundParticles();
+  createCytoplasmParticles();
+
+  // 初始可见性
+  updateCellTypeVisibility();
+
+  // 入场动画：细胞膜先成形，然后细胞器逐个浮现
+  const introOrder = ['nucleus', 'mitochondria', 'er', 'golgi', 'ribosome', 'lysosome', 'centriole', 'chloroplast', 'vacuole', 'cellwall'];
+  introOrder.forEach(id => {
+    if (organelles[id]) organelles[id].group.visible = false;
+  });
+  cellGroup.scale.setScalar(0.01);
+  tween(0.01, 1, 1200, (v) => {
+    cellGroup.scale.setScalar(v);
+  }, () => {
+    document.getElementById('loading').classList.remove('active');
+    // 逐个浮现细胞器
+    introOrder.forEach((id, i) => {
+      setTimeout(() => {
+        const org = organelles[id];
+        if (!org) return;
+        org.group.visible = true;
+        // 跳过当前细胞类型不可见的细胞器
+        const type = org.data.type;
+        if (type !== 'both' && type !== currentCellType) {
+          org.group.visible = false;
+        }
+        // 微弹效果
+        org.group.scale.setScalar(0.3);
+        tween(0.3, 1, 400, (v) => org.group.scale.setScalar(v));
+      }, i * 180);
+    });
+  });
+
+  // 构建UI
+  updateOrganelleList();
+  bindUI();
+  animate();
+}
+
+// ===== 构建细胞膜 =====
+function buildMembrane() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0xC8B4FF, 0.06, 0x6644AA, 0.05);
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(4.5, 32, 32), mat);
+  mesh.raycast = () => {}; // 不参与拾取
+  g.add(mesh);
+  // 边缘发光
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0xC8B4FF, transparent: true, opacity: 0.04,
+    side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(4.8, 24, 24), glowMat);
+  glow.raycast = () => {};
+  g.add(glow);
+  g.userData.glowMesh = glow;
+  setOrganelleId(g, 'membrane');
+  organelles.membrane = { group: g, data: ORGANELLE_DATA[0] };
+  cellGroup.add(g);
+}
+
+// ===== 构建细胞核 =====
+function buildNucleus() {
+  const g = new THREE.Group();
+  const envMat = createMaterial(0x8E24AA, 0.35, 0x4A148C, 0.15);
+  const env = new THREE.Mesh(new THREE.SphereGeometry(1.3, 24, 24), envMat);
+  g.add(env);
+  // 核仁
+  const nucMat = createMaterial(0xBA68C8, 0.9, 0x6A1B9A, 0.3);
+  const nuc = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), nucMat);
+  nuc.position.set(0.2, 0.1, -0.1);
+  g.add(nuc);
+  // 染色质纹理（小球点缀）
+  const chrMat = createMaterial(0x7B1FA2, 0.5, 0x4A148C, 0.1);
+  for (let i = 0; i < 5; i++) {
+    const chr = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), chrMat);
+    const a = (i / 5) * Math.PI * 2;
+    chr.position.set(Math.cos(a) * 0.7, Math.sin(a) * 0.5, Math.sin(a * 2) * 0.4);
+    g.add(chr);
+  }
+  setOrganelleId(g, 'nucleus');
+  organelles.nucleus = { group: g, data: ORGANELLE_DATA[1] };
+  cellGroup.add(g);
+}
+
+// ===== 构建线粒体 =====
+function buildMitochondria() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0xE65100, 0.82, 0xBF360C, 0.2);
+  const positions = [
+    [2.5, 1, -1], [-2.2, -1, 1.5], [0.5, -2.5, -2]
+  ];
+  positions.forEach((pos, i) => {
+    const mg = new THREE.Group();
+    // 外膜胶囊
+    const outer = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.7, 6, 12), mat);
+    outer.rotation.set(
+      Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI
+    );
+    mg.add(outer);
+    // 嵴（内部环形结构）
+    const cristaeMat = createMaterial(0xFF8A65, 0.6, 0xE65100, 0.1);
+    for (let j = 0; j < 3; j++) {
+      const cr = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.02, 6, 12), cristaeMat);
+      cr.position.x = (j - 1) * 0.25;
+      cr.rotation.y = Math.PI / 2;
+      outer.add(cr);
+    }
+    mg.position.set(...pos);
+    mg.userData.basePos = [...pos];
+    g.add(mg);
+  });
+  setOrganelleId(g, 'mitochondria');
+  organelles.mitochondria = { group: g, data: ORGANELLE_DATA[2] };
+  cellGroup.add(g);
+}
+
+// ===== 构建内质网 =====
+function buildER() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0x64B5F6, 0.55, 0x1565C0, 0.1);
+  const pieces = [
+    [[0.4, 0.4, 0.3], [1.2, 0.8, 0.7], [2, 1, 1]],
+    [[-0.4, -0.3, -0.3], [-1.2, -0.8, -0.7], [-2, -1, -1]],
+    [[0.3, -0.4, 0.3], [0.8, -1, 0.7], [1.5, -1.5, 1]]
+  ];
+  pieces.forEach(pts => {
+    const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)));
+    const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 15, 0.1, 6, false), mat);
+    g.add(mesh);
+  });
+  // 粗面内质网上的核糖体颗粒
+  const ribMat = createMaterial(0x546E7A, 0.9);
+  pieces.forEach((pts, pi) => {
+    const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)));
+    for (let i = 0; i < 4; i++) {
+      const t = (i + 0.5) / 4;
+      const pos = curve.getPoint(t);
+      pos.x += (Math.random() - 0.5) * 0.15;
+      pos.y += (Math.random() - 0.5) * 0.15;
+      pos.z += (Math.random() - 0.5) * 0.15;
+      const rib = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), ribMat);
+      rib.position.copy(pos);
+      g.add(rib);
+    }
+  });
+  setOrganelleId(g, 'er');
+  organelles.er = { group: g, data: ORGANELLE_DATA[3] };
+  cellGroup.add(g);
+}
+
+// ===== 构建高尔基体 =====
+function buildGolgi() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0xFFB300, 0.72, 0xFF6F00, 0.12);
+  // 堆叠扁平囊
+  for (let i = 0; i < 5; i++) {
+    const r = 0.5 - i * 0.04;
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.06, 20), mat);
+    mesh.position.set(2.5, 0.9 + i * 0.14, 1.5);
+    mesh.rotation.y = i * 0.08;
+    g.add(mesh);
+  }
+  // 分泌小泡
+  const vesiMat = createMaterial(0xFFB300, 0.5, 0xFF6F00, 0.05);
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2;
+    const v = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 10), vesiMat);
+    v.position.set(2.5 + Math.cos(a) * 0.7, 0.6, 1.5 + Math.sin(a) * 0.7);
+    g.add(v);
+  }
+  setOrganelleId(g, 'golgi');
+  organelles.golgi = { group: g, data: ORGANELLE_DATA[4] };
+  cellGroup.add(g);
+}
+
+// ===== 构建游离核糖体 =====
+function buildRibosomes() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0x455A64, 0.88, 0x263238, 0.08);
+  const positions = [
+    [-1.5, 1.8, 1.2], [1.8, -1.5, 2], [-2.5, 0.5, -1.5],
+    [0.8, 2, -1.8], [-1.2, -1.8, -0.8], [2.2, 0.3, -2],
+    [-0.5, 1.5, 2.2], [1.2, -2, -0.5], [-2, 1.2, 0.8],
+    [0.3, -1.2, 2.5], [-0.8, 2.2, 0.5], [1.5, 1.8, 0.3]
+  ];
+  positions.forEach(pos => {
+    const r = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mat);
+    r.position.set(...pos);
+    r.userData.basePos = [...pos];
+    g.add(r);
+  });
+  setOrganelleId(g, 'ribosome');
+  organelles.ribosome = { group: g, data: ORGANELLE_DATA[5] };
+  cellGroup.add(g);
+}
+
+// ===== 构建溶酶体 =====
+function buildLysosomes() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0xC62828, 0.75, 0x8E0000, 0.15);
+  const positions = [[-2.5, 1.5, 1], [2, -2, 1], [-1, 2, -2.5]];
+  positions.forEach(pos => {
+    const l = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 14), mat);
+    l.position.set(...pos);
+    l.userData.basePos = [...pos];
+    g.add(l);
+  });
+  setOrganelleId(g, 'lysosome');
+  organelles.lysosome = { group: g, data: ORGANELLE_DATA[6] };
+  cellGroup.add(g);
+}
+
+// ===== 构建中心体（动物特有） =====
+function buildCentrioles() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0xFF9800, 0.8, 0xE65100, 0.15);
+  const geo = new THREE.CylinderGeometry(0.1, 0.1, 0.5, 12);
+  const c1 = new THREE.Mesh(geo, mat);
+  c1.position.set(1.5, 1.2, -1.5);
+  c1.rotation.z = Math.PI / 2;
+  g.add(c1);
+  const c2 = new THREE.Mesh(geo, mat);
+  c2.position.set(1.5, 1.2, -1.2);
+  c2.rotation.x = Math.PI / 2;
+  g.add(c2);
+  setOrganelleId(g, 'centriole');
+  organelles.centriole = { group: g, data: ORGANELLE_DATA[7] };
+  cellGroup.add(g);
+}
+
+// ===== 构建叶绿体（植物特有） =====
+function buildChloroplasts() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0x2E7D32, 0.78, 0x1B5E20, 0.15);
+  const granaMat = createMaterial(0x66BB6A, 0.6, 0x2E7D32, 0.1);
+  const positions = [[2, 1.5, -1], [-1.5, -1, 1.5], [1, -2, 1.5], [-2, 1, -1]];
+  positions.forEach((pos, i) => {
+    const cg = new THREE.Group();
+    // 双凸透镜形
+    const geo = new THREE.SphereGeometry(0.45, 20, 16);
+    geo.scale(1, 0.45, 1);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.y = i * 0.5;
+    cg.add(mesh);
+    // 内部基粒
+    for (let j = 0; j < 3; j++) {
+      const grana = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, 0.03, 10), granaMat
+      );
+      grana.position.set((Math.random() - 0.5) * 0.4, (j - 1) * 0.12, (Math.random() - 0.5) * 0.4);
+      cg.add(grana);
+    }
+    cg.position.set(...pos);
+    cg.userData.basePos = [...pos];
+    g.add(cg);
+  });
+  setOrganelleId(g, 'chloroplast');
+  organelles.chloroplast = { group: g, data: ORGANELLE_DATA[8] };
+  cellGroup.add(g);
+}
+
+// ===== 构建液泡（植物特有） =====
+function buildVacuole() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0x80DEEA, 0.25, 0x006064, 0.05);
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(1.8, 24, 24), mat);
+  mesh.position.set(0.5, -0.3, 0.5);
+  mesh.raycast = () => {};
+  g.add(mesh);
+  // 液泡膜
+  const membraneMat = createMaterial(0x4DD0E1, 0.15, 0x006064, 0.02);
+  const mem = new THREE.Mesh(new THREE.SphereGeometry(1.85, 20, 20), membraneMat);
+  mem.position.copy(mesh.position);
+  mem.raycast = () => {};
+  g.add(mem);
+  g.userData.basePos = [0.5, -0.3, 0.5];
+  setOrganelleId(g, 'vacuole');
+  organelles.vacuole = { group: g, data: ORGANELLE_DATA[9] };
+  cellGroup.add(g);
+}
+
+// ===== 构建细胞壁（植物特有） =====
+function buildCellWall() {
+  const g = new THREE.Group();
+  const mat = createMaterial(0x96C896, 0.08, 0x2E7D32, 0.03);
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(5.0, 32, 32), mat);
+  mesh.raycast = () => {};
+  g.add(mesh);
+  // 纤维质感（线框叠加）
+  const wireMat = new THREE.MeshBasicMaterial({
+    color: 0x96C896, wireframe: true, transparent: true, opacity: 0.03, depthWrite: false
+  });
+  const wire = new THREE.Mesh(new THREE.SphereGeometry(5.0, 16, 12), wireMat);
+  wire.raycast = () => {};
+  g.add(wire);
+  setOrganelleId(g, 'cellwall');
+  organelles.cellwall = { group: g, data: ORGANELLE_DATA[10] };
+  cellGroup.add(g);
+}
+
+// ===== 背景粒子 =====
+function createBackgroundParticles() {
+  const count = 200;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    const r = 15 + Math.random() * 15;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
+    pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    pos[i*3+2] = r * Math.cos(phi);
+    sizes[i] = Math.random() * 0.05 + 0.02;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    color: 0x4a9d6a, size: 0.08, transparent: true, opacity: 0.4,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  bgParticles = new THREE.Points(geo, mat);
+  scene.add(bgParticles);
+}
+
+// ===== 细胞质粒子 =====
+function createCytoplasmParticles() {
+  const count = 100;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const vel = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = Math.random() * 3.8;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
+    pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    pos[i*3+2] = r * Math.cos(phi);
+    vel[i*3] = (Math.random() - 0.5) * 0.002;
+    vel[i*3+1] = (Math.random() - 0.5) * 0.002;
+    vel[i*3+2] = (Math.random() - 0.5) * 0.002;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.userData.velocities = vel;
+  const mat = new THREE.PointsMaterial({
+    color: 0x88ddaa, size: 0.05, transparent: true, opacity: 0.3,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  cytoParticles = new THREE.Points(geo, mat);
+  cellGroup.add(cytoParticles);
+}
+
+// ===== 动画循环 =====
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.getElapsedTime();
+
+  updateTweens();
+
+  // 线粒体脉动
+  if (organelles.mitochondria) {
+    organelles.mitochondria.group.children.forEach((mg, i) => {
+      const s = 1 + Math.sin(t * 2 + i * 1.5) * 0.06;
+      mg.scale.setScalar(s);
+    });
+  }
+
+  // 细胞质粒子流动
+  if (cytoParticles) {
+    const pos = cytoParticles.geometry.attributes.position.array;
+    const vel = cytoParticles.geometry.userData.velocities;
+    for (let i = 0; i < pos.length; i += 3) {
+      pos[i] += vel[i] + Math.sin(t * 0.5 + i) * 0.0008;
+      pos[i+1] += vel[i+1] + Math.cos(t * 0.3 + i) * 0.0008;
+      pos[i+2] += vel[i+2] + Math.sin(t * 0.4 + i * 0.5) * 0.0008;
+      // 边界约束
+      const d = Math.sqrt(pos[i]**2 + pos[i+1]**2 + pos[i+2]**2);
+      if (d > 3.8) {
+        pos[i] *= -0.95; pos[i+1] *= -0.95; pos[i+2] *= -0.95;
+      }
+    }
+    cytoParticles.geometry.attributes.position.needsUpdate = true;
+  }
+
+  // 背景粒子缓慢旋转
+  if (bgParticles) bgParticles.rotation.y += dt * 0.02;
+
+  // 细胞器微悬浮
+  if (organelles.lysosome) {
+    organelles.lysosome.group.children.forEach((m, i) => {
+      const bp = m.userData.basePos;
+      if (bp) m.position.y = bp[1] + Math.sin(t * 0.8 + i * 2) * 0.08;
+    });
+  }
+  if (organelles.ribosome) {
+    organelles.ribosome.group.children.forEach((m, i) => {
+      const bp = m.userData.basePos;
+      if (bp) m.position.y = bp[1] + Math.sin(t * 1.2 + i) * 0.05;
+    });
+  }
+
+  // 细胞膜呼吸效果
+  if (organelles.membrane) {
+    const s = 1 + Math.sin(t * 0.4) * 0.008;
+    organelles.membrane.group.scale.setScalar(s);
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ===== 点击交互 =====
+function onCanvasClick(e) {
+  if (isFlying || secretionActive) return;
+  pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObject(cellGroup, true);
+  // 过滤不可见对象
+  for (const hit of hits) {
+    let obj = hit.object;
+    let visible = true;
+    while (obj) {
+      if (obj.visible === false) { visible = false; break; }
+      obj = obj.parent;
+    }
+    if (visible && hit.object.userData.organelleId) {
+      highlightOrganelle(hit.object.userData.organelleId);
+      return;
+    }
+  }
+  unhighlight();
+}
+
+// ===== 高亮细胞器 =====
+function highlightOrganelle(id) {
+  if (selectedId === id) { unhighlight(); return; }
+  unhighlight();
+  selectedId = id;
+  const org = organelles[id];
+  if (!org) return;
+  // 提升 emissive
+  org.group.traverse(c => {
+    if (c.isMesh && c.material && c.material.emissive) {
+      c.material.userData.origEmissive = c.material.emissiveIntensity;
+      c.material.emissiveIntensity = Math.max(c.material.emissiveIntensity, 0.6);
+    }
+  });
+  document.querySelectorAll('.organelle-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.id === id);
+  });
+  showInfo(id);
+}
+
+// ===== 取消高亮 =====
+function unhighlight() {
+  if (!selectedId) return;
+  Object.values(organelles).forEach(org => {
+    org.group.traverse(c => {
+      if (c.isMesh && c.material && c.material.userData.origEmissive !== undefined) {
+        c.material.emissiveIntensity = c.material.userData.origEmissive;
+        delete c.material.userData.origEmissive;
+      }
+    });
+  });
+  selectedId = null;
+  document.querySelectorAll('.organelle-item').forEach(item => item.classList.remove('active'));
+  document.getElementById('infoPanel').classList.remove('visible');
+}
+
+// ===== 显示信息面板 =====
+function showInfo(id) {
+  const d = ORGANELLE_DATA.find(o => o.id === id);
+  if (!d) return;
+  const dot = document.getElementById('infoColorDot');
+  dot.style.background = d.hex;
+  dot.style.color = d.hex;
+  document.getElementById('infoName').textContent = d.name;
+  document.getElementById('infoNameEn').textContent = d.nameEn;
+  document.getElementById('infoDesc').textContent = d.desc;
+  document.getElementById('infoFunc').textContent = d.func;
+  document.getElementById('infoPanel').classList.add('visible');
+}
+
+// ===== 更新细胞类型可见性 =====
+function updateCellTypeVisibility() {
+  Object.values(organelles).forEach(org => {
+    const type = org.data.type;
+    if (type === 'both') {
+      org.group.visible = true;
+    } else {
+      org.group.visible = (type === currentCellType);
+    }
+  });
+  // 植物细胞时调整细胞核位置（为液泡让空间）
+  if (currentCellType === 'plant') {
+    if (organelles.nucleus) organelles.nucleus.group.position.set(-1.2, 0.8, 0);
+    if (organelles.mitochondria) organelles.mitochondria.group.position.set(0, 0, 0);
+  } else {
+    if (organelles.nucleus) organelles.nucleus.group.position.set(0, 0, 0);
+    if (organelles.mitochondria) organelles.mitochondria.group.position.set(0, 0, 0);
+  }
+  updateOrganelleList();
+}
+
+// ===== 更新细胞器列表 =====
+function updateOrganelleList() {
+  const list = document.getElementById('organelleList');
+  list.innerHTML = '';
+  ORGANELLE_DATA.forEach(d => {
+    if (d.type !== 'both' && d.type !== currentCellType) return;
+    const org = organelles[d.id];
+    if (!org || !org.group.visible) return;
+    const item = document.createElement('div');
+    item.className = 'organelle-item';
+    if (selectedId === d.id) item.classList.add('active');
+    item.dataset.id = d.id;
+    item.innerHTML = `
+      <span class="organelle-dot" style="background:${d.hex};color:${d.hex}"></span>
+      <span class="organelle-name">${d.name}</span>
+      <button class="organelle-toggle" data-id="${d.id}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    `;
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.organelle-toggle')) {
+        e.stopPropagation();
+        toggleOrganelle(d.id);
+        return;
+      }
+      highlightOrganelle(d.id);
+    });
+    list.appendChild(item);
+  });
+}
+
+// ===== 切换细胞器可见性 =====
+function toggleOrganelle(id) {
+  const org = organelles[id];
+  if (!org) return;
+  org.group.visible = !org.group.visible;
+  const btn = document.querySelector(`.organelle-toggle[data-id="${id}"]`);
+  if (btn) btn.classList.toggle('hidden', !org.group.visible);
+}
+
+// ===== 剖切平面 =====
+function updateClipPlane() {
+  if (!clipEnabled) {
+    allMaterials.forEach(mat => { mat.clippingPlanes = []; });
+    return;
+  }
+  const dir = new THREE.Vector3(0, 0, 0);
+  dir[clipAxis] = 1;
+  clipPlane = new THREE.Plane(dir, -clipPos);
+  allMaterials.forEach(mat => { mat.clippingPlanes = [clipPlane]; });
+}
+
+function toggleClipping() {
+  clipEnabled = !clipEnabled;
+  const btn = document.getElementById('clipBtn');
+  const panel = document.getElementById('clipPanel');
+  btn.classList.toggle('active', clipEnabled);
+  panel.classList.toggle('visible', clipEnabled);
+  if (clipEnabled) {
+    controls.autoRotate = false;
+    document.getElementById('spinBtn').classList.remove('active');
+  }
+  updateClipPlane();
+}
+
+function setClipAxis(axis) {
+  clipAxis = axis;
+  document.querySelectorAll('.clip-axis-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.axis === axis);
+  });
+  updateClipPlane();
+}
+
+// ===== 绑定UI事件 =====
+function bindUI() {
+  // 画布点击
+  renderer.domElement.addEventListener('click', onCanvasClick);
+  // 窗口缩放
+  window.addEventListener('resize', onWindowResize);
+  // 关闭信息面板
+  document.getElementById('infoClose').addEventListener('click', unhighlight);
+  // 细胞类型切换
+  document.querySelectorAll('.cell-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('active')) return;
+      document.querySelectorAll('.cell-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCellType = btn.dataset.type;
+      document.getElementById('statusTag').textContent = currentCellType === 'animal' ? '动物细胞' : '植物细胞';
+      unhighlight();
+      // 切换动画
+      tween(cellGroup.scale.x, 0.3, 300, (v) => {
+        cellGroup.scale.setScalar(v);
+      }, () => {
+        updateCellTypeVisibility();
+        tween(0.3, 1, 400, (v) => {
+          cellGroup.scale.setScalar(v);
+        });
+      });
+    });
+  });
+  // 显示模式切换
+  document.querySelectorAll('.demo-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.demo-mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      setDisplayMode(btn.dataset.mode);
+    });
+  });
+  // 自动旋转
+  document.getElementById('spinBtn').addEventListener('click', function() {
+    controls.autoRotate = !controls.autoRotate;
+    this.classList.toggle('active', controls.autoRotate);
+  });
+  // 重置视角
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (isFlying) return;
+    const targetPos = { x: 0, y: 2, z: 13 };
+    tween(camera.position.x, targetPos.x, 600, (v) => camera.position.x = v);
+    tween(camera.position.y, targetPos.y, 600, (v) => camera.position.y = v);
+    tween(camera.position.z, targetPos.z, 600, (v) => camera.position.z = v);
+    tween(controls.target.x, 0, 600, (v) => controls.target.x = v);
+    tween(controls.target.y, 0, 600, (v) => controls.target.y = v);
+    tween(controls.target.z, 0, 600, (v) => controls.target.z = v);
+  });
+  // 飞入细胞
+  document.getElementById('flyBtn').addEventListener('click', flyIntoCell);
+  // 分泌蛋白演示
+  document.getElementById('secretionBtn').addEventListener('click', startSecretion);
+  // 全屏
+  document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+  // 剖切开关
+  document.getElementById('clipBtn').addEventListener('click', toggleClipping);
+  // 剖切轴选择
+  document.querySelectorAll('.clip-axis-btn').forEach(btn => {
+    btn.addEventListener('click', () => setClipAxis(btn.dataset.axis));
+  });
+  // 剖切位置滑块
+  const clipSlider = document.getElementById('clipSlider');
+  const clipValue = document.getElementById('clipValue');
+  clipSlider.addEventListener('input', () => {
+    clipPos = parseFloat(clipSlider.value);
+    clipValue.textContent = clipPos.toFixed(1);
+    updateClipPlane();
+  });
+}
+
+// ===== 设置显示模式 =====
+function setDisplayMode(mode) {
+  currentDisplayMode = mode;
+  allMaterials.forEach(mat => {
+    if (mode === 'wireframe') {
+      mat.wireframe = true;
+      mat.opacity = Math.min(mat.userData.baseOpacity, 0.6);
+    } else if (mode === 'transparent') {
+      mat.wireframe = false;
+      mat.opacity = Math.min(mat.userData.baseOpacity, 0.3);
+      mat.depthWrite = false;
+    } else {
+      mat.wireframe = false;
+      mat.opacity = mat.userData.baseOpacity;
+      mat.depthWrite = mat.userData.baseOpacity > 0.5;
+    }
+  });
+}
+
+// ===== 飞入细胞视角 =====
+function flyIntoCell() {
+  if (isFlying) return;
+  isFlying = true;
+  controls.autoRotate = false;
+  document.getElementById('spinBtn').classList.remove('active');
+  // 目标：靠近细胞核
+  const targetPos = { x: 0, y: 0, z: 4 };
+  const targetLook = { x: 0, y: 0, z: 0 };
+  tween(camera.position.x, targetPos.x, 2000, (v) => camera.position.x = v);
+  tween(camera.position.y, targetPos.y, 2000, (v) => camera.position.y = v);
+  tween(camera.position.z, targetPos.z, 2000, (v) => camera.position.z = v);
+  tween(controls.target.x, targetLook.x, 2000, (v) => controls.target.x = v);
+  tween(controls.target.y, targetLook.y, 2000, (v) => controls.target.y = v);
+  tween(controls.target.z, targetLook.z, 2000, (v) => controls.target.z = v, () => {
+    isFlying = false;
+    // 3秒后自动退回
+    setTimeout(() => {
+      if (!isFlying) {
+        const backPos = { x: 0, y: 2, z: 13 };
+        tween(camera.position.x, backPos.x, 1500, (v) => camera.position.x = v);
+        tween(camera.position.y, backPos.y, 1500, (v) => camera.position.y = v);
+        tween(camera.position.z, backPos.z, 1500, (v) => camera.position.z = v);
+      }
+    }, 3000);
+  });
+}
+
+// ===== 分泌蛋白通路演示 =====
+function startSecretion() {
+  if (secretionActive) return;
+  secretionActive = true;
+  unhighlight();
+  const label = document.getElementById('secretionLabel');
+  label.textContent = '分泌蛋白合成通路：核糖体 → 内质网 → 高尔基体 → 细胞膜';
+  label.classList.add('visible');
+  // 创建蛋白质小球
+  const proteinMat = new THREE.MeshStandardMaterial({
+    color: 0x76FF03, emissive: 0x558822, emissiveIntensity: 0.8,
+    transparent: true, opacity: 0.9
+  });
+  const protein = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), proteinMat);
+  // 起点：核糖体（内质网附近）
+  const startPos = new THREE.Vector3(1.2, 0.8, 0.7);
+  protein.position.copy(startPos);
+  cellGroup.add(protein);
+  // 闪烁效果
+  protein.userData.glow = true;
+  // 路径关键点
+  const path = [
+    { pos: new THREE.Vector3(1.2, 0.8, 0.7), label: '核糖体', dur: 0 },
+    { pos: new THREE.Vector3(0.5, 0.5, 0.3), label: '内质网', dur: 1500 },
+    { pos: new THREE.Vector3(2.5, 0.9, 1.5), label: '高尔基体', dur: 2000 },
+    { pos: new THREE.Vector3(3.8, 1.5, 1), label: '分泌小泡', dur: 2000 },
+    { pos: new THREE.Vector3(4.3, 2, 0.5), label: '细胞膜外排', dur: 1500 }
+  ];
+  let stepIdx = 0;
+  function moveStep() {
+    if (stepIdx >= path.length - 1) {
+      // 结束
+      tween(protein.material.opacity, 0, 800, (v) => {
+        protein.material.opacity = v;
+      }, () => {
+        cellGroup.remove(protein);
+        protein.geometry.dispose();
+        protein.material.dispose();
+        label.classList.remove('visible');
+        secretionActive = false;
+      });
+      return;
+    }
+    const from = path[stepIdx].pos;
+    const to = path[stepIdx + 1].pos;
+    const dur = path[stepIdx + 1].dur;
+    label.textContent = `分泌蛋白通路 [${stepIdx + 1}/${path.length - 1}]：${path[stepIdx].label} → ${path[stepIdx + 1].label}`;
+    tween(0, 1, dur, (t) => {
+      protein.position.lerpVectors(from, to, t);
+      // 蛋白质微弹
+      protein.scale.setScalar(1 + Math.sin(t * Math.PI * 4) * 0.1);
+    }, () => {
+      stepIdx++;
+      moveStep();
+    });
+  }
+  moveStep();
+}
+
+// ===== 窗口缩放 =====
+function onWindowResize() {
+  const container = document.getElementById('canvasContainer');
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+// ===== 启动 =====
+init();
+</script>
+</body>
+</html>

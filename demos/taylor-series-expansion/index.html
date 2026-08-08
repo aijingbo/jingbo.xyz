@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>泰勒级数展开动态逼近 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css">
+<link rel="stylesheet" href="/assets/css/demo-framework.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<style>
+/* ===== Taylor Series Demo 专属样式 ===== */
+:root {
+  --ts-purple: #7c3aed;
+  --ts-purple-light: #8b5cf6;
+  --ts-purple-soft: rgba(124, 58, 237, 0.08);
+  --ts-purple-glow: rgba(124, 58, 237, 0.25);
+  --ts-purple-fill: rgba(139, 92, 246, 0.06);
+  --ts-coral: #e11d48;
+  --ts-coral-soft: rgba(225, 29, 72, 0.1);
+  --ts-gray: #94a3b8;
+  --ts-gray-light: #cbd5e1;
+  --ts-grid: #f0ebe4;
+  --ts-axis: #d4cdc0;
+  --ts-bg: #faf8f5;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--ts-bg);
+}
+
+/* ===== 顶部进度条 ===== */
+.ts-progress {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border-soft);
+  z-index: 99;
+}
+.ts-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ts-purple), var(--ts-purple-light));
+  border-radius: 0 2px 2px 0;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== 杂志布局 ===== */
+.ts-layout {
+  display: grid;
+  grid-template-columns: 38% 62%;
+  gap: var(--spacer-48);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--spacer-32) var(--spacer-32) calc(var(--spacer-48) + 52px);
+  min-height: calc(100vh - 64px);
+}
+
+/* ===== 左侧文章区 ===== */
+.ts-article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-20);
+}
+
+.ts-article-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-12);
+}
+
+.ts-kicker {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  letter-spacing: 0.12em;
+  color: var(--ts-purple);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.ts-title {
+  font-family: var(--font-serif);
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.ts-subtitle {
+  font-size: var(--fs-body);
+  color: var(--text-muted);
+  line-height: var(--lh-relaxed);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+/* ===== 步骤指示器 ===== */
+.ts-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-12);
+  margin: var(--spacer-4) 0;
+}
+
+.ts-step-dots {
+  display: flex;
+  gap: 10px;
+}
+
+.ts-step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--border);
+  transition: all var(--duration-base) var(--ease);
+  cursor: pointer;
+}
+
+.ts-step-dot.active {
+  background-color: var(--ts-purple);
+  transform: scale(1.3);
+  box-shadow: 0 0 0 4px var(--ts-purple-soft);
+}
+
+.ts-step-dot.completed {
+  background-color: var(--ts-purple-light);
+  opacity: 0.4;
+}
+
+.ts-step-dot:hover:not(.active) {
+  background-color: var(--text-faint);
+}
+
+.ts-step-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* ===== 步骤内容 ===== */
+.ts-step-content {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 440px;
+  padding-right: var(--spacer-8);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.ts-step-content.fade-out {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.ts-step-content::-webkit-scrollbar {
+  width: 4px;
+}
+.ts-step-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.ts-step-content h3 {
+  font-family: var(--font-serif);
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: var(--spacer-16);
+}
+
+.ts-step-content p {
+  font-size: var(--fs-body);
+  line-height: 1.85;
+  color: var(--text);
+  margin-bottom: var(--spacer-16);
+}
+
+.ts-step-content p.lead {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--ts-purple);
+}
+
+.ts-step-content strong {
+  color: var(--ts-purple);
+  font-weight: 600;
+}
+
+.ts-step-content em {
+  color: var(--ts-coral);
+  font-style: italic;
+  font-weight: 500;
+}
+
+.ts-interactive-hint {
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  font-style: italic;
+  padding: var(--spacer-8) var(--spacer-12);
+  background: var(--ts-purple-soft);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--ts-purple);
+  margin-top: var(--spacer-8);
+}
+
+/* ===== 洞察框 ===== */
+.ts-insight {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.03), rgba(124, 58, 237, 0.07));
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: var(--radius-card);
+  padding: var(--spacer-16) var(--spacer-20);
+  margin: var(--spacer-16) 0;
+}
+
+.ts-insight-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  letter-spacing: 0.1em;
+  color: var(--ts-purple);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: var(--spacer-8);
+}
+
+.ts-insight-text {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+/* ===== 探索问题 ===== */
+.ts-explore {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-8);
+  margin-top: var(--spacer-12);
+}
+
+.ts-explore-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacer-8);
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.ts-explore-item::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ts-purple);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+/* ===== 应用卡片 ===== */
+.ts-app-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacer-12);
+  margin: var(--spacer-16) 0;
+}
+
+.ts-app-card {
+  padding: var(--spacer-16);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  transition: all var(--duration-base) var(--ease);
+}
+
+.ts-app-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+  border-color: rgba(124, 58, 237, 0.2);
+}
+
+.ts-app-num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--ts-purple);
+  font-weight: 600;
+  margin-bottom: var(--spacer-4);
+}
+
+.ts-app-title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: var(--spacer-4);
+}
+
+.ts-app-desc {
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.ts-app-desc em {
+  color: var(--ts-coral);
+  font-style: italic;
+}
+
+/* ===== 步骤导航 ===== */
+.ts-step-nav {
+  display: flex;
+  gap: var(--spacer-12);
+  align-items: center;
+}
+
+.ts-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacer-8);
+  padding: 10px 20px;
+  font-family: var(--font-sans);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--duration-base) var(--ease);
+  white-space: nowrap;
+}
+
+.ts-nav-btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.ts-nav-btn-secondary:hover {
+  border-color: var(--text-faint);
+  background: var(--surface-muted);
+}
+
+.ts-nav-btn-primary {
+  background: var(--ts-purple);
+  color: white;
+  flex: 1;
+}
+
+.ts-nav-btn-primary:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--ts-purple-glow);
+}
+
+.ts-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ts-nav-play {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-base) var(--ease);
+  flex-shrink: 0;
+}
+
+.ts-nav-play:hover {
+  border-color: var(--ts-purple);
+  color: var(--ts-purple);
+}
+
+.ts-nav-play.playing {
+  background: var(--ts-purple);
+  border-color: var(--ts-purple);
+  color: white;
+}
+
+.ts-nav-play svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ===== 右侧可视化区 ===== */
+.ts-visual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+}
+
+.ts-visual-wrapper {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  min-height: 420px;
+}
+
+.ts-visual-wrapper canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ts-caption {
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+/* ===== 公式展示 ===== */
+.ts-formula {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--spacer-16) var(--spacer-20);
+  text-align: center;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ts-formula .katex {
+  font-size: 1.1em;
+}
+
+/* ===== 画布上的控件叠层 ===== */
+.ts-canvas-controls {
+  position: absolute;
+  bottom: var(--spacer-16);
+  left: var(--spacer-16);
+  right: var(--spacer-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-12);
+  z-index: 10;
+}
+
+.ts-control-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-16);
+  padding: var(--spacer-12) var(--spacer-16);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.ts-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.ts-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ts-slider-label {
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.ts-slider-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  color: var(--ts-purple);
+}
+
+.ts-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+.ts-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ts-purple);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: transform var(--duration-fast) var(--ease);
+}
+
+.ts-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.ts-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ts-purple);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== 函数选择按钮 ===== */
+.ts-func-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.ts-func-btn {
+  padding: 5px 12px;
+  font-size: var(--fs-tiny);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  white-space: nowrap;
+}
+
+.ts-func-btn:hover {
+  border-color: var(--ts-purple);
+  color: var(--ts-purple);
+}
+
+.ts-func-btn.active {
+  background: var(--ts-purple);
+  border-color: var(--ts-purple);
+  color: white;
+}
+
+/* ===== 画布上的标签 ===== */
+.ts-canvas-label {
+  position: absolute;
+  top: var(--spacer-16);
+  left: var(--spacer-16);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+}
+
+.ts-canvas-label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  font-size: var(--fs-tiny);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.ts-canvas-label-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* ===== 添加项按钮 ===== */
+.ts-add-term-btn {
+  position: absolute;
+  bottom: var(--spacer-16);
+  right: var(--spacer-16);
+  z-index: 10;
+  padding: 10px 20px;
+  background: var(--ts-purple);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--duration-base) var(--ease);
+  box-shadow: 0 4px 16px var(--ts-purple-glow);
+}
+
+.ts-add-term-btn:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+}
+
+.ts-add-term-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== 项数显示 ===== */
+.ts-term-display {
+  position: absolute;
+  top: var(--spacer-16);
+  right: var(--spacer-16);
+  z-index: 10;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--ts-purple);
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .ts-layout {
+    grid-template-columns: 1fr;
+    gap: var(--spacer-32);
+  }
+
+  .ts-step-content {
+    max-height: 300px;
+  }
+
+  .ts-visual-wrapper {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ts-layout {
+    padding: var(--spacer-20) var(--spacer-16) calc(var(--spacer-32) + 52px);
+  }
+
+  .ts-step-content {
+    max-height: 250px;
+  }
+
+  .ts-visual-wrapper {
+    min-height: 300px;
+  }
+
+  .ts-app-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ts-canvas-controls {
+    bottom: var(--spacer-8);
+    left: var(--spacer-8);
+    right: var(--spacer-8);
+  }
+
+  .ts-control-row {
+    flex-wrap: wrap;
+    gap: var(--spacer-8);
+    padding: var(--spacer-8) var(--spacer-12);
+  }
+
+  .ts-slider {
+    height: 6px;
+  }
+
+  .ts-slider::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  .ts-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/demos.html" class="demo-back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </a>
+    <span class="demo-nav-divider"></span>
+    <a href="/" class="demo-nav-logo">景礴</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">泰勒级数展开动态逼近</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-math">数学</span>
+    <a href="/skills/jingbo-edu-advanced-calculus-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 顶部进度条 ====== -->
+<div class="ts-progress">
+  <div class="ts-progress-fill" id="progressFill" style="width: 20%"></div>
+</div>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper" style="padding-top: 67px;">
+    <div class="ts-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="ts-article">
+        <div class="ts-article-header">
+          <div class="ts-kicker">MATHEMATICS · 数学分析</div>
+          <h1 class="ts-title">泰勒级数展开动态逼近</h1>
+          <p class="ts-subtitle">用最简单的多项式，去逼近最复杂的函数——这是数学中最优雅的力量之一。</p>
+        </div>
+
+        <!-- 步骤指示器 -->
+        <div class="ts-step-indicator">
+          <div class="ts-step-dots" id="stepDots">
+            <div class="ts-step-dot active" data-step="0"></div>
+            <div class="ts-step-dot" data-step="1"></div>
+            <div class="ts-step-dot" data-step="2"></div>
+            <div class="ts-step-dot" data-step="3"></div>
+            <div class="ts-step-dot" data-step="4"></div>
+          </div>
+          <span class="ts-step-label" id="stepLabel">第 1 / 5 步</span>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="ts-step-content" id="stepContent"></div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="ts-step-nav">
+          <button class="ts-nav-btn ts-nav-btn-secondary" id="prevBtn" disabled>
+            <span>&larr;</span> 上一步
+          </button>
+          <button class="ts-nav-btn ts-nav-btn-primary" id="nextBtn">
+            下一步 <span>&rarr;</span>
+          </button>
+          <button class="ts-nav-play" id="playBtn" title="自动播放">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="ts-visual">
+        <div class="ts-visual-wrapper" id="visualWrapper">
+          <canvas id="mainCanvas"></canvas>
+          <!-- 图例 -->
+          <div class="ts-canvas-label" id="canvasLabel">
+            <div class="ts-canvas-label-row">
+              <div class="ts-canvas-label-dot" style="background: var(--ts-gray);"></div>
+              <span>目标函数</span>
+            </div>
+            <div class="ts-canvas-label-row">
+              <div class="ts-canvas-label-dot" style="background: var(--ts-purple-light);"></div>
+              <span>泰勒逼近</span>
+            </div>
+          </div>
+          <!-- 项数显示 -->
+          <div class="ts-term-display" id="termDisplay" style="display: none;">N = 1</div>
+          <!-- 控件叠层 -->
+          <div class="ts-canvas-controls" id="controlsOverlay"></div>
+          <!-- 添加项按钮 -->
+          <button class="ts-add-term-btn" id="addTermBtn" style="display: none;">添加一项 &rarr;</button>
+        </div>
+        <p class="ts-caption" id="visualCaption">图 1 · sin(x) 的泰勒级数逼近过程：多项式如何一步步贴合目标函数</p>
+        <div class="ts-formula" id="formulaDisplay"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">taylor-series-expansion</span>
+    <span class="demo-tech-tag">Canvas</span>
+    <span class="demo-tech-tag">KaTeX</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/demos.html" class="demo-info-link">课件库</a>
+  </div>
+</footer>
+
+<script>
+(function() {
+'use strict';
+
+/* ========================================
+   一、数学函数与泰勒级数
+   ======================================== */
+
+var PI = Math.PI;
+
+var Functions = {
+  sin: {
+    name: 'sin(x)',
+    label: 'sin',
+    f: function(x) { return Math.sin(x); },
+    derivative: function(n, a) {
+      var cycle = n % 4;
+      if (cycle === 0) return Math.sin(a);
+      if (cycle === 1) return Math.cos(a);
+      if (cycle === 2) return -Math.sin(a);
+      return -Math.cos(a);
+    },
+    xRange: [-2 * PI, 2 * PI],
+    yRange: [-2.5, 2.5],
+    aDefault: 0,
+    aRange: [-PI, PI],
+    seriesAt0: ['x', '-\\frac{x^3}{3!}', '+\\frac{x^5}{5!}', '-\\frac{x^7}{7!}', '+\\frac{x^9}{9!}'],
+    latexName: '\\sin(x)',
+    maxTerms: 15,
+    animOrders: [0, 1, 3, 5, 7, 9]
+  },
+  cos: {
+    name: 'cos(x)',
+    label: 'cos',
+    f: function(x) { return Math.cos(x); },
+    derivative: function(n, a) {
+      var cycle = n % 4;
+      if (cycle === 0) return Math.cos(a);
+      if (cycle === 1) return -Math.sin(a);
+      if (cycle === 2) return -Math.cos(a);
+      return Math.sin(a);
+    },
+    xRange: [-2 * PI, 2 * PI],
+    yRange: [-2.5, 2.5],
+    aDefault: 0,
+    aRange: [-PI, PI],
+    seriesAt0: ['1', '-\\frac{x^2}{2!}', '+\\frac{x^4}{4!}', '-\\frac{x^6}{6!}', '+\\frac{x^8}{8!}'],
+    latexName: '\\cos(x)',
+    maxTerms: 15,
+    animOrders: [0, 2, 4, 6, 8]
+  },
+  exp: {
+    name: 'eˣ',
+    label: 'eˣ',
+    f: function(x) { return Math.exp(x); },
+    derivative: function(n, a) { return Math.exp(a); },
+    xRange: [-3, 3],
+    yRange: [-1, 12],
+    aDefault: 0,
+    aRange: [-2, 2],
+    seriesAt0: ['1', '+x', '+\\frac{x^2}{2!}', '+\\frac{x^3}{3!}', '+\\frac{x^4}{4!}', '+\\frac{x^5}{5!}'],
+    latexName: 'e^x',
+    maxTerms: 15,
+    animOrders: [0, 1, 2, 3, 4, 5]
+  },
+  ln: {
+    name: 'ln(1+x)',
+    label: 'ln',
+    f: function(x) {
+      if (x <= -1) return -999;
+      return Math.log(1 + x);
+    },
+    derivative: function(n, a) {
+      if (n === 0) return Math.log(1 + a);
+      if (1 + a === 0) return 999;
+      var sign = (n % 2 === 1) ? 1 : -1;
+      var fact = factorial(n - 1);
+      return sign * fact / Math.pow(1 + a, n);
+    },
+    xRange: [-0.95, 3],
+    yRange: [-3, 2],
+    aDefault: 0,
+    aRange: [-0.5, 1.5],
+    seriesAt0: ['x', '-\\frac{x^2}{2}', '+\\frac{x^3}{3}', '-\\frac{x^4}{4}', '+\\frac{x^5}{5}'],
+    latexName: '\\ln(1+x)',
+    maxTerms: 15,
+    animOrders: [0, 1, 2, 3, 4, 5]
+  }
+};
+
+function factorial(n) {
+  if (n <= 1) return 1;
+  var r = 1;
+  for (var i = 2; i <= n; i++) r *= i;
+  return r;
+}
+
+function taylor(func, a, n, x) {
+  var sum = 0;
+  for (var k = 0; k <= n; k++) {
+    var d = func.derivative(k, a);
+    sum += d / factorial(k) * Math.pow(x - a, k);
+  }
+  return sum;
+}
+
+
+/* ========================================
+   二、Canvas 绘图器
+   ======================================== */
+
+var canvas, ctx, dpr, cw, ch;
+
+function initCanvas() {
+  canvas = document.getElementById('mainCanvas');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+}
+
+function resizeCanvas() {
+  var wrapper = document.getElementById('visualWrapper');
+  var rect = wrapper.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  cw = rect.width;
+  ch = Math.max(rect.height, 420);
+  canvas.width = cw * dpr;
+  canvas.height = ch * dpr;
+  canvas.style.width = cw + 'px';
+  canvas.style.height = ch + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+/* 坐标变换 */
+function getTransform(xRange, yRange) {
+  var padL = 40, padR = 24, padT = 24, padB = 32;
+  var w = cw - padL - padR;
+  var h = ch - padT - padB;
+  return {
+    padL: padL, padR: padR, padT: padT, padB: padB,
+    w: w, h: h,
+    xMin: xRange[0], xMax: xRange[1],
+    yMin: yRange[0], yMax: yRange[1],
+    toX: function(x) { return padL + (x - xRange[0]) / (xRange[1] - xRange[0]) * w; },
+    toY: function(y) { return padT + (yRange[1] - y) / (yRange[1] - yRange[0]) * h; }
+  };
+}
+
+function drawGrid(t) {
+  ctx.save();
+  ctx.strokeStyle = '#f0ebe4';
+  ctx.lineWidth = 1;
+
+  var xStep = niceStep(t.xMax - t.xMin);
+  var yStep = niceStep(t.yMax - t.yMin);
+
+  for (var xv = Math.ceil(t.xMin / xStep) * xStep; xv <= t.xMax; xv += xStep) {
+    var px = t.toX(xv);
+    ctx.beginPath();
+    ctx.moveTo(px, t.padT);
+    ctx.lineTo(px, t.padT + t.h);
+    ctx.stroke();
+  }
+  for (var yv = Math.ceil(t.yMin / yStep) * yStep; yv <= t.yMax; yv += yStep) {
+    var py = t.toY(yv);
+    ctx.beginPath();
+    ctx.moveTo(t.padL, py);
+    ctx.lineTo(t.padL + t.w, py);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawAxes(t) {
+  ctx.save();
+  ctx.strokeStyle = '#d4cdc0';
+  ctx.lineWidth = 1.5;
+
+  // X轴
+  if (t.yMin <= 0 && t.yMax >= 0) {
+    var y0 = t.toY(0);
+    ctx.beginPath();
+    ctx.moveTo(t.padL, y0);
+    ctx.lineTo(t.padL + t.w, y0);
+    ctx.stroke();
+  }
+  // Y轴
+  if (t.xMin <= 0 && t.xMax >= 0) {
+    var x0 = t.toX(0);
+    ctx.beginPath();
+    ctx.moveTo(x0, t.padT);
+    ctx.lineTo(x0, t.padT + t.h);
+    ctx.stroke();
+  }
+
+  // 刻度标签
+  ctx.fillStyle = '#a3a3a3';
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  var xStep = niceStep(t.xMax - t.xMin);
+  var y0 = (t.yMin <= 0 && t.yMax >= 0) ? t.toY(0) : (t.padT + t.h);
+  for (var xv = Math.ceil(t.xMin / xStep) * xStep; xv <= t.xMax; xv += xStep) {
+    if (Math.abs(xv) < 0.001) continue;
+    var px = t.toX(xv);
+    var label = formatNum(xv);
+    ctx.fillText(label, px, y0 + 4);
+  }
+
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  var yStep = niceStep(t.yMax - t.yMin);
+  var x0 = (t.xMin <= 0 && t.xMax >= 0) ? t.toX(0) : t.padL;
+  for (var yv = Math.ceil(t.yMin / yStep) * yStep; yv <= t.yMax; yv += yStep) {
+    if (Math.abs(yv) < 0.001) continue;
+    var py = t.toY(yv);
+    ctx.fillText(formatNum(yv), x0 - 6, py);
+  }
+
+  ctx.restore();
+}
+
+function niceStep(range) {
+  var raw = range / 8;
+  var mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  var norm = raw / mag;
+  if (norm < 1.5) return mag;
+  if (norm < 3) return 2 * mag;
+  if (norm < 7) return 5 * mag;
+  return 10 * mag;
+}
+
+function formatNum(v) {
+  if (Math.abs(v) < 0.01) return '0';
+  if (Math.abs(v) >= 100) return v.toFixed(0);
+  if (Math.abs(v) >= 10) return v.toFixed(0);
+  if (Math.abs(v) >= 1) return v.toFixed(1);
+  return v.toFixed(2);
+}
+
+function drawFunction(fn, t, options) {
+  options = options || {};
+  ctx.save();
+  ctx.strokeStyle = options.color || '#94a3b8';
+  ctx.lineWidth = options.width || 2;
+  ctx.setLineDash(options.dash || []);
+
+  if (options.glow) {
+    ctx.shadowColor = options.color;
+    ctx.shadowBlur = 8;
+  }
+
+  var steps = Math.floor(t.w);
+  var started = false;
+  ctx.beginPath();
+  for (var i = 0; i <= steps; i++) {
+    var x = t.xMin + (t.xMax - t.xMin) * i / steps;
+    var y = fn(x);
+    if (!isFinite(y) || Math.abs(y) > 1e6) {
+      started = false;
+      continue;
+    }
+    var py = t.toY(y);
+    if (py < t.padT - 50 || py > t.padT + t.h + 50) {
+      started = false;
+      continue;
+    }
+    var px = t.toX(x);
+    if (!started) {
+      ctx.moveTo(px, py);
+      started = true;
+    } else {
+      ctx.lineTo(px, py);
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPoint(t, x, y, options) {
+  options = options || {};
+  ctx.save();
+  var px = t.toX(x);
+  var py = t.toY(y);
+
+  if (options.ring) {
+    ctx.beginPath();
+    ctx.arc(px, py, options.ringRadius || 8, 0, 2 * PI);
+    ctx.fillStyle = options.ringColor || 'rgba(124, 58, 237, 0.15)';
+    ctx.fill();
+  }
+
+  ctx.beginPath();
+  ctx.arc(px, py, options.radius || 5, 0, 2 * PI);
+  ctx.fillStyle = options.color || '#7c3aed';
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  if (options.label) {
+    ctx.fillStyle = '#6b6b6b';
+    ctx.font = '12px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(options.label, px + 10, py - 8);
+  }
+
+  ctx.restore();
+}
+
+function drawVerticalLine(t, x, options) {
+  options = options || {};
+  ctx.save();
+  ctx.strokeStyle = options.color || 'rgba(124, 58, 237, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  var px = t.toX(x);
+  ctx.beginPath();
+  ctx.moveTo(px, t.padT);
+  ctx.lineTo(px, t.padT + t.h);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function clearCanvas() {
+  ctx.clearRect(0, 0, cw, ch);
+}
+
+
+/* ========================================
+   三、步骤内容
+   ======================================== */
+
+var stepContents = [
+  // Step 1
+  '<h3>用多项式丈量世界</h3>' +
+  '<p class="lead">想象你面前有一条蜿蜒的曲线——也许是正弦波的起伏，也许是指数函数的攀升。如果你只能用加减乘除来描述它，能做到多精确？</p>' +
+  '<p>这正是 18 世纪英国数学家 <strong>布鲁克·泰勒</strong> 思考的问题。他的答案简洁而深刻：<em>任何光滑的函数，都可以用多项式无限逼近</em>。</p>' +
+  '<p>从一条水平线开始，到一条切线，再到弯曲的抛物线……每添加一个多项式项，逼近就更精准一分。右侧动画展示了这一过程——紫色的多项式如何一步步贴合灰色的目标函数。</p>' +
+  '<div class="ts-insight">' +
+    '<div class="ts-insight-label">核心思想</div>' +
+    '<div class="ts-insight-text">用多项式——数学中最驯服的函数——去逼近任意复杂的函数。</div>' +
+  '</div>',
+
+  // Step 2
+  '<h3>从切线说起</h3>' +
+  '<p class="lead">最简单的逼近是一个常数——函数在 a 点的值。这是一条水平线，在 a 点精确无误，但一旦离开就立刻偏离。</p>' +
+  '<p>上升一步：加入一阶导数的信息，得到<em>切线</em>。切线在 a 点不仅函数值相同，连斜率都相同——它"知道"函数往哪个方向走。</p>' +
+  '<p>这就是<strong>一阶泰勒多项式</strong>。它捕捉了函数的"方向"，但还不知道函数有多"弯"。</p>' +
+  '<div class="ts-interactive-hint">&rarr; 拖动右侧滑块，移动展开点 a，观察切线如何变化。</div>',
+
+  // Step 3
+  '<h3>曲率的加入</h3>' +
+  '<p class="lead">切线只捕捉了方向。要捕捉弯曲，需要<strong>二阶导数</strong>——它描述斜率的变化率，也就是曲率。</p>' +
+  '<p>每多一项，就多一阶导数信息，多项式能"弯"得更像原函数，逼近的有效范围也随之扩大。</p>' +
+  '<p><strong>n!</strong> 是阶乘——1, 1, 2, 6, 24, 120……它让高阶项的贡献逐渐减小，保证级数收敛。</p>' +
+  '<div class="ts-interactive-hint">&rarr; 点击"添加一项"，观察紫色曲线如何逐步贴合目标函数。</div>',
+
+  // Step 4
+  '<h3>动手实验</h3>' +
+  '<p class="lead">现在轮到你了。选择一个函数，拖动滑块，亲手操控泰勒级数的逼近过程。</p>' +
+  '<p>试试看：增加项数，逼近范围如何扩大？移动展开点 a，效果有何不同？</p>' +
+  '<p>试试 <strong>ln(1+x)</strong>——你会发现它在某些区域"失控"了。这揭示了一个重要事实：<em>泰勒级数并非处处收敛</em>。</p>' +
+  '<div class="ts-explore">' +
+    '<div class="ts-explore-item">sin(x) 和 cos(x) 的泰勒级数有什么对称关系？</div>' +
+    '<div class="ts-explore-item">eˣ 的泰勒级数为什么"最好逼近"？</div>' +
+    '<div class="ts-explore-item">项数趋于无穷时，逼近是否一定收敛？</div>' +
+  '</div>',
+
+  // Step 5
+  '<h3>无处不在的泰勒</h3>' +
+  '<p class="lead">泰勒级数不只是数学家的玩具——它渗透在科学和工程的每一个角落。</p>' +
+  '<div class="ts-app-grid">' +
+    '<div class="ts-app-card">' +
+      '<div class="ts-app-num">01</div>' +
+      '<div class="ts-app-title">物理学</div>' +
+      '<div class="ts-app-desc">单摆小角度近似 <em>sin(θ) ≈ θ</em>，让非线性方程变得可解。</div>' +
+    '</div>' +
+    '<div class="ts-app-card">' +
+      '<div class="ts-app-num">02</div>' +
+      '<div class="ts-app-title">工程学</div>' +
+      '<div class="ts-app-desc">信号处理中的滤波器设计，传递函数的级数展开。</div>' +
+    '</div>' +
+    '<div class="ts-app-card">' +
+      '<div class="ts-app-num">03</div>' +
+      '<div class="ts-app-title">计算机科学</div>' +
+      '<div class="ts-app-desc">计算机如何计算 sin、cos、eˣ？答案就是泰勒级数。</div>' +
+    '</div>' +
+    '<div class="ts-app-card">' +
+      '<div class="ts-app-num">04</div>' +
+      '<div class="ts-app-title">机器学习</div>' +
+      '<div class="ts-app-desc">激活函数的 Taylor 展开用于反向传播的梯度分析。</div>' +
+    '</div>' +
+  '</div>' +
+  '<p>从一条切线开始，到丈量整个函数世界——这就是泰勒级数的力量。</p>'
+];
+
+var stepCaptions = [
+  '图 1 · sin(x) 的泰勒级数逼近过程：多项式如何一步步贴合目标函数',
+  '图 2 · 一阶泰勒多项式（切线）：在 a 点函数值与斜率均匹配',
+  '图 3 · 逐项添加：每多一阶导数，多项式弯曲得更像目标函数',
+  '图 4 · 交互实验：选择函数、调节项数与展开点，实时观察逼近效果',
+  ''
+];
+
+var stepLabels = ['引言', '切线逼近', '曲率加入', '动手实验', '应用延伸'];
+
+
+/* ========================================
+   四、步骤管理与可视化
+   ======================================== */
+
+var currentStep = 0;
+var totalSteps = 5;
+var isPlaying = false;
+var playTimer = null;
+var stepAnimId = null;
+
+var stepViz = {
+  // Step 1: 自动动画
+  s1: {
+    func: Functions.sin,
+    animIndex: 0,
+    timer: null,
+    init: function() {
+      var self = this;
+      this.animIndex = 0;
+      var orders = this.func.animOrders;
+      var maxIdx = orders.length - 1;
+      var termDisplay = document.getElementById('termDisplay');
+      termDisplay.style.display = 'block';
+      termDisplay.textContent = 'N = 0';
+      document.getElementById('addTermBtn').style.display = 'none';
+      document.getElementById('controlsOverlay').innerHTML = '';
+      this.draw();
+      updateFormulaStep1(0);
+      // 自动递增
+      this.timer = setInterval(function() {
+        if (self.animIndex < maxIdx) {
+          self.animIndex++;
+          var n = orders[self.animIndex];
+          termDisplay.textContent = 'N = ' + n;
+          self.draw();
+          updateFormulaStep1(self.animIndex);
+        } else {
+          self.animIndex = 0;
+          termDisplay.textContent = 'N = 0';
+          self.draw();
+          updateFormulaStep1(0);
+        }
+      }, 1800);
+    },
+    draw: function() {
+      var self = this;
+      var f = this.func;
+      var n = f.animOrders[this.animIndex];
+      var t = getTransform(f.xRange, f.yRange);
+      clearCanvas();
+      drawGrid(t);
+      drawAxes(t);
+      drawFunction(f.f, t, { color: '#94a3b8', width: 2 });
+      if (n > 0) {
+        drawFunction(function(x) { return taylor(f, 0, n, x); }, t, {
+          color: '#8b5cf6', width: 2.5, glow: true
+        });
+      }
+      drawPoint(t, 0, f.f(0), { color: '#7c3aed', ring: true, ringRadius: 10, ringColor: 'rgba(124,58,237,0.12)' });
+    },
+    destroy: function() {
+      if (this.timer) { clearInterval(this.timer); this.timer = null; }
+      document.getElementById('termDisplay').style.display = 'none';
+    }
+  },
+
+  // Step 2: 切线交互
+  s2: {
+    func: Functions.sin,
+    a: 0,
+    sliderEl: null,
+    valueEl: null,
+    init: function() {
+      var self = this;
+      this.a = 0;
+      document.getElementById('termDisplay').style.display = 'none';
+      document.getElementById('addTermBtn').style.display = 'none';
+      var overlay = document.getElementById('controlsOverlay');
+      overlay.innerHTML =
+        '<div class="ts-control-row">' +
+          '<div class="ts-slider-group">' +
+            '<div class="ts-slider-header">' +
+              '<span class="ts-slider-label">展开点 a</span>' +
+              '<span class="ts-slider-value" id="s2-a-val">0.00</span>' +
+            '</div>' +
+            '<input type="range" class="ts-slider" id="s2-a-slider" min="-3.14" max="3.14" step="0.05" value="0">' +
+          '</div>' +
+        '</div>';
+      this.sliderEl = document.getElementById('s2-a-slider');
+      this.valueEl = document.getElementById('s2-a-val');
+      this.sliderEl.addEventListener('input', function() {
+        self.a = parseFloat(this.value);
+        self.valueEl.textContent = self.a.toFixed(2);
+        self.draw();
+        updateFormulaStep2(self.a);
+      });
+      this.draw();
+      updateFormulaStep2(0);
+    },
+    draw: function() {
+      var self = this;
+      var f = this.func;
+      var t = getTransform(f.xRange, f.yRange);
+      clearCanvas();
+      drawGrid(t);
+      drawAxes(t);
+      drawFunction(f.f, t, { color: '#94a3b8', width: 2 });
+      // 切线: P1(x) = f(a) + f'(a)(x-a)
+      var fa = f.f(this.a);
+      var fpa = f.derivative(1, this.a);
+      drawFunction(function(x) { return fa + fpa * (x - self.a); }, t, {
+        color: '#8b5cf6', width: 2.5, glow: true
+      });
+      drawVerticalLine(t, this.a, { color: 'rgba(124, 58, 237, 0.15)' });
+      drawPoint(t, this.a, fa, {
+        color: '#7c3aed', ring: true, ringRadius: 10,
+        ringColor: 'rgba(124,58,237,0.12)', label: 'a = ' + this.a.toFixed(2)
+      });
+    },
+    destroy: function() {
+      document.getElementById('controlsOverlay').innerHTML = '';
+    }
+  },
+
+  // Step 3: 逐项添加
+  s3: {
+    func: Functions.sin,
+    n: 0,
+    maxN: 9,
+    init: function() {
+      var self = this;
+      this.n = 0;
+      var termDisplay = document.getElementById('termDisplay');
+      termDisplay.style.display = 'block';
+      termDisplay.textContent = 'N = 0';
+      var btn = document.getElementById('addTermBtn');
+      btn.style.display = 'block';
+      btn.textContent = '添加一项 →';
+      btn.disabled = false;
+      btn.onclick = function() {
+        if (self.n < self.maxN) {
+          self.n++;
+          termDisplay.textContent = 'N = ' + self.n;
+          self.draw();
+          updateFormulaStep3(self.n);
+          if (self.n >= self.maxN) {
+            btn.disabled = true;
+            btn.textContent = '已达到最大项数';
+          }
+        }
+      };
+      document.getElementById('controlsOverlay').innerHTML = '';
+      this.draw();
+      updateFormulaStep3(0);
+    },
+    draw: function() {
+      var f = this.func;
+      var t = getTransform(f.xRange, f.yRange);
+      clearCanvas();
+      drawGrid(t);
+      drawAxes(t);
+      drawFunction(f.f, t, { color: '#94a3b8', width: 2 });
+      if (this.n > 0) {
+        var self = this;
+        drawFunction(function(x) { return taylor(f, 0, self.n, x); }, t, {
+          color: '#8b5cf6', width: 2.5, glow: true
+        });
+      }
+      drawPoint(t, 0, f.f(0), { color: '#7c3aed', ring: true, ringRadius: 10, ringColor: 'rgba(124,58,237,0.12)' });
+    },
+    destroy: function() {
+      document.getElementById('termDisplay').style.display = 'none';
+      var btn = document.getElementById('addTermBtn');
+      btn.style.display = 'none';
+      btn.onclick = null;
+    }
+  },
+
+  // Step 4: 全交互
+  s4: {
+    func: Functions.sin,
+    funcKey: 'sin',
+    n: 3,
+    a: 0,
+    init: function() {
+      var self = this;
+      this.func = Functions.sin;
+      this.funcKey = 'sin';
+      this.n = 3;
+      this.a = 0;
+      document.getElementById('termDisplay').style.display = 'none';
+      document.getElementById('addTermBtn').style.display = 'none';
+      var overlay = document.getElementById('controlsOverlay');
+      overlay.innerHTML =
+        '<div class="ts-control-row">' +
+          '<div class="ts-func-buttons">' +
+            '<button class="ts-func-btn active" data-fn="sin">sin</button>' +
+            '<button class="ts-func-btn" data-fn="cos">cos</button>' +
+            '<button class="ts-func-btn" data-fn="exp">eˣ</button>' +
+            '<button class="ts-func-btn" data-fn="ln">ln(1+x)</button>' +
+          '</div>' +
+          '<div class="ts-slider-group">' +
+            '<div class="ts-slider-header">' +
+              '<span class="ts-slider-label">项数 N</span>' +
+              '<span class="ts-slider-value" id="s4-n-val">3</span>' +
+            '</div>' +
+            '<input type="range" class="ts-slider" id="s4-n-slider" min="0" max="14" step="1" value="3">' +
+          '</div>' +
+          '<div class="ts-slider-group">' +
+            '<div class="ts-slider-header">' +
+              '<span class="ts-slider-label">展开点 a</span>' +
+              '<span class="ts-slider-value" id="s4-a-val">0.00</span>' +
+            '</div>' +
+            '<input type="range" class="ts-slider" id="s4-a-slider" min="-3.14" max="3.14" step="0.05" value="0">' +
+          '</div>' +
+        '</div>';
+
+      // 函数选择
+      overlay.querySelectorAll('.ts-func-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          overlay.querySelectorAll('.ts-func-btn').forEach(function(b) { b.classList.remove('active'); });
+          this.classList.add('active');
+          var key = this.getAttribute('data-fn');
+          self.funcKey = key;
+          self.func = Functions[key];
+          self.a = self.func.aDefault;
+          // 更新 a 滑块范围
+          var aSlider = document.getElementById('s4-a-slider');
+          aSlider.min = self.func.aRange[0];
+          aSlider.max = self.func.aRange[1];
+          aSlider.value = self.a;
+          document.getElementById('s4-a-val').textContent = self.a.toFixed(2);
+          self.draw();
+          updateFormulaStep4(self);
+        });
+      });
+
+      // 项数滑块
+      var nSlider = document.getElementById('s4-n-slider');
+      var nVal = document.getElementById('s4-n-val');
+      nSlider.addEventListener('input', function() {
+        self.n = parseInt(this.value);
+        nVal.textContent = self.n;
+        self.draw();
+        updateFormulaStep4(self);
+      });
+
+      // a滑块
+      var aSlider = document.getElementById('s4-a-slider');
+      var aVal = document.getElementById('s4-a-val');
+      aSlider.addEventListener('input', function() {
+        self.a = parseFloat(this.value);
+        aVal.textContent = self.a.toFixed(2);
+        self.draw();
+        updateFormulaStep4(self);
+      });
+
+      this.draw();
+      updateFormulaStep4(this);
+    },
+    draw: function() {
+      var f = this.func;
+      var t = getTransform(f.xRange, f.yRange);
+      clearCanvas();
+      drawGrid(t);
+      drawAxes(t);
+      drawFunction(f.f, t, { color: '#94a3b8', width: 2 });
+      if (this.n > 0) {
+        var self = this;
+        drawFunction(function(x) { return taylor(f, self.a, self.n, x); }, t, {
+          color: '#8b5cf6', width: 2.5, glow: true
+        });
+      }
+      drawVerticalLine(t, this.a, { color: 'rgba(124, 58, 237, 0.15)' });
+      drawPoint(t, this.a, f.f(this.a), {
+        color: '#7c3aed', ring: true, ringRadius: 10,
+        ringColor: 'rgba(124,58,237,0.12)'
+      });
+    },
+    destroy: function() {
+      document.getElementById('controlsOverlay').innerHTML = '';
+    }
+  },
+
+  // Step 5: 应用展示（无canvas交互）
+  s5: {
+    init: function() {
+      document.getElementById('termDisplay').style.display = 'none';
+      document.getElementById('addTermBtn').style.display = 'none';
+      document.getElementById('controlsOverlay').innerHTML = '';
+      // 绘制一个总结图：sin(x) 的高阶逼近
+      var f = Functions.sin;
+      var t = getTransform(f.xRange, f.yRange);
+      clearCanvas();
+      drawGrid(t);
+      drawAxes(t);
+      drawFunction(f.f, t, { color: '#94a3b8', width: 2 });
+      var n = 9;
+      drawFunction(function(x) { return taylor(f, 0, n, x); }, t, {
+        color: '#8b5cf6', width: 2.5, glow: true
+      });
+      drawPoint(t, 0, f.f(0), { color: '#7c3aed', ring: true, ringRadius: 10, ringColor: 'rgba(124,58,237,0.12)' });
+      // 展示通项公式
+      renderKatex('formulaDisplay', 'f(x) \\approx \\sum_{n=0}^{N} \\frac{f^{(n)}(a)}{n!}(x-a)^n');
+    },
+    destroy: function() {}
+  }
+};
+
+
+/* ========================================
+   五、公式更新
+   ======================================== */
+
+function renderKatex(elementId, latex) {
+  var el = document.getElementById(elementId);
+  if (!el || typeof katex === 'undefined') return;
+  try {
+    katex.render(latex, el, { displayMode: true, throwOnError: false });
+  } catch(e) {
+    el.textContent = latex;
+  }
+}
+
+function updateFormulaStep1(n) {
+  if (n === 0) {
+    renderKatex('formulaDisplay', 'P_0(x) = 0');
+  } else {
+    var terms = ['x', '-\\frac{x^3}{3!}', '+\\frac{x^5}{5!}', '-\\frac{x^7}{7!}', '+\\frac{x^9}{9!}'];
+    var parts = ['\\sin(x) \\approx '];
+    for (var i = 0; i < Math.min(n, 5); i++) {
+      parts.push(terms[i]);
+    }
+    if (n > 5) parts.push('+ \\cdots');
+    renderKatex('formulaDisplay', parts.join(' '));
+  }
+}
+
+function updateFormulaStep2(a) {
+  var f = Functions.sin;
+  var fa = f.f(a).toFixed(3);
+  var fpa = f.derivative(1, a).toFixed(3);
+  var aStr = a.toFixed(2);
+  var latex = 'P_1(x) = ' + fa + ' + ' + fpa + '(x - ' + aStr + ')';
+  renderKatex('formulaDisplay', latex);
+}
+
+function updateFormulaStep3(n) {
+  if (n === 0) {
+    renderKatex('formulaDisplay', 'P_0(x) = 0');
+  } else {
+    var terms = ['x', '-\\frac{x^3}{3!}', '+\\frac{x^5}{5!}', '-\\frac{x^7}{7!}', '+\\frac{x^9}{9!}'];
+    var parts = ['\\sin(x) \\approx '];
+    for (var i = 0; i < Math.min(n, 5); i++) {
+      parts.push(terms[i]);
+    }
+    if (n > 5) parts.push('+ \\cdots');
+    renderKatex('formulaDisplay', parts.join(' '));
+  }
+}
+
+function updateFormulaStep4(state) {
+  var f = state.func;
+  var n = state.n;
+  var a = state.a;
+  if (n === 0) {
+    var v0 = f.f(a).toFixed(3);
+    renderKatex('formulaDisplay', 'P_0(x) = ' + v0);
+    return;
+  }
+  // 构建一般公式
+  var latex = f.latexName + ' \\approx ';
+  var parts = [];
+  for (var k = 0; k <= Math.min(n, 5); k++) {
+    var d = f.derivative(k, a);
+    var coeff = d / factorial(k);
+    var term = '';
+    if (k === 0) {
+      term = coeff.toFixed(3);
+    } else {
+      var absCoeff = Math.abs(coeff).toFixed(3);
+      var sign = coeff >= 0 ? '+' : '-';
+      var power = '';
+      if (k === 1) power = '(x' + (a >= 0 ? '-' + a.toFixed(2) : '+' + (-a).toFixed(2)) + ')';
+      else power = '(x' + (a >= 0 ? '-' + a.toFixed(2) : '+' + (-a).toFixed(2)) + ')^{' + k + '}';
+      term = sign + ' ' + absCoeff + power;
+    }
+    parts.push(term);
+  }
+  if (n > 5) parts.push('+ \\cdots');
+  renderKatex('formulaDisplay', parts.join(' '));
+}
+
+
+/* ========================================
+   六、步骤切换
+   ======================================== */
+
+function goToStep(index) {
+  if (index < 0 || index >= totalSteps) return;
+  if (index === currentStep && document.getElementById('stepContent').innerHTML !== '') return;
+
+  // 销毁上一步
+  var prevKey = 's' + (currentStep + 1);
+  if (stepViz[prevKey] && stepViz[prevKey].destroy) {
+    stepViz[prevKey].destroy();
+  }
+
+  var contentEl = document.getElementById('stepContent');
+  contentEl.classList.add('fade-out');
+
+  setTimeout(function() {
+    currentStep = index;
+    contentEl.innerHTML = stepContents[index];
+    contentEl.classList.remove('fade-out');
+
+    // 更新步骤指示器
+    var dots = document.querySelectorAll('.ts-step-dot');
+    dots.forEach(function(dot, i) {
+      dot.classList.remove('active', 'completed');
+      if (i < index) dot.classList.add('completed');
+      else if (i === index) dot.classList.add('active');
+    });
+
+    // 更新标签
+    document.getElementById('stepLabel').textContent = '第 ' + (index + 1) + ' / ' + totalSteps + ' 步 · ' + stepLabels[index];
+
+    // 更新进度条
+    document.getElementById('progressFill').style.width = ((index + 1) / totalSteps * 100) + '%';
+
+    // 更新按钮状态
+    document.getElementById('prevBtn').disabled = (index === 0);
+    var nextBtn = document.getElementById('nextBtn');
+    if (index === totalSteps - 1) {
+      nextBtn.innerHTML = '完成 <span>✓</span>';
+    } else {
+      nextBtn.innerHTML = '下一步 <span>&rarr;</span>';
+    }
+
+    // 更新图注
+    document.getElementById('visualCaption').textContent = stepCaptions[index] || '';
+
+    // 初始化当前步骤可视化
+    var key = 's' + (index + 1);
+    // 等待 KaTeX 加载
+    waitForKatex(function() {
+      if (stepViz[key] && stepViz[key].init) {
+        stepViz[key].init();
+      }
+    });
+
+    // 隐藏/显示图例
+    var label = document.getElementById('canvasLabel');
+    if (index === 4) {
+      label.style.display = 'flex';
+    } else {
+      label.style.display = 'flex';
+    }
+  }, 300);
+}
+
+function waitForKatex(callback) {
+  if (typeof katex !== 'undefined') {
+    callback();
+  } else {
+    setTimeout(function() { waitForKatex(callback); }, 50);
+  }
+}
+
+function nextStep() {
+  if (currentStep < totalSteps - 1) {
+    goToStep(currentStep + 1);
+  } else {
+    // 最后一步，重新开始
+    stopAutoPlay();
+    goToStep(0);
+  }
+}
+
+function prevStep() {
+  if (currentStep > 0) {
+    goToStep(currentStep - 1);
+  }
+}
+
+
+/* ========================================
+   七、自动播放
+   ======================================== */
+
+function startAutoPlay() {
+  isPlaying = true;
+  var playBtn = document.getElementById('playBtn');
+  playBtn.classList.add('playing');
+  playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+  playTimer = setInterval(function() {
+    if (currentStep < totalSteps - 1) {
+      goToStep(currentStep + 1);
+    } else {
+      stopAutoPlay();
+    }
+  }, 9000);
+}
+
+function stopAutoPlay() {
+  isPlaying = false;
+  var playBtn = document.getElementById('playBtn');
+  playBtn.classList.remove('playing');
+  playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  if (playTimer) {
+    clearInterval(playTimer);
+    playTimer = null;
+  }
+}
+
+function toggleAutoPlay() {
+  if (isPlaying) stopAutoPlay();
+  else startAutoPlay();
+}
+
+
+/* ========================================
+   八、初始化
+   ======================================== */
+
+function init() {
+  initCanvas();
+
+  // 导航按钮
+  document.getElementById('nextBtn').addEventListener('click', function() {
+    stopAutoPlay();
+    nextStep();
+  });
+  document.getElementById('prevBtn').addEventListener('click', function() {
+    stopAutoPlay();
+    prevStep();
+  });
+
+  // 步骤圆点
+  document.querySelectorAll('.ts-step-dot').forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      stopAutoPlay();
+      goToStep(parseInt(this.getAttribute('data-step')));
+    });
+  });
+
+  // 自动播放
+  document.getElementById('playBtn').addEventListener('click', toggleAutoPlay);
+
+  // 键盘导航
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') {
+      stopAutoPlay();
+      prevStep();
+    } else if (e.key === 'ArrowRight') {
+      stopAutoPlay();
+      nextStep();
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      toggleAutoPlay();
+    }
+  });
+
+  // 导航栏滚动效果
+  window.addEventListener('scroll', function() {
+    var navbar = document.getElementById('demoNavbar');
+    if (window.scrollY > 20) navbar.classList.add('scrolled');
+    else navbar.classList.remove('scrolled');
+  });
+
+  // 窗口大小变化
+  var resizeTimer = null;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      resizeCanvas();
+      var key = 's' + (currentStep + 1);
+      if (stepViz[key] && stepViz[key].draw) {
+        stepViz[key].draw();
+      }
+    }, 200);
+  });
+
+  // 加载第一步
+  goToStep(0);
+}
+
+// 确保 DOM 加载完成
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
+</script>
+
+</body>
+</html>

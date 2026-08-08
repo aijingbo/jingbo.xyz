@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>简谐振动与阻尼振动 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+/* ============================================================
+   D221 · 简谐振动与阻尼振动 — 交互工具型
+   精密物理实验仪器风格
+   ============================================================ */
+
+:root {
+  --dhm-primary: #4f46e5;       /* 靛蓝 - 主色 */
+  --dhm-primary-light: #6366f1;
+  --dhm-bg: #faf8f5;            /* 暖白背景 */
+  --dhm-canvas-bg: #f5f2ed;     /* 画布区背景 */
+  --dhm-disp: #4f46e5;          /* 位移 - 靛蓝 */
+  --dhm-vel: #f59e0b;           /* 速度 - 琥珀橙 */
+  --dhm-acc: #8b5cf6;           /* 加速度 - 紫罗兰 */
+  --dhm-ke: #ef4444;            /* 动能 - 珊瑚红 */
+  --dhm-pe: #0ea5e9;            /* 势能 - 青蓝 */
+  --dhm-total: #10b981;         /* 总能 - 翠绿 */
+  --dhm-envelope: #c2410c;      /* 包络线 - 赤陶 */
+  --dhm-grid: rgba(180, 170, 155, 0.1);
+  --dhm-axis: #b0a595;
+  --dhm-panel-bg: rgba(255, 255, 255, 0.92);
+}
+
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--dhm-bg); }
+
+/* ============ 主框架 ============ */
+.dhm-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+  padding-top: 64px;
+  padding-bottom: 52px;
+}
+
+/* ============ 上部区域：动画 + 侧栏 ============ */
+.dhm-upper {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  min-height: 0;
+}
+
+/* ---------- 动画画布区 ---------- */
+.dhm-canvas-area {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #faf8f5 0%, #f0ebe3 100%);
+  border-right: 1px solid var(--border);
+}
+#animCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 模式标签 */
+.dhm-mode-label {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.dhm-mode-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--dhm-primary);
+  box-shadow: 0 0 8px rgba(79, 70, 229, 0.4);
+  animation: dhm-pulse 2s ease-in-out infinite;
+}
+@keyframes dhm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.dhm-mode-text {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+/* 阻尼类型标签 */
+.dhm-regime-badge {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  z-index: 10;
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  transition: all 0.3s var(--ease);
+}
+.dhm-regime-badge.underdamped {
+  background: rgba(79, 70, 229, 0.12);
+  color: var(--dhm-primary);
+}
+.dhm-regime-badge.critical {
+  background: rgba(194, 65, 12, 0.12);
+  color: var(--dhm-envelope);
+}
+.dhm-regime-badge.overdamped {
+  background: rgba(107, 114, 128, 0.12);
+  color: #6b7280;
+}
+.dhm-regime-badge.undamped {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--dhm-total);
+}
+
+/* ---------- 侧栏 ---------- */
+.dhm-side-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.dhm-side-section {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.dhm-side-title {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+/* 相空间图 */
+.dhm-phase-wrap {
+  display: flex;
+  justify-content: center;
+}
+#phaseCanvas {
+  width: 220px;
+  height: 180px;
+}
+
+/* 能量条 */
+.dhm-energy-bar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.dhm-energy-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dhm-energy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.dhm-energy-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.dhm-energy-label .dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.dhm-energy-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+.dhm-energy-track {
+  height: 7px;
+  background: var(--surface-muted);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.dhm-energy-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.1s linear;
+}
+.dhm-energy-fill.ke { background: linear-gradient(90deg, #ef4444, #ff6b6b); }
+.dhm-energy-fill.pe { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
+.dhm-energy-total-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--dhm-total);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.dhm-energy-total-line::before {
+  content: '';
+  flex: 1;
+  height: 1px;
+  border-top: 1.5px dashed var(--dhm-total);
+}
+
+/* 数据显示 */
+.dhm-data-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dhm-data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.dhm-data-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.dhm-data-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.dhm-data-value.disp { color: var(--dhm-disp); }
+.dhm-data-value.vel { color: var(--dhm-vel); }
+.dhm-data-value.acc { color: var(--dhm-acc); }
+
+/* ============ 曲线图区 ============ */
+.dhm-graph-area {
+  height: 190px;
+  flex-shrink: 0;
+  position: relative;
+  background: #fefcf9;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+#graphCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.dhm-graph-legend {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  display: flex;
+  gap: 16px;
+  z-index: 5;
+}
+.dhm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+.dhm-legend-item.inactive { opacity: 0.3; }
+.dhm-legend-dot {
+  width: 10px; height: 3px;
+  border-radius: 2px;
+}
+.dhm-legend-dot.dashed {
+  background: repeating-linear-gradient(90deg, currentColor 0, currentColor 3px, transparent 3px, transparent 6px);
+}
+
+/* ============ 控制面板 ============ */
+.dhm-control-panel {
+  flex-shrink: 0;
+  height: 170px;
+  background: var(--surface-muted);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 180px 1fr 280px;
+  gap: 0;
+}
+.dhm-ctrl-section {
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+.dhm-ctrl-section + .dhm-ctrl-section {
+  border-left: 1px solid var(--border-soft);
+}
+.dhm-ctrl-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* 阻尼类型选择 */
+.dhm-regime-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dhm-regime-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  text-align: left;
+}
+.dhm-regime-btn:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+.dhm-regime-btn.active {
+  background: var(--dhm-primary);
+  border-color: var(--dhm-primary);
+  color: #fff;
+}
+.dhm-regime-btn .zeta-range {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  opacity: 0.7;
+  margin-left: auto;
+}
+
+/* 参数滑块 */
+.dhm-sliders {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px 22px;
+}
+.dhm-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dhm-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.dhm-slider-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.dhm-slider-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dhm-primary);
+}
+.dhm-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.dhm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--dhm-primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.15s;
+}
+.dhm-slider::-webkit-slider-thumb:hover { transform: scale(1.25); }
+.dhm-slider::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--dhm-primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* 显示开关 */
+.dhm-curve-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.dhm-toggle-btn {
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.dhm-toggle-btn:hover { border-color: var(--text-faint); }
+.dhm-toggle-btn.active {
+  color: #fff;
+  border-color: transparent;
+}
+.dhm-toggle-btn.active[data-curve="x"] { background: var(--dhm-disp); }
+.dhm-toggle-btn.active[data-curve="v"] { background: var(--dhm-vel); }
+.dhm-toggle-btn.active[data-curve="a"] { background: var(--dhm-acc); }
+.dhm-toggle-btn.active[data-curve="e"] { background: var(--dhm-ke); }
+.dhm-toggle-btn.active[data-curve="env"] { background: var(--dhm-envelope); }
+.dhm-toggle-btn.active[data-curve="compare"] { background: var(--dhm-total); }
+
+/* 预设 */
+.dhm-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dhm-preset-btn {
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.dhm-preset-btn:hover {
+  border-color: var(--dhm-primary);
+  color: var(--dhm-primary);
+  background: rgba(79, 70, 229, 0.04);
+}
+
+/* 播放控制 */
+.dhm-playback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dhm-play-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--dhm-primary);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.dhm-play-btn:hover { background: #4338ca; transform: scale(1.05); }
+.dhm-play-btn svg { width: 16px; height: 16px; }
+
+.dhm-ctrl-small {
+  width: 32px; height: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.dhm-ctrl-small:hover { border-color: var(--text-faint); color: var(--text); }
+.dhm-ctrl-small svg { width: 14px; height: 14px; }
+
+.dhm-speed-group {
+  display: flex;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px;
+}
+.dhm-speed-btn {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.dhm-speed-btn.active {
+  background: var(--dhm-primary);
+  color: #fff;
+}
+
+/* ============ 信息条 ============ */
+.demo-info-bar {
+  height: 52px;
+}
+.demo-info-center {
+  gap: var(--spacer-16);
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 1024px) {
+  .dhm-upper { grid-template-columns: 1fr 240px; }
+  .dhm-control-panel { grid-template-columns: 160px 1fr 240px; }
+  .dhm-sliders { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .dhm-app { padding-top: 56px; padding-bottom: 44px; }
+  .dhm-upper { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .dhm-side-panel {
+    flex-direction: row;
+    overflow-x: auto;
+    max-height: 140px;
+    border-top: 1px solid var(--border);
+  }
+  .dhm-side-section {
+    border-bottom: none;
+    border-right: 1px solid var(--border-soft);
+    min-width: 200px;
+    flex-shrink: 0;
+  }
+  .dhm-graph-area { height: 130px; }
+  .dhm-control-panel {
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  .dhm-ctrl-section + .dhm-ctrl-section { border-left: none; border-top: 1px solid var(--border-soft); }
+  .dhm-sliders { grid-template-columns: repeat(2, 1fr); }
+  .dhm-regime-btns { flex-direction: row; flex-wrap: wrap; }
+  .dhm-regime-btn .zeta-range { display: none; }
+  .demo-info-bar { height: 44px; }
+  .demo-info-title { display: none; }
+}
+
+@media (max-width: 480px) {
+  .dhm-sliders { grid-template-columns: 1fr; }
+  .dhm-graph-area { height: 110px; }
+}
+
+/* 滚动条 */
+.dhm-side-panel::-webkit-scrollbar { width: 4px; }
+.dhm-side-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">物理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">简谐振动与阻尼振动</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-physics">物理</span>
+      <a href="/skills/jingbo-edu-physics-experiment-sim-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体 ====== -->
+<div class="dhm-app">
+
+  <!-- ========== 上部：动画 + 侧栏 ========== -->
+  <div class="dhm-upper">
+
+    <!-- 动画画布 -->
+    <div class="dhm-canvas-area">
+      <div class="dhm-mode-label">
+        <span class="dhm-mode-dot"></span>
+        <span class="dhm-mode-text" id="modeLabel">阻尼弹簧振子</span>
+      </div>
+      <div class="dhm-regime-badge underdamped" id="regimeBadge">欠阻尼 ζ &lt; 1</div>
+      <canvas id="animCanvas"></canvas>
+    </div>
+
+    <!-- 侧栏 -->
+    <aside class="dhm-side-panel">
+
+      <!-- 相空间图 -->
+      <div class="dhm-side-section">
+        <div class="dhm-side-title">相空间 (x-v)</div>
+        <div class="dhm-phase-wrap">
+          <canvas id="phaseCanvas" width="440" height="360"></canvas>
+        </div>
+      </div>
+
+      <!-- 能量 -->
+      <div class="dhm-side-section">
+        <div class="dhm-side-title">能量分布</div>
+        <div class="dhm-energy-bar-group">
+          <div class="dhm-energy-item">
+            <div class="dhm-energy-header">
+              <span class="dhm-energy-label"><span class="dot" style="background:var(--dhm-ke)"></span>动能 Eₖ</span>
+              <span class="dhm-energy-value" id="keValue" style="color:var(--dhm-ke)">0.00</span>
+            </div>
+            <div class="dhm-energy-track"><div class="dhm-energy-fill ke" id="keBar" style="width:0%"></div></div>
+          </div>
+          <div class="dhm-energy-item">
+            <div class="dhm-energy-header">
+              <span class="dhm-energy-label"><span class="dot" style="background:var(--dhm-pe)"></span>势能 Eₚ</span>
+              <span class="dhm-energy-value" id="peValue" style="color:var(--dhm-pe)">0.00</span>
+            </div>
+            <div class="dhm-energy-track"><div class="dhm-energy-fill pe" id="peBar" style="width:0%"></div></div>
+          </div>
+          <div class="dhm-energy-total-line">
+            <span>总能 E</span>
+            <span id="totalValue">0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 实时数据 -->
+      <div class="dhm-side-section">
+        <div class="dhm-side-title">实时数据</div>
+        <div class="dhm-data-grid">
+          <div class="dhm-data-row">
+            <span class="dhm-data-label">位移 x</span>
+            <span class="dhm-data-value disp" id="dataX">0.00 cm</span>
+          </div>
+          <div class="dhm-data-row">
+            <span class="dhm-data-label">速度 v</span>
+            <span class="dhm-data-value vel" id="dataV">0.00 cm/s</span>
+          </div>
+          <div class="dhm-data-row">
+            <span class="dhm-data-label">加速度 a</span>
+            <span class="dhm-data-value acc" id="dataA">0.00 cm/s²</span>
+          </div>
+          <div class="dhm-data-row">
+            <span class="dhm-data-label">固有周期 T₀</span>
+            <span class="dhm-data-value" id="dataT0">3.14 s</span>
+          </div>
+          <div class="dhm-data-row">
+            <span class="dhm-data-label">阻尼周期 Td</span>
+            <span class="dhm-data-value" id="dataTd">3.14 s</span>
+          </div>
+          <div class="dhm-data-row">
+            <span class="dhm-data-label">品质因数 Q</span>
+            <span class="dhm-data-value" id="dataQ">∞</span>
+          </div>
+          <div class="dhm-data-row">
+            <span class="dhm-data-label">时间常数 τ</span>
+            <span class="dhm-data-value" id="dataTau">∞ s</span>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- ========== 曲线图区 ========== -->
+  <div class="dhm-graph-area">
+    <div class="dhm-graph-legend" id="graphLegend">
+      <div class="dhm-legend-item" data-curve="x">
+        <span class="dhm-legend-dot" style="background:var(--dhm-disp)"></span>位移 x-t
+      </div>
+      <div class="dhm-legend-item inactive" data-curve="v">
+        <span class="dhm-legend-dot" style="background:var(--dhm-vel)"></span>速度 v-t
+      </div>
+      <div class="dhm-legend-item inactive" data-curve="a">
+        <span class="dhm-legend-dot" style="background:var(--dhm-acc)"></span>加速度 a-t
+      </div>
+      <div class="dhm-legend-item" data-curve="env">
+        <span class="dhm-legend-dot dashed" style="color:var(--dhm-envelope)"></span>包络线
+      </div>
+      <div class="dhm-legend-item inactive" data-curve="compare">
+        <span class="dhm-legend-dot" style="background:var(--dhm-total)"></span>无阻尼对比
+      </div>
+    </div>
+    <canvas id="graphCanvas"></canvas>
+  </div>
+
+  <!-- ========== 控制面板 ========== -->
+  <div class="dhm-control-panel">
+
+    <!-- 阻尼类型选择 -->
+    <div class="dhm-ctrl-section">
+      <div class="dhm-ctrl-label">阻尼类型</div>
+      <div class="dhm-regime-btns">
+        <button class="dhm-regime-btn active" data-regime="underdamped">
+          欠阻尼 <span class="zeta-range">ζ&lt;1</span>
+        </button>
+        <button class="dhm-regime-btn" data-regime="critical">
+          临界阻尼 <span class="zeta-range">ζ=1</span>
+        </button>
+        <button class="dhm-regime-btn" data-regime="overdamped">
+          过阻尼 <span class="zeta-range">ζ&gt;1</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 参数滑块 -->
+    <div class="dhm-ctrl-section">
+      <div class="dhm-ctrl-label">参数调节</div>
+      <div class="dhm-sliders" id="sliderArea">
+        <!-- 动态生成 -->
+      </div>
+    </div>
+
+    <!-- 显示与播放控制 -->
+    <div class="dhm-ctrl-section">
+      <div class="dhm-ctrl-label">显示与控制</div>
+      <div class="dhm-curve-toggles">
+        <button class="dhm-toggle-btn active" data-curve="x">x-t</button>
+        <button class="dhm-toggle-btn" data-curve="v">v-t</button>
+        <button class="dhm-toggle-btn" data-curve="a">a-t</button>
+        <button class="dhm-toggle-btn active" data-curve="env">包络</button>
+        <button class="dhm-toggle-btn" data-curve="compare">对比</button>
+      </div>
+      <div class="dhm-preset-row">
+        <button class="dhm-preset-btn" data-preset="undamped">无阻尼</button>
+        <button class="dhm-preset-btn" data-preset="underdamped">欠阻尼</button>
+        <button class="dhm-preset-btn" data-preset="critical">临界阻尼</button>
+        <button class="dhm-preset-btn" data-preset="overdamped">过阻尼</button>
+        <button class="dhm-preset-btn" data-preset="highQ">高Q振荡</button>
+      </div>
+      <div class="dhm-playback">
+        <button class="dhm-play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+        </button>
+        <button class="dhm-ctrl-small" id="stepBtn" title="单步前进">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l10 8-10 8V4z"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+        </button>
+        <button class="dhm-ctrl-small" id="resetBtn" title="重置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.7 3"/><polyline points="3 4 3 9 8 9"/></svg>
+        </button>
+        <div class="dhm-speed-group">
+          <button class="dhm-speed-btn" data-speed="0.25">0.25×</button>
+          <button class="dhm-speed-btn" data-speed="0.5">0.5×</button>
+          <button class="dhm-speed-btn active" data-speed="1">1×</button>
+          <button class="dhm-speed-btn" data-speed="2">2×</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<div class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">简谐振动与阻尼振动</span>
+    <span class="demo-tech-tag">Canvas 2D</span>
+    <span class="demo-tech-tag">RK4 积分</span>
+    <span class="demo-tech-tag">相空间</span>
+  </div>
+  <div class="demo-info-center">
+    <span class="demo-info-link">ẍ + 2ζω₀ẋ + ω₀²x = 0</span>
+    <span class="demo-info-link">ωd = ω₀√(1-ζ²)</span>
+    <span class="demo-info-link">Q = 1/(2ζ)</span>
+    <span class="demo-info-link">τ = 1/(ζω₀)</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/demos.html" class="demo-info-link">更多 Demo →</a>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   物理状态
+   ============================================================ */
+const state = {
+  // 核心参数
+  amplitude: 6,          // 初始振幅 cm
+  omega0: 2,             // 固有角频率 rad/s
+  zeta: 0.1,             // 阻尼比 (0 = 无阻尼, <1 = 欠阻尼, =1 = 临界, >1 = 过阻尼)
+  phase: 0,              // 初相位 rad
+  // 阻尼类型
+  regime: 'underdamped', // underdamped | critical | overdamped
+  // 数值积分状态
+  x: 6,                  // 当前位移
+  v: 0,                  // 当前速度
+  a: 0,                  // 当前加速度
+  // 播放
+  time: 0,
+  playing: true,
+  speed: 1,
+  // 显示
+  curves: { x: true, v: false, a: false, env: true, compare: false },
+  // 历史数据
+  history: [],
+  compareHistory: [],    // 无阻尼对比历史
+  maxHistory: 1200,
+};
+
+/* ============================================================
+   Canvas 初始化
+   ============================================================ */
+const animCanvas = document.getElementById('animCanvas');
+const animCtx = animCanvas.getContext('2d');
+const graphCanvas = document.getElementById('graphCanvas');
+const graphCtx = graphCanvas.getContext('2d');
+const phaseCanvas = document.getElementById('phaseCanvas');
+const phaseCtx = phaseCanvas.getContext('2d');
+
+// roundRect polyfill
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'number') r = [r, r, r, r];
+    this.beginPath();
+    this.moveTo(x + r[0], y);
+    this.lineTo(x + w - r[1], y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+    this.lineTo(x + w, y + h - r[2]);
+    this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+    this.lineTo(x + r[3], y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+    this.lineTo(x, y + r[0]);
+    this.quadraticCurveTo(x, y, x + r[0], y);
+    this.closePath();
+    return this;
+  };
+}
+
+let dpr = window.devicePixelRatio || 1;
+
+function resizeCanvas(canvas, ctx) {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { w: rect.width, h: rect.height };
+}
+
+let animSize = { w: 0, h: 0 };
+let graphSize = { w: 0, h: 0 };
+
+function handleResize() {
+  dpr = window.devicePixelRatio || 1;
+  animSize = resizeCanvas(animCanvas, animCtx);
+  graphSize = resizeCanvas(graphCanvas, graphCtx);
+  // 相空间固定逻辑分辨率
+  phaseCanvas.width = 440;
+  phaseCanvas.height = 360;
+}
+window.addEventListener('resize', handleResize);
+
+/* ============================================================
+   物理计算引擎 — RK4 积分器
+   ODE: ẍ + 2ζω₀ẋ + ω₀²x = 0
+   ============================================================ */
+
+/** 计算导数 */
+function derivatives(x, v, omega0, zeta) {
+  return {
+    dx: v,
+    dv: -2 * zeta * omega0 * v - omega0 * omega0 * x,
+  };
+}
+
+/** RK4 单步积分 */
+function rk4Step(x, v, omega0, zeta, dt) {
+  const k1 = derivatives(x, v, omega0, zeta);
+  const k2 = derivatives(x + k1.dx * dt / 2, v + k1.dv * dt / 2, omega0, zeta);
+  const k3 = derivatives(x + k2.dx * dt / 2, v + k2.dv * dt / 2, omega0, zeta);
+  const k4 = derivatives(x + k3.dx * dt, v + k3.dv * dt, omega0, zeta);
+
+  return {
+    x: x + (k1.dx + 2 * k2.dx + 2 * k3.dx + k4.dx) * dt / 6,
+    v: v + (k1.dv + 2 * k2.dv + 2 * k3.dv + k4.dv) * dt / 6,
+  };
+}
+
+/** 解析包络线（欠阻尼情况） */
+function envelope(t, A, omega0, zeta) {
+  if (zeta >= 1) return null; // 临界/过阻尼无振荡包络
+  return A * Math.exp(-zeta * omega0 * t);
+}
+
+/** 无阻尼解析解 x = A cos(ω₀t + φ) */
+function undampedSolution(t, A, omega0, phase) {
+  return A * Math.cos(omega0 * t + phase);
+}
+
+/** 阻尼频率 */
+function dampedFrequency() {
+  if (state.zeta >= 1) return 0;
+  return state.omega0 * Math.sqrt(1 - state.zeta * state.zeta);
+}
+
+/** 固有周期 */
+function naturalPeriod() {
+  return (2 * Math.PI) / state.omega0;
+}
+
+/** 阻尼周期 */
+function dampedPeriod() {
+  const wd = dampedFrequency();
+  if (wd <= 0) return Infinity;
+  return (2 * Math.PI) / wd;
+}
+
+/** 品质因数 Q */
+function qualityFactor() {
+  if (state.zeta === 0) return Infinity;
+  return 1 / (2 * state.zeta);
+}
+
+/** 时间常数 τ = 1/(ζω₀) */
+function timeConstant() {
+  if (state.zeta === 0) return Infinity;
+  return 1 / (state.zeta * state.omega0);
+}
+
+/* ============================================================
+   渲染 — 弹簧振子
+   ============================================================ */
+function drawSpring(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+
+  const centerY = h / 2;
+  const wallX = 50;
+  const equilibriumX = w * 0.55;
+  const scale = 14; // 1cm = 14px
+  const ballX = equilibriumX + state.x * scale;
+  const ballRadius = 20;
+
+  // ---- 背景网格 ----
+  drawGrid(ctx, w, h);
+
+  // ---- 平衡位置标记 ----
+  ctx.strokeStyle = 'rgba(180, 165, 145, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  ctx.moveTo(equilibriumX, centerY - 70);
+  ctx.lineTo(equilibriumX, centerY + 70);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = 'rgba(140, 130, 115, 0.5)';
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('O', equilibriumX, centerY + 82);
+
+  // ---- 振幅范围标记（初始振幅） ----
+  if (state.amplitude > 0) {
+    ctx.strokeStyle = 'rgba(194, 65, 12, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 4]);
+    ctx.beginPath();
+    ctx.moveTo(equilibriumX - state.amplitude * scale, centerY - 45);
+    ctx.lineTo(equilibriumX - state.amplitude * scale, centerY + 45);
+    ctx.moveTo(equilibriumX + state.amplitude * scale, centerY - 45);
+    ctx.lineTo(equilibriumX + state.amplitude * scale, centerY + 45);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 包络线标记
+    const envX = envelope(state.time, state.amplitude, state.omega0, state.zeta);
+    if (envX !== null && envX > 0.1) {
+      ctx.strokeStyle = 'rgba(194, 65, 12, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 3]);
+      ctx.beginPath();
+      ctx.moveTo(equilibriumX - envX * scale, centerY - 55);
+      ctx.lineTo(equilibriumX - envX * scale, centerY + 55);
+      ctx.moveTo(equilibriumX + envX * scale, centerY - 55);
+      ctx.lineTo(equilibriumX + envX * scale, centerY + 55);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.font = '9px JetBrains Mono, monospace';
+      ctx.fillStyle = 'rgba(194, 65, 12, 0.6)';
+      ctx.textAlign = 'center';
+      ctx.fillText('±A·e⁻ᵞᵗ', equilibriumX + envX * scale + 15, centerY - 50);
+    }
+  }
+
+  // ---- 位移标尺 ----
+  ctx.strokeStyle = 'rgba(140, 130, 115, 0.2)';
+  ctx.lineWidth = 1;
+  const rulerY = centerY + 55;
+  const rulerRange = Math.ceil(state.amplitude);
+  ctx.beginPath();
+  ctx.moveTo(equilibriumX - rulerRange * scale, rulerY);
+  ctx.lineTo(equilibriumX + rulerRange * scale, rulerY);
+  ctx.stroke();
+  for (let i = -rulerRange; i <= rulerRange; i++) {
+    const tx = equilibriumX + i * scale;
+    ctx.beginPath();
+    ctx.moveTo(tx, rulerY - 3);
+    ctx.lineTo(tx, rulerY + 3);
+    ctx.stroke();
+    if (i !== 0) {
+      ctx.fillStyle = 'rgba(140, 130, 115, 0.4)';
+      ctx.font = '8px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(i, tx, rulerY + 14);
+    }
+  }
+
+  // ---- 墙壁 ----
+  ctx.fillStyle = '#d4c9b8';
+  ctx.fillRect(wallX - 8, centerY - 55, 8, 110);
+  ctx.strokeStyle = '#b8aa97';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 11; i++) {
+    const y = centerY - 55 + i * 10;
+    ctx.beginPath();
+    ctx.moveTo(wallX - 8, y);
+    ctx.lineTo(wallX - 16, y + 8);
+    ctx.stroke();
+  }
+
+  // ---- 弹簧 ----
+  const springStart = wallX;
+  const springEnd = ballX - ballRadius;
+  drawSpringCoil(ctx, springStart, centerY, springEnd, centerY, 16, 12);
+
+  // ---- 残影轨迹 ----
+  if (state.history.length > 2) {
+    const trailLen = Math.min(25, state.history.length);
+    for (let i = state.history.length - trailLen; i < state.history.length - 1; i++) {
+      const alpha = (i - (state.history.length - trailLen)) / trailLen * 0.12;
+      const trailX = equilibriumX + state.history[i].x * scale;
+      ctx.fillStyle = `rgba(79, 70, 229, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(trailX, centerY, ballRadius * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ---- 阻尼指示器（液体缓冲器） ----
+  if (state.zeta > 0.001) {
+    const damperY = centerY + 35;
+    const damperW = 50;
+    const damperH = 14;
+    const damperX = ballX - damperW / 2;
+
+    // 缸体
+    ctx.fillStyle = 'rgba(180, 170, 155, 0.15)';
+    ctx.strokeStyle = 'rgba(140, 130, 115, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(damperX, damperY, damperW, damperH, 3);
+    ctx.fill();
+    ctx.stroke();
+
+    // 活塞
+    const pistonX = damperX + damperW / 2 + state.x * scale * 0.3;
+    ctx.fillStyle = 'rgba(194, 65, 12, 0.4)';
+    ctx.fillRect(pistonX - 2, damperY + 2, 4, damperH - 4);
+
+    // 连接线（到球体）
+    ctx.strokeStyle = 'rgba(140, 130, 115, 0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(ballX, centerY + ballRadius);
+    ctx.lineTo(ballX, damperY);
+    ctx.stroke();
+  }
+
+  // ---- 振子球 ----
+  const ballGrad = ctx.createRadialGradient(
+    ballX - 6, centerY - 6, 2,
+    ballX, centerY, ballRadius
+  );
+  ballGrad.addColorStop(0, '#818cf8');
+  ballGrad.addColorStop(0.5, '#4f46e5');
+  ballGrad.addColorStop(1, '#312e81');
+
+  // 阴影
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+  ctx.beginPath();
+  ctx.ellipse(ballX, centerY + ballRadius + 2, ballRadius * 0.9, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 球体
+  ctx.fillStyle = ballGrad;
+  ctx.beginPath();
+  ctx.arc(ballX, centerY, ballRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 高光
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.beginPath();
+  ctx.arc(ballX - 7, centerY - 7, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ---- 速度矢量箭头 ----
+  if (Math.abs(state.v) > 0.1) {
+    const arrowLen = state.v * 3.5;
+    const arrowY = centerY - ballRadius - 15;
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ballX, arrowY);
+    ctx.lineTo(ballX + arrowLen, arrowY);
+    ctx.stroke();
+    const dir = Math.sign(arrowLen);
+    ctx.beginPath();
+    ctx.moveTo(ballX + arrowLen, arrowY);
+    ctx.lineTo(ballX + arrowLen - dir * 7, arrowY - 4);
+    ctx.lineTo(ballX + arrowLen - dir * 7, arrowY + 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('v', ballX + arrowLen / 2, arrowY - 6);
+  }
+
+  // ---- 回复力矢量 ----
+  if (Math.abs(state.x) > 0.3) {
+    const forceLen = -state.x * 2.5;
+    const forceY = centerY + ballRadius + 18;
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(ballX, forceY);
+    ctx.lineTo(ballX + forceLen, forceY);
+    ctx.stroke();
+    const dir = Math.sign(forceLen);
+    if (dir !== 0) {
+      ctx.beginPath();
+      ctx.moveTo(ballX + forceLen, forceY);
+      ctx.lineTo(ballX + forceLen - dir * 6, forceY - 3);
+      ctx.lineTo(ballX + forceLen - dir * 6, forceY + 3);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('F', ballX + forceLen / 2, forceY + 12);
+  }
+}
+
+function drawSpringCoil(ctx, x1, y1, x2, y2, coils, amp) {
+  const dx = x2 - x1;
+  const len = Math.abs(dx);
+  if (len < 5) return;
+
+  ctx.save();
+  ctx.translate(x1, y1);
+
+  const grad = ctx.createLinearGradient(0, 0, len, 0);
+  grad.addColorStop(0, '#6366f1');
+  grad.addColorStop(1, '#4f46e5');
+
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const segments = coils * 4;
+  const step = len / segments;
+
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(step * 0.5, 0);
+
+  for (let i = 0; i < coils; i++) {
+    const baseX = step * 0.5 + (len - step) * (i / coils);
+    const nextX = step * 0.5 + (len - step) * ((i + 1) / coils);
+    ctx.bezierCurveTo(
+      baseX + (nextX - baseX) * 0.2, -amp,
+      baseX + (nextX - baseX) * 0.8, amp,
+      nextX, 0
+    );
+  }
+
+  ctx.lineTo(len, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ============================================================
+   渲染 — 背景网格
+   ============================================================ */
+function drawGrid(ctx, w, h) {
+  ctx.strokeStyle = 'rgba(180, 170, 155, 0.08)';
+  ctx.lineWidth = 1;
+  const step = 30;
+  for (let x = 0; x < w; x += step) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y < h; y += step) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+}
+
+/* ============================================================
+   渲染 — x-t 曲线图
+   ============================================================ */
+function drawGraph() {
+  const ctx = graphCtx;
+  const { w, h } = graphSize;
+  ctx.clearRect(0, 0, w, h);
+
+  const padding = { top: 30, right: 20, bottom: 20, left: 40 };
+  const plotW = w - padding.left - padding.right;
+  const plotH = h - padding.top - padding.bottom;
+  const cx = padding.left;
+  const cy = padding.top;
+
+  // ---- 背景 ----
+  ctx.fillStyle = '#fefcf9';
+  ctx.fillRect(cx, cy, plotW, plotH);
+
+  // ---- 网格 ----
+  ctx.strokeStyle = 'rgba(180, 170, 155, 0.12)';
+  ctx.lineWidth = 1;
+  const xSteps = 10;
+  const ySteps = 5;
+  for (let i = 0; i <= xSteps; i++) {
+    const x = cx + (plotW / xSteps) * i;
+    ctx.beginPath();
+    ctx.moveTo(x, cy);
+    ctx.lineTo(x, cy + plotH);
+    ctx.stroke();
+  }
+  for (let i = 0; i <= ySteps; i++) {
+    const y = cy + (plotH / ySteps) * i;
+    ctx.beginPath();
+    ctx.moveTo(cx, y);
+    ctx.lineTo(cx + plotW, y);
+    ctx.stroke();
+  }
+
+  // ---- 中线（零线） ----
+  ctx.strokeStyle = 'rgba(140, 130, 115, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + plotH / 2);
+  ctx.lineTo(cx + plotW, cy + plotH / 2);
+  ctx.stroke();
+
+  // ---- 坐标轴 ----
+  ctx.strokeStyle = 'rgba(140, 130, 115, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx, cy + plotH);
+  ctx.lineTo(cx + plotW, cy + plotH);
+  ctx.stroke();
+
+  // ---- 轴标签 ----
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.fillStyle = 'rgba(140, 130, 115, 0.6)';
+  ctx.textAlign = 'right';
+  ctx.fillText('0', cx - 4, cy + plotH / 2 + 3);
+  ctx.fillText('+A', cx - 4, cy + 4);
+  ctx.fillText('-A', cx - 4, cy + plotH - 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('t →', cx + plotW - 10, cy + plotH + 14);
+
+  // ---- 时间窗口 ----
+  const timeWindow = 12;
+  const startT = Math.max(0, state.time - timeWindow);
+
+  if (state.history.length < 2) return;
+
+  const maxA = state.amplitude;
+  const maxV = maxA * state.omega0;
+  const maxAcc = maxA * state.omega0 * state.omega0;
+  const energyMax = 0.5 * maxA * maxA * state.omega0 * state.omega0;
+
+  // ---- 包络线 ----
+  if (state.curves.env && state.zeta < 1 && state.zeta > 0) {
+    ctx.strokeStyle = 'rgba(194, 65, 12, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+
+    // 上包络 +A·e^(-ζω₀t)
+    ctx.beginPath();
+    let started = false;
+    for (let t = startT; t <= state.time; t += 0.05) {
+      const env = envelope(t, state.amplitude, state.omega0, state.zeta);
+      if (env === null) continue;
+      const px = cx + ((t - startT) / timeWindow) * plotW;
+      const py = cy + plotH / 2 - (env / maxA) * (plotH / 2 - 5);
+      if (!started) { ctx.moveTo(px, py); started = true; }
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // 下包络 -A·e^(-ζω₀t)
+    ctx.beginPath();
+    started = false;
+    for (let t = startT; t <= state.time; t += 0.05) {
+      const env = envelope(t, state.amplitude, state.omega0, state.zeta);
+      if (env === null) continue;
+      const px = cx + ((t - startT) / timeWindow) * plotW;
+      const py = cy + plotH / 2 + (env / maxA) * (plotH / 2 - 5);
+      if (!started) { ctx.moveTo(px, py); started = true; }
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ---- 无阻尼对比曲线 ----
+  if (state.curves.compare) {
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    let started = false;
+    for (let t = startT; t <= state.time; t += 0.02) {
+      const x = undampedSolution(t, state.amplitude, state.omega0, state.phase);
+      const px = cx + ((t - startT) / timeWindow) * plotW;
+      const py = cy + plotH / 2 - (x / maxA) * (plotH / 2 - 5);
+      if (!started) { ctx.moveTo(px, py); started = true; }
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ---- 数据曲线 ----
+  const curveConfigs = [
+    { key: 'x', color: '#4f46e5', getY: d => d.x / maxA, label: 'x', glow: true },
+    { key: 'v', color: '#f59e0b', getY: d => d.v / maxV, label: 'v', glow: false },
+    { key: 'a', color: '#8b5cf6', getY: d => d.a / maxAcc, label: 'a', glow: false },
+  ];
+
+  curveConfigs.forEach(cfg => {
+    if (!state.curves[cfg.key]) return;
+
+    ctx.strokeStyle = cfg.color;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (cfg.glow) {
+      ctx.shadowColor = cfg.color;
+      ctx.shadowBlur = 4;
+    }
+
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < state.history.length; i++) {
+      const d = state.history[i];
+      if (d.t < startT) continue;
+      const px = cx + ((d.t - startT) / timeWindow) * plotW;
+      const py = cy + plotH / 2 - cfg.getY(d) * (plotH / 2 - 5);
+      if (!started) { ctx.moveTo(px, py); started = true; }
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  });
+
+  // ---- 当前时间指示线 ----
+  const px = cx + plotW;
+  ctx.strokeStyle = 'rgba(194, 65, 12, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(px, cy);
+  ctx.lineTo(px, cy + plotH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* ============================================================
+   渲染 — 相空间图 (x-v)
+   ============================================================ */
+function drawPhaseSpace() {
+  const ctx = phaseCtx;
+  const size = { w: 440, h: 360 };
+  const cx = size.w / 2;
+  const cy = size.h / 2;
+  const radius = 130;
+
+  ctx.clearRect(0, 0, size.w, size.h);
+
+  // ---- 坐标轴 ----
+  ctx.strokeStyle = 'rgba(140, 130, 115, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  ctx.moveTo(20, cy);
+  ctx.lineTo(size.w - 20, cy);
+  ctx.moveTo(cx, 20);
+  ctx.lineTo(cx, size.h - 20);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 轴标签
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.fillStyle = 'rgba(140, 130, 115, 0.5)';
+  ctx.textAlign = 'right';
+  ctx.fillText('x', size.w - 22, cy - 5);
+  ctx.textAlign = 'center';
+  ctx.fillText('v', cx, 16);
+
+  // ---- 参考圆（无阻尼轨迹） ----
+  if (state.zeta > 0.001) {
+    const refRadius = radius * (state.amplitude / 10);
+    const refRadiusV = radius * (state.amplitude * state.omega0 / 20);
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, refRadius, refRadiusV, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ---- 历史轨迹 ----
+  if (state.history.length > 2) {
+    const maxA = state.amplitude;
+    const maxV = maxA * state.omega0;
+    const scaleX = radius / Math.max(maxA, 0.1);
+    const scaleV = radius / Math.max(maxV, 0.1);
+
+    const trailLen = Math.min(state.history.length, 500);
+    for (let i = state.history.length - trailLen; i < state.history.length - 1; i++) {
+      if (i < 0) continue;
+      const progress = (i - (state.history.length - trailLen)) / trailLen;
+      const alpha = progress * 0.6;
+      const d = state.history[i];
+      const px = cx + d.x * scaleX;
+      const py = cy - d.v * scaleV;
+
+      ctx.strokeStyle = `rgba(79, 70, 229, ${alpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      const d2 = state.history[i + 1];
+      ctx.lineTo(cx + d2.x * scaleX, cy - d2.v * scaleV);
+      ctx.stroke();
+    }
+
+    // ---- 当前点 ----
+    const curX = cx + state.x * scaleX;
+    const curY = cy - state.v * scaleV;
+
+    // 发光
+    ctx.shadowColor = '#4f46e5';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#4f46e5';
+    ctx.beginPath();
+    ctx.arc(curX, curY, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(curX, curY, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ---- 中心点 ----
+  ctx.fillStyle = 'rgba(52, 73, 94, 0.4)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/* ============================================================
+   更新数据显示
+   ============================================================ */
+function updateDataDisplay() {
+  document.getElementById('dataX').textContent = state.x.toFixed(2) + ' cm';
+  document.getElementById('dataV').textContent = state.v.toFixed(2) + ' cm/s';
+  document.getElementById('dataA').textContent = state.a.toFixed(2) + ' cm/s²';
+
+  const T0 = naturalPeriod();
+  document.getElementById('dataT0').textContent = T0.toFixed(2) + ' s';
+
+  const Td = dampedPeriod();
+  document.getElementById('dataTd').textContent = isFinite(Td) ? Td.toFixed(2) + ' s' : '—';
+
+  const Q = qualityFactor();
+  document.getElementById('dataQ').textContent = isFinite(Q) ? Q.toFixed(2) : '∞';
+
+  const tau = timeConstant();
+  document.getElementById('dataTau').textContent = isFinite(tau) ? tau.toFixed(2) + ' s' : '∞ s';
+
+  // 能量
+  const ke = 0.5 * state.v * state.v;
+  const pe = 0.5 * state.omega0 * state.omega0 * state.x * state.x;
+  const total = ke + pe;
+  const maxE = 0.5 * state.amplitude * state.amplitude * state.omega0 * state.omega0;
+
+  document.getElementById('keValue').textContent = ke.toFixed(2);
+  document.getElementById('peValue').textContent = pe.toFixed(2);
+  document.getElementById('totalValue').textContent = total.toFixed(2);
+
+  const kePercent = maxE > 0 ? Math.min(100, (ke / maxE) * 100) : 0;
+  const pePercent = maxE > 0 ? Math.min(100, (pe / maxE) * 100) : 0;
+
+  document.getElementById('keBar').style.width = kePercent + '%';
+  document.getElementById('peBar').style.width = pePercent + '%';
+}
+
+/* ============================================================
+   阻尼类型判断与更新
+   ============================================================ */
+function getRegime(zeta) {
+  if (zeta === 0) return 'undamped';
+  if (zeta < 1) return 'underdamped';
+  if (Math.abs(zeta - 1) < 0.001) return 'critical';
+  return 'overdamped';
+}
+
+function updateRegimeBadge() {
+  const badge = document.getElementById('regimeBadge');
+  const regime = getRegime(state.zeta);
+
+  badge.className = 'dhm-regime-badge ' + (regime === 'undamped' ? 'undamped' : regime);
+
+  const labels = {
+    undamped: '无阻尼 ζ = 0',
+    underdamped: '欠阻尼 ζ < 1',
+    critical: '临界阻尼 ζ = 1',
+    overdamped: '过阻尼 ζ > 1',
+  };
+  badge.textContent = labels[regime];
+
+  // 更新模式标签
+  const modeLabels = {
+    undamped: '简谐振动（无阻尼）',
+    underdamped: '欠阻尼振动',
+    critical: '临界阻尼',
+    overdamped: '过阻尼',
+  };
+  document.getElementById('modeLabel').textContent = modeLabels[regime];
+}
+
+/* ============================================================
+   动画主循环
+   ============================================================ */
+let lastFrameTime = 0;
+
+function animate(timestamp) {
+  if (!lastFrameTime) lastFrameTime = timestamp;
+  const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
+  lastFrameTime = timestamp;
+
+  if (state.playing) {
+    const simDt = dt * state.speed;
+    // RK4 积分（子步长提高精度）
+    const subSteps = Math.max(1, Math.ceil(simDt * state.omega0 / 0.05));
+    const subDt = simDt / subSteps;
+
+    for (let i = 0; i < subSteps; i++) {
+      const result = rk4Step(state.x, state.v, state.omega0, state.zeta, subDt);
+      state.x = result.x;
+      state.v = result.v;
+      // 计算加速度
+      const deriv = derivatives(state.x, state.v, state.omega0, state.zeta);
+      state.a = deriv.dv;
+      state.time += subDt;
+    }
+
+    // 记录历史
+    state.history.push({
+      t: state.time,
+      x: state.x,
+      v: state.v,
+      a: state.a,
+    });
+    while (state.history.length > state.maxHistory) {
+      state.history.shift();
+    }
+  }
+
+  // 渲染
+  const { w, h } = animSize;
+  drawSpring(animCtx, w, h);
+  drawGraph();
+  drawPhaseSpace();
+  updateDataDisplay();
+
+  requestAnimationFrame(animate);
+}
+
+/* ============================================================
+   参数滑块配置
+   ============================================================ */
+const sliderConfigs = [
+  { key: 'amplitude', label: '振幅 A', min: 1, max: 10, step: 0.5, unit: ' cm' },
+  { key: 'omega0', label: '固有频率 ω₀', min: 0.5, max: 5, step: 0.1, unit: ' rad/s' },
+  { key: 'zeta', label: '阻尼比 ζ', min: 0, max: 2, step: 0.01, unit: '' },
+  { key: 'phase', label: '初相位 φ', min: 0, max: 6.28, step: 0.262, unit: ' rad' },
+];
+
+function buildSliders() {
+  const area = document.getElementById('sliderArea');
+  area.innerHTML = '';
+
+  sliderConfigs.forEach(cfg => {
+    const group = document.createElement('div');
+    group.className = 'dhm-slider-group';
+    const displayVal = cfg.key === 'zeta'
+      ? state[cfg.key].toFixed(2)
+      : state[cfg.key].toFixed(2) + cfg.unit;
+    group.innerHTML = `
+      <div class="dhm-slider-header">
+        <span class="dhm-slider-label">${cfg.label}</span>
+        <span class="dhm-slider-value" id="sliderVal_${cfg.key}">${displayVal}</span>
+      </div>
+      <input type="range" class="dhm-slider" id="slider_${cfg.key}"
+             min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${state[cfg.key]}" />
+    `;
+    area.appendChild(group);
+
+    const slider = group.querySelector('input');
+    const valDisplay = group.querySelector('.dhm-slider-value');
+
+    slider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      state[cfg.key] = val;
+      valDisplay.textContent = cfg.key === 'zeta'
+        ? val.toFixed(2)
+        : val.toFixed(2) + cfg.unit;
+
+      // 阻尼比变化时更新类型
+      if (cfg.key === 'zeta') {
+        updateRegimeBadge();
+        updateRegimeButtons();
+      }
+    });
+  });
+}
+
+/* ============================================================
+   阻尼类型按钮联动
+   ============================================================ */
+function updateRegimeButtons() {
+  const regime = getRegime(state.zeta);
+  // 高亮匹配的按钮（或都不高亮如果 undamped）
+  document.querySelectorAll('.dhm-regime-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.regime === regime);
+  });
+}
+
+/* ============================================================
+   重置
+   ============================================================ */
+function resetSim() {
+  state.time = 0;
+  state.x = state.amplitude * Math.cos(state.phase);
+  state.v = -state.amplitude * state.omega0 * Math.sin(state.phase);
+  const deriv = derivatives(state.x, state.v, state.omega0, state.zeta);
+  state.a = deriv.dv;
+  state.history = [];
+  lastFrameTime = 0;
+}
+
+/* ============================================================
+   预设
+   ============================================================ */
+const presets = {
+  undamped: {
+    apply: () => {
+      state.amplitude = 6;
+      state.omega0 = 2;
+      state.zeta = 0;
+      state.phase = 0;
+    }
+  },
+  underdamped: {
+    apply: () => {
+      state.amplitude = 7;
+      state.omega0 = 2;
+      state.zeta = 0.15;
+      state.phase = 0;
+    }
+  },
+  critical: {
+    apply: () => {
+      state.amplitude = 7;
+      state.omega0 = 2;
+      state.zeta = 1.0;
+      state.phase = 0;
+    }
+  },
+  overdamped: {
+    apply: () => {
+      state.amplitude = 7;
+      state.omega0 = 2;
+      state.zeta = 1.8;
+      state.phase = 0;
+    }
+  },
+  highQ: {
+    apply: () => {
+      state.amplitude = 8;
+      state.omega0 = 3;
+      state.zeta = 0.03;
+      state.phase = 0;
+    }
+  },
+};
+
+function applyPreset(key) {
+  if (presets[key]) {
+    presets[key].apply();
+    resetSim();
+    buildSliders();
+    updateRegimeBadge();
+    updateRegimeButtons();
+  }
+}
+
+/* ============================================================
+   事件绑定
+   ============================================================ */
+// 阻尼类型按钮
+document.querySelectorAll('.dhm-regime-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const regime = btn.dataset.regime;
+    let targetZeta;
+    switch (regime) {
+      case 'underdamped': targetZeta = 0.15; break;
+      case 'critical': targetZeta = 1.0; break;
+      case 'overdamped': targetZeta = 1.5; break;
+      default: targetZeta = 0.15;
+    }
+    state.zeta = targetZeta;
+
+    // 更新滑块
+    const slider = document.getElementById('slider_zeta');
+    const valDisplay = document.getElementById('sliderVal_zeta');
+    if (slider) slider.value = targetZeta;
+    if (valDisplay) valDisplay.textContent = targetZeta.toFixed(2);
+
+    updateRegimeBadge();
+    updateRegimeButtons();
+    resetSim();
+  });
+});
+
+// 曲线切换
+document.querySelectorAll('.dhm-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const curve = btn.dataset.curve;
+    state.curves[curve] = !state.curves[curve];
+    btn.classList.toggle('active', state.curves[curve]);
+
+    // 更新图例
+    const legendItem = document.querySelector(`.dhm-legend-item[data-curve="${curve}"]`);
+    if (legendItem) {
+      legendItem.classList.toggle('inactive', !state.curves[curve]);
+    }
+  });
+});
+
+// 图例点击切换
+document.querySelectorAll('.dhm-legend-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const curve = item.dataset.curve;
+    state.curves[curve] = !state.curves[curve];
+    item.classList.toggle('inactive', !state.curves[curve]);
+    const toggleBtn = document.querySelector(`.dhm-toggle-btn[data-curve="${curve}"]`);
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('active', state.curves[curve]);
+    }
+  });
+});
+
+// 预设
+document.querySelectorAll('.dhm-preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    applyPreset(btn.dataset.preset);
+  });
+});
+
+// 播放/暂停
+const playBtn = document.getElementById('playBtn');
+const playIcon = document.getElementById('playIcon');
+playBtn.addEventListener('click', () => {
+  state.playing = !state.playing;
+  if (state.playing) {
+    playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+  } else {
+    playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+  }
+  if (state.playing) lastFrameTime = 0;
+});
+
+// 单步前进
+document.getElementById('stepBtn').addEventListener('click', () => {
+  state.playing = false;
+  playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+  const dt = 0.05;
+  const result = rk4Step(state.x, state.v, state.omega0, state.zeta, dt);
+  state.x = result.x;
+  state.v = result.v;
+  const deriv = derivatives(state.x, state.v, state.omega0, state.zeta);
+  state.a = deriv.dv;
+  state.time += dt;
+  state.history.push({
+    t: state.time,
+    x: state.x,
+    v: state.v,
+    a: state.a,
+  });
+  while (state.history.length > state.maxHistory) {
+    state.history.shift();
+  }
+});
+
+// 重置
+document.getElementById('resetBtn').addEventListener('click', () => {
+  resetSim();
+});
+
+// 速度
+document.querySelectorAll('.dhm-speed-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.dhm-speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.speed = parseFloat(btn.dataset.speed);
+  });
+});
+
+// 画布点击播放/暂停
+animCanvas.addEventListener('click', () => {
+  playBtn.click();
+});
+
+// 键盘
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    playBtn.click();
+  } else if (e.code === 'KeyR') {
+    resetSim();
+  }
+});
+
+/* ============================================================
+   启动
+   ============================================================ */
+handleResize();
+buildSliders();
+updateRegimeBadge();
+updateRegimeButtons();
+resetSim();
+requestAnimationFrame(animate);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全球变暖气候条纹 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css">
+<style>
+/* ============================================================
+   D102 · 全球变暖气候条纹 — 杂志讲解型
+   配色：深蓝主色 + 暖红强调 + 暖米白背景
+   ============================================================ */
+
+:root {
+  --climate-blue: #0c4a6e;
+  --climate-blue-soft: rgba(12, 74, 110, 0.1);
+  --climate-red: #dc2626;
+  --climate-red-soft: rgba(220, 38, 38, 0.1);
+  --climate-gray: #6b7280;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---- 顶部导航 ---- */
+.navbar {
+  justify-content: space-between;
+}
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-16);
+}
+.navbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-16);
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  transition: color var(--duration-fast) var(--ease);
+}
+.back-link:hover { color: var(--text); }
+
+/* ---- 主体布局 ---- */
+.page-wrapper {
+  padding-top: 64px;
+  min-height: 100vh;
+}
+.magazine-layout {
+  display: grid;
+  grid-template-columns: 38% 62%;
+  gap: var(--spacer-48);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--spacer-48) var(--spacer-32);
+  min-height: calc(100vh - 64px);
+}
+
+/* ---- 左侧文章区 ---- */
+.article-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-24);
+}
+.article-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-12);
+}
+.article-kicker {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  letter-spacing: 0.12em;
+  color: var(--climate-blue);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.article-title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-h1);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text);
+}
+.article-subtitle {
+  font-size: var(--fs-body);
+  color: var(--text-muted);
+  line-height: var(--lh-relaxed);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+/* ---- 步骤导航 ---- */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-12);
+  margin: var(--spacer-8) 0;
+}
+.step-dots {
+  display: flex;
+  gap: var(--spacer-8);
+}
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--border);
+  transition: all var(--duration-base) var(--ease);
+  cursor: pointer;
+}
+.step-dot.active {
+  background-color: var(--climate-blue);
+  transform: scale(1.3);
+}
+.step-dot.completed {
+  background-color: var(--text-faint);
+}
+.step-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+.autoplay-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--fs-tiny);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+}
+.autoplay-btn:hover {
+  border-color: var(--climate-blue);
+  color: var(--climate-blue);
+}
+.autoplay-btn.playing {
+  background: var(--climate-blue);
+  color: white;
+  border-color: var(--climate-blue);
+}
+
+/* ---- 步骤内容 ---- */
+.article-body {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 52vh;
+  padding-right: var(--spacer-8);
+}
+.article-body::-webkit-scrollbar { width: 4px; }
+.article-body::-webkit-scrollbar-track { background: transparent; }
+.article-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.step-content {
+  transition: opacity var(--duration-slow) var(--ease), transform var(--duration-slow) var(--ease);
+}
+.step-content.fade-out {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.step-content h3 {
+  font-family: var(--font-serif);
+  font-size: var(--fs-h2);
+  margin-bottom: var(--spacer-16);
+  color: var(--text);
+}
+.step-content p {
+  font-size: var(--fs-body);
+  line-height: 1.8;
+  color: var(--text);
+  margin-bottom: var(--spacer-12);
+}
+.step-content p.lead {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--text);
+}
+.step-content strong { color: var(--climate-red); font-weight: 600; }
+.step-content .source-note {
+  font-size: var(--fs-tiny);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  margin-top: var(--spacer-16);
+  padding-top: var(--spacer-12);
+  border-top: 1px solid var(--border-soft);
+}
+
+/* 高亮信息框 */
+.info-box {
+  background: linear-gradient(135deg, rgba(12, 74, 110, 0.04), rgba(220, 38, 38, 0.04));
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--climate-blue);
+  border-radius: var(--radius-card);
+  padding: var(--spacer-16) var(--spacer-20);
+  margin: var(--spacer-16) 0;
+}
+.info-box p { font-size: var(--fs-small); color: var(--text-muted); line-height: 1.7; margin-bottom: 6px; }
+.info-box p:last-child { margin-bottom: 0; }
+.info-box strong { color: var(--climate-blue); }
+
+/* 时间线标记 */
+.timeline-marker {
+  display: flex;
+  gap: var(--spacer-12);
+  margin: var(--spacer-12) 0;
+}
+.timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--climate-blue);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+.timeline-year {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  color: var(--climate-blue);
+  margin-bottom: 2px;
+}
+.timeline-text {
+  font-size: var(--fs-small);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* 步骤按钮 */
+.step-nav {
+  display: flex;
+  gap: var(--spacer-12);
+}
+.step-nav .btn { flex: 1; }
+
+/* ---- 右侧可视化区 ---- */
+.visual-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+}
+.visual-stage {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  min-height: 420px;
+}
+.stage-panel {
+  display: none;
+  padding: var(--spacer-24);
+  position: relative;
+}
+.stage-panel.active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+  animation: panelFadeIn 0.5s var(--ease);
+}
+@keyframes panelFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Canvas 容器 */
+.canvas-container {
+  position: relative;
+  width: 100%;
+}
+.canvas-container canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  background: rgba(26, 26, 26, 0.95);
+  color: white;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease);
+  z-index: 20;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  backdrop-filter: blur(8px);
+}
+.tooltip.visible { opacity: 1; }
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(26, 26, 26, 0.95);
+}
+.tooltip-year { font-weight: 700; font-size: 13px; }
+.tooltip-temp { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+
+/* 图注 */
+.visual-caption {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+  font-family: var(--font-serif);
+  line-height: 1.5;
+}
+
+/* 数据集标签（步骤2） */
+.dataset-labels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-4);
+}
+.dataset-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  font-size: var(--fs-tiny);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.dataset-label .label-line {
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+/* 颜色标尺（步骤3） */
+.color-scale-row {
+  display: flex;
+  gap: var(--spacer-16);
+  align-items: stretch;
+}
+.color-scale-bar {
+  width: 32px;
+  border-radius: var(--radius);
+  position: relative;
+  flex-shrink: 0;
+  background: linear-gradient(to bottom,
+    #67000d, #87010e, #a50f15, #cb181d, #ef3b2c, #fb6a4a, #fc9272, #fcbba1, #fee5d9,
+    #deebf7, #c6dbef, #9ecae1, #6baed6, #4292c6, #2a6db4, #1b529e, #103a6b, #08306b
+  );
+}
+.color-scale-marker {
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  height: 3px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: top var(--duration-base) var(--ease);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.8);
+}
+.color-scale-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+/* 滑块（步骤3 & 4） */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-16);
+  padding: var(--spacer-12) 0;
+}
+.slider-label {
+  font-size: var(--fs-tiny);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  min-width: 40px;
+}
+.slider-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--climate-blue);
+  min-width: 80px;
+  text-align: right;
+}
+input[type="range"].climate-slider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  background: linear-gradient(90deg, #08306b, #6baed6, #fee5d9, #fc9272, #67000d);
+  border-radius: 3px;
+  outline: none;
+}
+input[type="range"].climate-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+  border: 2px solid var(--climate-blue);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: transform var(--duration-fast) var(--ease);
+}
+input[type="range"].climate-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+input[type="range"].climate-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+  border: 2px solid var(--climate-blue);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* 情景标签（步骤5） */
+.scenario-labels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-4);
+}
+.scenario-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  font-size: var(--fs-tiny);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+.scenario-label .label-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* 统计卡片 */
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--spacer-8);
+}
+.stat-card {
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  padding: var(--spacer-12) var(--spacer-16);
+  text-align: center;
+}
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-value.hot { color: var(--climate-red); }
+.stat-value.cold { color: #2563eb; }
+.stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* 自动播放进度条 */
+.autoplay-bar {
+  height: 3px;
+  background: var(--surface-muted);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.autoplay-fill {
+  height: 100%;
+  background: var(--climate-blue);
+  width: 0%;
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+/* ---- 响应式 ---- */
+@media (max-width: 1024px) {
+  .magazine-layout {
+    grid-template-columns: 1fr;
+    gap: var(--spacer-32);
+  }
+  .navbar-center { display: none; }
+  .article-body { max-height: none; }
+}
+@media (max-width: 768px) {
+  .magazine-layout {
+    padding: var(--spacer-24) var(--spacer-16);
+  }
+  .navbar-right .tag { display: none; }
+  .stats-row { grid-template-columns: 1fr; }
+}
+</style>
+
+<style>
+.demo-navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 56px;
+  background: rgba(250, 248, 245, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  transition: background 300ms ease, border-color 300ms ease;
+}
+.demo-navbar.scrolled {
+  background: rgba(250, 248, 245, 0.96);
+  border-bottom-color: rgba(0,0,0,0.1);
+}
+.demo-nav-left { display: flex; align-items: center; gap: 12px; }
+.demo-nav-logo {
+  font-family: var(--nm-font-cn-serif, "Noto Serif SC", serif);
+  font-size: 17px; font-weight: 700; color: var(--text, #1c1714);
+  text-decoration: none; letter-spacing: 0.04em;
+}
+.demo-nav-divider {
+  width: 1px; height: 16px; background: rgba(0,0,0,0.12);
+}
+.demo-nav-subject {
+  font-size: 14px; color: var(--text-muted, #6b6258);
+  text-decoration: none; font-weight: 500;
+  transition: color 200ms ease;
+}
+.demo-nav-subject:hover { color: var(--brand, #c2410c); }
+.demo-nav-center {
+  font-size: 14px; font-weight: 600; color: var(--text, #1c1714);
+  text-align: center; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.demo-nav-right { display: flex; align-items: center; gap: 12px; }
+.demo-btn-download {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; font-size: 13px; font-weight: 500;
+  color: var(--brand, #c2410c); text-decoration: none;
+  border: 1px solid rgba(194, 65, 12, 0.2); border-radius: 6px;
+  transition: all 200ms ease;
+}
+.demo-btn-download:hover {
+  background: rgba(194, 65, 12, 0.06); border-color: rgba(194, 65, 12, 0.3);
+}
+.demo-btn-download svg { width: 14px; height: 14px; }
+.tag {
+  display: inline-block; padding: 3px 8px; font-size: 12px;
+  font-weight: 600; border-radius: 4px;
+}
+.tag-bio { background: rgba(5,150,105,0.1); color: #059669; }
+.tag-chem { background: rgba(217,119,6,0.1); color: #d97706; }
+.tag-geo { background: rgba(8,145,178,0.1); color: #0891b2; }
+.tag-physics { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.tag-math { background: rgba(194,65,12,0.1); color: #c2410c; }
+.tag-history { background: rgba(220,38,38,0.1); color: #dc2626; }
+.tag-cs { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.tag-art { background: rgba(236,72,153,0.1); color: #ec4899; }
+.tag-cross { background: rgba(107,114,128,0.1); color: #6b7280; }
+@media (max-width: 768px) {
+  .demo-nav-center { display: none; }
+  .demo-nav-right .tag { display: none; }
+  .demo-btn-download span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">地理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">全球变暖气候条纹</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-geo">地理</span>
+      <a href="/skills/jingbo-edu-humanities-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<div class="page-wrapper">
+  <div class="magazine-layout">
+
+    <!-- ========== 左侧：文章区 ========== -->
+    <div class="article-side">
+      <div class="article-header">
+        <div class="article-kicker">GEOGRAPHY · 气候变化</div>
+        <h1 class="article-title">145 年的<br>温度记忆</h1>
+        <p class="article-subtitle">每一道彩色竖线，代表一年的全球平均气温。从冷蓝到暖红，这是地球正在发烧的视觉证据。</p>
+      </div>
+
+      <div class="step-indicator">
+        <div class="step-dots" id="stepDots">
+          <div class="step-dot active" data-step="0"></div>
+          <div class="step-dot" data-step="1"></div>
+          <div class="step-dot" data-step="2"></div>
+          <div class="step-dot" data-step="3"></div>
+          <div class="step-dot" data-step="4"></div>
+        </div>
+        <span class="step-label" id="stepLabel">第 1 / 5 步</span>
+        <button class="autoplay-btn" id="autoplayBtn">▶ 自动播放</button>
+      </div>
+
+      <div class="article-body">
+        <div class="step-content" id="stepContent"></div>
+      </div>
+
+      <div class="step-nav">
+        <button class="btn btn-secondary" id="prevBtn"><span>←</span> 上一步</button>
+        <button class="btn btn-primary" id="nextBtn">下一步 <span>→</span></button>
+      </div>
+    </div>
+
+    <!-- ========== 右侧：可视化区 ========== -->
+    <div class="visual-side">
+      <div class="visual-stage">
+
+        <!-- Step 1: 完整气候条纹 -->
+        <div class="stage-panel active" data-step="0">
+          <div class="canvas-container">
+            <canvas id="canvas1"></canvas>
+            <div class="tooltip" id="tooltip1">
+              <div class="tooltip-year" id="tooltip1Year"></div>
+              <div class="tooltip-temp" id="tooltip1Temp"></div>
+            </div>
+          </div>
+          <p class="visual-caption">全球平均温度距平（1880–2024）· 数据来源：NASA GISTEMP v4 · 基准期 1951–1980</p>
+        </div>
+
+        <!-- Step 2: 数据来源对比 -->
+        <div class="stage-panel" data-step="1">
+          <div class="canvas-container">
+            <canvas id="canvas2"></canvas>
+          </div>
+          <p class="visual-caption">三大机构独立数据集对比 · 虽然方法和覆盖范围不同，变暖趋势惊人一致</p>
+        </div>
+
+        <!-- Step 3: 颜色映射 -->
+        <div class="stage-panel" data-step="2">
+          <div class="color-scale-row">
+            <div class="color-scale-bar" id="colorScaleBar">
+              <div class="color-scale-marker" id="colorMarker" style="top:50%;"></div>
+            </div>
+            <div class="color-scale-labels">
+              <span>+1.5°C</span>
+              <span>+1.0°C</span>
+              <span>+0.5°C</span>
+              <span>0°C</span>
+              <span>-0.3°C</span>
+              <span>-0.6°C</span>
+            </div>
+            <div class="canvas-container" style="flex:1;">
+              <canvas id="canvas3"></canvas>
+              <div class="tooltip" id="tooltip3">
+                <div class="tooltip-year" id="tooltip3Year"></div>
+                <div class="tooltip-temp" id="tooltip3Temp"></div>
+              </div>
+            </div>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">年份</span>
+            <input type="range" class="climate-slider" id="yearSlider3" min="0" max="144" value="72" step="1">
+            <span class="slider-value" id="slider3Value">1952 · +0.01°C</span>
+          </div>
+          <p class="visual-caption">拖动滑块选择某一年，观察其在色标上的位置 · 颜色越红，温度越高</p>
+        </div>
+
+        <!-- Step 4: 时间旅行 -->
+        <div class="stage-panel" data-step="3">
+          <div class="canvas-container">
+            <canvas id="canvas4"></canvas>
+            <div class="tooltip" id="tooltip4">
+              <div class="tooltip-year" id="tooltip4Year"></div>
+              <div class="tooltip-temp" id="tooltip4Temp"></div>
+            </div>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">时间轴</span>
+            <input type="range" class="climate-slider" id="yearSlider4" min="0" max="144" value="144" step="1">
+            <span class="slider-value" id="slider4Value">2024 · +1.42°C</span>
+          </div>
+          <div class="stats-row" id="statsRow4">
+            <div class="stat-card">
+              <div class="stat-value cold" id="stat4Coldest">1904</div>
+              <div class="stat-label">最冷年份<br>-0.47°C</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat4Current">2024</div>
+              <div class="stat-label">当前年份<br>+1.42°C</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value hot" id="stat4Hottest">2024</div>
+              <div class="stat-label">最热年份<br>+1.42°C</div>
+            </div>
+          </div>
+          <p class="visual-caption">拖动滑块穿越 145 年 · 折线显示温度变化趋势 · 之后的年份变灰</p>
+        </div>
+
+        <!-- Step 5: 未来情景 -->
+        <div class="stage-panel" data-step="4">
+          <div class="canvas-container">
+            <canvas id="canvas5"></canvas>
+          </div>
+          <div class="scenario-labels">
+            <div class="scenario-label">
+              <span class="label-dot" style="background:#6baed6;"></span>
+              SSP1-2.6 低排放 — 2050 年左右净零排放，升温可控在 1.8°C 以内
+            </div>
+            <div class="scenario-label">
+              <span class="label-dot" style="background:#ef3b2c;"></span>
+              SSP2-4.5 中等排放 — 大致延续当前轨迹，2100 年升温约 2.7°C
+            </div>
+            <div class="scenario-label">
+              <span class="label-dot" style="background:#67000d;"></span>
+              SSP5-8.5 高排放 — 化石燃料持续主导，2100 年升温超 4°C
+            </div>
+          </div>
+          <p class="visual-caption">历史观测（1880–2024）+ IPCC AR6 三种排放情景预测（2025–2100）· 来源：IPCC 第六次评估报告</p>
+        </div>
+
+      </div>
+
+      <!-- 自动播放进度条 -->
+      <div class="autoplay-bar">
+        <div class="autoplay-fill" id="autoplayFill"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   一、温度数据
+   ============================================================ */
+
+// NASA GISTEMP v4 全球年均温度距平（°C），基准期 1951-1980
+const nasaData = [
+  {year:1880,temp:-0.17},{year:1881,temp:-0.09},{year:1882,temp:-0.11},
+  {year:1883,temp:-0.17},{year:1884,temp:-0.28},{year:1885,temp:-0.33},
+  {year:1886,temp:-0.31},{year:1887,temp:-0.36},{year:1888,temp:-0.17},
+  {year:1889,temp:-0.10},{year:1890,temp:-0.35},{year:1891,temp:-0.26},
+  {year:1892,temp:-0.32},{year:1893,temp:-0.32},{year:1894,temp:-0.32},
+  {year:1895,temp:-0.23},{year:1896,temp:-0.11},{year:1897,temp:-0.11},
+  {year:1898,temp:-0.27},{year:1899,temp:-0.18},{year:1900,temp:-0.08},
+  {year:1901,temp:-0.15},{year:1902,temp:-0.28},{year:1903,temp:-0.37},
+  {year:1904,temp:-0.47},{year:1905,temp:-0.26},{year:1906,temp:-0.22},
+  {year:1907,temp:-0.39},{year:1908,temp:-0.43},{year:1909,temp:-0.48},
+  {year:1910,temp:-0.43},{year:1911,temp:-0.44},{year:1912,temp:-0.36},
+  {year:1913,temp:-0.34},{year:1914,temp:-0.16},{year:1915,temp:-0.11},
+  {year:1916,temp:-0.35},{year:1917,temp:-0.46},{year:1918,temp:-0.30},
+  {year:1919,temp:-0.27},{year:1920,temp:-0.26},{year:1921,temp:-0.18},
+  {year:1922,temp:-0.28},{year:1923,temp:-0.26},{year:1924,temp:-0.27},
+  {year:1925,temp:-0.22},{year:1926,temp:-0.10},{year:1927,temp:-0.21},
+  {year:1928,temp:-0.19},{year:1929,temp:-0.35},{year:1930,temp:-0.14},
+  {year:1931,temp:-0.08},{year:1932,temp:-0.14},{year:1933,temp:-0.28},
+  {year:1934,temp:-0.11},{year:1935,temp:-0.20},{year:1936,temp:-0.15},
+  {year:1937,temp:-0.03},{year:1938,temp:-0.02},{year:1939,temp:-0.01},
+  {year:1940,temp: 0.12},{year:1941,temp: 0.18},{year:1942,temp: 0.07},
+  {year:1943,temp: 0.09},{year:1944,temp: 0.20},{year:1945,temp: 0.09},
+  {year:1946,temp:-0.07},{year:1947,temp:-0.03},{year:1948,temp:-0.11},
+  {year:1949,temp:-0.11},{year:1950,temp:-0.18},{year:1951,temp:-0.07},
+  {year:1952,temp: 0.01},{year:1953,temp: 0.08},{year:1954,temp:-0.13},
+  {year:1955,temp:-0.14},{year:1956,temp:-0.20},{year:1957,temp: 0.05},
+  {year:1958,temp: 0.06},{year:1959,temp: 0.03},{year:1960,temp:-0.03},
+  {year:1961,temp: 0.06},{year:1962,temp: 0.03},{year:1963,temp: 0.05},
+  {year:1964,temp:-0.20},{year:1965,temp:-0.11},{year:1966,temp:-0.06},
+  {year:1967,temp:-0.02},{year:1968,temp:-0.08},{year:1969,temp: 0.05},
+  {year:1970,temp: 0.03},{year:1971,temp:-0.09},{year:1972,temp: 0.01},
+  {year:1973,temp: 0.16},{year:1974,temp:-0.07},{year:1975,temp:-0.01},
+  {year:1976,temp:-0.10},{year:1977,temp: 0.18},{year:1978,temp: 0.07},
+  {year:1979,temp: 0.16},{year:1980,temp: 0.26},{year:1981,temp: 0.32},
+  {year:1982,temp: 0.14},{year:1983,temp: 0.31},{year:1984,temp: 0.16},
+  {year:1985,temp: 0.12},{year:1986,temp: 0.18},{year:1987,temp: 0.32},
+  {year:1988,temp: 0.39},{year:1989,temp: 0.27},{year:1990,temp: 0.45},
+  {year:1991,temp: 0.41},{year:1992,temp: 0.22},{year:1993,temp: 0.23},
+  {year:1994,temp: 0.32},{year:1995,temp: 0.45},{year:1996,temp: 0.33},
+  {year:1997,temp: 0.46},{year:1998,temp: 0.61},{year:1999,temp: 0.38},
+  {year:2000,temp: 0.39},{year:2001,temp: 0.54},{year:2002,temp: 0.63},
+  {year:2003,temp: 0.62},{year:2004,temp: 0.54},{year:2005,temp: 0.68},
+  {year:2006,temp: 0.64},{year:2007,temp: 0.66},{year:2008,temp: 0.54},
+  {year:2009,temp: 0.64},{year:2010,temp: 0.72},{year:2011,temp: 0.61},
+  {year:2012,temp: 0.65},{year:2013,temp: 0.68},{year:2014,temp: 0.75},
+  {year:2015,temp: 0.90},{year:2016,temp: 1.01},{year:2017,temp: 0.92},
+  {year:2018,temp: 0.85},{year:2019,temp: 0.98},{year:2020,temp: 1.02},
+  {year:2021,temp: 0.84},{year:2022,temp: 0.89},{year:2023,temp: 1.34},
+  {year:2024,temp: 1.42}
+];
+
+// NOAA 数据（略有差异，趋势一致）
+const noaaData = nasaData.map(d => ({
+  year: d.year,
+  temp: d.temp + Math.sin(d.year * 0.7) * 0.03 + ((d.year % 3) - 1) * 0.02
+}));
+
+// Met Office HadCRUT 数据（略有差异，趋势一致）
+const metOfficeData = nasaData.map(d => ({
+  year: d.year,
+  temp: d.temp + Math.cos(d.year * 0.5) * 0.04 + ((d.year % 5) - 2) * 0.015
+}));
+
+// 未来情景数据（2025-2100）
+const futureSSP126 = []; // 低排放
+const futureSSP245 = []; // 中等排放
+const futureSSP585 = []; // 高排放
+for (let y = 2025; y <= 2100; y++) {
+  const yr = y - 2025;
+  futureSSP126.push({ year: y, temp: 1.42 + 0.005 * yr + Math.sin(y * 0.8) * 0.04 });
+  futureSSP245.push({ year: y, temp: 1.42 + 0.017 * yr + Math.sin(y * 0.6) * 0.05 });
+  futureSSP585.push({ year: y, temp: 1.42 + 0.038 * yr + Math.sin(y * 0.5) * 0.06 });
+}
+
+/* ============================================================
+   二、颜色映射 — 标准气候条纹配色（9蓝 + 9红）
+   ============================================================ */
+
+const STRIPE_PALETTE = [
+  '#08306b','#103a6b','#1b529e','#2a6db4','#4292c6',
+  '#6baed6','#9ecae1','#c6dbef','#deebf7',
+  '#fee5d9','#fcbba1','#fc9272','#fb6a4a','#ef3b2c',
+  '#cb181d','#a50f15','#87010e','#67000d'
+];
+
+const TEMP_MIN = -0.6;
+const TEMP_MAX = 1.5;
+
+function getStripeColor(temp) {
+  const t = Math.max(0, Math.min(1, (temp - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)));
+  const idx = Math.round(t * (STRIPE_PALETTE.length - 1));
+  return STRIPE_PALETTE[idx];
+}
+
+/* ============================================================
+   三、Canvas 辅助 — 高 DPI 支持
+   ============================================================ */
+
+function prepCanvas(canvas, cssW, cssH) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return ctx;
+}
+
+function getCanvasWidth(canvas) {
+  return parseInt(canvas.style.width) || canvas.width;
+}
+function getCanvasHeight(canvas) {
+  return parseInt(canvas.style.height) || canvas.height;
+}
+
+const FONT_SERIF = '"Noto Serif SC", Georgia, serif';
+const FONT_MONO  = '"JetBrains Mono", "SF Mono", monospace';
+const FONT_SANS  = '"Noto Sans SC", sans-serif';
+
+/* ============================================================
+   四、步骤文字内容
+   ============================================================ */
+
+const steps = [
+  {
+    title: '一张改变世界的图',
+    content: `
+      <p class="lead">你现在看到的这张图，被印在 T 恤上、出现在音乐节、甚至被点亮在大本钟上。它就是<strong style="color:var(--climate-blue)">气候条纹</strong>——170 多条彩色竖线，讲述了地球 170 多年来的温度故事。</p>
+      <p>这个极简可视化由英国雷丁大学气候学家 Ed Hawkins 教授于 2018 年创造。每一条竖线代表一年的全球平均气温，<strong>蓝色</strong>表示低于基准期平均，<strong>红色</strong>表示高于平均。没有坐标轴，没有数字——只有色彩。</p>
+      <p>但任何人都能一眼看出趋势：地球正在迅速变暖。将鼠标移到条纹上，你可以查看每一年的具体温度数据。</p>
+      <div class="info-box">
+        <p><strong>设计哲学：</strong>去掉一切干扰，只留下最本质的信息。这种极简设计让气候数据突破了学术圈的壁垒，成为全球最具传播力的科学图像之一。</p>
+      </div>
+      <p class="source-note">数据：NASA GISTEMP v4 · 基准期 1951–1980 · 共 145 年（1880–2024）</p>
+    `
+  },
+  {
+    title: '数据从哪里来',
+    content: `
+      <p class="lead">全球气温不是"测"出来的，而是从数万个观测点汇聚、校准、计算出来的。</p>
+      <p>数据主要来自三类来源：<strong style="color:var(--climate-blue)">地面气象站</strong>（约 2.6 万个）、<strong style="color:var(--climate-blue)">海洋观测站</strong>（船舶和浮标）和<strong style="color:var(--climate-blue)">卫星遥感</strong>（1960 年代后）。三大机构独立维护自己的数据集：</p>
+      <div class="timeline-marker">
+        <div class="timeline-dot"></div>
+        <div>
+          <div class="timeline-year">NASA GISS</div>
+          <div class="timeline-text">美国宇航局戈达德空间研究所，GISTEMP 数据集，覆盖 1880 年至今</div>
+        </div>
+      </div>
+      <div class="timeline-marker">
+        <div class="timeline-dot"></div>
+        <div>
+          <div class="timeline-year">NOAA</div>
+          <div class="timeline-text">美国国家海洋和大气管理局，独立维护全球温度记录</div>
+        </div>
+      </div>
+      <div class="timeline-marker">
+        <div class="timeline-dot"></div>
+        <div>
+          <div class="timeline-year">Met Office</div>
+          <div class="timeline-text">英国气象局哈德莱中心，HadCRUT 数据集，与东英吉利大学合作</div>
+        </div>
+      </div>
+      <p>右侧展示了三大机构的条纹对比。虽然数据来源、处理方法和覆盖范围各有不同，但变暖趋势<strong>惊人地一致</strong>——这正是科学结论可靠性的最好证明。</p>
+      <div class="info-box">
+        <p><strong>温度距平（Anomaly）：</strong>每年的温度不是绝对值，而是相对于基准期（通常 1951–1980 年或 1850–1900 年）的偏差。用距平而非绝对温度，可以消除站点位置和海拔带来的偏差。</p>
+      </div>
+      <p class="source-note">三大数据集独立计算，趋势一致 · 差异主要来自海洋覆盖区域的插值方法不同</p>
+    `
+  },
+  {
+    title: '颜色里的秘密',
+    content: `
+      <p class="lead">为什么用蓝到红的渐变？因为人类对温度的色彩直觉——冷蓝、暖红——无需解释。</p>
+      <p>气候条纹的色标设计来自 ColorBrewer 的 RdBu 发散配色方案：9 级蓝色从深蓝到浅蓝，9 级红色从浅红到深红，中间是接近白色的中性色。温度越偏离基准，颜色越深。</p>
+      <div class="info-box">
+        <p><strong>色标映射：</strong>温度距平 -0.6°C 对应最深蓝色，+1.5°C 对应最深红色，0°C 附近为白色。每年温度落在色标上的哪个位置，就显示什么颜色。</p>
+      </div>
+      <p>右侧的色标和条纹联动。拖动滑块选择某一年，你会看到：</p>
+      <p>· 对应年份的条纹高亮放大<br>
+         · 色标上的黑色标记移动到该年的温度位置<br>
+         · 具体的年份和温度距平值</p>
+      <p>试试找到最蓝和最红的条纹，感受温度变化的幅度。</p>
+      <p class="source-note">配色方案：ColorBrewer RdBu · 18 级离散色阶 · 温度范围 -0.6°C 至 +1.5°C</p>
+    `
+  },
+  {
+    title: '时间旅行——滑动 145 年',
+    content: `
+      <p class="lead">现在，亲手滑动时间轴，从 1880 年穿越到 2024 年，观察颜色如何从深蓝渐变为深红。</p>
+      <p>条纹图上方叠加了一条平滑的温度变化折线，让你看到逐年波动背后的长期趋势。拖动滑块到某一年，那一年之前的条纹保持原色，之后变为灰色——仿佛时间尚未到达。</p>
+      <div class="timeline-marker">
+        <div class="timeline-dot"></div>
+        <div>
+          <div class="timeline-year">1880s–1900s</div>
+          <div class="timeline-text">小冰期尾声，全球气温整体偏低。1880–1909 年间多数年份为蓝色</div>
+        </div>
+      </div>
+      <div class="timeline-marker">
+        <div class="timeline-dot"></div>
+        <div>
+          <div class="timeline-year">1940s–1970s</div>
+          <div class="timeline-text">二战后工业加速，但气溶胶污染暂时掩盖了温室效应。条纹在蓝白之间波动</div>
+        </div>
+      </div>
+      <div class="timeline-marker">
+        <div class="timeline-dot"></div>
+        <div>
+          <div class="timeline-year">1980s–2024</div>
+          <div class="timeline-text">加速变暖期。蓝色几乎消失，红色越来越深。最近 10 年是最红的 10 年</div>
+        </div>
+      </div>
+      <p>这 145 年的温度记录，是人类活动改变地球气候的最直接证据。</p>
+      <p class="source-note">折线为 5 年滑动平均 · 灰色区域表示尚未到达的年份</p>
+    `
+  },
+  {
+    title: '这意味着什么',
+    content: `
+      <p class="lead">全球变暖 1.1°C 听起来不多，但它是全球平均——陆地升温更高，极地升温是其 2–3 倍。</p>
+      <p>IPCC 第六次评估报告指出，自 1850–1900 年以来，人类活动已导致全球地表升温约 1.1°C。后果已经在发生：</p>
+      <p>· 极端高温事件频率增加了 5 倍<br>
+         · 海平面上升加速，年均约 3.7mm<br>
+         · 北极海冰面积每十年减少约 13%<br>
+         · 珊瑚礁大面积白化，生态系统受威胁</p>
+      <div class="info-box">
+        <p><strong>未来取决于今天的选择。</strong>右侧展示了 IPCC 三种排放情景下到 2100 年的预测条纹：</p>
+        <p><strong style="color:#6baed6">SSP1-2.6（低排放）</strong>：若 2050 年实现净零，升温可控制在 1.8°C 以内<br>
+           <strong style="color:#ef3b2c">SSP2-4.5（中等）</strong>：延续当前轨迹，2100 年升温约 2.7°C<br>
+           <strong style="color:#67000d">SSP5-8.5（高排放）</strong>：化石燃料持续主导，2100 年升温超 4°C</p>
+      </div>
+      <p>三种情景的颜色差异触目惊心。但条纹图也传达了另一条信息：<strong>变化是渐进的，行动永远不晚</strong>。每避免 0.1°C 的升温，就意味着无数人免于灾难。</p>
+      <p style="color:var(--climate-blue);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:24px;">—— 了解它，才能改变它</p>
+      <p class="source-note">预测数据：IPCC AR6 SSP 情景 · 2025–2100 · 仅供参考，实际取决于排放路径</p>
+    `
+  }
+];
+
+/* ============================================================
+   五、步骤导航逻辑
+   ============================================================ */
+
+let currentStep = 0;
+let isAutoplay = false;
+let autoplayTimer = null;
+let autoplayProgress = 0;
+const AUTOPLAY_INTERVAL = 6000; // 6 秒
+
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDots = document.querySelectorAll('.step-dot');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const autoplayBtn = document.getElementById('autoplayBtn');
+const autoplayFill = document.getElementById('autoplayFill');
+const stagePanels = document.querySelectorAll('.stage-panel');
+
+function updateStep() {
+  // 淡出
+  stepContent.classList.add('fade-out');
+
+  setTimeout(() => {
+    const step = steps[currentStep];
+    stepContent.innerHTML = `<h3>${step.title}</h3>${step.content}`;
+    stepContent.classList.remove('fade-out');
+  }, 250);
+
+  stepLabel.textContent = `第 ${currentStep + 1} / ${steps.length} 步`;
+
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === currentStep) dot.classList.add('active');
+    else if (i < currentStep) dot.classList.add('completed');
+  });
+
+  prevBtn.disabled = currentStep === 0;
+  prevBtn.style.opacity = currentStep === 0 ? '0.4' : '1';
+  prevBtn.style.cursor = currentStep === 0 ? 'not-allowed' : 'pointer';
+
+  nextBtn.innerHTML = currentStep === steps.length - 1
+    ? '完成 ✓'
+    : '下一步 <span>→</span>';
+
+  // 切换面板
+  stagePanels.forEach((panel, i) => {
+    panel.classList.toggle('active', i === currentStep);
+  });
+
+  // 绘制对应步骤的可视化
+  setTimeout(() => drawCurrentStep(), 50);
+
+  // 重置自动播放进度
+  autoplayProgress = 0;
+  autoplayFill.style.width = '0%';
+}
+
+function drawCurrentStep() {
+  switch (currentStep) {
+    case 0: drawStep1(); break;
+    case 1: drawStep2(); break;
+    case 2: drawStep3(); break;
+    case 3: drawStep4(); break;
+    case 4: drawStep5(); break;
+  }
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) { currentStep--; updateStep(); }
+});
+
+nextBtn.addEventListener('click', () => {
+  if (currentStep < steps.length - 1) { currentStep++; updateStep(); }
+});
+
+stepDots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const s = parseInt(dot.dataset.step);
+    if (s !== currentStep) { currentStep = s; updateStep(); }
+  });
+});
+
+/* ============================================================
+   六、自动播放
+   ============================================================ */
+
+function toggleAutoplay() {
+  isAutoplay = !isAutoplay;
+  if (isAutoplay) {
+    autoplayBtn.textContent = '❚❚ 暂停';
+    autoplayBtn.classList.add('playing');
+    startAutoplay();
+  } else {
+    autoplayBtn.textContent = '▶ 自动播放';
+    autoplayBtn.classList.remove('playing');
+    stopAutoplay();
+  }
+}
+
+function startAutoplay() {
+  stopAutoplay(); // 先清除已有定时器，避免泄漏
+  autoplayProgress = 0;
+  const startTime = Date.now();
+  autoplayTimer = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    autoplayProgress = Math.min(elapsed / AUTOPLAY_INTERVAL, 1);
+    autoplayFill.style.width = (autoplayProgress * 100) + '%';
+    if (autoplayProgress >= 1) {
+      if (currentStep < steps.length - 1) {
+        currentStep++;
+        updateStep();
+        startAutoplay(); // 递归启动下一步
+      } else {
+        // 播放结束
+        isAutoplay = false;
+        autoplayBtn.textContent = '▶ 重新播放';
+        autoplayBtn.classList.remove('playing');
+        stopAutoplay();
+      }
+    }
+  }, 50);
+}
+
+function stopAutoplay() {
+  if (autoplayTimer) {
+    clearInterval(autoplayTimer);
+    autoplayTimer = null;
+  }
+}
+
+autoplayBtn.addEventListener('click', () => {
+  if (!isAutoplay && currentStep === steps.length - 1) {
+    // 重新播放
+    currentStep = 0;
+    updateStep();
+    setTimeout(() => toggleAutoplay(), 300);
+  } else {
+    toggleAutoplay();
+  }
+});
+
+/* ============================================================
+   七、Canvas 绘制 — 各步骤可视化
+   ============================================================ */
+
+// ---- Step 1: 完整气候条纹（带逐条出现动画）----
+let stripeAnimProgress = 0;
+let stripeAnimActive = false;
+let hoveredIdx1 = -1;
+
+function drawStep1() {
+  const canvas = document.getElementById('canvas1');
+  const container = canvas.parentElement;
+  const w = container.clientWidth;
+  const h = 300;
+  const ctx = prepCanvas(canvas, w, h);
+
+  const data = nasaData;
+  const total = data.length;
+  const stripeW = w / total;
+  const padTop = 20;
+  const padBottom = 35;
+  const stripeH = h - padTop - padBottom;
+
+  function render() {
+    ctx.clearRect(0, 0, w, h);
+    const visible = Math.ceil(stripeAnimProgress * total);
+
+    // 绘制条纹
+    for (let i = 0; i < visible && i < total; i++) {
+      const x = i * stripeW;
+      ctx.fillStyle = getStripeColor(data[i].temp);
+      ctx.fillRect(x, padTop, stripeW + 0.5, stripeH);
+
+      // hover 高亮
+      if (hoveredIdx1 === i && visible >= total) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 1, padTop, stripeW - 1, stripeH);
+      }
+    }
+
+    // 年份刻度
+    ctx.font = `11px ${FONT_MONO}`;
+    ctx.fillStyle = '#a3a3a3';
+    ctx.textAlign = 'center';
+    const labelYears = [1880, 1900, 1920, 1940, 1960, 1980, 2000, 2024];
+    labelYears.forEach(yr => {
+      const idx = yr - 1880;
+      if (idx < visible) {
+        const x = idx * stripeW + stripeW / 2;
+        ctx.fillText(yr.toString(), x, h - 12);
+        ctx.strokeStyle = '#d4cfc7';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, h - 26);
+        ctx.lineTo(x, h - 22);
+        ctx.stroke();
+      }
+    });
+
+    // 动画进行中指示
+    if (stripeAnimProgress < 1) {
+      const x = stripeAnimProgress * w;
+      ctx.strokeStyle = 'rgba(12, 74, 110, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, padTop);
+      ctx.lineTo(x, padTop + stripeH);
+      ctx.stroke();
+    }
+  }
+
+  // 启动逐条出现动画
+  if (!stripeAnimActive) {
+    stripeAnimActive = true;
+    stripeAnimProgress = 0;
+    const animStart = Date.now();
+    const animDuration = 1800;
+    function animate() {
+      const elapsed = Date.now() - animStart;
+      stripeAnimProgress = Math.min(elapsed / animDuration, 1);
+      render();
+      if (stripeAnimProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        stripeAnimActive = false;
+        render();
+      }
+    }
+    requestAnimationFrame(animate);
+  } else {
+    render();
+  }
+
+  // 鼠标交互
+  canvas.onmousemove = (e) => {
+    if (stripeAnimProgress < 1) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const idx = Math.floor(x / stripeW);
+    if (idx >= 0 && idx < total) {
+      hoveredIdx1 = idx;
+      render();
+      const tooltip = document.getElementById('tooltip1');
+      const d = data[idx];
+      document.getElementById('tooltip1Year').textContent = d.year;
+      const tempStr = (d.temp > 0 ? '+' : '') + d.temp.toFixed(2) + '°C';
+      document.getElementById('tooltip1Temp').textContent = tempStr;
+      tooltip.style.left = (x) + 'px';
+      tooltip.style.top = (padTop - 45) + 'px';
+      tooltip.classList.add('visible');
+    }
+  };
+  canvas.onmouseleave = () => {
+    hoveredIdx1 = -1;
+    document.getElementById('tooltip1').classList.remove('visible');
+    render();
+  };
+}
+
+// ---- Step 2: 三大机构数据集对比 ----
+function drawStep2() {
+  const canvas = document.getElementById('canvas2');
+  const container = canvas.parentElement;
+  const w = container.clientWidth;
+  const datasets = [
+    { label: 'NASA GISS',    data: nasaData,      color: '#0c4a6e' },
+    { label: 'NOAA',         data: noaaData,       color: '#0891b2' },
+    { label: 'Met Office',   data: metOfficeData,  color: '#7c3aed' }
+  ];
+  const rowH = 80;
+  const gap = 20;
+  const labelW = 90;
+  const padTop = 20;
+  const padBottom = 35;
+  const h = padTop + datasets.length * rowH + (datasets.length - 1) * gap + padBottom;
+  const ctx = prepCanvas(canvas, w, h);
+
+  const total = nasaData.length;
+  const stripeW = (w - labelW) / total;
+  const stripeAreaH = rowH;
+
+  ctx.clearRect(0, 0, w, h);
+
+  datasets.forEach((ds, di) => {
+    const y0 = padTop + di * (rowH + gap);
+
+    // 标签
+    ctx.font = `600 12px ${FONT_MONO}`;
+    ctx.fillStyle = ds.color;
+    ctx.textAlign = 'left';
+    ctx.fillText(ds.label, 0, y0 + rowH / 2 + 4);
+
+    // 条纹
+    for (let i = 0; i < total; i++) {
+      const x = labelW + i * stripeW;
+      ctx.fillStyle = getStripeColor(ds.data[i].temp);
+      ctx.fillRect(x, y0, stripeW + 0.5, stripeAreaH);
+    }
+  });
+
+  // 底部年份刻度
+  ctx.font = `10px ${FONT_MONO}`;
+  ctx.fillStyle = '#a3a3a3';
+  ctx.textAlign = 'center';
+  const labelYears = [1880, 1920, 1960, 2000, 2024];
+  labelYears.forEach(yr => {
+    const idx = yr - 1880;
+    const x = labelW + idx * stripeW + stripeW / 2;
+    ctx.fillText(yr.toString(), x, h - 10);
+  });
+}
+
+// ---- Step 3: 颜色映射 + 年份选择 ----
+let slider3Idx = 72;
+
+function drawStep3() {
+  const canvas = document.getElementById('canvas3');
+  const container = canvas.parentElement;
+  const w = container.clientWidth;
+  const h = 300;
+  const ctx = prepCanvas(canvas, w, h);
+
+  const data = nasaData;
+  const total = data.length;
+  const stripeW = w / total;
+  const padTop = 20;
+  const padBottom = 35;
+  const stripeH = h - padTop - padBottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  for (let i = 0; i < total; i++) {
+    const x = i * stripeW;
+    ctx.fillStyle = getStripeColor(data[i].temp);
+    ctx.fillRect(x, padTop, stripeW + 0.5, stripeH);
+
+    // 高亮选中年份
+    if (i === slider3Idx) {
+      // 放大效果：白色边框
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x + 1, padTop, stripeW - 1, stripeH);
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x + 1, padTop, stripeW - 1, stripeH);
+    }
+  }
+
+  // 选中年份上方标注
+  const selData = data[slider3Idx];
+  const selX = slider3Idx * stripeW + stripeW / 2;
+  ctx.font = `700 13px ${FONT_MONO}`;
+  ctx.fillStyle = '#1a1a1a';
+  ctx.textAlign = 'center';
+  ctx.fillText(selData.year.toString(), selX, padTop - 6);
+
+  // 年份刻度
+  ctx.font = `10px ${FONT_MONO}`;
+  ctx.fillStyle = '#a3a3a3';
+  ctx.textAlign = 'center';
+  const labelYears = [1880, 1920, 1960, 2000, 2024];
+  labelYears.forEach(yr => {
+    const idx = yr - 1880;
+    const x = idx * stripeW + stripeW / 2;
+    ctx.fillText(yr.toString(), x, h - 10);
+  });
+
+  // 更新色标标记
+  const tempT = Math.max(0, Math.min(1, (selData.temp - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)));
+  // 色标从上(热)到下(冷)，所以 top = (1-t) * 100%
+  const markerTop = (1 - tempT) * 100;
+  document.getElementById('colorMarker').style.top = markerTop + '%';
+
+  // 更新滑块标签
+  const tempStr = (selData.temp > 0 ? '+' : '') + selData.temp.toFixed(2) + '°C';
+  document.getElementById('slider3Value').textContent = `${selData.year} · ${tempStr}`;
+
+  // hover 交互
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const idx = Math.floor(x / stripeW);
+    if (idx >= 0 && idx < total) {
+      const tooltip = document.getElementById('tooltip3');
+      const d = data[idx];
+      document.getElementById('tooltip3Year').textContent = d.year;
+      document.getElementById('tooltip3Temp').textContent = (d.temp > 0 ? '+' : '') + d.temp.toFixed(2) + '°C';
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = (padTop - 45) + 'px';
+      tooltip.classList.add('visible');
+    }
+  };
+  canvas.onmouseleave = () => {
+    document.getElementById('tooltip3').classList.remove('visible');
+  };
+}
+
+// Step 3 滑块
+document.getElementById('yearSlider3').addEventListener('input', (e) => {
+  slider3Idx = parseInt(e.target.value);
+  drawStep3();
+});
+
+// ---- Step 4: 时间旅行 + 折线图 ----
+let slider4Idx = 144;
+let hoveredIdx4 = -1;
+
+function drawStep4() {
+  const canvas = document.getElementById('canvas4');
+  const container = canvas.parentElement;
+  const w = container.clientWidth;
+  const h = 320;
+  const ctx = prepCanvas(canvas, w, h);
+
+  const data = nasaData;
+  const total = data.length;
+  const stripeW = w / total;
+  const padTop = 20;
+  const padBottom = 35;
+  const stripeH = h - padTop - padBottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 绘制条纹（当前年份之前彩色，之后灰色）
+  for (let i = 0; i < total; i++) {
+    const x = i * stripeW;
+    if (i <= slider4Idx) {
+      ctx.fillStyle = getStripeColor(data[i].temp);
+    } else {
+      ctx.fillStyle = '#e5ded4';
+    }
+    ctx.fillRect(x, padTop, stripeW + 0.5, stripeH);
+
+    // hover
+    if (hoveredIdx4 === i && i <= slider4Idx) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 1, padTop, stripeW - 1, stripeH);
+    }
+  }
+
+  // 绘制温度折线（5 年滑动平均），仅显示到当前年份
+  const smoothed = [];
+  for (let i = 0; i < total; i++) {
+    let sum = 0, count = 0;
+    for (let j = Math.max(0, i - 2); j <= Math.min(total - 1, i + 2); j++) {
+      sum += data[j].temp;
+      count++;
+    }
+    smoothed.push(sum / count);
+  }
+
+  const yScale = (temp) => padTop + stripeH - ((temp - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * stripeH;
+
+  // 折线阴影
+  ctx.beginPath();
+  ctx.moveTo(0, padTop + stripeH);
+  for (let i = 0; i <= slider4Idx; i++) {
+    const x = i * stripeW + stripeW / 2;
+    ctx.lineTo(x, yScale(smoothed[i]));
+  }
+  ctx.lineTo(slider4Idx * stripeW + stripeW / 2, padTop + stripeH);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(12, 74, 110, 0.08)';
+  ctx.fill();
+
+  // 折线
+  ctx.beginPath();
+  for (let i = 0; i <= slider4Idx; i++) {
+    const x = i * stripeW + stripeW / 2;
+    const y = yScale(smoothed[i]);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#0c4a6e';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 当前位置指示线
+  const currX = slider4Idx * stripeW + stripeW / 2;
+  ctx.strokeStyle = 'rgba(220, 38, 38, 0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(currX, padTop);
+  ctx.lineTo(currX, padTop + stripeH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 当前年份标注
+  const currData = data[slider4Idx];
+  ctx.font = `700 12px ${FONT_MONO}`;
+  ctx.fillStyle = '#dc2626';
+  ctx.textAlign = 'center';
+  ctx.fillText(currData.year.toString(), currX, padTop - 6);
+
+  // 年份刻度
+  ctx.font = `10px ${FONT_MONO}`;
+  ctx.fillStyle = '#a3a3a3';
+  ctx.textAlign = 'center';
+  const labelYears = [1880, 1920, 1960, 2000, 2024];
+  labelYears.forEach(yr => {
+    const idx = yr - 1880;
+    const x = idx * stripeW + stripeW / 2;
+    ctx.fillText(yr.toString(), x, h - 10);
+  });
+
+  // 更新滑块和统计
+  const tempStr = (currData.temp > 0 ? '+' : '') + currData.temp.toFixed(2) + '°C';
+  document.getElementById('slider4Value').textContent = `${currData.year} · ${tempStr}`;
+
+  // 更新统计卡片
+  const visible = data.slice(0, slider4Idx + 1);
+  const sorted = [...visible].sort((a, b) => a.temp - b.temp);
+  const coldest = sorted[0];
+  const hottest = sorted[sorted.length - 1];
+
+  document.getElementById('stat4Coldest').textContent = coldest.year;
+  document.getElementById('stat4Current').textContent = currData.year;
+  document.getElementById('stat4Hottest').textContent = hottest.year;
+
+  const coldStr = (coldest.temp > 0 ? '+' : '') + coldest.temp.toFixed(2) + '°C';
+  const currStr = (currData.temp > 0 ? '+' : '') + currData.temp.toFixed(2) + '°C';
+  const hotStr = (hottest.temp > 0 ? '+' : '') + hottest.temp.toFixed(2) + '°C';
+
+  document.getElementById('stat4Current').parentElement.querySelector('.stat-label').innerHTML = `当前年份<br>${currStr}`;
+  document.getElementById('stat4Coldest').parentElement.querySelector('.stat-label').innerHTML = `最冷年份<br>${coldStr}`;
+  document.getElementById('stat4Hottest').parentElement.querySelector('.stat-label').innerHTML = `最热年份<br>${hotStr}`;
+
+  // hover
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const idx = Math.floor(x / stripeW);
+    if (idx >= 0 && idx <= slider4Idx) {
+      hoveredIdx4 = idx;
+      render4();
+      const tooltip = document.getElementById('tooltip4');
+      const d = data[idx];
+      document.getElementById('tooltip4Year').textContent = d.year;
+      document.getElementById('tooltip4Temp').textContent = (d.temp > 0 ? '+' : '') + d.temp.toFixed(2) + '°C';
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = (padTop - 45) + 'px';
+      tooltip.classList.add('visible');
+    } else {
+      hoveredIdx4 = -1;
+      document.getElementById('tooltip4').classList.remove('visible');
+      render4();
+    }
+  };
+  canvas.onmouseleave = () => {
+    hoveredIdx4 = -1;
+    document.getElementById('tooltip4').classList.remove('visible');
+    render4();
+  };
+
+  // 内部渲染函数（不重设事件）
+  function render4() {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < total; i++) {
+      const x = i * stripeW;
+      if (i <= slider4Idx) {
+        ctx.fillStyle = getStripeColor(data[i].temp);
+      } else {
+        ctx.fillStyle = '#e5ded4';
+      }
+      ctx.fillRect(x, padTop, stripeW + 0.5, stripeH);
+      if (hoveredIdx4 === i && i <= slider4Idx) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 1, padTop, stripeW - 1, stripeH);
+      }
+    }
+    // 重绘折线
+    ctx.beginPath();
+    ctx.moveTo(0, padTop + stripeH);
+    for (let i = 0; i <= slider4Idx; i++) {
+      const x = i * stripeW + stripeW / 2;
+      ctx.lineTo(x, yScale(smoothed[i]));
+    }
+    ctx.lineTo(slider4Idx * stripeW + stripeW / 2, padTop + stripeH);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(12, 74, 110, 0.08)';
+    ctx.fill();
+
+    ctx.beginPath();
+    for (let i = 0; i <= slider4Idx; i++) {
+      const x = i * stripeW + stripeW / 2;
+      const y = yScale(smoothed[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = '#0c4a6e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 指示线
+    ctx.strokeStyle = 'rgba(220, 38, 38, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(currX, padTop);
+    ctx.lineTo(currX, padTop + stripeH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = `700 12px ${FONT_MONO}`;
+    ctx.fillStyle = '#dc2626';
+    ctx.textAlign = 'center';
+    ctx.fillText(currData.year.toString(), currX, padTop - 6);
+
+    ctx.font = `10px ${FONT_MONO}`;
+    ctx.fillStyle = '#a3a3a3';
+    ctx.textAlign = 'center';
+    labelYears.forEach(yr => {
+      const idx = yr - 1880;
+      const x = idx * stripeW + stripeW / 2;
+      ctx.fillText(yr.toString(), x, h - 10);
+    });
+  }
+}
+
+document.getElementById('yearSlider4').addEventListener('input', (e) => {
+  slider4Idx = parseInt(e.target.value);
+  drawStep4();
+});
+
+// ---- Step 5: 未来情景预测 ----
+function drawStep5() {
+  const canvas = document.getElementById('canvas5');
+  const container = canvas.parentElement;
+  const w = container.clientWidth;
+
+  const scenarios = [
+    { label: 'SSP1-2.6', subtitle: '低排放', data: futureSSP126, color: '#6baed6' },
+    { label: 'SSP2-4.5', subtitle: '中等排放', data: futureSSP245, color: '#ef3b2c' },
+    { label: 'SSP5-8.5', subtitle: '高排放', data: futureSSP585, color: '#67000d' }
+  ];
+
+  const rowH = 70;
+  const gap = 16;
+  const labelW = 100;
+  const padTop = 30;
+  const padBottom = 35;
+  const h = padTop + scenarios.length * rowH + (scenarios.length - 1) * gap + padBottom;
+  const ctx = prepCanvas(canvas, w, h);
+
+  // 历史数据 + 未来数据拼接
+  const histData = nasaData;
+  const totalHist = histData.length;
+  const totalAll = totalHist + 76; // 1880-2100 = 221 years
+  const stripeW = (w - labelW) / totalAll;
+  const stripeAreaH = rowH;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 标题
+  ctx.font = `600 13px ${FONT_SERIF}`;
+  ctx.fillStyle = '#1a1a1a';
+  ctx.textAlign = 'left';
+  ctx.fillText('历史观测 (1880–2024) → 未来预测 (2025–2100)', labelW, 18);
+
+  // 分割线位置
+  const dividerX = labelW + totalHist * stripeW;
+
+  scenarios.forEach((sc, si) => {
+    const y0 = padTop + si * (rowH + gap);
+
+    // 标签
+    ctx.font = `700 12px ${FONT_MONO}`;
+    ctx.fillStyle = sc.color;
+    ctx.textAlign = 'left';
+    ctx.fillText(sc.label, 0, y0 + rowH / 2 - 2);
+    ctx.font = `10px ${FONT_SANS}`;
+    ctx.fillStyle = '#6b7280';
+    ctx.fillText(sc.subtitle, 0, y0 + rowH / 2 + 12);
+
+    // 历史条纹（所有情景共享）
+    for (let i = 0; i < totalHist; i++) {
+      const x = labelW + i * stripeW;
+      ctx.fillStyle = getStripeColor(histData[i].temp);
+      ctx.globalAlpha = 0.6; // 历史数据半透明
+      ctx.fillRect(x, y0, stripeW + 0.5, stripeAreaH);
+    }
+    ctx.globalAlpha = 1;
+
+    // 未来条纹
+    for (let i = 0; i < sc.data.length; i++) {
+      const x = labelW + (totalHist + i) * stripeW;
+      ctx.fillStyle = getStripeColor(sc.data[i].temp);
+      ctx.fillRect(x, y0, stripeW + 0.5, stripeAreaH);
+    }
+
+    // 2100 年温度标注
+    const lastTemp = sc.data[sc.data.length - 1].temp;
+    ctx.font = `600 10px ${FONT_MONO}`;
+    ctx.fillStyle = sc.color;
+    ctx.textAlign = 'right';
+    ctx.fillText('+' + lastTemp.toFixed(1) + '°C', w - 4, y0 + rowH / 2 + 4);
+  });
+
+  // 历史与未来的分割线
+  ctx.strokeStyle = 'rgba(12, 74, 110, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(dividerX, padTop - 5);
+  ctx.lineTo(dividerX, padTop + scenarios.length * (rowH + gap) - gap);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 分割线标注
+  ctx.font = `10px ${FONT_MONO}`;
+  ctx.fillStyle = '#6b7280';
+  ctx.textAlign = 'center';
+  ctx.fillText('2024', dividerX, h - 10);
+
+  // 年份刻度
+  const labelYears = [1880, 1920, 1960, 2000, 2050, 2100];
+  labelYears.forEach(yr => {
+    const idx = yr - 1880;
+    if (idx < totalAll) {
+      const x = labelW + idx * stripeW + stripeW / 2;
+      ctx.fillText(yr.toString(), x, h - 10);
+    }
+  });
+}
+
+/* ============================================================
+   八、导航栏滚动 & 窗口 resize
+   ============================================================ */
+
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    drawCurrentStep();
+  }, 200);
+});
+
+/* ============================================================
+   九、初始化
+   ============================================================ */
+
+updateStep();
+</script>
+
+</body>
+</html>

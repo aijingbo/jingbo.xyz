@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数学概念杂志讲解 — 景礴学院技能库</title>
+  <meta name="description" content="数学概念杂志讲解技能：傅里叶级数、勾股定理、微积分、贝叶斯定理，左文右图分步揭示。安装到Trae，说一句话生成课件。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="../assets/css/design-system.css">
+  <style>
+    /* 导航 */
+    .navbar { background-color: rgba(250,248,245,0.88); }
+    .navbar.scrolled { background-color: rgba(250,248,245,0.95); border-bottom-color: var(--border); }
+    .navbar-brand { font-size: 19px; letter-spacing: 0.04em; }
+    .navbar-links { display: flex; gap: 28px; align-items: center; }
+    .navbar-links a { font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--text-muted); text-decoration: none; transition: color var(--duration-fast) var(--ease); position: relative; }
+    .navbar-links a:hover { color: var(--text); }
+    .navbar-links a.active { color: var(--brand); font-weight: 600; }
+    .navbar-links a.active::after { content:''; position:absolute; bottom:-4px; left:0; right:0; height:2px; background:var(--brand); border-radius:1px; }
+
+    /* 面包屑 */
+    .breadcrumb { padding: 100px 24px 0; max-width: 900px; margin: 0 auto; }
+    .breadcrumb a { font-family: var(--font-sans); font-size: 13px; color: var(--text-faint); text-decoration: none; transition: color var(--duration-fast) var(--ease); }
+    .breadcrumb a:hover { color: var(--brand); }
+    .breadcrumb span { font-family: var(--font-sans); font-size: 13px; color: var(--text-faint); margin: 0 6px; }
+
+    
+    /* Hero */
+    .showcase-hero { padding: 20px 24px 36px; max-width: 900px; margin: 0 auto; }
+    .hero-banner { width: 100%; max-width: 900px; height: 180px; border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 24px; position: relative; background: #0a0a14; }
+    .hero-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hero-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.3)); pointer-events: none; }
+    .showcase-hero h1 { font-family: var(--font-serif); font-size: clamp(28px,3.5vw,38px); font-weight: 700; line-height: 1.2; margin-bottom: 10px; }
+    .hero-tagline { font-size: 16px; line-height: 1.7; color: var(--text-muted); max-width: 640px; margin-bottom: 16px; }
+    .hero-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .hero-tag { font-family: var(--font-sans); font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: var(--radius-full); }
+    .tag-subject { background: var(--surface-muted); color: var(--text-muted); border: 1px solid var(--border-soft); }
+    .tag-type { background: rgba(99,102,241,0.1); color: #6366f1; }
+
+    /* Tab 导航 */
+    .tab-nav { max-width: 900px; margin: 0 auto; padding: 0 24px; display: flex; gap: 0; border-bottom: 2px solid var(--border); }
+    .tab-btn { padding: 14px 24px; font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--text-muted); background: none; border: none; cursor: pointer; position: relative; transition: color var(--duration-fast) var(--ease); }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--brand); }
+    .tab-btn.active::after { content:''; position:absolute; bottom:-2px; left:0; right:0; height:2px; background:var(--brand); }
+
+    /* Tab 内容 */
+    .tab-content { max-width: 900px; margin: 0 auto; padding: 36px 24px 60px; display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s var(--ease); }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .tab-content h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 700; margin-bottom: 14px; margin-top: 32px; }
+    .tab-content h2:first-child { margin-top: 0; }
+    .tab-content h3 { font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; margin-top: 24px; }
+    .tab-content p { font-size: 15px; line-height: 1.8; color: var(--text-muted); margin-bottom: 12px; }
+    .tab-content ul { padding-left: 20px; margin-bottom: 16px; }
+    .tab-content li { font-size: 14px; line-height: 1.8; color: var(--text-muted); }
+    .tab-content strong { color: var(--text); font-weight: 600; }
+
+    
+    /* 案例网格 - 横向卡片 */
+    .case-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .case-card { display: flex; flex-direction: row; background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); overflow: hidden; text-decoration: none; color: inherit; transition: all var(--duration-base) var(--ease); }
+    .case-card:hover { border-color: var(--border); box-shadow: 0 6px 20px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .case-preview { width: 200px; min-width: 200px; height: 130px; position: relative; overflow: hidden; background: #0a0a14; }
+    .case-preview img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s var(--ease); display: block; }
+    .case-card:hover .case-preview img { transform: scale(1.05); }
+    .case-info { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+    .case-info h4 { font-family: var(--font-serif); font-size: 15px; font-weight: 700; margin-bottom: 4px; line-height: 1.3; }
+    .case-info p { font-size: 12.5px; line-height: 1.5; color: var(--text-muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .case-badge { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); margin-top: 6px; }
+
+    /* 安装框 */
+    .install-box { display: flex; gap: 0; margin: 20px 0 12px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+    .install-url { flex: 1; padding: 14px 16px; font-family: var(--font-mono); font-size: 13px; color: var(--text); background: var(--surface); border: none; outline: none; }
+    .install-copy { padding: 14px 24px; font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: #fff; background: var(--brand); border: none; cursor: pointer; white-space: nowrap; transition: background var(--duration-fast) var(--ease); }
+    .install-copy:hover { background: var(--brand-hover); }
+    .install-copy.copied { background: #059669; }
+    .install-download { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--text-muted); text-decoration: none; padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius); transition: all var(--duration-fast) var(--ease); }
+    .install-download:hover { color: var(--brand); border-color: var(--brand); }
+
+    /* 步骤 */
+    .steps { list-style: none; padding: 0; counter-reset: step; margin: 20px 0; }
+    .steps li { counter-increment: step; padding: 12px 0 12px 40px; position: relative; font-size: 14px; line-height: 1.7; color: var(--text-muted); border-bottom: 1px solid var(--border-soft); }
+    .steps li:last-child { border-bottom: none; }
+    .steps li::before { content: counter(step); position: absolute; left: 0; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); font-family: var(--font-mono); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+    /* 示例指令 */
+    .prompt-cards { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .prompt-card { padding: 12px 16px; background: var(--surface); border: 1px solid var(--border-soft); border-left: 3px solid var(--brand); border-radius: var(--radius); font-size: 14px; color: var(--text); cursor: pointer; transition: all var(--duration-fast) var(--ease); }
+    .prompt-card:hover { background: var(--brand-soft); border-color: var(--brand); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(100px); display: flex; align-items: center; gap: 10px; padding: 14px 24px; background: #059669; color: #fff; font-family: var(--font-sans); font-size: 14px; font-weight: 500; border-radius: 10px; box-shadow: var(--shadow-deep); z-index: 1000; opacity: 0; transition: all var(--duration-base) var(--ease); pointer-events: none; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* Footer */
+    .footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; }
+    .footer-brand { font-family: var(--font-serif); font-size: 18px; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 8px; }
+    .footer-brand .fd { display: inline-block; width: 5px; height: 5px; background: var(--brand); border-radius: 50%; margin: 0 6px 2px; vertical-align: middle; }
+    .footer-meta { font-size: 12px; color: var(--text-faint); letter-spacing: 0.04em; }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .case-grid { grid-template-columns: 1fr; }
+      .case-preview { width: 140px; min-width: 140px; height: 100px; }
+      .navbar-links { display: none; }
+      .install-box { flex-direction: column; }
+      .install-copy { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar" id="navbar">
+    <div class="container-wide flex justify-between items-center" style="width:100%;">
+      <a href="../index.html" class="navbar-brand">景礴学院 <span class="brand-domain">jingbo.xyz</span></a>
+      <div class="navbar-links">
+        <a href="../index.html">首页</a>
+        <a href="../demos.html">课件库</a>
+        <a href="../skills.html" class="active">技能库</a>
+        <a href="../index.html#about">关于</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb">
+    <a href="../skills.html">技能库</a><span>/</span>数学概念杂志讲解
+  </div>
+
+  <div class="showcase-hero">
+    <div class="hero-banner"><img src="../assets/img/skill-previews/math-magazine-lecture.jpg" alt="数学概念杂志讲解" loading="lazy" /></div>
+    <h1>数学概念杂志讲解</h1>
+    <p class="hero-tagline">数学核心概念的步骤式深度讲解——傅里叶级数、勾股定理、微积分、贝叶斯定理，左文右图分步揭示，每步配合动态可视化与公式推导。</p>
+    <div class="hero-tags">
+      <span class="hero-tag tag-subject">数学</span>
+      <span class="hero-tag tag-type-lecture">杂志讲解型</span>
+      <span class="hero-tag tag-subject">7 个案例</span>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="intro">介绍</button>
+    <button class="tab-btn" data-tab="cases">案例</button>
+    <button class="tab-btn" data-tab="install">安装使用</button>
+  </div>
+
+  <!-- Tab: 介绍 -->
+  <div class="tab-content active" id="tab-intro">
+    <h2>这个技能做什么</h2>
+    <p>数学概念杂志讲解是一个<strong>杂志风格的知识讲解框架</strong>，左侧文字逐步讲解数学概念，右侧配以动态可视化。5-6 个步骤递进揭示，每步配合 Canvas 动画或 JSXGraph 图表，数学公式使用 MathJax 渲染。如同翻开一本精心设计的科学杂志。</p>
+
+    <h2>核心特征</h2>
+    <ul>
+      <li><strong>左文右图布局</strong>：左侧文字讲解，右侧动态可视化，分步递进揭示</li>
+      <li><strong>杂志暖色排版</strong>：象牙色背景、赤陶色标题，如同翻开科学杂志</li>
+      <li><strong>步骤导航</strong>：5-6 个步骤导航条，进度指示，前进/后退切换</li>
+      <li><strong>公式渲染</strong>：MathJax 渲染数学公式，排版美观精准</li>
+      <li><strong>交互式可视化</strong>：Canvas + JSXGraph 动态图表，部分步骤支持参数调节</li>
+      <li><strong>动画控制</strong>：每步可视化可播放/暂停，自动演示模式</li>
+    </ul>
+
+    <h2>适用场景</h2>
+    <p>任何需要分步推导和可视化演示的数学概念：傅里叶级数合成、勾股定理几何证明、微积分极限过程、贝叶斯定理概率直观、线性代数特征值等。传统静态教材难以表达的"推导过程"和"动态变化"，通过步骤式交互讲解迎刃而解。</p>
+
+    <h2>技术栈</h2>
+    <ul>
+      <li><strong>Canvas</strong> — 2D 绘图与动画</li>
+      <li><strong>JSXGraph</strong>（CDN 引入）— 交互式几何作图</li>
+      <li><strong>MathJax</strong>（CDN 引入）— 数学公式渲染</li>
+      <li>纯单 HTML 文件，无构建依赖</li>
+    </ul>
+  </div>
+
+  <!-- Tab: 案例 -->
+  <div class="tab-content" id="tab-cases">
+    <h2>这个技能生成的案例</h2>
+    <p>以下是使用此技能生成的数学概念讲解案例，点击可打开体验。</p>
+    <div class="case-grid">
+      <a href="../demos/fourier-series/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/fourier-series.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>傅里叶级数交互可视化</h4>
+          <p>旋转矢量合成方波，频谱图联动</p>
+          <div class="case-badge">D101 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/pythagorean-proof/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/pythagorean-proof.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>勾股定理几何证明</h4>
+          <p>面积拼补法动态证明</p>
+          <div class="case-badge">D103 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/calculus-limits-derivatives/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/calculus-limits-derivatives.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>微积分的本质：极限与导数</h4>
+          <p>割线到切线的极限过程</p>
+          <div class="case-badge">D107 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/bayes-theorem/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/bayes-theorem.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>概率与统计：贝叶斯定理</h4>
+          <p>条件概率的几何直观</p>
+          <div class="case-badge">D109 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/derivative-secant-tangent/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/derivative-secant-tangent.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>导数几何意义</h4>
+          <p>割线到切线的极限过程</p>
+          <div class="case-badge">D110 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/riemann-sum-integral/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/riemann-sum-integral.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>黎曼和与定积分</h4>
+          <p>n=1→1000的无限分割</p>
+          <div class="case-badge">D111 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/taylor-series-expansion/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/taylor-series-expansion.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>泰勒级数展开</h4>
+          <p>多项式逼近函数的魔法</p>
+          <div class="case-badge">D112 · 数学</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Tab: 安装使用 -->
+  <div class="tab-content" id="tab-install">
+    <h2>安装此技能</h2>
+    <p>复制下方链接，粘贴到 Trae 等 AI 编程助手的对话框中即可安装。</p>
+
+    <div class="install-box">
+      <input type="text" class="install-url" id="installUrl" readonly value="https://cdn.jsdelivr.net/gh/aijingbo/jingbo.xyz@main/skills/jingbo-edu-math-magazine-lecture-v0.1.md">
+      <button class="install-copy" id="copyBtn" onclick="copyInstallUrl()">复制链接</button>
+    </div>
+    <a href="jingbo-edu-math-magazine-lecture-v0.1.md" download class="install-download">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      下载技能文件
+    </a>
+
+    <h2>使用步骤</h2>
+    <ol class="steps">
+      <li>点击上方「复制链接」按钮</li>
+      <li>打开 Trae（或任意 AI 编程助手）</li>
+      <li>在对话框中粘贴链接，发送「安装这个技能」</li>
+      <li>等待 AI 读取并安装技能</li>
+      <li>输入你的需求，例如「用这个技能讲解傅里叶变换」</li>
+      <li>AI 自动生成交互式可视化课件</li>
+    </ol>
+
+    <h2>你可以这样说</h2>
+    <p>安装完成后，用自然语言描述你想要的讲解：</p>
+    <div class="prompt-cards">
+      <div class="prompt-card" onclick="copyText(this)">「用这个技能讲解傅里叶变换」</div>
+      <div class="prompt-card" onclick="copyText(this)">「生成一个勾股定理的动态证明」</div>
+      <div class="prompt-card" onclick="copyText(this)">「做一个微积分极限概念的讲解」</div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-brand">景礴学院<span class="fd"></span>jingbo.xyz</div>
+    <p class="footer-meta">在 AI 的时代，让每个角落都能看见磅礴 · © 2026 景礴学院</p>
+  </footer>
+
+  <div class="toast" id="toast">已复制到剪贴板</div>
+
+  <script>
+    // Tab 切换
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // 复制安装链接
+    function copyInstallUrl() {
+      const url = document.getElementById('installUrl').value;
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.classList.add('copied');
+        btn.textContent = '已复制';
+        showToast();
+        setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '复制链接'; }, 3000);
+      });
+    }
+
+    // 复制示例指令
+    function copyText(el) {
+      const text = el.textContent.replace(/「|」/g, '');
+      navigator.clipboard.writeText(text).then(() => {
+        showToast();
+      });
+    }
+
+    // Toast
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Navbar 滚动
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY > 24), { passive: true });
+  </script>
+</body>
+</html>

@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>化学平衡与勒夏特列原理 · 景礴</title>
+  <link rel="stylesheet" href="/assets/css/design-system.css">
+  <link rel="stylesheet" href="/assets/css/demo-framework.css">
+  <style>
+    /* ===== 化学平衡 Demo 专属样式 ===== */
+    :root {
+      --chem-blue: #1e40af;
+      --chem-blue-light: #3b82f6;
+      --chem-blue-soft: rgba(30, 64, 175, 0.08);
+      --chem-red: #dc2626;
+      --chem-red-soft: rgba(220, 38, 38, 0.1);
+      --chem-amber: #d97706;
+      --chem-amber-soft: rgba(217, 119, 6, 0.1);
+      --chem-bg: #faf8f5;
+      --chem-grid: #f0ebe4;
+      --chem-axis: #d4cdc0;
+      --chem-gray: #94a3b8;
+      --no2-color: #b91c1c;
+      --n2o4-color: #fef9c3;
+      --fescn-color: #991b1b;
+      --fecl3-color: #eab308;
+      --glass-color: rgba(200, 220, 240, 0.15);
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background: var(--chem-bg);
+    }
+
+    .page-wrapper {
+      padding-top: 64px;
+      padding-bottom: 52px;
+      min-height: 100vh;
+    }
+
+    /* ===== 杂志布局 ===== */
+    .magazine-layout {
+      display: grid;
+      grid-template-columns: 38% 62%;
+      gap: var(--spacer-48);
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: var(--spacer-32) var(--spacer-32);
+      min-height: calc(100vh - 116px);
+    }
+
+    /* ===== 左侧文章区 ===== */
+    .article-side {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-20);
+    }
+
+    .article-header { display: flex; flex-direction: column; gap: var(--spacer-12); }
+
+    .article-kicker {
+      font-family: var(--font-mono);
+      font-size: var(--fs-tiny);
+      letter-spacing: 0.12em;
+      color: var(--chem-blue);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .article-title {
+      font-family: var(--font-serif);
+      font-size: var(--fs-h1);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text);
+    }
+
+    .article-subtitle {
+      font-size: var(--fs-body);
+      color: var(--text-muted);
+      line-height: var(--lh-relaxed);
+      font-style: italic;
+      font-family: var(--font-serif);
+    }
+
+    .article-body { display: flex; flex-direction: column; gap: var(--spacer-16); }
+
+    .article-body p {
+      font-size: var(--fs-body);
+      line-height: 1.85;
+      color: var(--text);
+    }
+
+    .article-body p.lead {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.7;
+      color: var(--chem-blue);
+    }
+
+    .article-body strong { color: var(--chem-blue); font-weight: 600; }
+    .article-body em { color: var(--chem-red); font-style: italic; }
+
+    /* ===== 步骤指示器 ===== */
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-12);
+      margin: var(--spacer-4) 0;
+    }
+
+    .step-dots { display: flex; gap: 10px; }
+
+    .step-dot {
+      width: 10px; height: 10px;
+      border-radius: var(--radius-full);
+      background-color: var(--border);
+      transition: all var(--duration-base) var(--ease);
+      cursor: pointer;
+    }
+    .step-dot.active {
+      background-color: var(--chem-blue);
+      transform: scale(1.3);
+      box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.12);
+    }
+    .step-dot.completed { background-color: var(--chem-amber); }
+    .step-dot:hover:not(.active) { background-color: var(--text-faint); }
+
+    .step-label {
+      font-family: var(--font-mono);
+      font-size: var(--fs-tiny);
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ===== 步骤内容动画 ===== */
+    .step-content {
+      opacity: 1;
+      transform: translateY(0);
+      transition: all var(--duration-slow) var(--ease);
+      flex: 1;
+      overflow-y: auto;
+      max-height: 440px;
+      padding-right: var(--spacer-8);
+    }
+    .step-content::-webkit-scrollbar { width: 4px; }
+    .step-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .step-content.fade-out { opacity: 0; transform: translateY(8px); }
+    .step-content.fade-in { opacity: 0; transform: translateY(-8px); }
+
+    .step-content h3 {
+      font-family: var(--font-serif);
+      font-size: var(--fs-h2);
+      margin-bottom: var(--spacer-16);
+      color: var(--text);
+    }
+
+    /* ===== 公式框 ===== */
+    .formula-box {
+      background: linear-gradient(135deg, rgba(30, 64, 175, 0.04), rgba(220, 38, 38, 0.04));
+      border-left: 3px solid var(--chem-blue);
+      padding: var(--spacer-16) var(--spacer-20);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: var(--spacer-12) 0;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.9;
+      color: var(--text);
+    }
+    .formula-box .formula-main {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--chem-blue);
+      margin-bottom: var(--spacer-4);
+    }
+    .formula-box .formula-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+    }
+
+    /* ===== 步骤导航按钮 ===== */
+    .step-nav {
+      display: flex;
+      gap: var(--spacer-12);
+      align-items: center;
+      position: relative;
+    }
+    .step-nav .btn {
+      flex: 1;
+      padding: 10px 20px;
+      font-size: var(--fs-small);
+    }
+    .step-nav .btn-primary {
+      background-color: var(--chem-blue);
+      border-color: var(--chem-blue);
+    }
+    .step-nav .btn-primary:hover {
+      background-color: var(--chem-blue-light);
+    }
+
+    .autoplay-btn {
+      width: 40px; height: 40px;
+      flex-shrink: 0;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--chem-blue);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--duration-fast) var(--ease);
+    }
+    .autoplay-btn:hover { border-color: var(--chem-blue); background: var(--chem-blue-soft); }
+    .autoplay-btn.playing { background: var(--chem-blue); color: white; border-color: var(--chem-blue); }
+    .autoplay-btn svg { width: 16px; height: 16px; }
+
+    .autoplay-progress {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 2px;
+      background: var(--chem-amber);
+      width: 0%;
+      transition: width 0.1s linear;
+      border-radius: 1px;
+    }
+
+    /* ===== 右侧可视化区 ===== */
+    .visual-side {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-20);
+    }
+
+    .visual-canvas-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      animation: canvasFadeIn 0.8s ease;
+    }
+
+    @keyframes canvasFadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .visual-canvas-wrapper canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 800 / 500;
+      transition: opacity 0.3s ease;
+    }
+
+    .visual-canvas-wrapper.switching canvas { opacity: 0.3; }
+
+    .visual-caption {
+      font-size: var(--fs-small);
+      color: var(--text-muted);
+      text-align: center;
+      font-style: italic;
+      font-family: var(--font-serif);
+      padding: 0 var(--spacer-16);
+    }
+
+    /* ===== 控制面板 ===== */
+    .visual-controls {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: var(--spacer-20);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-16);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .control-group { display: flex; flex-direction: column; gap: var(--spacer-8); }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: var(--fs-small);
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .control-value {
+      font-family: var(--font-mono);
+      font-size: var(--fs-small);
+      color: var(--chem-blue);
+      font-weight: 600;
+    }
+
+    /* ===== 实验按钮 (Step 3) ===== */
+    .experiment-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacer-8);
+    }
+
+    .exp-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      font-size: var(--fs-small);
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease);
+      font-family: var(--font-sans);
+      text-align: left;
+    }
+    .exp-btn:hover {
+      border-color: var(--chem-blue);
+      background: var(--chem-blue-soft);
+      transform: translateY(-1px);
+    }
+    .exp-btn:active { transform: translateY(0); }
+    .exp-btn .exp-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ===== 因素卡片 (Step 2) ===== */
+    .factor-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--spacer-8);
+    }
+
+    .factor-card {
+      padding: 12px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .factor-card:hover {
+      border-color: var(--chem-blue);
+      background: var(--chem-blue-soft);
+    }
+    .factor-card.active {
+      border-color: var(--chem-blue);
+      background: var(--chem-blue-soft);
+      box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.15);
+    }
+    .factor-card svg {
+      width: 28px; height: 28px;
+      color: var(--chem-blue);
+    }
+    .factor-card span {
+      font-size: var(--fs-tiny);
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* ===== 温度/压强控制 (Step 4) ===== */
+    .pressure-temp-controls {
+      display: flex;
+      gap: var(--spacer-16);
+    }
+
+    .pt-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-8);
+    }
+
+    .pt-group-title {
+      font-size: var(--fs-tiny);
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pt-buttons {
+      display: flex;
+      gap: var(--spacer-8);
+    }
+
+    .pt-btn {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: var(--fs-tiny);
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease);
+      font-family: var(--font-sans);
+      text-align: center;
+    }
+    .pt-btn:hover {
+      border-color: var(--chem-blue);
+      background: var(--chem-blue-soft);
+    }
+    .pt-btn.active {
+      background: var(--chem-blue);
+      border-color: var(--chem-blue);
+      color: white;
+    }
+
+    /* ===== K 计算器 (Step 5) ===== */
+    .k-calculator {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-12);
+    }
+
+    .k-reaction-select {
+      display: flex;
+      gap: var(--spacer-8);
+    }
+
+    .k-reaction-btn {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: var(--fs-tiny);
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease);
+      font-family: var(--font-mono);
+    }
+    .k-reaction-btn:hover { border-color: var(--chem-blue); color: var(--chem-blue); }
+    .k-reaction-btn.active {
+      background: var(--chem-blue-soft);
+      border-color: var(--chem-blue);
+      color: var(--chem-blue);
+    }
+
+    .k-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacer-8);
+    }
+
+    .k-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .k-input-label {
+      font-size: var(--fs-tiny);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .k-input {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: var(--fs-small);
+      color: var(--text);
+      background: var(--surface);
+      outline: none;
+      transition: border-color var(--duration-fast) var(--ease);
+    }
+    .k-input:focus { border-color: var(--chem-blue); }
+
+    .k-result {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--chem-blue-soft);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: var(--fs-small);
+    }
+
+    .k-result-label { color: var(--text-muted); }
+    .k-result-value { font-weight: 700; color: var(--chem-blue); }
+
+    .k-direction {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-size: var(--fs-tiny);
+      font-weight: 600;
+      transition: all var(--duration-base) var(--ease);
+    }
+    .k-direction.forward { background: var(--chem-blue-soft); color: var(--chem-blue); }
+    .k-direction.reverse { background: var(--chem-red-soft); color: var(--chem-red); }
+    .k-direction.equilibrium { background: var(--chem-amber-soft); color: var(--chem-amber); }
+
+    /* ===== 导航栏 ===== */
+    .demo-navbar { justify-content: space-between; }
+    .demo-nav-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ===== 底部信息条 ===== */
+    .demo-info-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacer-12) var(--spacer-32);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      font-size: var(--fs-small);
+    }
+    .demo-info-left { display: flex; align-items: center; gap: var(--spacer-16); }
+    .demo-info-title {
+      font-family: var(--font-mono);
+      font-size: var(--fs-tiny);
+      color: var(--text-muted);
+    }
+    .demo-tech-tag {
+      padding: 3px 10px;
+      font-size: 10px;
+      font-weight: 500;
+      border-radius: var(--radius-full);
+      background: var(--surface-muted);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 1024px) {
+      .magazine-layout {
+        grid-template-columns: 1fr;
+        gap: var(--spacer-32);
+      }
+      .demo-nav-center { display: none; }
+      .step-content { max-height: 300px; }
+    }
+
+    @media (max-width: 768px) {
+      .magazine-layout { padding: var(--spacer-20) var(--spacer-16); }
+      .visual-controls { padding: var(--spacer-16); }
+      .demo-nav-right .demo-btn-download span { display: none; }
+      .experiment-buttons { grid-template-columns: 1fr; }
+      .factor-cards { grid-template-columns: 1fr; }
+      .pressure-temp-controls { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== 顶部导航栏 ===== -->
+  <header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">化学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">化学平衡与勒夏特列原理</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-chem">化学</span>
+      <a href="/skills/jingbo-edu-chemistry-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ===== 页面主体 ===== -->
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ====== 左侧：文章区 ====== -->
+      <div class="article-side">
+        <div class="article-header">
+          <div class="article-kicker">CHEMISTRY · 化学反应原理</div>
+          <h1 class="article-title">平衡的<br>反抗哲学</h1>
+          <p class="article-subtitle">化学反应不是单向的终点，而是永不停息的动态平衡。当你试图打破它，它会朝相反的方向推回——这就是勒夏特列原理。</p>
+        </div>
+
+        <div class="step-indicator">
+          <div class="step-dots" id="stepDots">
+            <div class="step-dot active" data-step="0"></div>
+            <div class="step-dot" data-step="1"></div>
+            <div class="step-dot" data-step="2"></div>
+            <div class="step-dot" data-step="3"></div>
+            <div class="step-dot" data-step="4"></div>
+          </div>
+          <span class="step-label" id="stepLabel">第 1 / 5 步</span>
+        </div>
+
+        <div class="article-body">
+          <div class="step-content" id="stepContent"></div>
+        </div>
+
+        <div class="step-nav" style="position: relative;">
+          <button class="btn btn-secondary" id="prevBtn"><span>←</span> 上一步</button>
+          <button class="autoplay-btn" id="autoPlayBtn" title="自动播放">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="btn btn-primary" id="nextBtn">下一步 <span>→</span></button>
+          <div class="autoplay-progress" id="autoPlayProgress"></div>
+        </div>
+      </div>
+
+      <!-- ====== 右侧：可视化区 ====== -->
+      <div class="visual-side">
+        <div class="visual-canvas-wrapper" id="canvasWrapper">
+          <canvas id="mainCanvas"></canvas>
+        </div>
+        <p class="visual-caption" id="visualCaption">封闭容器中的分子运动——正逆反应同时发生</p>
+
+        <div class="visual-controls" id="visualControls">
+          <!-- 控件通过 JS 动态生成 -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 底部信息条 ===== -->
+  <footer class="demo-info-bar">
+    <div class="demo-info-left">
+      <span class="demo-info-title">chemical-equilibrium-viz</span>
+      <span class="demo-tech-tag">Canvas 2D</span>
+      <span class="demo-tech-tag">分子模拟</span>
+      <span class="demo-tech-tag">60fps</span>
+    </div>
+    <div class="demo-info-right">
+      <span style="font-size: var(--fs-tiny); color: var(--text-faint); font-family: var(--font-mono);">D113 · 杂志讲解型</span>
+    </div>
+  </footer>
+
+  <script>
+  /* ============================================================
+     化学平衡与勒夏特列原理 — 完整实现
+     5 步杂志式讲解 + Canvas 动画 + 交互控件
+     ============================================================ */
+
+  // ===== 全局状态 =====
+  const state = {
+    currentStep: 0,
+    isAutoPlaying: false,
+    autoPlayStartTime: 0,
+    time: 0,
+    // Step 1: 分子模拟
+    molecules: [],
+    simTime: 0,
+    isSimRunning: true,
+    simSpeed: 1,
+    rateHistory: { forward: [], reverse: [] },
+    concHistory: { no2: [], n2o4: [] },
+    // Step 2: 勒夏特列原理
+    selectedFactor: 0,
+    springPhase: 0,
+    // Step 3: 浓度实验
+    solutionR: 153, solutionG: 27, solutionB: 27, solutionA: 0.55,
+    targetR: 153, targetG: 27, targetB: 27, targetA: 0.55,
+    concBars: [
+      { label: 'FeCl₃', value: 0.5, color: '#eab308', target: 0.5 },
+      { label: 'KSCN', value: 0.5, color: '#94a3b8', target: 0.5 },
+      { label: 'Fe(SCN)₃', value: 0.5, color: '#991b1b', target: 0.5 },
+      { label: 'KCl', value: 0.3, color: '#64748b', target: 0.3 }
+    ],
+    shiftArrow: 0, // -1: left, 0: none, 1: right
+    shiftArrowAlpha: 0,
+    // Step 4: 压强与温度
+    pistonY: 0.5,
+    targetPistonY: 0.5,
+    temperature: 25,
+    targetTemperature: 25,
+    gasColorR: 185, gasColorG: 28, gasColorB: 28, gasColorA: 0.35,
+    targetGasR: 185, targetGasG: 28, targetGasB: 28, targetGasA: 0.35,
+    pressureMode: 'normal', // 'compress', 'expand', 'normal'
+    tempMode: 'normal', // 'heat', 'cool', 'normal'
+    compressPhase: 0, // 0: none, 1: darkening, 2: lightening
+    compressTimer: 0,
+    // Step 5: 平衡常数
+    kReactionIndex: 0,
+    kReactions: [
+      { eq: '2NO₂ ⇌ N₂O₄', K: 4.0, reactants: ['NO₂'], products: ['N₂O₄'], coeffs: [2, 1], defaults: [0.5, 0.3] },
+      { eq: 'H₂ + I₂ ⇌ 2HI', K: 50, reactants: ['H₂', 'I₂'], products: ['HI'], coeffs: [1, 1, 2], defaults: [0.5, 0.5, 0.5] },
+      { eq: 'N₂ + 3H₂ ⇌ 2NH₃', K: 0.5, reactants: ['N₂', 'H₂'], products: ['NH₃'], coeffs: [1, 3, 2], defaults: [1, 1, 0.5] }
+    ],
+    kInputs: [0.5, 0.3],
+    balanceAngle: 0,
+    targetBalanceAngle: 0
+  };
+
+  const AUTO_PLAY_DURATION = 9000; // 9 秒/步
+
+  // ===== 颜色系统 =====
+  const C = {
+    bg: '#ffffff',
+    text: '#1a1a1a',
+    border: '#e5ded4',
+    grid: '#f0ebe4',
+    axis: '#d4cdc0',
+    blue: '#1e40af',
+    blueLight: '#3b82f6',
+    blueSoft: 'rgba(30, 64, 175, 0.08)',
+    red: '#dc2626',
+    redSoft: 'rgba(220, 38, 38, 0.1)',
+    amber: '#d97706',
+    gray: '#94a3b8',
+    no2: '#b91c1c',
+    n2o4: '#fef9c3',
+    fescn: '#991b1b',
+    fecl3: '#eab308',
+    glass: 'rgba(200, 220, 240, 0.12)',
+    glassEdge: 'rgba(150, 180, 210, 0.3)'
+  };
+
+  // ===== 步骤内容数据 =====
+  const steps = [
+    {
+      title: '反应的终点不是停止',
+      content: `
+        <p class="lead">很多化学反应是可逆的——正反应和逆反应同时进行。</p>
+        <p>以二氧化氮（NO₂，红棕色）和四氧化二氮（N₂O₄，无色）的转化为例：</p>
+        <div class="formula-box">
+          <div class="formula-main">2NO₂ ⇌ N₂O₄</div>
+          <div class="formula-note">正反应：2 个 NO₂ 结合成 N₂O₄ · 逆反应：N₂O₄ 分解成 2 个 NO₂</div>
+        </div>
+        <p>当正逆反应<strong>速率相等</strong>时，体系达到平衡——颜色不再变化，但分子仍然在不断反应。这就是<em>动态平衡</em>：表面静止，内部奔涌。</p>
+        <p>右侧的封闭容器中，红棕色的 NO₂ 分子和无色的 N₂O₄ 分子在不停运动。观察下方的曲线：初始时正反应速率高、逆反应速率为零；随着 N₂O₄ 增多，逆反应速率逐渐升高；最终两条线重合——平衡到达。</p>
+      `,
+      caption: '封闭容器中的分子运动——正逆反应同时发生，最终达到动态平衡'
+    },
+    {
+      title: '平衡的"反抗"哲学',
+      content: `
+        <p class="lead">1884 年，法国化学家勒夏特列提出了一条原理：</p>
+        <div class="formula-box">
+          <div class="formula-main">如果改变影响平衡的条件，平衡就向能够减弱这种改变的方向移动。</div>
+          <div class="formula-note">被称为"化学平衡的反抗定律"——注意是"减弱"而非"消除"</div>
+        </div>
+        <p>化学平衡就像一根弹簧：你压它，它就弹回来；你拉它，它就缩回去。平衡总是试图<em>抵消外界的干扰</em>，但永远无法完全消除——这就是"减弱"而非"消除"的含义。</p>
+        <p>影响平衡的三个主要因素是：<strong>浓度</strong>、<strong>压强</strong>和<strong>温度</strong>。点击右侧的因素卡片，预览每种因素如何扰动平衡。</p>
+      `,
+      caption: '勒夏特列原理——平衡像弹簧一样，总是试图回到原来的状态'
+    },
+    {
+      title: '浓度的影响——加谁减谁',
+      content: `
+        <p class="lead">增加反应物浓度，平衡向正反应方向移动；增加生成物浓度，平衡向逆反应方向移动。</p>
+        <p>以 FeCl₃ + 3KSCN ⇌ Fe(SCN)₃ + 3KCl 为例——Fe(SCN)₃ 是<strong>血红色</strong>的：</p>
+        <p>• 加入 FeCl₃ 或 KSCN（增加反应物）→ 红色<em>加深</em>（平衡右移）<br>
+        • 加入 KCl（增加生成物）→ 红色<em>变浅</em>（平衡左移）<br>
+        • 加入 NaOH（消耗 Fe³⁺，减少反应物）→ 红色变浅，产生沉淀</p>
+        <p>右侧是互动实验台。点击按钮加入试剂，观察溶液颜色变化和浓度柱状图。箭头指示平衡移动方向。</p>
+      `,
+      caption: 'Fe(SCN)₃ 平衡实验——加入试剂，观察颜色变化和平衡移动'
+    },
+    {
+      title: '压强与温度的影响',
+      content: `
+        <p class="lead">压强只对有气体参与且两边气体体积不等的反应有影响。</p>
+        <p>以 2NO₂ ⇌ N₂O₄ 为例——左边 2 体积气体，右边 1 体积。<strong>增大压强</strong>，平衡向气体体积减小的方向移动（右移）。</p>
+        <p>但注意加压时的颜色变化：先<em>瞬间变深</em>（浓度变大），然后<em>逐渐变浅</em>（平衡右移），但最终比加压前深——这就是"减弱"而非"消除"。</p>
+        <p>温度的影响取决于反应是吸热还是放热。2NO₂ → N₂O₄ 正反应<strong>放热</strong>，所以：<br>
+        • 升温 → 平衡左移（向吸热方向）→ 颜色变深<br>
+        • 降温 → 平衡右移（向放热方向）→ 颜色变浅</p>
+      `,
+      caption: 'NO₂/N₂O₄ 平衡实验——调节压强和温度，观察气体颜色变化'
+    },
+    {
+      title: '平衡常数 K——平衡的定量描述',
+      content: `
+        <p class="lead">平衡常数 K 是定量描述平衡状态的物理量。</p>
+        <div class="formula-box">
+          <div class="formula-main">K = [C]ᶜ[D]ᵈ / [A]ᵃ[B]ᵇ</div>
+          <div class="formula-note">对于 aA + bB ⇌ cC + dD · 固体和纯液体不写入</div>
+        </div>
+        <p>K 只与<strong>温度</strong>有关，与浓度和压强无关。K > 1 说明生成物占优，K < 1 说明反应物占优。</p>
+        <p>通过比较浓度商 Q 和 K，可以判断平衡移动方向：</p>
+        <p>• <strong>Q < K</strong>：反应正向进行（→）<br>
+        • <strong>Q = K</strong>：达到平衡（⇌）<br>
+        • <strong>Q > K</strong>：反应逆向进行（←）</p>
+        <p>右侧是天平式可视化——Q 与 K 的较量决定了反应的方向。选择不同反应，输入浓度，观察天平倾斜。</p>
+      `,
+      caption: '平衡常数计算器——比较 Q 与 K，天平倾斜方向即为反应方向'
+    }
+  ];
+
+  // ===== Canvas 设置 =====
+  const canvas = document.getElementById('mainCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = 800, H = 500;
+
+  function setupCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = '100%';
+    canvas.style.height = 'auto';
+    canvas.style.aspectRatio = `${W} / ${H}`;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+  }
+  setupCanvas();
+  window.addEventListener('resize', () => setupCanvas());
+
+  // ===== 通用绘制工具 =====
+  function clearCanvas() {
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function lerpColor(r1, g1, b1, r2, g2, b2, t) {
+    return {
+      r: Math.round(lerp(r1, r2, t)),
+      g: Math.round(lerp(g1, g2, t)),
+      b: Math.round(lerp(b1, b2, t))
+    };
+  }
+
+  function rgbaStr(r, g, b, a) {
+    return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a})`;
+  }
+
+  // ===== Step 1: 分子运动模拟 =====
+  function initMolecules() {
+    state.molecules = [];
+    // 初始：12 个 NO₂, 3 个 N₂O₄
+    for (let i = 0; i < 12; i++) {
+      state.molecules.push(createMolecule('NO2'));
+    }
+    for (let i = 0; i < 3; i++) {
+      state.molecules.push(createMolecule('N2O4'));
+    }
+    state.simTime = 0;
+    state.rateHistory = { forward: [], reverse: [] };
+    state.concHistory = { no2: [], n2o4: [] };
+  }
+
+  function createMolecule(type) {
+    const containerX = 60, containerY = 40, containerW = 680, containerH = 260;
+    return {
+      type: type,
+      x: containerX + Math.random() * containerW,
+      y: containerY + Math.random() * containerH,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      radius: type === 'NO2' ? 7 : 10,
+      justFormed: 0
+    };
+  }
+
+  function updateMolecules(dt) {
+    const containerX = 60, containerY = 40, containerW = 680, containerH = 260;
+    const speed = state.simSpeed;
+
+    for (let m of state.molecules) {
+      m.x += m.vx * speed * dt * 60;
+      m.y += m.vy * speed * dt * 60;
+
+      // 边界碰撞
+      if (m.x < containerX + m.radius) { m.x = containerX + m.radius; m.vx *= -1; }
+      if (m.x > containerX + containerW - m.radius) { m.x = containerX + containerW - m.radius; m.vx *= -1; }
+      if (m.y < containerY + m.radius) { m.y = containerY + m.radius; m.vy *= -1; }
+      if (m.y > containerY + containerH - m.radius) { m.y = containerY + containerH - m.radius; m.vy *= -1; }
+
+      if (m.justFormed > 0) m.justFormed -= dt;
+    }
+
+    // NO₂ + NO₂ → N₂O₄ (正反应)
+    const no2List = state.molecules.filter(m => m.type === 'NO2');
+    for (let i = 0; i < no2List.length; i++) {
+      for (let j = i + 1; j < no2List.length; j++) {
+        const m1 = no2List[i], m2 = no2List[j];
+        const dx = m1.x - m2.x, dy = m1.y - m2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 16 && Math.random() < 0.008 * speed) {
+          // 合并
+          const newX = (m1.x + m2.x) / 2;
+          const newY = (m1.y + m2.y) / 2;
+          const newMol = createMolecule('N2O4');
+          newMol.x = newX; newMol.y = newY;
+          newMol.vx = (m1.vx + m2.vx) / 2;
+          newMol.vy = (m1.vy + m2.vy) / 2;
+          newMol.justFormed = 0.5;
+          // 移除两个 NO₂，添加 N₂O₄
+          state.molecules = state.molecules.filter(m => m !== m1 && m !== m2);
+          state.molecules.push(newMol);
+          return; // 一帧只处理一次
+        }
+      }
+    }
+
+    // N₂O₄ → 2 NO₂ (逆反应)
+    const n2o4List = state.molecules.filter(m => m.type === 'N2O4');
+    for (let m of n2o4List) {
+      if (Math.random() < 0.004 * speed && m.justFormed <= 0) {
+        // 分裂
+        const m1 = createMolecule('NO2');
+        const m2 = createMolecule('NO2');
+        m1.x = m.x - 8; m1.y = m.y;
+        m2.x = m.x + 8; m2.y = m.y;
+        m1.vx = m.vx - 1; m1.vy = m.vy + (Math.random() - 0.5);
+        m2.vx = m.vx + 1; m2.vy = m.vy + (Math.random() - 0.5);
+        state.molecules = state.molecules.filter(mol => mol !== m);
+        state.molecules.push(m1, m2);
+        return;
+      }
+    }
+  }
+
+  function renderStep1() {
+    clearCanvas();
+    const cx = 60, cy = 40, cw = 680, ch = 260;
+
+    // 容器背景
+    ctx.fillStyle = 'rgba(250, 248, 245, 0.5)';
+    ctx.fillRect(cx, cy, cw, ch);
+
+    // 容器边框（玻璃质感）
+    ctx.strokeStyle = C.glassEdge;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx, cy, cw, ch);
+
+    // 玻璃高光（对角线柔光）
+    const grad = ctx.createLinearGradient(cx, cy, cx + 40, cy + ch);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+    grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.03)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx, cy, cw, ch);
+
+    // 左侧竖向高光条（增强玻璃感）
+    const sideGrad = ctx.createLinearGradient(cx, cy, cx + 12, cy);
+    sideGrad.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+    sideGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = sideGrad;
+    ctx.fillRect(cx, cy, 12, ch);
+
+    // 气体颜色叠加（根据 NO₂ 比例）
+    const no2Count = state.molecules.filter(m => m.type === 'NO2').length;
+    const totalCount = state.molecules.length;
+    const no2Ratio = no2Count / Math.max(totalCount, 1);
+    const gasAlpha = no2Ratio * 0.08;
+    ctx.fillStyle = rgbaStr(185, 28, 28, gasAlpha);
+    ctx.fillRect(cx, cy, cw, ch);
+
+    // 绘制分子
+    for (let m of state.molecules) {
+      if (m.type === 'NO2') {
+        // NO₂: 红棕色圆
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+        ctx.fillStyle = C.no2;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(139, 0, 0, 0.5)';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+        // 标签
+        ctx.font = '7px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('NO₂', m.x, m.y);
+      } else {
+        // N₂O₄: 浅色双圆
+        ctx.beginPath();
+        ctx.arc(m.x - 4, m.y, 6, 0, Math.PI * 2);
+        ctx.arc(m.x + 4, m.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = m.justFormed > 0 ? 'rgba(254, 249, 195, 0.8)' : 'rgba(254, 249, 195, 0.5)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(200, 180, 100, 0.4)';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+        ctx.font = '6px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#a3a3a3';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('N₂O₄', m.x, m.y + 1);
+      }
+    }
+
+    // 容器标签
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.gray;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`NO₂: ${no2Count}  ·  N₂O₄: ${totalCount - no2Count}`, cx + 8, cy + 8);
+
+    // 下方曲线区域
+    const chartY = 320, chartH = 160;
+    const chartX = 60, chartW = 680;
+
+    // 背景
+    ctx.fillStyle = 'rgba(250, 248, 245, 0.5)';
+    ctx.fillRect(chartX, chartY, chartW, chartH);
+    ctx.strokeStyle = C.grid;
+    ctx.lineWidth = 0.5;
+    for (let i = 1; i < 5; i++) {
+      const y = chartY + (chartH / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(chartX, y);
+      ctx.lineTo(chartX + chartW, y);
+      ctx.stroke();
+    }
+
+    // 轴
+    ctx.strokeStyle = C.axis;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(chartX, chartY);
+    ctx.lineTo(chartX, chartY + chartH);
+    ctx.lineTo(chartX + chartW, chartY + chartH);
+    ctx.stroke();
+
+    // 速率曲线
+    if (state.rateHistory.forward.length > 1) {
+      const maxRate = 15;
+      // 正反应速率
+      ctx.beginPath();
+      for (let i = 0; i < state.rateHistory.forward.length; i++) {
+        const x = chartX + (i / Math.max(state.rateHistory.forward.length - 1, 1)) * chartW;
+        const y = chartY + chartH - (state.rateHistory.forward[i] / maxRate) * chartH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = C.blue;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // 逆反应速率
+      ctx.beginPath();
+      for (let i = 0; i < state.rateHistory.reverse.length; i++) {
+        const x = chartX + (i / Math.max(state.rateHistory.reverse.length - 1, 1)) * chartW;
+        const y = chartY + chartH - (state.rateHistory.reverse[i] / maxRate) * chartH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = C.red;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // 图例
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.blue;
+    ctx.textAlign = 'left';
+    ctx.fillText('━ 正反应速率 v₁', chartX + 8, chartY + 14);
+    ctx.fillStyle = C.red;
+    ctx.fillText('━ 逆反应速率 v₂', chartX + 120, chartY + 14);
+
+    // 平衡线标注
+    if (state.rateHistory.forward.length > 30) {
+      const eqX = chartX + chartW * 0.65;
+      ctx.strokeStyle = 'rgba(217, 119, 6, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(eqX, chartY);
+      ctx.lineTo(eqX, chartY + chartH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = '9px "Noto Sans SC", sans-serif';
+      ctx.fillStyle = C.amber;
+      ctx.textAlign = 'center';
+      ctx.fillText('平衡', eqX, chartY - 4);
+    }
+
+    // 浓度信息
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.gray;
+    ctx.textAlign = 'right';
+    ctx.fillText(`t = ${state.simTime.toFixed(1)}s`, chartX + chartW - 8, chartY - 4);
+  }
+
+  function recordSimData() {
+    const no2Count = state.molecules.filter(m => m.type === 'NO2').length;
+    const n2o4Count = state.molecules.filter(m => m.type === 'N2O4').length;
+    const forwardRate = no2Count * no2Count * 0.008;
+    const reverseRate = n2o4Count * 0.004;
+
+    state.rateHistory.forward.push(forwardRate);
+    state.rateHistory.reverse.push(reverseRate);
+    state.concHistory.no2.push(no2Count);
+    state.concHistory.n2o4.push(n2o4Count);
+
+    if (state.rateHistory.forward.length > 200) {
+      state.rateHistory.forward.shift();
+      state.rateHistory.reverse.shift();
+    }
+  }
+
+  // ===== Step 2: 勒夏特列原理 =====
+  function renderStep2() {
+    clearCanvas();
+
+    // 弹簧类比
+    const springCenterX = W / 2;
+    const springCenterY = 200;
+    const springBaseLength = 300;
+    const springAmplitude = 30 + Math.sin(state.springPhase) * 20;
+    const springLength = springBaseLength + Math.sin(state.springPhase * 0.5) * 40;
+
+    // 固定点（左）
+    const leftX = springCenterX - springLength / 2;
+    const rightX = springCenterX + springLength / 2;
+
+    // 绘制墙壁
+    ctx.fillStyle = C.glassEdge;
+    ctx.fillRect(leftX - 20, springCenterY - 60, 16, 120);
+    ctx.fillRect(rightX + 4, springCenterY - 60, 16, 120);
+
+    // 墙壁纹理
+    ctx.strokeStyle = 'rgba(150, 180, 210, 0.2)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 8; i++) {
+      const y = springCenterY - 55 + i * 15;
+      ctx.beginPath();
+      ctx.moveTo(leftX - 18, y);
+      ctx.lineTo(leftX - 4, y - 8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(rightX + 6, y);
+      ctx.lineTo(rightX + 20, y - 8);
+      ctx.stroke();
+    }
+
+    // 绘制弹簧
+    const coils = 12;
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(leftX, springCenterY);
+    for (let i = 0; i <= coils * 4; i++) {
+      const t = i / (coils * 4);
+      const x = leftX + t * springLength;
+      const phase = i * Math.PI / 2;
+      const y = springCenterY + Math.sin(phase) * springAmplitude * (1 - Math.abs(t - 0.5) * 0.3);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(rightX, springCenterY);
+    ctx.stroke();
+
+    // 推力箭头
+    const pushOffset = Math.sin(state.springPhase) * 15;
+    const arrowX = rightX + 30 + pushOffset;
+    ctx.strokeStyle = C.red;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(arrowX + 30, springCenterY);
+    ctx.lineTo(arrowX, springCenterY);
+    ctx.lineTo(arrowX + 8, springCenterY - 6);
+    ctx.moveTo(arrowX, springCenterY);
+    ctx.lineTo(arrowX + 8, springCenterY + 6);
+    ctx.stroke();
+
+    ctx.font = '11px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = C.red;
+    ctx.textAlign = 'center';
+    ctx.fillText('扰动', arrowX + 15, springCenterY - 12);
+
+    // 反弹箭头
+    const反弹X = leftX - 30 - pushOffset * 0.7;
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(反弹X - 30, springCenterY);
+    ctx.lineTo(反弹X, springCenterY);
+    ctx.lineTo(反弹X - 8, springCenterY - 6);
+    ctx.moveTo(反弹X, springCenterY);
+    ctx.lineTo(反弹X - 8, springCenterY + 6);
+    ctx.stroke();
+
+    ctx.fillStyle = C.blue;
+    ctx.fillText('反抗',反弹X - 15, springCenterY - 12);
+
+    // 标题
+    ctx.font = 'bold 16px "Noto Serif SC", serif';
+    ctx.fillStyle = C.blue;
+    ctx.textAlign = 'center';
+    ctx.fillText('勒夏特列原理：平衡的"反抗"', W / 2, 50);
+
+    ctx.font = '13px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = C.gray;
+    ctx.fillText('改变条件 → 平衡向减弱该改变的方向移动', W / 2, 75);
+
+    // 三因素效果展示
+    const factorY = 360;
+    const factorLabels = ['浓度', '压强', '温度'];
+    const factorDescs = [
+      '加反应物→右移\n加生成物→左移',
+      '加压→向气体\n体积减小方移动',
+      '升温→向吸热\n方向移动'
+    ];
+    const factorColors = [C.blue, C.red, C.amber];
+
+    for (let i = 0; i < 3; i++) {
+      const fx = W / 4 * (i + 1) - 40;
+      const isActive = state.selectedFactor === i;
+
+      // 卡片背景
+      ctx.fillStyle = isActive ? rgbaStr(30, 64, 175, 0.08) : 'rgba(250, 248, 245, 0.5)';
+      ctx.fillRect(fx - 50, factorY - 10, 100, 110);
+      ctx.strokeStyle = isActive ? C.blue : C.border;
+      ctx.lineWidth = isActive ? 2 : 1;
+      ctx.strokeRect(fx - 50, factorY - 10, 100, 110);
+
+      // 图标
+      ctx.strokeStyle = factorColors[i];
+      ctx.lineWidth = 2;
+      ctx.fillStyle = 'none';
+
+      if (i === 0) {
+        // 烧杯
+        ctx.beginPath();
+        ctx.moveTo(fx - 15, factorY + 8);
+        ctx.lineTo(fx - 15, factorY + 35);
+        ctx.lineTo(fx + 15, factorY + 35);
+        ctx.lineTo(fx + 15, factorY + 8);
+        ctx.stroke();
+        ctx.fillStyle = rgbaStr(30, 64, 175, 0.15);
+        ctx.fillRect(fx - 13, factorY + 18, 26, 16);
+      } else if (i === 1) {
+        // 活塞
+        ctx.beginPath();
+        ctx.rect(fx - 15, factorY + 8, 30, 12);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(fx, factorY + 20);
+        ctx.lineTo(fx, factorY + 38);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(fx, factorY + 40, 3, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        // 温度计
+        ctx.beginPath();
+        ctx.moveTo(fx, factorY + 5);
+        ctx.lineTo(fx, factorY + 30);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(fx, factorY + 35, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = C.amber;
+        ctx.beginPath();
+        ctx.arc(fx, factorY + 35, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 标签
+      ctx.font = 'bold 12px "Noto Sans SC", sans-serif';
+      ctx.fillStyle = isActive ? C.blue : C.text;
+      ctx.textAlign = 'center';
+      ctx.fillText(factorLabels[i], fx, factorY + 58);
+
+      // 描述
+      ctx.font = '9px "Noto Sans SC", sans-serif';
+      ctx.fillStyle = C.gray;
+      const lines = factorDescs[i].split('\n');
+      for (let j = 0; j < lines.length; j++) {
+        ctx.fillText(lines[j], fx, factorY + 72 + j * 12);
+      }
+    }
+  }
+
+  // ===== Step 3: 浓度实验 =====
+  function renderStep3() {
+    clearCanvas();
+
+    // 颜色平滑过渡
+    state.solutionR = lerp(state.solutionR, state.targetR, 0.05);
+    state.solutionG = lerp(state.solutionG, state.targetG, 0.05);
+    state.solutionB = lerp(state.solutionB, state.targetB, 0.05);
+    state.solutionA = lerp(state.solutionA, state.targetA, 0.05);
+
+    // 箭头淡出
+    if (state.shiftArrowAlpha > 0) state.shiftArrowAlpha -= 0.005;
+
+    // 烧杯参数
+    const beakerX = 120, beakerY = 80, beakerW = 160, beakerH = 240;
+    const beakerBottomW = 140;
+
+    // 烧杯轮廓（梯形）
+    ctx.strokeStyle = C.glassEdge;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(beakerX, beakerY);
+    ctx.lineTo(beakerX + beakerW, beakerY);
+    ctx.lineTo(beakerX + beakerW - 10, beakerY + beakerH);
+    ctx.lineTo(beakerX + 10, beakerY + beakerH);
+    ctx.closePath();
+    ctx.stroke();
+
+    // 玻璃高光
+    const beakerGrad = ctx.createLinearGradient(beakerX, beakerY, beakerX + beakerW, beakerY);
+    beakerGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+    beakerGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.02)');
+    beakerGrad.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+    ctx.fillStyle = beakerGrad;
+    ctx.fill();
+
+    // 左侧竖向高光条（增强玻璃质感）
+    const beakerSideGrad = ctx.createLinearGradient(beakerX, beakerY, beakerX + 14, beakerY);
+    beakerSideGrad.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+    beakerSideGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = beakerSideGrad;
+    ctx.beginPath();
+    ctx.moveTo(beakerX + 2, beakerY + 2);
+    ctx.lineTo(beakerX + 14, beakerY + 2);
+    ctx.lineTo(beakerX + 12, beakerY + beakerH - 2);
+    ctx.lineTo(beakerX + 2, beakerY + beakerH - 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // 溶液
+    const solutionTop = beakerY + 40;
+    const solutionBottom = beakerY + beakerH - 5;
+    const solutionTopW = beakerW - 5;
+    const solutionBottomW = beakerBottomW;
+
+    ctx.beginPath();
+    ctx.moveTo(beakerX + 2.5, solutionTop);
+    ctx.lineTo(beakerX + beakerW - 2.5, solutionTop);
+    ctx.lineTo(beakerX + beakerW - 10, solutionBottom);
+    ctx.lineTo(beakerX + 10, solutionBottom);
+    ctx.closePath();
+
+    const solGrad = ctx.createLinearGradient(beakerX, solutionTop, beakerX, solutionBottom);
+    solGrad.addColorStop(0, rgbaStr(state.solutionR, state.solutionG, state.solutionB, state.solutionA * 0.7));
+    solGrad.addColorStop(1, rgbaStr(state.solutionR, state.solutionG, state.solutionB, state.solutionA));
+    ctx.fillStyle = solGrad;
+    ctx.fill();
+
+    // 液面高光
+    ctx.beginPath();
+    ctx.ellipse(beakerX + beakerW / 2, solutionTop, beakerW / 2 - 3, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = rgbaStr(255, 255, 255, 0.2);
+    ctx.fill();
+
+    // 烧杯标签
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.gray;
+    ctx.textAlign = 'center';
+    ctx.fillText('Fe(SCN)₃ 溶液', beakerX + beakerW / 2, beakerY + beakerH + 20);
+
+    // 刻度线
+    ctx.strokeStyle = 'rgba(150, 180, 210, 0.2)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 4; i++) {
+      const y = beakerY + (beakerH / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(beakerX + beakerW - 12, y);
+      ctx.lineTo(beakerX + beakerW - 5, y);
+      ctx.stroke();
+    }
+
+    // 右侧浓度柱状图
+    const chartX = 340, chartY = 80, chartW = 200, chartH = 240;
+    const barW = 35;
+    const barGap = 15;
+    const maxBarH = 180;
+
+    // 柱状图背景
+    ctx.fillStyle = 'rgba(250, 248, 245, 0.5)';
+    ctx.fillRect(chartX, chartY, chartW, chartH);
+    ctx.strokeStyle = C.border;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(chartX, chartY, chartW, chartH);
+
+    // 柱状图标题
+    ctx.font = 'bold 12px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = C.text;
+    ctx.textAlign = 'left';
+    ctx.fillText('浓度变化', chartX + 10, chartY + 18);
+
+    // 平滑过渡柱状图
+    for (let i = 0; i < state.concBars.length; i++) {
+      state.concBars[i].value = lerp(state.concBars[i].value, state.concBars[i].target, 0.06);
+    }
+
+    // 绘制柱子
+    for (let i = 0; i < state.concBars.length; i++) {
+      const bar = state.concBars[i];
+      const bx = chartX + 15 + i * (barW + barGap);
+      const bh = bar.value * maxBarH;
+      const by = chartY + chartH - 30 - bh;
+
+      // 柱体
+      const barGrad = ctx.createLinearGradient(bx, by, bx, by + bh);
+      barGrad.addColorStop(0, bar.color);
+      barGrad.addColorStop(1, bar.color + '80');
+      ctx.fillStyle = barGrad;
+      ctx.fillRect(bx, by, barW, bh);
+
+      // 标签
+      ctx.font = '9px "JetBrains Mono", monospace';
+      ctx.fillStyle = C.gray;
+      ctx.textAlign = 'center';
+      ctx.fillText(bar.label, bx + barW / 2, chartY + chartH - 14);
+
+      // 数值
+      ctx.font = '8px "JetBrains Mono", monospace';
+      ctx.fillStyle = C.text;
+      ctx.fillText(bar.value.toFixed(2), bx + barW / 2, by - 4);
+    }
+
+    // 平衡移动方向箭头
+    if (state.shiftArrowAlpha > 0) {
+      const arrowY = 200;
+      const arrowAlpha = state.shiftArrowAlpha;
+      ctx.globalAlpha = arrowAlpha;
+
+      if (state.shiftArrow === 1) {
+        // 右移
+        ctx.strokeStyle = C.blue;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(280, arrowY);
+        ctx.lineTo(330, arrowY);
+        ctx.lineTo(322, arrowY - 8);
+        ctx.moveTo(330, arrowY);
+        ctx.lineTo(322, arrowY + 8);
+        ctx.stroke();
+        ctx.font = 'bold 12px "Noto Sans SC", sans-serif';
+        ctx.fillStyle = C.blue;
+        ctx.textAlign = 'center';
+        ctx.fillText('平衡右移 →', 305, arrowY - 15);
+      } else if (state.shiftArrow === -1) {
+        // 左移
+        ctx.strokeStyle = C.red;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(330, arrowY);
+        ctx.lineTo(280, arrowY);
+        ctx.lineTo(288, arrowY - 8);
+        ctx.moveTo(280, arrowY);
+        ctx.lineTo(288, arrowY + 8);
+        ctx.stroke();
+        ctx.font = 'bold 12px "Noto Sans SC", sans-serif';
+        ctx.fillStyle = C.red;
+        ctx.textAlign = 'center';
+        ctx.fillText('← 平衡左移', 305, arrowY - 15);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // 反应方程式
+    ctx.font = '12px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.text;
+    ctx.textAlign = 'center';
+    ctx.fillText('FeCl₃ + 3KSCN ⇌ Fe(SCN)₃ + 3KCl', W / 2, H - 30);
+    ctx.font = '10px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = C.gray;
+    ctx.fillText('（血红色）', W / 2 + 70, H - 30);
+  }
+
+  // ===== Step 4: 压强与温度 =====
+  function renderStep4() {
+    clearCanvas();
+
+    // 平滑过渡 — 压缩第一阶段用更快速度模拟"瞬间变深"
+    const gasLerpFactor = state.compressPhase === 1 ? 0.18 : 0.04;
+    state.pistonY = lerp(state.pistonY, state.targetPistonY, 0.08);
+    state.temperature = lerp(state.temperature, state.targetTemperature, 0.05);
+    state.gasColorR = lerp(state.gasColorR, state.targetGasR, gasLerpFactor);
+    state.gasColorG = lerp(state.gasColorG, state.targetGasG, gasLerpFactor);
+    state.gasColorB = lerp(state.gasColorB, state.targetGasB, gasLerpFactor);
+    state.gasColorA = lerp(state.gasColorA, state.targetGasA, gasLerpFactor);
+
+    // 双球玻璃容器
+    const sphere1X = 220, sphere2X = 500, sphereY = 200, sphereR = 80;
+
+    // 连接管
+    ctx.strokeStyle = C.glassEdge;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sphere1X + sphereR - 5, sphereY);
+    ctx.lineTo(sphere2X - sphereR + 5, sphereY);
+    ctx.stroke();
+
+    // 球1
+    drawGlassSphere(sphere1X, sphereY, sphereR, state.gasColorR, state.gasColorG, state.gasColorB, state.gasColorA);
+
+    // 球2（带活塞）
+    drawGlassSphere(sphere2X, sphereY, sphereR, state.gasColorR, state.gasColorG, state.gasColorB, state.gasColorA);
+
+    // 活塞
+    const pistonX = sphere2X + sphereR + 20;
+    const pistonTop = sphereY - 50 + state.pistonY * 80;
+    const pistonBottom = pistonTop + 40;
+
+    ctx.fillStyle = C.glassEdge;
+    ctx.fillRect(pistonX - 8, pistonTop, 16, 40);
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(pistonX - 8, pistonTop, 16, 40);
+
+    // 活塞杆
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(pistonX, pistonTop);
+    ctx.lineTo(pistonX, pistonTop - 30);
+    ctx.stroke();
+
+    // 活塞把手
+    ctx.beginPath();
+    ctx.moveTo(pistonX - 12, pistonTop - 30);
+    ctx.lineTo(pistonX + 12, pistonTop - 30);
+    ctx.stroke();
+
+    // 标签
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.gray;
+    ctx.textAlign = 'center';
+    ctx.fillText('NO₂ / N₂O₄', sphere1X, sphereY + sphereR + 18);
+
+    // 温度计
+    const tempX = 100, tempY = 120;
+    ctx.strokeStyle = C.glassEdge;
+    ctx.lineWidth = 2;
+    const trW = 16, trH = 100, trR = 8;
+    ctx.beginPath();
+    ctx.moveTo(tempX - 8 + trR, tempY);
+    ctx.lineTo(tempX - 8 + trW - trR, tempY);
+    ctx.quadraticCurveTo(tempX - 8 + trW, tempY, tempX - 8 + trW, tempY + trR);
+    ctx.lineTo(tempX - 8 + trW, tempY + trH - trR);
+    ctx.quadraticCurveTo(tempX - 8 + trW, tempY + trH, tempX - 8 + trW - trR, tempY + trH);
+    ctx.lineTo(tempX - 8 + trR, tempY + trH);
+    ctx.quadraticCurveTo(tempX - 8, tempY + trH, tempX - 8, tempY + trH - trR);
+    ctx.lineTo(tempX - 8, tempY + trR);
+    ctx.quadraticCurveTo(tempX - 8, tempY, tempX - 8 + trR, tempY);
+    ctx.closePath();
+    ctx.stroke();
+
+    // 温度液柱
+    const tempFillH = ((state.temperature - 0) / 100) * 80;
+    const tempColor = state.temperature > 25 ? C.red : C.blue;
+    ctx.fillStyle = tempColor;
+    ctx.fillRect(tempX - 5, tempY + 95 - tempFillH, 10, tempFillH);
+
+    // 温度球
+    ctx.beginPath();
+    ctx.arc(tempX, tempY + 105, 10, 0, Math.PI * 2);
+    ctx.fillStyle = tempColor;
+    ctx.fill();
+
+    // 温度标签
+    ctx.font = 'bold 12px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.text;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${state.temperature.toFixed(0)}°C`, tempX, tempY - 8);
+
+    // 压强指示
+    const pressureX = 700, pressureY = 120;
+    ctx.font = 'bold 12px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.text;
+    ctx.textAlign = 'center';
+    const pressureVal = (1 - state.pistonY) * 2 + 1;
+    ctx.fillText(`${pressureVal.toFixed(1)} atm`, pressureX, pressureY);
+
+    // 压强表
+    ctx.strokeStyle = C.glassEdge;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(pressureX, pressureY + 25, 20, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 指针
+    const needleAngle = -Math.PI * 0.75 + state.pistonY * Math.PI * 1.5;
+    ctx.strokeStyle = C.red;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pressureX, pressureY + 25);
+    ctx.lineTo(pressureX + Math.cos(needleAngle) * 16, pressureY + 25 + Math.sin(needleAngle) * 16);
+    ctx.stroke();
+
+    // 下方颜色对比
+    const compareY = 360;
+    ctx.font = 'bold 12px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = C.text;
+    ctx.textAlign = 'center';
+    ctx.fillText('气体颜色对比', W / 2, compareY);
+
+    // 当前颜色
+    ctx.fillStyle = rgbaStr(state.gasColorR, state.gasColorG, state.gasColorB, state.gasColorA);
+    ctx.beginPath();
+    ctx.arc(W / 2 - 80, compareY + 35, 25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = C.border;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.font = '10px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = C.gray;
+    ctx.fillText('当前', W / 2 - 80, compareY + 75);
+
+    // 初始颜色
+    ctx.fillStyle = rgbaStr(185, 28, 28, 0.35);
+    ctx.beginPath();
+    ctx.arc(W / 2 + 80, compareY + 35, 25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = C.border;
+    ctx.stroke();
+    ctx.fillText('初始', W / 2 + 80, compareY + 75);
+
+    // 箭头
+    ctx.strokeStyle = C.gray;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 50, compareY + 35);
+    ctx.lineTo(W / 2 + 50, compareY + 35);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 压缩两阶段效果标注
+    if (state.compressPhase > 0) {
+      const phaseText = state.compressPhase === 1
+        ? '① 浓度增大：颜色瞬间变深'
+        : '② 平衡右移：颜色逐渐变浅（但仍比原来深）';
+      const phaseColor = state.compressPhase === 1 ? C.red : C.blue;
+      ctx.font = 'bold 11px "Noto Sans SC", sans-serif';
+      ctx.fillStyle = phaseColor;
+      ctx.textAlign = 'center';
+      ctx.fillText(phaseText, W / 2, compareY - 10);
+    }
+
+    // 方程式
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.text;
+    ctx.textAlign = 'center';
+    ctx.fillText('2NO₂(g) ⇌ N₂O₄(g)  ΔH < 0 (放热)', W / 2, H - 15);
+  }
+
+  function drawGlassSphere(cx, cy, r, gr, gg, gb, ga) {
+    // 气体颜色
+    ctx.fillStyle = rgbaStr(gr, gg, gb, ga);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 玻璃边框（双层增强立体感）
+    ctx.strokeStyle = C.glassEdge;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(200, 220, 240, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 主高光（左上大范围柔光）
+    const highlight = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 0, cx, cy, r);
+    highlight.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+    highlight.addColorStop(0.4, 'rgba(255, 255, 255, 0.05)');
+    highlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = highlight;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 二次高光（左上小亮点 — 模拟光源直接反射）
+    const spotGrad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, 0, cx - r * 0.35, cy - r * 0.35, r * 0.25);
+    spotGrad.addColorStop(0, 'rgba(255, 255, 255, 0.45)');
+    spotGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = spotGrad;
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.35, cy - r * 0.35, r * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 底部反射光（环境光反射）
+    const bottomGrad = ctx.createRadialGradient(cx, cy + r * 0.6, 0, cx, cy + r * 0.6, r * 0.5);
+    bottomGrad.addColorStop(0, 'rgba(200, 220, 240, 0.1)');
+    bottomGrad.addColorStop(1, 'rgba(200, 220, 240, 0)');
+    ctx.fillStyle = bottomGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ===== Step 5: 平衡常数 K =====
+  function renderStep5() {
+    clearCanvas();
+
+    // 计算当前反应的 Q
+    const reaction = state.kReactions[state.kReactionIndex];
+    let Q = 1;
+    let reactantProduct = 1;
+    let productProduct = 1;
+
+    if (state.kReactionIndex === 0) {
+      // 2NO₂ ⇌ N₂O₄, K = [N₂O₄]/[NO₂]²
+      const no2 = Math.max(state.kInputs[0], 0.001);
+      const n2o4 = Math.max(state.kInputs[1], 0.001);
+      Q = n2o4 / (no2 * no2);
+      reactantProduct = no2 * no2;
+      productProduct = n2o4;
+    } else if (state.kReactionIndex === 1) {
+      // H₂ + I₂ ⇌ 2HI, K = [HI]²/([H₂][I₂])
+      const h2 = Math.max(state.kInputs[0], 0.001);
+      const i2 = Math.max(state.kInputs[1], 0.001);
+      const hi = Math.max(state.kInputs[2] || 0.5, 0.001);
+      Q = (hi * hi) / (h2 * i2);
+      reactantProduct = h2 * i2;
+      productProduct = hi * hi;
+    } else {
+      // N₂ + 3H₂ ⇌ 2NH₃
+      const n2 = Math.max(state.kInputs[0], 0.001);
+      const h2 = Math.max(state.kInputs[1], 0.001);
+      const nh3 = Math.max(state.kInputs[2] || 0.5, 0.001);
+      Q = (nh3 * nh3) / (n2 * h2 * h2 * h2);
+      reactantProduct = n2 * h2 * h2 * h2;
+      productProduct = nh3 * nh3;
+    }
+
+    const K = reaction.K;
+
+    // 天平角度
+    if (Q < K * 0.9) {
+      state.targetBalanceAngle = -0.15;
+    } else if (Q > K * 1.1) {
+      state.targetBalanceAngle = 0.15;
+    } else {
+      state.targetBalanceAngle = 0;
+    }
+    state.balanceAngle = lerp(state.balanceAngle, state.targetBalanceAngle, 0.05);
+
+    // 天平
+    const balanceX = W / 2, balanceY = 180;
+    const armLength = 120;
+
+    ctx.save();
+    ctx.translate(balanceX, balanceY);
+    ctx.rotate(state.balanceAngle);
+
+    // 横梁
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-armLength, 0);
+    ctx.lineTo(armLength, 0);
+    ctx.stroke();
+
+    // 左盘（反应物 Q）
+    const leftPanY = 40;
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-armLength, 0);
+    ctx.lineTo(-armLength, leftPanY);
+    ctx.stroke();
+
+    // 左盘
+    ctx.beginPath();
+    ctx.moveTo(-armLength - 30, leftPanY);
+    ctx.lineTo(-armLength + 30, leftPanY);
+    ctx.lineTo(-armLength + 20, leftPanY + 15);
+    ctx.lineTo(-armLength - 20, leftPanY + 15);
+    ctx.closePath();
+    ctx.fillStyle = C.blueSoft;
+    ctx.fill();
+    ctx.stroke();
+
+    // 右盘（生成物 K）
+    ctx.beginPath();
+    ctx.moveTo(armLength, 0);
+    ctx.lineTo(armLength, leftPanY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(armLength - 30, leftPanY);
+    ctx.lineTo(armLength + 30, leftPanY);
+    ctx.lineTo(armLength + 20, leftPanY + 15);
+    ctx.lineTo(armLength - 20, leftPanY + 15);
+    ctx.closePath();
+    ctx.fillStyle = C.redSoft;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+
+    // 支点
+    ctx.fillStyle = C.blue;
+    ctx.beginPath();
+    ctx.moveTo(balanceX - 15, balanceY + 5);
+    ctx.lineTo(balanceX + 15, balanceY + 5);
+    ctx.lineTo(balanceX, balanceY - 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // 底座
+    ctx.fillStyle = C.glassEdge;
+    ctx.fillRect(balanceX - 30, balanceY + 5, 60, 8);
+
+    // 标签
+    ctx.font = 'bold 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.blue;
+    ctx.textAlign = 'center';
+    ctx.fillText(`Q = ${Q.toFixed(3)}`, balanceX - armLength, balanceY + 80);
+
+    ctx.fillStyle = C.red;
+    ctx.fillText(`K = ${K}`, balanceX + armLength, balanceY + 80);
+
+    // 反应方向指示
+    let dirText, dirColor;
+    if (Q < K * 0.9) {
+      dirText = '→ 正向进行';
+      dirColor = C.blue;
+    } else if (Q > K * 1.1) {
+      dirText = '← 逆向进行';
+      dirColor = C.red;
+    } else {
+      dirText = '⇌ 已达平衡';
+      dirColor = C.amber;
+    }
+
+    ctx.font = 'bold 16px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = dirColor;
+    ctx.fillText(dirText, balanceX, balanceY + 110);
+
+    // 反应方程式
+    ctx.font = '14px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.text;
+    ctx.fillText(reaction.eq, balanceX, 50);
+
+    // 公式
+    ctx.font = '12px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.gray;
+    ctx.fillText('Q < K → 正向  |  Q = K → 平衡  |  Q > K → 逆向', balanceX, 80);
+
+    // 下方信息面板
+    const infoY = 340;
+    ctx.fillStyle = 'rgba(250, 248, 245, 0.5)';
+    ctx.fillRect(60, infoY, 680, 130);
+    ctx.strokeStyle = C.border;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(60, infoY, 680, 130);
+
+    // 浓度信息
+    ctx.font = 'bold 12px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = C.text;
+    ctx.textAlign = 'left';
+    ctx.fillText('当前浓度与判断：', 80, infoY + 22);
+
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.blue;
+    let yOff = infoY + 45;
+    if (state.kReactionIndex === 0) {
+      ctx.fillText(`[NO₂] = ${state.kInputs[0].toFixed(3)} mol/L`, 80, yOff);
+      ctx.fillText(`[N₂O₄] = ${state.kInputs[1].toFixed(3)} mol/L`, 80, yOff + 20);
+      ctx.fillStyle = C.gray;
+      ctx.fillText(`Q = [N₂O₄] / [NO₂]² = ${state.kInputs[1].toFixed(3)} / (${state.kInputs[0].toFixed(3)})² = ${Q.toFixed(4)}`, 80, yOff + 45);
+    } else if (state.kReactionIndex === 1) {
+      ctx.fillText(`[H₂] = ${state.kInputs[0].toFixed(3)}  [I₂] = ${state.kInputs[1].toFixed(3)}  [HI] = ${(state.kInputs[2]||0.5).toFixed(3)}`, 80, yOff);
+      ctx.fillStyle = C.gray;
+      ctx.fillText(`Q = [HI]² / ([H₂]·[I₂]) = ${Q.toFixed(4)}`, 80, yOff + 25);
+    } else {
+      ctx.fillText(`[N₂] = ${state.kInputs[0].toFixed(3)}  [H₂] = ${state.kInputs[1].toFixed(3)}  [NH₃] = ${(state.kInputs[2]||0.5).toFixed(3)}`, 80, yOff);
+      ctx.fillStyle = C.gray;
+      ctx.fillText(`Q = [NH₃]² / ([N₂]·[H₂]³) = ${Q.toFixed(4)}`, 80, yOff + 25);
+    }
+
+    // K 值含义
+    ctx.font = '10px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = C.gray;
+    ctx.textAlign = 'right';
+    const kMeaning = K > 1 ? 'K > 1：正向反应占优' : 'K < 1：逆向反应占优';
+    ctx.fillText(kMeaning, 720, infoY + 22);
+  }
+
+  // ===== 渲染分发 =====
+  function render() {
+    switch (state.currentStep) {
+      case 0: renderStep1(); break;
+      case 1: renderStep2(); break;
+      case 2: renderStep3(); break;
+      case 3: renderStep4(); break;
+      case 4: renderStep5(); break;
+    }
+  }
+
+  // ===== 动画循环 =====
+  let lastTime = 0;
+  let simAccumulator = 0;
+
+  function animate(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+    lastTime = timestamp;
+
+    state.time += dt;
+
+    // Step 1 分子模拟
+    if (state.currentStep === 0 && state.isSimRunning) {
+      updateMolecules(dt);
+      state.simTime += dt * state.simSpeed;
+      simAccumulator += dt;
+      if (simAccumulator > 0.15) {
+        recordSimData();
+        simAccumulator = 0;
+      }
+    }
+
+    // Step 2 弹簧动画
+    if (state.currentStep === 1) {
+      state.springPhase += dt * 1.5;
+    }
+
+    // Step 4 压缩两阶段效果（先变深后变浅）
+    if (state.currentStep === 3 && state.compressPhase > 0) {
+      state.compressTimer += dt;
+      if (state.compressPhase === 1 && state.compressTimer > 1.0) {
+        // 第二阶段：平衡右移，颜色变浅（但比原来深）
+        state.targetGasA = 0.45;
+        state.compressPhase = 2;
+      } else if (state.compressPhase === 2 && state.compressTimer > 3.0) {
+        state.compressPhase = 0;
+      }
+    }
+
+    render();
+
+    // 自动播放
+    if (state.isAutoPlaying) {
+      if (state.autoPlayStartTime === 0) state.autoPlayStartTime = timestamp;
+      const elapsed = timestamp - state.autoPlayStartTime;
+      const progress = Math.min(elapsed / AUTO_PLAY_DURATION, 1);
+      document.getElementById('autoPlayProgress').style.width = `${progress * 100}%`;
+
+      if (progress >= 1) {
+        if (state.currentStep < steps.length - 1) {
+          state.currentStep++;
+          updateStep();
+          state.autoPlayStartTime = timestamp;
+        } else {
+          toggleAutoPlay();
+        }
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  // ===== 步骤导航 =====
+  const stepContent = document.getElementById('stepContent');
+  const stepLabel = document.getElementById('stepLabel');
+  const stepDots = document.querySelectorAll('.step-dot');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const visualCaption = document.getElementById('visualCaption');
+  const canvasWrapper = document.getElementById('canvasWrapper');
+
+  function updateStep() {
+    stepContent.classList.add('fade-out');
+    canvasWrapper.classList.add('switching');
+
+    setTimeout(() => {
+      const step = steps[state.currentStep];
+      stepContent.innerHTML = `<h3>${step.title}</h3>${step.content}`;
+      stepContent.classList.remove('fade-out');
+      stepContent.classList.add('fade-in');
+      setTimeout(() => stepContent.classList.remove('fade-in'), 300);
+      canvasWrapper.classList.remove('switching');
+    }, 200);
+
+    stepLabel.textContent = `第 ${state.currentStep + 1} / ${steps.length} 步`;
+
+    stepDots.forEach((dot, i) => {
+      dot.classList.remove('active', 'completed');
+      if (i === state.currentStep) dot.classList.add('active');
+      else if (i < state.currentStep) dot.classList.add('completed');
+    });
+
+    prevBtn.disabled = state.currentStep === 0;
+    prevBtn.style.opacity = state.currentStep === 0 ? '0.5' : '1';
+    prevBtn.style.cursor = state.currentStep === 0 ? 'not-allowed' : 'pointer';
+    nextBtn.innerHTML = state.currentStep === steps.length - 1
+      ? '完成 ✓'
+      : '下一步 <span>→</span>';
+
+    visualCaption.textContent = steps[state.currentStep] ? steps[state.currentStep].caption : '';
+
+    // 步骤初始化
+    if (state.currentStep === 0) initMolecules();
+    if (state.currentStep === 2) {
+      // 重置浓度实验
+      state.targetR = 153; state.targetG = 27; state.targetB = 27; state.targetA = 0.55;
+      state.concBars.forEach((b, i) => b.target = [0.5, 0.5, 0.5, 0.3][i]);
+      state.shiftArrowAlpha = 0;
+    }
+    if (state.currentStep === 3) {
+      state.targetPistonY = 0.5;
+      state.targetTemperature = 25;
+      state.targetGasR = 185; state.targetGasG = 28; state.targetGasB = 28; state.targetGasA = 0.35;
+    }
+
+    updateControls();
+    state.autoPlayStartTime = 0;
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (state.currentStep > 0) { state.currentStep--; updateStep(); }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (state.currentStep < steps.length - 1) { state.currentStep++; updateStep(); }
+  });
+
+  stepDots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      const s = parseInt(dot.dataset.step);
+      if (s !== state.currentStep) { state.currentStep = s; updateStep(); }
+    });
+  });
+
+  // ===== 自动播放 =====
+  const autoPlayBtn = document.getElementById('autoPlayBtn');
+  const autoPlayProgress = document.getElementById('autoPlayProgress');
+
+  function toggleAutoPlay() {
+    state.isAutoPlaying = !state.isAutoPlaying;
+    if (state.isAutoPlaying) {
+      autoPlayBtn.classList.add('playing');
+      autoPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+      state.autoPlayStartTime = 0;
+    } else {
+      autoPlayBtn.classList.remove('playing');
+      autoPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+      autoPlayProgress.style.width = '0%';
+    }
+  }
+
+  autoPlayBtn.addEventListener('click', toggleAutoPlay);
+
+  // ===== 控件渲染 =====
+  const controlsPanel = document.getElementById('visualControls');
+
+  function updateControls() {
+    const step = state.currentStep;
+    let html = '';
+
+    if (step === 0) {
+      html = `
+        <div class="control-group">
+          <div class="control-label">
+            <span>模拟速度</span>
+            <span class="control-value" id="simSpeedValue">${state.simSpeed.toFixed(1)}x</span>
+          </div>
+          <input type="range" id="simSpeedSlider" min="0.5" max="3" step="0.1" value="${state.simSpeed}">
+        </div>
+        <div class="control-group">
+          <button class="exp-btn" id="simToggleBtn" style="width: 100%; justify-content: center;">
+            <span>${state.isSimRunning ? '⏸ 暂停模拟' : '▶ 继续模拟'}</span>
+          </button>
+        </div>
+        <div class="control-group">
+          <button class="exp-btn" id="simResetBtn" style="width: 100%; justify-content: center;">
+            <span>↻ 重新开始</span>
+          </button>
+        </div>
+      `;
+    } else if (step === 1) {
+      html = `
+        <div class="control-group">
+          <div class="control-label"><span>选择影响因素</span></div>
+          <div class="factor-cards">
+            <div class="factor-card ${state.selectedFactor === 0 ? 'active' : ''}" data-factor="0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3h14l-2 17H7L5 3z"/><path d="M5 8h14"/></svg>
+              <span>浓度</span>
+            </div>
+            <div class="factor-card ${state.selectedFactor === 1 ? 'active' : ''}" data-factor="1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="3" width="14" height="8" rx="1"/><line x1="12" y1="11" x2="12" y2="20"/><circle cx="12" cy="21" r="1"/></svg>
+              <span>压强</span>
+            </div>
+            <div class="factor-card ${state.selectedFactor === 2 ? 'active' : ''}" data-factor="2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="2" x2="12" y2="15"/><circle cx="12" cy="18" r="3"/></svg>
+              <span>温度</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size: var(--fs-small); color: var(--text-muted); line-height: 1.6; padding: 8px 0;" id="factorDesc">
+          ${getFactorDesc(state.selectedFactor)}
+        </div>
+      `;
+    } else if (step === 2) {
+      html = `
+        <div class="control-group">
+          <div class="control-label"><span>加入试剂</span></div>
+          <div class="experiment-buttons">
+            <button class="exp-btn" data-reagent="FeCl3">
+              <span class="exp-dot" style="background: ${C.fecl3 || '#eab308'};"></span>
+              加 FeCl₃
+            </button>
+            <button class="exp-btn" data-reagent="KSCN">
+              <span class="exp-dot" style="background: #94a3b8;"></span>
+              加 KSCN
+            </button>
+            <button class="exp-btn" data-reagent="KCl">
+              <span class="exp-dot" style="background: #64748b;"></span>
+              加 KCl
+            </button>
+            <button class="exp-btn" data-reagent="NaOH">
+              <span class="exp-dot" style="background: #e0e0e0;"></span>
+              加 NaOH
+            </button>
+          </div>
+        </div>
+        <div class="control-group">
+          <button class="exp-btn" id="resetExpBtn" style="width: 100%; justify-content: center;">
+            <span>↻ 重置实验</span>
+          </button>
+        </div>
+      `;
+    } else if (step === 3) {
+      html = `
+        <div class="pressure-temp-controls">
+          <div class="pt-group">
+            <div class="pt-group-title">压强实验</div>
+            <div class="pt-buttons">
+              <button class="pt-btn" data-pressure="compress">压缩</button>
+              <button class="pt-btn" data-pressure="normal">恢复</button>
+              <button class="pt-btn" data-pressure="expand">膨胀</button>
+            </div>
+          </div>
+          <div class="pt-group">
+            <div class="pt-group-title">温度实验</div>
+            <div class="pt-buttons">
+              <button class="pt-btn" data-temp="heat">加热</button>
+              <button class="pt-btn" data-temp="normal">室温</button>
+              <button class="pt-btn" data-temp="cool">冷却</button>
+            </div>
+          </div>
+        </div>
+        <div style="font-size: var(--fs-small); color: var(--text-muted); line-height: 1.6; padding: 4px 0;">
+          <em style="color: var(--chem-red);">提示：</em>压缩时颜色先变深后变浅（但比原来深）——这就是"减弱"而非"消除"。
+        </div>
+      `;
+    } else if (step === 4) {
+      const reaction = state.kReactions[state.kReactionIndex];
+      let inputsHtml = '';
+      if (state.kReactionIndex === 0) {
+        inputsHtml = `
+          <div class="k-input-group">
+            <span class="k-input-label">[NO₂] (mol/L)</span>
+            <input type="number" class="k-input" data-k-input="0" value="${state.kInputs[0]}" min="0" step="0.1">
+          </div>
+          <div class="k-input-group">
+            <span class="k-input-label">[N₂O₄] (mol/L)</span>
+            <input type="number" class="k-input" data-k-input="1" value="${state.kInputs[1]}" min="0" step="0.1">
+          </div>
+        `;
+      } else if (state.kReactionIndex === 1) {
+        inputsHtml = `
+          <div class="k-input-group">
+            <span class="k-input-label">[H₂] (mol/L)</span>
+            <input type="number" class="k-input" data-k-input="0" value="${state.kInputs[0]}" min="0" step="0.1">
+          </div>
+          <div class="k-input-group">
+            <span class="k-input-label">[I₂] (mol/L)</span>
+            <input type="number" class="k-input" data-k-input="1" value="${state.kInputs[1]}" min="0" step="0.1">
+          </div>
+          <div class="k-input-group">
+            <span class="k-input-label">[HI] (mol/L)</span>
+            <input type="number" class="k-input" data-k-input="2" value="${state.kInputs[2] || 0.5}" min="0" step="0.1">
+          </div>
+          <div class="k-input-group"></div>
+        `;
+      } else {
+        inputsHtml = `
+          <div class="k-input-group">
+            <span class="k-input-label">[N₂] (mol/L)</span>
+            <input type="number" class="k-input" data-k-input="0" value="${state.kInputs[0]}" min="0" step="0.1">
+          </div>
+          <div class="k-input-group">
+            <span class="k-input-label">[H₂] (mol/L)</span>
+            <input type="number" class="k-input" data-k-input="1" value="${state.kInputs[1]}" min="0" step="0.1">
+          </div>
+          <div class="k-input-group">
+            <span class="k-input-label">[NH₃] (mol/L)</span>
+            <input type="number" class="k-input" data-k-input="2" value="${state.kInputs[2] || 0.5}" min="0" step="0.1">
+          </div>
+          <div class="k-input-group"></div>
+        `;
+      }
+
+      html = `
+        <div class="control-group">
+          <div class="control-label"><span>选择反应</span></div>
+          <div class="k-reaction-select">
+            ${state.kReactions.map((r, i) =>
+              `<button class="k-reaction-btn ${state.kReactionIndex === i ? 'active' : ''}" data-reaction="${i}">${r.eq}</button>`
+            ).join('')}
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="control-label"><span>输入浓度</span></div>
+          <div class="k-inputs">${inputsHtml}</div>
+        </div>
+        <div class="k-result">
+          <span class="k-result-label">K = ${reaction.K}</span>
+          <span class="k-result-value" id="qValue">Q = 计算中...</span>
+        </div>
+      `;
+    }
+
+    controlsPanel.innerHTML = html;
+    attachControlListeners();
+  }
+
+  function getFactorDesc(i) {
+    const descs = [
+      '<strong style="color: var(--chem-blue);">浓度的影响：</strong>增加反应物浓度 → 平衡向正反应方向移动（消耗反应物）；增加生成物浓度 → 平衡向逆反应方向移动（消耗生成物）。',
+      '<strong style="color: var(--chem-red);">压强的影响：</strong>增大压强 → 平衡向气体体积减小的方向移动。只对有气体参与且两边气体体积不等的反应有效。',
+      '<strong style="color: var(--chem-amber);">温度的影响：</strong>升高温度 → 平衡向吸热方向移动；降低温度 → 平衡向放热方向移动。催化剂不影响平衡移动。'
+    ];
+    return descs[i];
+  }
+
+  // ===== 控件事件绑定 =====
+  function attachControlListeners() {
+    const step = state.currentStep;
+
+    // Step 0: 模拟控制
+    const simSpeedSlider = document.getElementById('simSpeedSlider');
+    if (simSpeedSlider) {
+      simSpeedSlider.addEventListener('input', e => {
+        state.simSpeed = parseFloat(e.target.value);
+        document.getElementById('simSpeedValue').textContent = `${state.simSpeed.toFixed(1)}x`;
+      });
+    }
+
+    const simToggleBtn = document.getElementById('simToggleBtn');
+    if (simToggleBtn) {
+      simToggleBtn.addEventListener('click', () => {
+        state.isSimRunning = !state.isSimRunning;
+        simToggleBtn.querySelector('span').textContent = state.isSimRunning ? '⏸ 暂停模拟' : '▶ 继续模拟';
+      });
+    }
+
+    const simResetBtn = document.getElementById('simResetBtn');
+    if (simResetBtn) {
+      simResetBtn.addEventListener('click', () => {
+        initMolecules();
+      });
+    }
+
+    // Step 1: 因素选择
+    document.querySelectorAll('.factor-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.factor-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        state.selectedFactor = parseInt(card.dataset.factor);
+        const desc = document.getElementById('factorDesc');
+        if (desc) desc.innerHTML = getFactorDesc(state.selectedFactor);
+      });
+    });
+
+    // Step 2: 浓度实验
+    document.querySelectorAll('.exp-btn[data-reagent]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reagent = btn.dataset.reagent;
+        handleReagent(reagent);
+      });
+    });
+
+    const resetExpBtn = document.getElementById('resetExpBtn');
+    if (resetExpBtn) {
+      resetExpBtn.addEventListener('click', () => {
+        state.targetR = 153; state.targetG = 27; state.targetB = 27; state.targetA = 0.55;
+        state.concBars[0].target = 0.5;
+        state.concBars[1].target = 0.5;
+        state.concBars[2].target = 0.5;
+        state.concBars[3].target = 0.3;
+        state.shiftArrowAlpha = 0;
+      });
+    }
+
+    // Step 3: 压强与温度
+    document.querySelectorAll('.pt-btn[data-pressure]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.pt-btn[data-pressure]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.dataset.pressure;
+        if (mode === 'compress') {
+          state.targetPistonY = 0.8;
+          // 第一阶段：瞬间变深（浓度增大）
+          state.targetGasR = 185; state.targetGasG = 28; state.targetGasB = 28;
+          state.targetGasA = 0.7;
+          // 启动两阶段效果：1秒后变浅（平衡右移），但仍比原来深
+          state.compressPhase = 1;
+          state.compressTimer = 0;
+        } else if (mode === 'expand') {
+          state.targetPistonY = 0.2;
+          state.targetGasR = 185; state.targetGasG = 28; state.targetGasB = 28;
+          state.targetGasA = 0.18; // 变浅
+          state.compressPhase = 0;
+        } else {
+          state.targetPistonY = 0.5;
+          state.targetGasR = 185; state.targetGasG = 28; state.targetGasB = 28;
+          state.targetGasA = 0.35;
+          state.compressPhase = 0;
+        }
+      });
+    });
+
+    document.querySelectorAll('.pt-btn[data-temp]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.pt-btn[data-temp]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.dataset.temp;
+        if (mode === 'heat') {
+          state.targetTemperature = 80;
+          // 升温：平衡左移（向吸热方向），NO₂增多，颜色变深
+          state.targetGasR = 185; state.targetGasG = 28; state.targetGasB = 28;
+          state.targetGasA = 0.6;
+        } else if (mode === 'cool') {
+          state.targetTemperature = 5;
+          // 降温：平衡右移（向放热方向），N₂O₄增多，颜色变浅
+          state.targetGasR = 185; state.targetGasG = 28; state.targetGasB = 28;
+          state.targetGasA = 0.15;
+        } else {
+          state.targetTemperature = 25;
+          state.targetGasR = 185; state.targetGasG = 28; state.targetGasB = 28;
+          state.targetGasA = 0.35;
+        }
+      });
+    });
+
+    // Step 4: K 计算器
+    document.querySelectorAll('.k-reaction-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.k-reaction-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.kReactionIndex = parseInt(btn.dataset.reaction);
+        const reaction = state.kReactions[state.kReactionIndex];
+        state.kInputs = [...reaction.defaults];
+        // 确保 kInputs 有 3 个元素
+        while (state.kInputs.length < 3) state.kInputs.push(0.5);
+        updateControls();
+      });
+    });
+
+    document.querySelectorAll('.k-input').forEach(input => {
+      input.addEventListener('input', e => {
+        const idx = parseInt(e.target.dataset.kInput);
+        state.kInputs[idx] = parseFloat(e.target.value) || 0;
+        updateQDisplay();
+      });
+    });
+
+    if (step === 4) updateQDisplay();
+  }
+
+  function updateQDisplay() {
+    const reaction = state.kReactions[state.kReactionIndex];
+    let Q = 1;
+    if (state.kReactionIndex === 0) {
+      const no2 = Math.max(state.kInputs[0], 0.001);
+      const n2o4 = Math.max(state.kInputs[1], 0.001);
+      Q = n2o4 / (no2 * no2);
+    } else if (state.kReactionIndex === 1) {
+      const h2 = Math.max(state.kInputs[0], 0.001);
+      const i2 = Math.max(state.kInputs[1], 0.001);
+      const hi = Math.max(state.kInputs[2] || 0.5, 0.001);
+      Q = (hi * hi) / (h2 * i2);
+    } else {
+      const n2 = Math.max(state.kInputs[0], 0.001);
+      const h2 = Math.max(state.kInputs[1], 0.001);
+      const nh3 = Math.max(state.kInputs[2] || 0.5, 0.001);
+      Q = (nh3 * nh3) / (n2 * h2 * h2 * h2);
+    }
+    const qEl = document.getElementById('qValue');
+    if (qEl) {
+      let dirText, dirColor;
+      if (Q < reaction.K * 0.9) { dirText = `Q = ${Q.toFixed(3)} → 正向`; dirColor = C.blue; }
+      else if (Q > reaction.K * 1.1) { dirText = `Q = ${Q.toFixed(3)} ← 逆向`; dirColor = C.red; }
+      else { dirText = `Q = ${Q.toFixed(3)} ⇌ 平衡`; dirColor = C.amber; }
+      qEl.textContent = dirText;
+      qEl.style.color = dirColor;
+    }
+  }
+
+  // ===== 浓度实验处理 =====
+  function handleReagent(reagent) {
+    state.shiftArrowAlpha = 1;
+
+    switch (reagent) {
+      case 'FeCl3':
+        // 加反应物 → 平衡右移 → 红色加深
+        state.targetR = 120; state.targetG = 15; state.targetB = 15; state.targetA = 0.75;
+        state.concBars[0].target = Math.min(0.9, state.concBars[0].target + 0.2);
+        state.concBars[2].target = Math.min(0.95, state.concBars[2].target + 0.15);
+        state.shiftArrow = 1;
+        break;
+      case 'KSCN':
+        // 加反应物 → 平衡右移 → 红色加深
+        state.targetR = 120; state.targetG = 15; state.targetB = 15; state.targetA = 0.72;
+        state.concBars[1].target = Math.min(0.9, state.concBars[1].target + 0.2);
+        state.concBars[2].target = Math.min(0.95, state.concBars[2].target + 0.12);
+        state.shiftArrow = 1;
+        break;
+      case 'KCl':
+        // 加生成物 → 平衡左移 → 红色变浅
+        state.targetR = 180; state.targetG = 60; state.targetB = 60; state.targetA = 0.35;
+        state.concBars[3].target = Math.min(0.9, state.concBars[3].target + 0.2);
+        state.concBars[2].target = Math.max(0.15, state.concBars[2].target - 0.12);
+        state.shiftArrow = -1;
+        break;
+      case 'NaOH':
+        // 消耗 Fe³⁺ → 减少反应物 → 平衡左移 → 红色变浅
+        state.targetR = 200; state.targetG = 100; state.targetB = 100; state.targetA = 0.2;
+        state.concBars[0].target = Math.max(0.1, state.concBars[0].target - 0.25);
+        state.concBars[2].target = Math.max(0.1, state.concBars[2].target - 0.2);
+        state.shiftArrow = -1;
+        break;
+    }
+  }
+
+  // ===== 导航栏滚动效果 =====
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  // ===== 初始化 =====
+  const hashMatch = window.location.hash.match(/step=(\d)/);
+  if (hashMatch) {
+    const s = parseInt(hashMatch[1]);
+    if (s >= 0 && s < steps.length) state.currentStep = s;
+  }
+
+  // 确保 kInputs 有 3 个元素
+  state.kReactions.forEach(r => {
+    while (r.defaults.length < 3) r.defaults.push(0.5);
+  });
+
+  updateStep();
+  requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

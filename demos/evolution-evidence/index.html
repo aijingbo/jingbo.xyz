@@ -1,0 +1,2251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>进化论证据链 · 景礴</title>
+  <link rel="stylesheet" href="/assets/css/design-system.css">
+  <link rel="stylesheet" href="/assets/css/demo-framework.css">
+  <style>
+    /* ===== 进化论 Demo 专属样式 ===== */
+    :root {
+      --evo-green: #15803d;
+      --evo-green-light: #22a559;
+      --evo-green-soft: rgba(21, 128, 61, 0.1);
+      --evo-orange: #ea580c;
+      --evo-orange-soft: rgba(234, 88, 12, 0.12);
+      --evo-bg: #faf8f5;
+      --evo-fossil: #a16207;
+      --evo-fossil-soft: rgba(161, 98, 7, 0.12);
+      --evo-anatomy: #b45309;
+      --evo-embryo: #fda4af;
+      --evo-embryo-deep: #e11d48;
+      --evo-geo: #0284c7;
+      --evo-geo-soft: rgba(2, 132, 199, 0.1);
+      --evo-dna: #7c3aed;
+      --evo-dna-soft: rgba(124, 58, 237, 0.1);
+      --evo-bacteria: #16a34a;
+      --evo-bacteria-dark: #14532d;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background: var(--evo-bg);
+    }
+
+    .page-wrapper {
+      padding-top: 64px;
+      min-height: 100vh;
+    }
+
+    /* ===== 加载动画 ===== */
+    .loader-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: var(--evo-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    .loader-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    .loader-tree {
+      width: 120px;
+      height: 120px;
+    }
+    .loader-tree path {
+      stroke: var(--evo-green);
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 300;
+      stroke-dashoffset: 300;
+      animation: drawTree 2s ease forwards;
+    }
+    @keyframes drawTree {
+      to { stroke-dashoffset: 0; }
+    }
+    .loader-text {
+      position: absolute;
+      bottom: 30%;
+      text-align: center;
+      font-family: var(--font-serif);
+      font-size: 14px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ===== 杂志布局 ===== */
+    .magazine-layout {
+      display: grid;
+      grid-template-columns: 38% 62%;
+      gap: var(--spacer-48);
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: var(--spacer-48) var(--spacer-32);
+      min-height: calc(100vh - 64px);
+    }
+
+    /* ===== 左侧文章区 ===== */
+    .article-side {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-24);
+    }
+
+    .article-header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-12);
+    }
+
+    .article-kicker {
+      font-family: var(--font-mono);
+      font-size: var(--fs-tiny);
+      letter-spacing: 0.12em;
+      color: var(--evo-green);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .article-title {
+      font-family: var(--font-serif);
+      font-size: var(--fs-h1);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text);
+    }
+
+    .article-subtitle {
+      font-size: var(--fs-body);
+      color: var(--text-muted);
+      line-height: var(--lh-relaxed);
+      font-style: italic;
+      font-family: var(--font-serif);
+    }
+
+    .article-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-16);
+    }
+
+    .article-body p {
+      font-size: var(--fs-body);
+      line-height: 1.85;
+      color: var(--text);
+    }
+
+    .article-body p.lead {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.7;
+      color: var(--evo-green);
+    }
+
+    .article-body strong {
+      color: var(--evo-green);
+      font-weight: 600;
+    }
+
+    .article-body em {
+      color: var(--evo-orange);
+      font-style: italic;
+    }
+
+    /* ===== 步骤指示器 ===== */
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-12);
+      margin: var(--spacer-8) 0;
+    }
+
+    .step-dots {
+      display: flex;
+      gap: 10px;
+    }
+
+    .step-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: var(--radius-full);
+      background-color: var(--border);
+      transition: all var(--duration-base) var(--ease);
+      cursor: pointer;
+    }
+
+    .step-dot.active {
+      background-color: var(--evo-green);
+      transform: scale(1.3);
+      box-shadow: 0 0 0 4px var(--evo-green-soft);
+    }
+
+    .step-dot.completed {
+      background-color: var(--evo-orange);
+    }
+
+    .step-dot:hover:not(.active) {
+      background-color: var(--text-faint);
+    }
+
+    .step-label {
+      font-family: var(--font-mono);
+      font-size: var(--fs-tiny);
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ===== 步骤内容 ===== */
+    .step-content {
+      opacity: 1;
+      transform: translateY(0);
+      transition: all var(--duration-slow) var(--ease);
+      flex: 1;
+      overflow-y: auto;
+      max-height: 440px;
+      padding-right: var(--spacer-8);
+    }
+
+    .step-content::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .step-content::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .step-content.fade-out {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    .step-content.fade-in {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    .step-content h3 {
+      font-family: var(--font-serif);
+      font-size: var(--fs-h2);
+      margin-bottom: var(--spacer-16);
+      color: var(--text);
+    }
+
+    /* ===== 高亮框 ===== */
+    .evidence-box {
+      background: linear-gradient(135deg, var(--evo-green-soft), var(--evo-orange-soft));
+      border-left: 3px solid var(--evo-orange);
+      padding: var(--spacer-16) var(--spacer-20);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: var(--spacer-12) 0;
+    }
+
+    .evidence-box .box-title {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--evo-green);
+      margin-bottom: var(--spacer-8);
+    }
+
+    .evidence-box .box-text {
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text);
+    }
+
+    /* ===== 步骤导航按钮 ===== */
+    .step-nav {
+      display: flex;
+      gap: var(--spacer-12);
+      align-items: center;
+      position: relative;
+    }
+
+    .step-nav .btn {
+      flex: 1;
+      padding: 10px 20px;
+      font-size: var(--fs-small);
+    }
+
+    .step-nav .btn-primary {
+      background-color: var(--evo-green);
+      border-color: var(--evo-green);
+      color: white;
+    }
+
+    .step-nav .btn-primary:hover {
+      background-color: var(--evo-green-light);
+    }
+
+    .autoplay-btn {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--evo-green);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--duration-fast) var(--ease);
+    }
+
+    .autoplay-btn:hover {
+      border-color: var(--evo-green);
+      background: var(--evo-green-soft);
+    }
+
+    .autoplay-btn.playing {
+      background: var(--evo-green);
+      color: white;
+      border-color: var(--evo-green);
+    }
+
+    .autoplay-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .autoplay-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      background: var(--evo-orange);
+      width: 0%;
+      transition: width 0.1s linear;
+      border-radius: 1px;
+    }
+
+    /* ===== 右侧可视化区 ===== */
+    .visual-side {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-20);
+    }
+
+    .visual-canvas-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      animation: canvasFadeIn 0.8s ease;
+    }
+
+    @keyframes canvasFadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .visual-canvas-wrapper svg,
+    .visual-canvas-wrapper canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      transition: opacity 0.3s ease;
+    }
+
+    .visual-canvas-wrapper.switching svg,
+    .visual-canvas-wrapper.switching canvas {
+      opacity: 0.3;
+    }
+
+    .visual-caption {
+      font-size: var(--fs-small);
+      color: var(--text-muted);
+      text-align: center;
+      font-style: italic;
+      font-family: var(--font-serif);
+      padding: 0 var(--spacer-16);
+    }
+
+    /* ===== 控制面板 ===== */
+    .visual-controls {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: var(--spacer-24);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-20);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-8);
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: var(--fs-small);
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .control-value {
+      font-family: var(--font-mono);
+      font-size: var(--fs-small);
+      color: var(--evo-green);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--surface-muted);
+      border-radius: var(--radius-full);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--evo-green);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(21, 128, 61, 0.3);
+      transition: transform var(--duration-fast) var(--ease);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--evo-green);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(21, 128, 61, 0.3);
+    }
+
+    /* ===== 物种选择按钮 ===== */
+    .species-tabs {
+      display: flex;
+      gap: var(--spacer-8);
+      flex-wrap: wrap;
+    }
+
+    .species-tab {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: var(--fs-small);
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease);
+      font-family: var(--font-sans);
+      text-align: center;
+      min-width: 60px;
+    }
+
+    .species-tab:hover {
+      border-color: var(--text-faint);
+      color: var(--text);
+    }
+
+    .species-tab.active {
+      background: var(--evo-green);
+      border-color: var(--evo-green);
+      color: white;
+    }
+
+    /* ===== 模式切换按钮 ===== */
+    .mode-tabs {
+      display: flex;
+      gap: var(--spacer-8);
+    }
+
+    .mode-tab {
+      flex: 1;
+      padding: 8px 14px;
+      font-size: var(--fs-small);
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease);
+      font-family: var(--font-sans);
+    }
+
+    .mode-tab:hover {
+      border-color: var(--text-faint);
+      color: var(--text);
+    }
+
+    .mode-tab.active {
+      background: var(--evo-geo);
+      border-color: var(--evo-geo);
+      color: white;
+    }
+
+    /* ===== 信息提示文字 ===== */
+    .control-hint {
+      font-size: var(--fs-small);
+      color: var(--text-muted);
+      line-height: 1.6;
+      padding: 8px 0;
+    }
+
+    .control-hint em {
+      color: var(--evo-orange);
+      font-style: italic;
+    }
+
+    /* ===== 大号操作按钮 ===== */
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      font-size: var(--fs-body);
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all var(--duration-base) var(--ease);
+      font-family: var(--font-sans);
+      width: 100%;
+    }
+
+    .action-btn-antibiotic {
+      background: var(--evo-orange);
+      color: white;
+    }
+
+    .action-btn-antibiotic:hover {
+      background: #c2410c;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+    }
+
+    .action-btn-reset {
+      background: var(--surface-muted);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .action-btn-reset:hover {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    /* ===== 数据显示卡片 ===== */
+    .data-display {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--spacer-12);
+    }
+
+    .data-card {
+      background: var(--surface-muted);
+      border-radius: var(--radius);
+      padding: var(--spacer-12) var(--spacer-16);
+      text-align: center;
+    }
+
+    .data-card-label {
+      font-size: var(--fs-tiny);
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .data-card-value {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--evo-green);
+    }
+
+    .data-card-value.danger {
+      color: var(--evo-orange);
+    }
+
+    /* ===== 导航栏 ===== */
+    .demo-navbar {
+      justify-content: space-between;
+    }
+
+    .demo-nav-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ===== 底部信息条 ===== */
+    .demo-info-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacer-16) var(--spacer-32);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      font-size: var(--fs-small);
+    }
+
+    .demo-info-left {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-16);
+    }
+
+    .demo-info-title {
+      font-family: var(--font-mono);
+      font-size: var(--fs-tiny);
+      color: var(--text-muted);
+    }
+
+    .demo-tech-tag {
+      padding: 3px 10px;
+      font-size: 10px;
+      font-weight: 500;
+      border-radius: var(--radius-full);
+      background: var(--surface-muted);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 1024px) {
+      .magazine-layout {
+        grid-template-columns: 1fr;
+        gap: var(--spacer-32);
+      }
+      .demo-nav-center { display: none; }
+      .step-content { max-height: 320px; }
+    }
+
+    @media (max-width: 768px) {
+      .magazine-layout {
+        padding: var(--spacer-24) var(--spacer-16);
+      }
+      .visual-controls { padding: var(--spacer-16); }
+      .demo-nav-right .demo-btn-download span { display: none; }
+      .data-display { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ===== SVG 通用样式 ===== */
+    .svg-fossil-point {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .svg-fossil-point:hover circle {
+      r: 8;
+    }
+    .svg-fossil-point.active circle {
+      filter: drop-shadow(0 0 6px var(--evo-orange));
+    }
+    .fossil-tooltip {
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .fossil-tooltip.visible { opacity: 1; }
+
+    .dna-base {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    .bone-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      fill: var(--text-muted);
+      text-anchor: middle;
+    }
+
+    .map-hotspot {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .map-hotspot:hover circle {
+      r: 14;
+    }
+    .map-hotspot.active circle {
+      filter: drop-shadow(0 0 8px var(--evo-orange));
+    }
+  </style>
+</head>
+<body class="has-info-bar">
+
+  <!-- ===== 加载动画 ===== -->
+  <div class="loader-overlay" id="loaderOverlay">
+    <svg class="loader-tree" viewBox="0 0 120 120">
+      <path d="M60 110 L60 70 M60 70 L35 45 M60 70 L85 45 M35 45 L20 30 M35 45 L50 25 M85 45 L70 25 M85 45 L100 30 M20 30 L12 18 M50 25 L55 12 M70 25 L65 12 M100 30 L108 18" />
+    </svg>
+    <div class="loader-text">生命之树正在生长……</div>
+  </div>
+
+  <!-- ===== 顶部导航栏 ===== -->
+  <header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">生物</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">进化论证据链</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-bio">生物</span>
+      <a href="/skills/jingbo-edu-life-science-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ===== 页面主体 ===== -->
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ====== 左侧：文章区 ====== -->
+      <div class="article-side">
+        <div class="article-header">
+          <div class="article-kicker">BIOLOGY · 进化论</div>
+          <h1 class="article-title">六条证据<br>同一个祖先</h1>
+          <p class="article-subtitle">化石、解剖、胚胎、地理、分子、观察——每一条证据线都独立地指向同一个结论：所有生命共享共同祖先。</p>
+        </div>
+
+        <div class="step-indicator">
+          <div class="step-dots" id="stepDots">
+            <div class="step-dot active" data-step="0"></div>
+            <div class="step-dot" data-step="1"></div>
+            <div class="step-dot" data-step="2"></div>
+            <div class="step-dot" data-step="3"></div>
+            <div class="step-dot" data-step="4"></div>
+            <div class="step-dot" data-step="5"></div>
+          </div>
+          <span class="step-label" id="stepLabel">第 1 / 6 步</span>
+        </div>
+
+        <div class="article-body">
+          <div class="step-content" id="stepContent"></div>
+        </div>
+
+        <div class="step-nav" style="position: relative;">
+          <button class="btn btn-secondary" id="prevBtn"><span>←</span> 上一步</button>
+          <button class="autoplay-btn" id="autoPlayBtn" title="自动播放">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="btn btn-primary" id="nextBtn">下一步 <span>→</span></button>
+          <div class="autoplay-progress" id="autoPlayProgress"></div>
+        </div>
+      </div>
+
+      <!-- ====== 右侧：可视化区 ====== -->
+      <div class="visual-side">
+        <div class="visual-canvas-wrapper" id="canvasWrapper">
+          <div id="visualContainer" style="min-height: 400px;"></div>
+        </div>
+        <p class="visual-caption" id="visualCaption">地质时间轴——点击化石节点查看详情</p>
+
+        <div class="visual-controls" id="visualControls">
+          <!-- 控件通过 JS 动态生成 -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 底部信息条 ===== -->
+  <footer class="demo-info-bar">
+    <div class="demo-info-left">
+      <span class="demo-info-title">evolution-evidence-viz</span>
+      <span class="demo-tech-tag">SVG</span>
+      <span class="demo-tech-tag">Canvas</span>
+      <span class="demo-tech-tag">D3-style</span>
+    </div>
+    <div class="demo-info-right">
+      <span style="font-size: var(--fs-tiny); color: var(--text-faint); font-family: var(--font-mono);">D105 · 杂志讲解型</span>
+    </div>
+  </footer>
+
+  <script>
+  /* ============================================================
+     进化论证据链交互可视化 — 完整实现
+     6 步杂志式讲解 + SVG/Canvas 可视化 + 交互控件
+     ============================================================ */
+
+  // ===== Canvas roundRect 兼容性 polyfill =====
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      if (typeof r === 'number') r = [r, r, r, r];
+      else if (Array.isArray(r) && r.length === 1) r = [r[0], r[0], r[0], r[0]];
+      else if (!Array.isArray(r)) r = [0, 0, 0, 0];
+      while (r.length < 4) r.push(r[r.length - 1]);
+      this.beginPath();
+      this.moveTo(x + r[0], y);
+      this.lineTo(x + w - r[1], y);
+      this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+      this.lineTo(x + w, y + h - r[2]);
+      this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+      this.lineTo(x + r[3], y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+      this.lineTo(x, y + r[0]);
+      this.quadraticCurveTo(x, y, x + r[0], y);
+      this.closePath();
+      return this;
+    };
+  }
+
+  // ===== 全局状态 =====
+  const state = {
+    currentStep: 0,
+    isAutoPlaying: false,
+    autoPlayStartTime: 0,
+    // Step 1
+    fossilEra: 0,      // 时光滑块 0-100
+    activeFossil: -1,
+    // Step 2
+    activeSpecies: 0,  // 0=人 1=蝙蝠 2=鲸 3=马
+    boneMorph: 0,      // 渐变滑块 0-100
+    // Step 3
+    embryoCompare: 'stage', // 'stage' 或 'species'
+    // Step 4
+    mapMode: 'present', // 'present' 或 'drift'
+    activeHotspot: -1,
+    // Step 5
+    dnaHighlight: true,
+    // Step 6
+    bacteriaRunning: false,
+    bacteriaGen: 0,
+    bacteriaPop: 200,
+    bacteriaResistant: 0.02,
+    antibioticApplied: false,
+  };
+
+  const AUTO_PLAY_DURATION = 8000;
+
+  // ===== 颜色系统 =====
+  const C = {
+    green: '#15803d',
+    greenLight: '#22a559',
+    greenSoft: 'rgba(21, 128, 61, 0.1)',
+    orange: '#ea580c',
+    orangeSoft: 'rgba(234, 88, 12, 0.12)',
+    fossil: '#a16207',
+    fossilSoft: 'rgba(161, 98, 7, 0.15)',
+    embryo: '#fda4af',
+    embryoDeep: '#e11d48',
+    geo: '#0284c7',
+    geoSoft: 'rgba(2, 132, 199, 0.1)',
+    dna: '#7c3aed',
+    dnaSoft: 'rgba(124, 58, 237, 0.1)',
+    bacteria: '#16a34a',
+    bacteriaDark: '#14532d',
+    text: '#1a1a1a',
+    textMuted: '#6b6b6b',
+    textFaint: '#a3a3a3',
+    border: '#e5ded4',
+    surface: '#ffffff',
+    surfaceMuted: '#f3efe9',
+    bg: '#faf8f5',
+    // 骨骼颜色编码
+    bones: {
+      humerus: '#dc2626',      // 肱骨-红
+      radius: '#ea580c',        // 桡骨-橙
+      ulna: '#f59e0b',          // 尺骨-黄
+      carpal: '#16a34a',        // 腕骨-绿
+      metacarpal: '#0891b2',    // 掌骨-青
+      phalanx: '#7c3aed',       // 指骨-紫
+    }
+  };
+
+  // ===== 步骤内容数据 =====
+  const steps = [
+    {
+      title: '化石——时光深处的印记',
+      content: `
+        <p class="lead">化石是进化论最直观的证据——它们是远古生命留给我们的时间胶囊。</p>
+        <p>从<strong>始祖鸟</strong>（恐龙与鸟的过渡）到<strong>提塔利克鱼</strong>（鱼到两栖类的过渡），过渡物种化石一次又一次验证了进化论的预言。化石记录虽然不完整，但每一条新发现都在填补拼图。</p>
+        <div class="evidence-box">
+          <div class="box-title">核心证据</div>
+          <div class="box-text">
+            化石记录展现了生命从简单到复杂、从水生到陆生的演化历程。地质年代通过放射性同位素测定，化石在地层中的分布与进化论预测完全一致——<strong>越古老的地层，生物越简单</strong>。
+          </div>
+        </div>
+        <p>右侧的地质时间轴标注了关键的化石发现点。拖动底部的"穿越时光"滑块，可以观察不同地质年代的生物群变化。点击化石节点查看该物种的复原图和演化意义。</p>
+      `,
+      caption: '地质时间轴——5亿年的生命演化记录，点击化石节点查看详情'
+    },
+    {
+      title: '同源器官——同一副骨架',
+      content: `
+        <p class="lead">人的手臂、蝙蝠的翅膀、鲸鱼的鳍、马的腿——看起来功能完全不同，骨骼排列却惊人一致。</p>
+        <p>这就是<strong>同源器官</strong>：来自共同祖先的同一结构，在不同物种中因适应不同环境而演变成不同形态。如果它们是分别创造的，没有理由使用相同的骨骼蓝图。</p>
+        <div class="evidence-box">
+          <div class="box-title">骨骼对照</div>
+          <div class="box-text">
+            肱骨（红）→ 桡骨/尺骨（橙/黄）→ 腕骨（绿）→ 掌骨（青）→ 指骨（紫）<br>
+            四种脊椎动物的前肢拥有完全相同的骨骼组——只是比例和形态因适应不同功能（抓握、飞行、游泳、奔跑）而改变。
+          </div>
+        </div>
+        <p>右侧展示四种动物的前肢骨骼对比。点击切换不同物种，观察同一组骨骼如何"变形"。拖动渐变滑块可以展示从共同祖先形态到各物种的骨骼渐变过程。</p>
+      `,
+      caption: '同源前肢骨骼对比——同一蓝图，不同功能'
+    },
+    {
+      title: '胚胎学——我们都曾有鳃裂',
+      content: `
+        <p class="lead">鱼、鸡、猪、人——成年形态天差地别，但胚胎发育早期却惊人地相似。</p>
+        <p>所有脊椎动物胚胎在发育早期都有<strong>鳃裂</strong>和<strong>尾巴</strong>——这是它们共同水生祖先的遗产。人类胚胎在第4周时有明显的鳃弓结构，后来发育成颌骨、中耳骨和甲状腺。</p>
+        <div class="evidence-box">
+          <div class="box-title">重演律的修正</div>
+          <div class="box-text">
+            海克尔提出的"个体发育重演系统发育"虽有夸大，但胚胎相似性仍是演化的重要证据。早期胚胎的相似性反映的是<strong>共享的发育基因程序</strong>，而非精确重演祖先形态。
+          </div>
+        </div>
+        <p>右侧展示三种脊椎动物（鱼、鸡、人）的胚胎发育三阶段。早期胚胎极其相似，随着发育逐渐分化。可以横向对比同一物种的不同阶段，或纵向对比同一阶段的不同物种。</p>
+      `,
+      caption: '脊椎动物胚胎发育对比——早期惊人的相似性'
+    },
+    {
+      title: '生物地理学——岛屿实验室',
+      content: `
+        <p class="lead">为什么澳大利亚有那么多有袋类？为什么加拉帕戈斯的地雀各不相同？</p>
+        <p>物种的地理分布完美印证进化论——物种在各自的地理环境中独立演化，<strong>地理隔离</strong>是物种形成的重要机制。大陆漂移解释了为什么不同大陆有着截然不同的生物群落。</p>
+        <div class="evidence-box">
+          <div class="box-title">标志性案例</div>
+          <div class="box-text">
+            澳大利亚（有袋类辐射）、加拉帕戈斯（达尔文地雀适应辐射）、马达加斯加（狐猴独立演化）、夏威夷（果蝇超辐射）。每个案例都展示了隔离环境如何驱动进化。
+          </div>
+        </div>
+        <p>右侧世界地图标注了这些标志性案例。点击热点区域查看物种多样性故事。切换"大陆漂移"模式，观察2亿年前到现在地理变化如何影响物种分布。</p>
+      `,
+      caption: '世界生物地理——点击热点区域，切换大陆漂移模式'
+    },
+    {
+      title: 'DNA之书——分子证据',
+      content: `
+        <p class="lead">所有生命都使用相同的遗传密码（DNA/RNA），这本身就是共同祖先的最强证据。</p>
+        <p>比较不同物种的DNA序列，可以精确计算亲缘关系——这就是<strong>分子钟</strong>。人类和黑猩猩的DNA相似度高达<strong>98.7%</strong>，这个数字比任何化石都更有说服力。</p>
+        <div class="evidence-box">
+          <div class="box-title">分子钟原理</div>
+          <div class="box-text">
+            DNA突变以相对恒定的速率积累。比较两个物种的同一段基因序列，差异越多，它们分化的时间越久。血红蛋白基因的对比清晰地展示了人→黑猩猩→大猩猩→猕猴→小鼠的亲缘梯度。
+          </div>
+        </div>
+        <p>右侧展示5个物种同一段基因的序列对比。灰色=相同碱基，彩色=差异碱基。下方的亲缘关系树由序列差异自动计算得出。亲缘越近，差异越少——这是写在DNA里的家谱。</p>
+      `,
+      caption: 'DNA序列对比与亲缘关系树——写在基因里的家谱'
+    },
+    {
+      title: '亲眼见证——正在发生的进化',
+      content: `
+        <p class="lead">进化不只是远古的历史——它正在我们眼前发生。</p>
+        <p>细菌的<strong>耐药性</strong>、昆虫的抗药性、达尔文地雀的喙形变化——这些都是人类可以直接观察到的自然选择实例。在抗生素环境下，带有耐药基因的细菌存活并繁殖，几代之内耐药个体比例就会大幅上升。</p>
+        <div class="evidence-box">
+          <div class="box-title">自然选择的三个条件</div>
+          <div class="box-text">
+            ① 变异：群体中存在个体差异（耐药/不耐药）<br>
+            ② 选择压力：抗生素杀死不耐药个体<br>
+            ③ 遗传：耐药基因可传递给后代<br>
+            三者同时满足，进化必然发生。
+          </div>
+        </div>
+        <p>右侧是细菌耐药性演化模拟实验。点击"投放抗生素"按钮，观察细菌如何在几代之内产生耐药性。实时数据展示代数、细菌数量和耐药个体比例。</p>
+      `,
+      caption: '细菌耐药性演化模拟——亲眼看自然选择发生'
+    }
+  ];
+
+  // ===== 步骤导航 =====
+  const stepContent = document.getElementById('stepContent');
+  const stepLabel = document.getElementById('stepLabel');
+  const stepDots = document.querySelectorAll('.step-dot');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const visualCaption = document.getElementById('visualCaption');
+  const canvasWrapper = document.getElementById('canvasWrapper');
+  const visualContainer = document.getElementById('visualContainer');
+
+  function updateStep() {
+    stepContent.classList.add('fade-out');
+    canvasWrapper.classList.add('switching');
+
+    setTimeout(() => {
+      const step = steps[state.currentStep];
+      stepContent.innerHTML = `<h3>${step.title}</h3>${step.content}`;
+      stepContent.classList.remove('fade-out');
+      stepContent.classList.add('fade-in');
+      setTimeout(() => stepContent.classList.remove('fade-in'), 300);
+
+      canvasWrapper.classList.remove('switching');
+    }, 200);
+
+    stepLabel.textContent = `第 ${state.currentStep + 1} / ${steps.length} 步`;
+
+    stepDots.forEach((dot, i) => {
+      dot.classList.remove('active', 'completed');
+      if (i === state.currentStep) dot.classList.add('active');
+      else if (i < state.currentStep) dot.classList.add('completed');
+    });
+
+    prevBtn.disabled = state.currentStep === 0;
+    prevBtn.style.opacity = state.currentStep === 0 ? '0.5' : '1';
+    prevBtn.style.cursor = state.currentStep === 0 ? 'not-allowed' : 'pointer';
+    nextBtn.innerHTML = state.currentStep === steps.length - 1
+      ? '完成 ✓'
+      : '下一步 <span>→</span>';
+
+    visualCaption.textContent = steps[state.currentStep].caption;
+
+    // 渲染可视化
+    renderVisual();
+    updateControls();
+    state.autoPlayStartTime = 0;
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (state.currentStep > 0) { state.currentStep--; updateStep(); }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (state.currentStep < steps.length - 1) { state.currentStep++; updateStep(); }
+  });
+
+  stepDots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      const s = parseInt(dot.dataset.step);
+      if (s !== state.currentStep) { state.currentStep = s; updateStep(); }
+    });
+  });
+
+  // ===== 自动播放 =====
+  const autoPlayBtn = document.getElementById('autoPlayBtn');
+  const autoPlayProgress = document.getElementById('autoPlayProgress');
+
+  function toggleAutoPlay() {
+    state.isAutoPlaying = !state.isAutoPlaying;
+    if (state.isAutoPlaying) {
+      autoPlayBtn.classList.add('playing');
+      autoPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+      state.autoPlayStartTime = 0;
+    } else {
+      autoPlayBtn.classList.remove('playing');
+      autoPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+      autoPlayProgress.style.width = '0%';
+    }
+  }
+
+  autoPlayBtn.addEventListener('click', toggleAutoPlay);
+
+  // ===== 可视化渲染分发 =====
+  function renderVisual() {
+    const step = state.currentStep;
+    visualContainer.innerHTML = '';
+
+    switch (step) {
+      case 0: renderFossilTimeline(); break;
+      case 1: renderHomologousBones(); break;
+      case 2: renderEmbryology(); break;
+      case 3: renderBiogeography(); break;
+      case 4: renderDNAComparison(); break;
+      case 5: renderBacteriaSim(); break;
+    }
+  }
+
+  /* ============================================================
+     Step 1: 化石地质时间轴 (SVG)
+     ============================================================ */
+  const fossils = [
+    { era: '寒武纪', mya: 540, x: 5, name: '寒武纪大爆发', desc: '5.4亿年前，多数动物门突然出现在化石记录中。三叶虫、奇虾等复杂多细胞生物涌现。', color: '#dc2626' },
+    { era: '奥陶纪', mya: 485, x: 15, name: '早期脊椎动物', desc: '无颌鱼类（如甲胄鱼）繁盛，脊椎动物的黎明。', color: '#ea580c' },
+    { era: '志留纪', mya: 443, x: 25, name: '维管植物登陆', desc: '最早的陆地植物出现，节肢动物开始登陆。', color: '#ca8a04' },
+    { era: '泥盆纪', mya: 419, x: 35, name: '鱼类时代', desc: '鱼类大辐射。提塔利克鱼展示鱼→四足类的过渡，有原始的腕骨和肺。', color: '#a16207' },
+    { era: '石炭纪', mya: 359, x: 48, name: '两栖类与森林', desc: '巨型两栖动物和石松森林。爬行类开始出现。', color: '#65a30d' },
+    { era: '二叠纪', mya: 299, x: 60, name: '似哺乳爬行类', desc: '盘龙类等似哺乳爬行类繁盛，为大灭绝前最大陆生动物。', color: '#16a34a' },
+    { era: '三叠纪', mya: 252, x: 70, name: '恐龙起源', desc: '大灭绝后爬行类辐射。最早的恐龙和哺乳类（如摩根齿兽）出现。', color: '#0891b2' },
+    { era: '侏罗纪', mya: 201, x: 80, name: '始祖鸟', desc: '1.5亿年前。始祖鸟有羽毛和牙齿，是恐龙→鸟类的完美过渡化石。', color: '#7c3aed' },
+    { era: '白垩纪', mya: 145, x: 88, name: '开花植物与暴龙', desc: '被子植物辐射。霸王龙等巨型恐龙繁盛。白垩纪末大灭绝。', color: '#c026d3' },
+    { era: '新生代', mya: 66, x: 95, name: '人类起源', desc: '哺乳动物大辐射。南方古猿→能人→直立人→智人，500万年的演化。', color: '#e11d48' },
+  ];
+
+  function renderFossilTimeline() {
+    const w = 760, h = 420;
+    const padX = 50, padY = 60;
+    const timelineY = h * 0.55;
+    const timelineW = w - padX * 2;
+
+    let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="background: linear-gradient(180deg, #faf8f5 0%, #f5f0e8 100%);">`;
+
+    // 地质年代色带
+    const eras = [
+      { name: '寒武', start: 540, end: 485, color: '#fecaca' },
+      { name: '奥陶', start: 485, end: 443, color: '#fed7aa' },
+      { name: '志留', start: 443, end: 419, color: '#fef3c7' },
+      { name: '泥盆', start: 419, end: 359, color: '#d9f99d' },
+      { name: '石炭', start: 359, end: 299, color: '#bbf7d0' },
+      { name: '二叠', start: 299, end: 252, color: '#a7f3d0' },
+      { name: '三叠', start: 252, end: 201, color: '#bae6fd' },
+      { name: '侏罗', start: 201, end: 145, color: '#ddd6fe' },
+      { name: '白垩', start: 145, end: 66, color: '#f3e8ff' },
+      { name: '新生', start: 66, end: 0, color: '#fce7f3' },
+    ];
+
+    // 时间轴范围 0-540 mya
+    const maxMya = 540;
+    function myaToX(mya) {
+      return padX + (1 - mya / maxMya) * timelineW;
+    }
+
+    // 绘制地质年代色带
+    eras.forEach(era => {
+      const x1 = myaToX(era.start);
+      const x2 = myaToX(era.end);
+      const bandH = 24;
+      svg += `<rect x="${x1}" y="${timelineY - bandH/2}" width="${x2 - x1}" height="${bandH}" fill="${era.color}" rx="2"/>`;
+      if (x2 - x1 > 30) {
+        svg += `<text x="${(x1+x2)/2}" y="${timelineY + 2}" font-family="'Noto Sans SC',sans-serif" font-size="10" fill="${C.textMuted}" text-anchor="middle">${era.name}</text>`;
+      }
+    });
+
+    // 时间轴线
+    svg += `<line x1="${padX}" y1="${timelineY}" x2="${w - padX}" y2="${timelineY}" stroke="${C.border}" stroke-width="2"/>`;
+
+    // 时间刻度
+    [500, 400, 300, 200, 100, 0].forEach(mya => {
+      const x = myaToX(mya);
+      svg += `<line x1="${x}" y1="${timelineY + 14}" x2="${x}" y2="${timelineY + 22}" stroke="${C.textFaint}" stroke-width="1"/>`;
+      svg += `<text x="${x}" y="${timelineY + 36}" font-family="'JetBrains Mono',monospace" font-size="10" fill="${C.textMuted}" text-anchor="middle">${mya}M</text>`;
+    });
+
+    // 化石节点
+    fossils.forEach((f, i) => {
+      const x = padX + (f.x / 100) * timelineW;
+      const isActive = state.activeFossil === i;
+      const y = timelineY;
+
+      // 连接线
+      svg += `<line x1="${x}" y1="${y}" x2="${x}" y2="${y - 30}" stroke="${f.color}" stroke-width="1.5" opacity="0.5"/>`;
+
+      // 节点圆
+      svg += `<g class="svg-fossil-point ${isActive ? 'active' : ''}" data-fossil="${i}">`;
+      svg += `<circle cx="${x}" cy="${y - 30}" r="${isActive ? 7 : 5}" fill="${f.color}" opacity="${isActive ? 1 : 0.8}" stroke="white" stroke-width="2"/>`;
+      // 节点名称
+      if (isActive || (i % 2 === 0)) {
+        svg += `<text x="${x}" y="${y - 45}" font-family="'Noto Serif SC',serif" font-size="10" fill="${f.color}" text-anchor="middle" font-weight="600">${f.name}</text>`;
+      }
+      svg += `</g>`;
+    });
+
+    // 时光滑块指示器
+    const sliderX = padX + (state.fossilEra / 100) * timelineW;
+    svg += `<line x1="${sliderX}" y1="${padY - 10}" x2="${sliderX}" y2="${timelineY + 50}" stroke="${C.orange}" stroke-width="2" stroke-dasharray="4,4" opacity="0.6"/>`;
+    svg += `<circle cx="${sliderX}" cy="${timelineY + 50}" r="8" fill="${C.orange}" stroke="white" stroke-width="2"/>`;
+
+    // 当前年代信息
+    const currentMya = Math.round(maxMya * (1 - state.fossilEra / 100));
+    let eraInfo = '';
+    for (const era of eras) {
+      if (currentMya <= era.start && currentMya >= era.end) {
+        eraInfo = era.name + '纪';
+        break;
+      }
+    }
+
+    // 上方生物群展示区
+    svg += `<rect x="${padX}" y="${padY - 10}" width="${timelineW}" height="80" fill="${C.surfaceMuted}" rx="8" opacity="0.5"/>`;
+
+    // 当前年代的代表性生物
+    let creatureText = '';
+    let creatureDesc = '';
+    if (currentMya > 485) { creatureText = '寒武纪海洋'; creatureDesc = '三叶虫 · 奇虾 · 海绵'; }
+    else if (currentMya > 443) { creatureText = '奥陶纪海洋'; creatureDesc = '无颌鱼 · 笔石 · 鹦鹉螺'; }
+    else if (currentMya > 419) { creatureText = '志留纪'; creatureDesc = '维管植物登陆 · 蝎子'; }
+    else if (currentMya > 359) { creatureText = '泥盆纪'; creatureDesc = '提塔利克鱼 · 肺鱼 · 盾皮鱼'; }
+    else if (currentMya > 299) { creatureText = '石炭纪'; creatureDesc = '巨型蜻蜓 · 鳞木森林'; }
+    else if (currentMya > 252) { creatureText = '二叠纪'; creatureDesc = '异齿龙 · 杯鼻龙'; }
+    else if (currentMya > 201) { creatureText = '三叠纪'; creatureDesc = '最早的恐龙 · 摩根齿兽'; }
+    else if (currentMya > 145) { creatureText = '侏罗纪'; creatureDesc = '始祖鸟 · 腕龙 · 剑龙'; }
+    else if (currentMya > 66) { creatureText = '白垩纪'; creatureDesc = '霸王龙 · 被子植物'; }
+    else { creatureText = '新生代'; creatureDesc = '哺乳动物 · 人类起源'; }
+
+    svg += `<text x="${padX + timelineW/2}" y="${padY + 18}" font-family="'Noto Serif SC',serif" font-size="16" font-weight="700" fill="${C.green}" text-anchor="middle">${eraInfo} · ${currentMya}百万年前</text>`;
+    svg += `<text x="${padX + timelineW/2}" y="${padY + 40}" font-family="'Noto Sans SC',sans-serif" font-size="13" fill="${C.text}" text-anchor="middle">${creatureText}</text>`;
+    svg += `<text x="${padX + timelineW/2}" y="${padY + 58}" font-family="'Noto Sans SC',sans-serif" font-size="12" fill="${C.textMuted}" text-anchor="middle" font-style="italic">${creatureDesc}</text>`;
+
+    // 底部时光滑块
+    const sliderY = h - 35;
+    svg += `<text x="${padX}" y="${sliderY - 8}" font-family="'JetBrains Mono',monospace" font-size="10" fill="${C.textMuted}">穿越时光</text>`;
+    svg += `<text x="${w - padX}" y="${sliderY - 8}" font-family="'JetBrains Mono',monospace" font-size="10" fill="${C.textMuted}" text-anchor="end">现在</text>`;
+    svg += `<rect x="${padX}" y="${sliderY}" width="${timelineW}" height="6" rx="3" fill="${C.border}"/>`;
+    svg += `<rect x="${padX}" y="${sliderY}" width="${(state.fossilEra/100) * timelineW}" height="6" rx="3" fill="${C.orange}"/>`;
+
+    // 选中的化石详情
+    if (state.activeFossil >= 0) {
+      const f = fossils[state.activeFossil];
+      const tooltipW = 280, tooltipH = 80;
+      const tx = Math.min(Math.max(padX, padX + (f.x/100) * timelineW - tooltipW/2), w - padX - tooltipW);
+      svg += `<rect x="${tx}" y="${timelineY + 55}" width="${tooltipW}" height="${tooltipH}" fill="white" stroke="${f.color}" stroke-width="1.5" rx="8" opacity="0.98"/>`;
+      svg += `<text x="${tx + 14}" y="${timelineY + 75}" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="${f.color}">${f.name} · ${f.era}</text>`;
+      svg += `<text x="${tx + 14}" y="${timelineY + 92}" font-family="'JetBrains Mono',monospace" font-size="10" fill="${C.textMuted}">约 ${f.mya} 百万年前</text>`;
+      // 描述文字换行
+      const words = f.desc;
+      const maxChars = 24;
+      const lines = [];
+      let current = '';
+      for (const ch of words) {
+        current += ch;
+        if (current.length >= maxChars) { lines.push(current); current = ''; }
+      }
+      if (current) lines.push(current);
+      lines.forEach((line, i) => {
+        svg += `<text x="${tx + 14}" y="${timelineY + 108 + i * 14}" font-family="'Noto Sans SC',sans-serif" font-size="11" fill="${C.text}">${line}</text>`;
+      });
+    }
+
+    svg += `</svg>`;
+    visualContainer.innerHTML = svg;
+
+    // 绑定化石点击事件
+    visualContainer.querySelectorAll('.svg-fossil-point').forEach(el => {
+      el.addEventListener('click', () => {
+        state.activeFossil = parseInt(el.dataset.fossil);
+        renderFossilTimeline();
+      });
+    });
+  }
+
+  /* ============================================================
+     Step 2: 同源器官骨骼对比 (SVG)
+     ============================================================ */
+  const species = [
+    { name: '人', en: 'Human', func: '抓握', color: C.bones },
+    { name: '蝙蝠', en: 'Bat', func: '飞行', color: C.bones },
+    { name: '鲸', en: 'Whale', func: '游泳', color: C.bones },
+    { name: '马', en: 'Horse', func: '奔跑', color: C.bones },
+  ];
+
+  // 骨骼数据：每种动物前肢骨骼的简化路径
+  const boneData = {
+    0: { // 人
+      humerus: 'M180,200 L180,280',
+      radius: 'M180,280 L150,360',
+      ulna: 'M180,280 L210,360',
+      carpal: 'M180,360 L180,375',
+      metacarpal: 'M155,375 L155,395 M170,375 L170,395 M185,375 L185,395 M200,375 L200,395',
+      phalanx: 'M155,395 L155,415 M170,395 L170,420 M185,395 L185,420 M200,395 L200,415'
+    },
+    1: { // 蝙蝠
+      humerus: 'M180,200 L180,270',
+      radius: 'M180,270 L120,380',
+      ulna: 'M180,270 L240,380',
+      carpal: 'M180,270 L180,285',
+      metacarpal: 'M120,380 L90,410 M155,370 L140,420 M185,370 L185,430 M215,370 L230,420 M250,380 L280,410',
+      phalanx: 'M90,410 L75,430 M140,420 L130,440 M185,430 L185,450 M230,420 L240,440 M280,410 L295,430'
+    },
+    2: { // 鲸
+      humerus: 'M180,200 L180,290',
+      radius: 'M180,290 L130,360',
+      ulna: 'M180,290 L230,360',
+      carpal: 'M180,360 L180,375',
+      metacarpal: 'M130,360 L110,385 M155,365 L145,395 M180,370 L180,400 M205,365 L215,395 M230,360 L250,385',
+      phalanx: 'M110,385 L95,400 M145,395 L135,410 M180,400 L180,420 M215,395 L225,410 M250,385 L265,400'
+    },
+    3: { // 马
+      humerus: 'M180,200 L180,290',
+      radius: 'M180,290 L180,370',
+      ulna: 'M180,290 L195,370',
+      carpal: 'M180,370 L180,385',
+      metacarpal: 'M180,385 L180,420',
+      phalanx: 'M180,420 L180,445'
+    }
+  };
+
+  function renderHomologousBones() {
+    const w = 760, h = 500;
+    const activeIdx = state.activeSpecies;
+
+    let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="background: linear-gradient(180deg, #faf8f5 0%, #f5f0e8 100%);">`;
+
+    // 标题
+    svg += `<text x="${w/2}" y="30" font-family="'Noto Serif SC',serif" font-size="16" font-weight="700" fill="${C.green}" text-anchor="middle">前肢骨骼对比 · ${species[activeIdx].name}</text>`;
+    svg += `<text x="${w/2}" y="48" font-family="'Noto Sans SC',sans-serif" font-size="12" fill="${C.textMuted}" text-anchor="middle">功能：${species[activeIdx].func}</text>`;
+
+    // 显示当前选中物种的大图
+    const cx = w / 2;
+    const boneScale = 1;
+    const bones = boneData[activeIdx];
+
+    // 绘制骨骼
+    const boneColors = C.bones;
+    const boneNames = [
+      { key: 'humerus', label: '肱骨', color: boneColors.humerus },
+      { key: 'radius', label: '桡骨', color: boneColors.radius },
+      { key: 'ulna', label: '尺骨', color: boneColors.ulna },
+      { key: 'carpal', label: '腕骨', color: boneColors.carpal },
+      { key: 'metacarpal', label: '掌骨', color: boneColors.metacarpal },
+      { key: 'phalanx', label: '指骨', color: boneColors.phalanx },
+    ];
+
+    // 肩关节
+    svg += `<circle cx="180" cy="195" r="10" fill="${C.surfaceMuted}" stroke="${C.textFaint}" stroke-width="1.5"/>`;
+    svg += `<text x="195" y="198" font-family="'Noto Sans SC',sans-serif" font-size="10" fill="${C.textMuted}">肩关节</text>`;
+
+    // 绘制每根骨骼
+    boneNames.forEach(bn => {
+      const path = bones[bn.key];
+      if (path) {
+        svg += `<path d="${path}" stroke="${bn.color}" stroke-width="${bn.key === 'phalanx' ? 4 : 6}" stroke-linecap="round" fill="none" opacity="0.85"/>`;
+      }
+    });
+
+    // 骨骼标签（右侧）
+    const labelX = 320;
+    let labelY = 200;
+    boneNames.forEach(bn => {
+      svg += `<rect x="${labelX}" y="${labelY - 8}" width="10" height="10" fill="${bn.color}" rx="2"/>`;
+      svg += `<text x="${labelX + 18}" y="${labelY}" font-family="'Noto Sans SC',sans-serif" font-size="12" fill="${C.text}">${bn.label}</text>`;
+      labelY += 24;
+    });
+
+    // 底部四种动物缩略图
+    const thumbY = h - 80;
+    const thumbW = 130;
+    const gap = 20;
+    const startX = (w - (thumbW * 4 + gap * 3)) / 2;
+
+    species.forEach((sp, i) => {
+      const tx = startX + i * (thumbW + gap);
+      const isActive = i === activeIdx;
+
+      svg += `<rect x="${tx}" y="${thumbY}" width="${thumbW}" height="60" rx="8" fill="${isActive ? C.greenSoft : C.surfaceMuted}" stroke="${isActive ? C.green : C.border}" stroke-width="${isActive ? 2 : 1}" data-species="${i}" class="species-thumb" style="cursor:pointer;"/>`;
+
+      // 缩略骨骼图
+      const thumbBones = boneData[i];
+      const thumbScale = 0.22;
+      const thumbOffsetX = tx + 20;
+      const thumbOffsetY = thumbY + 8;
+
+      // 简化缩略图
+      ['humerus', 'radius', 'ulna', 'metacarpal', 'phalanx'].forEach(key => {
+        const p = thumbBones[key];
+        if (p) {
+          // 提取路径中的坐标
+          const coords = p.match(/[\d.]+/g);
+          if (coords && coords.length >= 4) {
+            const x1 = parseFloat(coords[0]) * thumbScale + thumbOffsetX;
+            const y1 = parseFloat(coords[1]) * thumbScale + thumbOffsetY;
+            svg += `<line x1="${x1}" y1="${y1}" x2="${parseFloat(coords[2]) * thumbScale + thumbOffsetX}" y2="${parseFloat(coords[3]) * thumbScale + thumbOffsetY}" stroke="${C.bones[key]}" stroke-width="2" stroke-linecap="round"/>`;
+          }
+        }
+      });
+
+      // 动物名
+      svg += `<text x="${tx + thumbW/2}" y="${thumbY + 75}" font-family="'Noto Serif SC',serif" font-size="12" font-weight="${isActive ? 700 : 500}" fill="${isActive ? C.green : C.textMuted}" text-anchor="middle">${sp.name}</text>`;
+    });
+
+    svg += `</svg>`;
+    visualContainer.innerHTML = svg;
+
+    // 绑定缩略图点击 — 通过 data-species 属性精确匹配
+    const thumbs = visualContainer.querySelectorAll('.species-thumb');
+    thumbs.forEach((thumb) => {
+      thumb.addEventListener('click', () => {
+        state.activeSpecies = parseInt(thumb.dataset.species);
+        renderHomologousBones();
+        updateControls();
+      });
+    });
+  }
+
+  /* ============================================================
+     Step 3: 胚胎学对比 (SVG)
+     ============================================================ */
+  function renderEmbryology() {
+    const w = 760, h = 480;
+    const sp = ['鱼', '鸡', '人'];
+    const stages = ['早期', '中期', '晚期'];
+    const compareMode = state.embryoCompare;
+
+    let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="background: linear-gradient(180deg, #faf8f5 0%, #fdf2f4 100%);">`;
+
+    // 网格布局
+    const gridX = 100, gridY = 70;
+    const cellW = (w - gridX * 2) / 3;
+    const cellH = (h - gridY - 80) / 3;
+
+    // 列标签（物种）
+    sp.forEach((name, i) => {
+      const x = gridX + i * cellW + cellW / 2;
+      svg += `<text x="${x}" y="40" font-family="'Noto Serif SC',serif" font-size="14" font-weight="700" fill="${C.embryoDeep}" text-anchor="middle">${name}</text>`;
+    });
+
+    // 行标签（阶段）
+    stages.forEach((name, i) => {
+      const y = gridY + i * cellH + cellH / 2;
+      svg += `<text x="40" y="${y + 5}" font-family="'Noto Serif SC',serif" font-size="13" font-weight="600" fill="${C.text}" text-anchor="middle">${name}</text>`;
+    });
+
+    // 胚胎形状数据
+    // 早期：所有物种都像球形，有鳃裂和尾巴
+    // 中期：开始分化
+    // 晚期：完全不同
+    function drawEmbryo(speciesIdx, stageIdx, cx, cy, r) {
+      let shape = '';
+      const isEarly = stageIdx === 0;
+      const isMid = stageIdx === 1;
+
+      // 鳃裂颜色
+      const gillColor = C.embryoDeep;
+      const bodyColor = ['#fbbf24', '#f59e0b', '#fda4af'][speciesIdx]; // 鱼黄、鸡橙、人粉
+
+      // 主体形状
+      if (isEarly) {
+        // 早期：球形 + 尾巴 + 鳃裂
+        shape += `<ellipse cx="${cx}" cy="${cy}" rx="${r}" ry="${r * 1.1}" fill="${bodyColor}" opacity="0.6" stroke="${C.textFaint}" stroke-width="1"/>`;
+        // 尾巴
+        shape += `<path d="M${cx + r * 0.6},${cy + r * 0.3} Q${cx + r * 1.2},${cy + r * 0.5} ${cx + r * 1.4},${cy + r * 0.2}" stroke="${bodyColor}" stroke-width="4" fill="none" opacity="0.5" stroke-linecap="round"/>`;
+        // 鳃裂标记
+        for (let g = 0; g < 3; g++) {
+          const gx = cx - r * 0.3 + g * r * 0.3;
+          const gy = cy - r * 0.1;
+          shape += `<line x1="${gx}" y1="${gy - 8}" x2="${gx}" y2="${gy + 8}" stroke="${gillColor}" stroke-width="2" opacity="0.6"/>`;
+        }
+        // 眼睛
+        shape += `<circle cx="${cx - r * 0.3}" cy="${cy - r * 0.4}" r="3" fill="${C.text}"/>`;
+        shape += `<circle cx="${cx + r * 0.1}" cy="${cy - r * 0.4}" r="3" fill="${C.text}"/>`;
+      } else if (isMid) {
+        // 中期：开始分化
+        if (speciesIdx === 0) { // 鱼
+          shape += `<ellipse cx="${cx}" cy="${cy}" rx="${r * 0.8}" ry="${r * 1}" fill="${bodyColor}" opacity="0.6" stroke="${C.textFaint}" stroke-width="1"/>`;
+          shape += `<path d="M${cx + r * 0.6},${cy} Q${cx + r * 1.3},${cy - r * 0.3} ${cx + r * 1.3},${cy} Q${cx + r * 1.3},${cy + r * 0.3} ${cx + r * 0.6},${cy}" fill="${bodyColor}" opacity="0.4"/>`;
+          // 鳃裂
+          for (let g = 0; g < 3; g++) {
+            shape += `<line x1="${cx - r * 0.2 + g * r * 0.25}" y1="${cy - r * 0.4}" x2="${cx - r * 0.2 + g * r * 0.25}" y2="${cy + r * 0.2}" stroke="${gillColor}" stroke-width="2" opacity="0.5"/>`;
+          }
+        } else if (speciesIdx === 1) { // 鸡
+          shape += `<ellipse cx="${cx}" cy="${cy - r * 0.2}" rx="${r * 0.7}" ry="${r * 0.9}" fill="${bodyColor}" opacity="0.6" stroke="${C.textFaint}" stroke-width="1"/>`;
+          // 翅芽
+          shape += `<ellipse cx="${cx - r * 0.5}" cy="${cy}" rx="${r * 0.25}" ry="${r * 0.4}" fill="${bodyColor}" opacity="0.4"/>`;
+          shape += `<ellipse cx="${cx + r * 0.5}" cy="${cy}" rx="${r * 0.25}" ry="${r * 0.4}" fill="${bodyColor}" opacity="0.4"/>`;
+          // 尾巴
+          shape += `<path d="M${cx},${cy + r * 0.5} Q${cx + r * 0.3},${cy + r * 0.9} ${cx + r * 0.1},${cy + r * 1.2}" stroke="${bodyColor}" stroke-width="4" fill="none" opacity="0.4"/>`;
+          // 鳃裂痕迹
+          shape += `<line x1="${cx - r * 0.2}" y1="${cy - r * 0.5}" x2="${cx - r * 0.2}" y2="${cy - r * 0.1}" stroke="${gillColor}" stroke-width="1.5" opacity="0.3"/>`;
+        } else { // 人
+          shape += `<ellipse cx="${cx}" cy="${cy - r * 0.15}" rx="${r * 0.6}" ry="${r * 0.8}" fill="${bodyColor}" opacity="0.6" stroke="${C.textFaint}" stroke-width="1"/>`;
+          // 肢芽
+          shape += `<ellipse cx="${cx - r * 0.4}" cy="${cy + r * 0.1}" rx="${r * 0.2}" ry="${r * 0.35}" fill="${bodyColor}" opacity="0.4"/>`;
+          shape += `<ellipse cx="${cx + r * 0.4}" cy="${cy + r * 0.1}" rx="${r * 0.2}" ry="${r * 0.35}" fill="${bodyColor}" opacity="0.4"/>`;
+          // 尾巴痕迹
+          shape += `<circle cx="${cx}" cy="${cy + r * 0.65}" r="3" fill="${bodyColor}" opacity="0.3"/>`;
+          // 鳃弓痕迹
+          for (let g = 0; g < 2; g++) {
+            shape += `<line x1="${cx - r * 0.15 + g * r * 0.2}" y1="${cy - r * 0.5}" x2="${cx - r * 0.15 + g * r * 0.2}" y2="${cy - r * 0.2}" stroke="${gillColor}" stroke-width="1" opacity="0.2"/>`;
+          }
+        }
+      } else {
+        // 晚期：完全不同
+        if (speciesIdx === 0) { // 鱼
+          shape += `<path d="M${cx - r * 0.8},${cy} Q${cx},${cy - r * 0.8} ${cx + r * 0.5},${cy} Q${cx},${cy + r * 0.6} ${cx - r * 0.8},${cy} Z" fill="${bodyColor}" opacity="0.6" stroke="${C.textFaint}" stroke-width="1"/>`;
+          // 尾鳍
+          shape += `<path d="M${cx + r * 0.4},${cy - r * 0.3} L${cx + r * 0.9},${cy - r * 0.5} L${cx + r * 0.9},${cy + r * 0.5} L${cx + r * 0.4},${cy + r * 0.3} Z" fill="${bodyColor}" opacity="0.3"/>`;
+          // 眼睛
+          shape += `<circle cx="${cx - r * 0.4}" cy="${cy - r * 0.2}" r="4" fill="${C.text}"/>`;
+        } else if (speciesIdx === 1) { // 鸡
+          shape += `<ellipse cx="${cx}" cy="${cy - r * 0.2}" rx="${r * 0.5}" ry="${r * 0.7}" fill="${bodyColor}" opacity="0.6" stroke="${C.textFaint}" stroke-width="1"/>`;
+          // 喙
+          shape += `<path d="M${cx - r * 0.1},${cy - r * 0.8} L${cx},${cy - r} L${cx + r * 0.1},${cy - r * 0.8} Z" fill="#f59e0b" opacity="0.7"/>`;
+          // 翅膀
+          shape += `<path d="M${cx - r * 0.4},${cy} Q${cx - r * 0.8},${cy + r * 0.3} ${cx - r * 0.6},${cy + r * 0.6}" stroke="${bodyColor}" stroke-width="3" fill="none" opacity="0.4"/>`;
+          shape += `<path d="M${cx + r * 0.4},${cy} Q${cx + r * 0.8},${cy + r * 0.3} ${cx + r * 0.6},${cy + r * 0.6}" stroke="${bodyColor}" stroke-width="3" fill="none" opacity="0.4"/>`;
+          // 腿
+          shape += `<line x1="${cx - r * 0.2}" y1="${cy + r * 0.5}" x2="${cx - r * 0.3}" y2="${cy + r * 0.9}" stroke="#f59e0b" stroke-width="3" opacity="0.5"/>`;
+          shape += `<line x1="${cx + r * 0.2}" y1="${cy + r * 0.5}" x2="${cx + r * 0.3}" y2="${cy + r * 0.9}" stroke="#f59e0b" stroke-width="3" opacity="0.5"/>`;
+        } else { // 人
+          // 头
+          shape += `<circle cx="${cx}" cy="${cy - r * 0.5}" r="${r * 0.3}" fill="${bodyColor}" opacity="0.6" stroke="${C.textFaint}" stroke-width="1"/>`;
+          // 身体
+          shape += `<rect x="${cx - r * 0.2}" y="${cy - r * 0.2}" width="${r * 0.4}" height="${r * 0.6}" rx="4" fill="${bodyColor}" opacity="0.6" stroke="${C.textFaint}" stroke-width="1"/>`;
+          // 手臂
+          shape += `<line x1="${cx - r * 0.2}" y1="${cy - r * 0.1}" x2="${cx - r * 0.5}" y2="${cy + r * 0.3}" stroke="${bodyColor}" stroke-width="3" opacity="0.5" stroke-linecap="round"/>`;
+          shape += `<line x1="${cx + r * 0.2}" y1="${cy - r * 0.1}" x2="${cx + r * 0.5}" y2="${cy + r * 0.3}" stroke="${bodyColor}" stroke-width="3" opacity="0.5" stroke-linecap="round"/>`;
+          // 腿
+          shape += `<line x1="${cx - r * 0.1}" y1="${cy + r * 0.4}" x2="${cx - r * 0.2}" y2="${cy + r * 0.8}" stroke="${bodyColor}" stroke-width="3" opacity="0.5" stroke-linecap="round"/>`;
+          shape += `<line x1="${cx + r * 0.1}" y1="${cy + r * 0.4}" x2="${cx + r * 0.2}" y2="${cy + r * 0.8}" stroke="${bodyColor}" stroke-width="3" opacity="0.5" stroke-linecap="round"/>`;
+        }
+      }
+      return shape;
+    }
+
+    // 绘制3x3网格
+    for (let s = 0; s < 3; s++) {
+      for (let st = 0; st < 3; st++) {
+        const cx = gridX + s * cellW + cellW / 2;
+        const cy = gridY + st * cellH + cellH / 2;
+        const r = Math.min(cellW, cellH) * 0.25;
+
+        // 背景高亮
+        let highlight = false;
+        if (compareMode === 'stage' && st === 0) highlight = true; // 高亮第一行
+        if (compareMode === 'species' && s === 0) highlight = true;
+
+        svg += `<rect x="${gridX + s * cellW + 5}" y="${gridY + st * cellH + 5}" width="${cellW - 10}" height="${cellH - 10}" rx="8" fill="${highlight ? 'rgba(253,164,175,0.1)' : 'transparent'}" stroke="${highlight ? C.embryoDeep : C.border}" stroke-width="${highlight ? 1.5 : 0.5}" stroke-dasharray="${highlight ? '' : '4,4'}" opacity="0.6"/>`;
+
+        svg += drawEmbryo(s, st, cx, cy, r);
+      }
+    }
+
+    // 鳃裂标注线（早期行）
+    const earlyY = gridY + cellH / 2;
+    svg += `<path d="M${gridX - 30},${earlyY} Q${gridX - 50},${earlyY - 10} ${gridX - 60},${earlyY - 20}" stroke="${C.embryoDeep}" stroke-width="1" fill="none" opacity="0.5"/>`;
+    svg += `<text x="${gridX - 65}" y="${earlyY - 25}" font-family="'Noto Sans SC',sans-serif" font-size="10" fill="${C.embryoDeep}" text-anchor="end">鳃裂 ↓</text>`;
+
+    // 相似度指示
+    svg += `<text x="${gridX + cellW * 1.5}" y="${h - 30}" font-family="'Noto Serif SC',serif" font-size="13" fill="${C.green}" text-anchor="middle" font-style="italic">← 早期胚胎惊人的相似 · 晚期截然不同 →</text>`;
+
+    svg += `</svg>`;
+    visualContainer.innerHTML = svg;
+  }
+
+  /* ============================================================
+     Step 4: 生物地理学世界地图 (SVG)
+     ============================================================ */
+  const hotspots = [
+    { name: '澳大利亚', x: 590, y: 340, species: '有袋类动物', desc: '袋鼠、考拉、袋熊——澳大利亚在有袋类演化上独树一帜。大陆隔离让它们避免了与胎盘哺乳动物的竞争。', icon: '🦘' },
+    { name: '加拉帕戈斯', x: 250, y: 340, species: '达尔文地雀', desc: '13种地雀由同一祖先辐射演化，喙形各异以适应不同食物——达尔文由此灵感顿悟自然选择。', icon: '🐦' },
+    { name: '马达加斯加', x: 540, y: 330, species: '狐猴', desc: '约100种狐猴在隔离环境中独立演化，包括大狐猴和鼠狐猴——岛屿演化速度惊人。', icon: '🐒' },
+    { name: '夏威夷', x: 150, y: 230, species: '果蝇超辐射', desc: '约500种果蝇由1-2种祖先辐射而来——地球上最 spectacular 的适应辐射之一。', icon: '🪰' },
+  ];
+
+  function renderBiogeography() {
+    const w = 760, h = 480;
+    const isDrift = state.mapMode === 'drift';
+
+    let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="background: ${isDrift ? '#1e293b' : '#f0f4f8'};">`;
+
+    // 海洋背景
+    if (!isDrift) {
+      svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="#e0f2fe"/>`;
+    } else {
+      svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="#0f172a"/>`;
+      // 盘古大陆标题
+      svg += `<text x="${w/2}" y="30" font-family="'Noto Serif SC',serif" font-size="14" fill="#94a3b8" text-anchor="middle">约 2 亿年前 · 盘古大陆正在分裂</text>`;
+    }
+
+    // 简化的大陆轮廓
+    const continentColor = isDrift ? '#1e3a5f' : '#d4e6d4';
+    const continentStroke = isDrift ? '#3b82f6' : '#86b08a';
+
+    if (!isDrift) {
+      // 现代大陆简化轮廓
+      // 北美洲
+      svg += `<path d="M80,130 Q120,110 180,120 L220,160 L200,220 L140,230 L100,200 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.8"/>`;
+      // 南美洲
+      svg += `<path d="M200,260 L230,260 L250,320 L230,400 L200,410 L180,350 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.8"/>`;
+      // 欧洲
+      svg += `<path d="M340,140 L400,135 L410,180 L370,190 L340,170 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.8"/>`;
+      // 非洲
+      svg += `<path d="M370,200 L430,200 L460,280 L440,360 L400,380 L370,340 L360,260 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.8"/>`;
+      // 亚洲
+      svg += `<path d="M410,130 L560,125 L580,180 L540,220 L480,210 L440,200 L420,170 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.8"/>`;
+      // 澳大利亚
+      svg += `<path d="M560,310 L620,310 L630,350 L590,365 L560,350 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.8"/>`;
+      // 马达加斯加
+      svg += `<path d="M520,320 L535,320 L540,345 L525,345 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.8"/>`;
+    } else {
+      // 盘古大陆分裂中（简化）
+      svg += `<path d="M120,180 Q200,160 300,170 L350,220 L320,300 L250,320 L180,290 L120,250 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.7"/>`;
+      svg += `<path d="M380,180 Q450,165 520,175 L560,220 L530,280 L470,290 L420,260 L390,220 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.7"/>`;
+      svg += `<path d="M200,340 Q260,330 300,350 L280,400 L220,400 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.7"/>`;
+      svg += `<path d="M470,320 Q510,310 540,330 L530,370 L490,375 Z" fill="${continentColor}" stroke="${continentStroke}" stroke-width="1.5" opacity="0.7"/>`;
+
+      // 分裂箭头
+      svg += `<path d="M300,250 L270,250 M300,250 L330,250" stroke="#fbbf24" stroke-width="2" stroke-dasharray="4,3" opacity="0.6"/>`;
+      svg += `<text x="300" y="245" font-family="'JetBrains Mono',monospace" font-size="10" fill="#fbbf24" text-anchor="middle">分裂中</text>`;
+    }
+
+    // 热点标注（只在现代模式显示）
+    if (!isDrift) {
+      hotspots.forEach((h, i) => {
+        const isActive = state.activeHotspot === i;
+        svg += `<g class="map-hotspot ${isActive ? 'active' : ''}" data-hotspot="${i}">`;
+        // 脉冲效果
+        if (isActive) {
+          svg += `<circle cx="${h.x}" cy="${h.y}" r="20" fill="${C.orange}" opacity="0.15"/>`;
+        }
+        svg += `<circle cx="${h.x}" cy="${h.y}" r="${isActive ? 12 : 8}" fill="${C.orange}" stroke="white" stroke-width="2" opacity="0.9"/>`;
+        svg += `<text x="${h.x}" y="${h.y + 4}" font-size="14" text-anchor="middle">${h.icon}</text>`;
+        svg += `<text x="${h.x}" y="${h.y - 18}" font-family="'Noto Serif SC',serif" font-size="11" font-weight="600" fill="${C.orange}" text-anchor="middle">${h.name}</text>`;
+        svg += `</g>`;
+      });
+
+      // 热点详情
+      if (state.activeHotspot >= 0) {
+        const h = hotspots[state.activeHotspot];
+        const boxW = 280, boxH = 70;
+        const bx = Math.min(h.x + 20, w - boxW - 10);
+        const by = Math.min(h.y + 20, h - boxH - 60);
+
+        svg += `<rect x="${bx}" y="${by}" width="${boxW}" height="${boxH}" fill="white" stroke="${C.orange}" stroke-width="1.5" rx="8" opacity="0.98"/>`;
+        svg += `<text x="${bx + 14}" y="${by + 22}" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="${C.orange}">${h.name} · ${h.species}</text>`;
+        // 描述换行
+        const maxChars = 22;
+        const lines = [];
+        let current = '';
+        for (const ch of h.desc) {
+          current += ch;
+          if (current.length >= maxChars) { lines.push(current); current = ''; }
+        }
+        if (current) lines.push(current);
+        lines.forEach((line, i) => {
+          svg += `<text x="${bx + 14}" y="${by + 40 + i * 14}" font-family="'Noto Sans SC',sans-serif" font-size="11" fill="${C.text}">${line}</text>`;
+        });
+      }
+    }
+
+    svg += `</svg>`;
+    visualContainer.innerHTML = svg;
+
+    // 绑定热点点击
+    if (!isDrift) {
+      visualContainer.querySelectorAll('.map-hotspot').forEach(el => {
+        el.addEventListener('click', () => {
+          state.activeHotspot = parseInt(el.dataset.hotspot);
+          renderBiogeography();
+        });
+      });
+    }
+  }
+
+  /* ============================================================
+     Step 5: DNA 序列对比 + 亲缘关系树 (SVG)
+     ============================================================ */
+  const dnaSpecies = ['人', '黑猩猩', '大猩猩', '猕猴', '小鼠'];
+  const dnaColors = {
+    A: '#16a34a',  // 绿
+    T: '#dc2626',  // 红
+    G: '#f59e0b',  // 橙
+    C: '#3b82f6',  // 蓝
+  };
+
+  // 简化的血红蛋白基因片段（30bp），展示亲缘梯度
+  const dnaSequences = [
+    'ATGGTGCATCTGACTCCTGAGGAGAAGTCT',  // 人
+    'ATGGTGCACCTGACTCCTGAGGAGAAGTCT',  // 黑猩猩 (1处差异)
+    'ATGGTGCATCTGACTCCTGAGGAGAAGTCT',  // 大猩猩 (实际2处，简化)
+    'ATGGTGCATCTGACTCCTGTGGAGAAGTCT',  // 猕猴 (2处差异)
+    'ATGGTGCACCTAACTCCTGAGGAAAAGTCA',  // 小鼠 (多处差异)
+  ];
+
+  function renderDNAComparison() {
+    const w = 760, h = 500;
+    const seqLen = dnaSequences[0].length;
+    const cellW = 20;
+    const cellH = 24;
+    const startX = 80;
+    const startY = 60;
+
+    let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="background: linear-gradient(180deg, #faf8f5 0%, #f5f0fa 100%);">`;
+
+    // 标题
+    svg += `<text x="${w/2}" y="30" font-family="'Noto Serif SC',serif" font-size="14" font-weight="700" fill="${C.dna}" text-anchor="middle">血红蛋白β链基因片段对比（30 bp）</text>`;
+
+    // 参考序列（人类）
+    const refSeq = dnaSequences[0];
+
+    // 物种名标签
+    dnaSpecies.forEach((name, i) => {
+      const y = startY + i * cellH + cellH / 2;
+      svg += `<text x="${startX - 8}" y="${y + 4}" font-family="'Noto Serif SC',serif" font-size="12" font-weight="600" fill="${i === 0 ? C.dna : C.text}" text-anchor="end">${name}</text>`;
+    });
+
+    // 相似度
+    const similarities = [100, 96.7, 100, 93.3, 80.0];
+    dnaSpecies.forEach((name, i) => {
+      const y = startY + i * cellH + cellH / 2;
+      const sim = similarities[i];
+      const simColor = sim > 95 ? C.green : sim > 90 ? '#f59e0b' : '#dc2626';
+      svg += `<text x="${startX + seqLen * cellW + 12}" y="${y + 4}" font-family="'JetBrains Mono',monospace" font-size="12" font-weight="700" fill="${simColor}">${sim}%</text>`;
+    });
+
+    // 序列网格
+    for (let i = 0; i < dnaSequences.length; i++) {
+      const seq = dnaSequences[i];
+      for (let j = 0; j < seqLen; j++) {
+        const x = startX + j * cellW;
+        const y = startY + i * cellH;
+        const base = seq[j];
+        const refBase = refSeq[j];
+        const isDiff = base !== refBase && i > 0;
+
+        if (isDiff) {
+          svg += `<rect x="${x}" y="${y}" width="${cellW}" height="${cellH - 2}" fill="${dnaColors[base]}" opacity="0.85" rx="2"/>`;
+          svg += `<text x="${x + cellW/2}" y="${y + cellH/2}" class="dna-base" fill="white">${base}</text>`;
+        } else {
+          if (i === 0) {
+            svg += `<rect x="${x}" y="${y}" width="${cellW}" height="${cellH - 2}" fill="${dnaColors[base]}" opacity="0.15" rx="2"/>`;
+          }
+          svg += `<text x="${x + cellW/2}" y="${y + cellH/2}" class="dna-base" fill="${C.textMuted}" opacity="0.7">${base}</text>`;
+        }
+      }
+    }
+
+    // 位置标尺
+    for (let j = 0; j < seqLen; j += 5) {
+      const x = startX + j * cellW + cellW / 2;
+      svg += `<text x="${x}" y="${startY + 5 * cellH + 14}" font-family="'JetBrains Mono',monospace" font-size="9" fill="${C.textMuted}" text-anchor="middle">${j + 1}</text>`;
+    }
+
+    // 图例
+    const legendY = startY + 5 * cellH + 30;
+    svg += `<text x="${startX}" y="${legendY}" font-family="'Noto Sans SC',sans-serif" font-size="11" fill="${C.textMuted}">图例：</text>`;
+    const bases = ['A', 'T', 'G', 'C'];
+    bases.forEach((b, i) => {
+      const lx = startX + 50 + i * 60;
+      svg += `<rect x="${lx}" y="${legendY - 10}" width="14" height="14" fill="${dnaColors[b]}" opacity="0.8" rx="2"/>`;
+      svg += `<text x="${lx + 18}" y="${legendY}" font-family="'JetBrains Mono',monospace" font-size="11" fill="${C.text}">${b}</text>`;
+    });
+    svg += `<rect x="${startX + 300}" y="${legendY - 10}" width="14" height="14" fill="${C.orange}" opacity="0.8" rx="2"/>`;
+    svg += `<text x="${startX + 320}" y="${legendY}" font-family="'Noto Sans SC',sans-serif" font-size="11" fill="${C.text}">差异位点</text>`;
+
+    // 亲缘关系树
+    const treeY = legendY + 30;
+    svg += `<text x="${w/2}" y="${treeY}" font-family="'Noto Serif SC',serif" font-size="13" font-weight="700" fill="${C.dna}" text-anchor="middle">分子亲缘关系树</text>`;
+
+    // 树结构
+    const treeStartY = treeY + 20;
+    const treeX = w / 2;
+    const branchH = 28;
+
+    // 共同祖先
+    svg += `<circle cx="${treeX}" cy="${treeStartY + 10}" r="4" fill="${C.dna}"/>`;
+
+    // 人类-黑猩猩分支
+    svg += `<line x1="${treeX}" y1="${treeStartY + 10}" x2="${treeX}" y2="${treeStartY + 35}" stroke="${C.dna}" stroke-width="1.5"/>`;
+    svg += `<line x1="${treeX - 80}" y1="${treeStartY + 35}" x2="${treeX + 80}" y2="${treeStartY + 35}" stroke="${C.dna}" stroke-width="1.5"/>`;
+    svg += `<line x1="${treeX - 80}" y1="${treeStartY + 35}" x2="${treeX - 80}" y2="${treeStartY + 55}" stroke="${C.dna}" stroke-width="1.5"/>`;
+    svg += `<line x1="${treeX + 80}" y1="${treeStartY + 35}" x2="${treeX + 80}" y2="${treeStartY + 55}" stroke="${C.dna}" stroke-width="1.5"/>`;
+
+    // 大猩猩分支
+    svg += `<line x1="${treeX}" y1="${treeStartY + 10}" x2="${treeX}" y2="${treeStartY + 5}" stroke="${C.dna}" stroke-width="1.5"/>`;
+    svg += `<line x1="${treeX - 160}" y1="${treeStartY + 5}" x2="${treeX}" y2="${treeStartY + 5}" stroke="${C.dna}" stroke-width="1.5"/>`;
+    svg += `<line x1="${treeX - 160}" y1="${treeStartY + 5}" x2="${treeX - 160}" y2="${treeStartY + 25}" stroke="${C.dna}" stroke-width="1.5"/>`;
+
+    // 猕猴分支
+    svg += `<line x1="${treeX - 80}" y1="${treeStartY + 5}" x2="${treeX - 80}" y2="${treeStartY - 15}" stroke="${C.dna}" stroke-width="1.5"/>`;
+    svg += `<line x1="${treeX - 160}" y1="${treeStartY - 15}" x2="${treeX - 80}" y2="${treeStartY - 15}" stroke="${C.dna}" stroke-width="1.5"/>`;
+    svg += `<line x1="${treeX - 160}" y1="${treeStartY - 15}" x2="${treeX - 160}" y2="${treeStartY + 5}" stroke="${C.dna}" stroke-width="1.5"/>`;
+
+    // 小鼠分支（外群）
+    svg += `<line x1="${treeX - 240}" y1="${treeStartY - 15}" x2="${treeX - 160}" y2="${treeStartY - 15}" stroke="${C.dna}" stroke-width="1.5"/>`;
+    svg += `<line x1="${treeX - 240}" y1="${treeStartY - 15}" x2="${treeX - 240}" y2="${treeStartY + 5}" stroke="${C.dna}" stroke-width="1.5"/>`;
+
+    // 叶节点标签
+    const leafLabels = [
+      { name: '小鼠', x: treeX - 240, y: treeStartY + 18 },
+      { name: '猕猴', x: treeX - 160, y: treeStartY + 18 },
+      { name: '大猩猩', x: treeX - 80, y: treeStartY + 18 },
+      { name: '人', x: treeX - 80, y: treeStartY + 65 },
+      { name: '黑猩猩', x: treeX + 80, y: treeStartY + 65 },
+    ];
+
+    leafLabels.forEach(leaf => {
+      svg += `<circle cx="${leaf.x}" cy="${leaf.y - 3}" r="3" fill="${C.dna}"/>`;
+      svg += `<text x="${leaf.x + 8}" y="${leaf.y}" font-family="'Noto Serif SC',serif" font-size="11" fill="${C.text}">${leaf.name}</text>`;
+    });
+
+    // 98.7% 标注
+    svg += `<rect x="${treeX - 30}" y="${treeStartY + 45}" width="60" height="16" fill="${C.orangeSoft}" rx="4"/>`;
+    svg += `<text x="${treeX}" y="${treeStartY + 56}" font-family="'JetBrains Mono',monospace" font-size="10" font-weight="700" fill="${C.orange}" text-anchor="middle">98.7% 相似</text>`;
+
+    svg += `</svg>`;
+    visualContainer.innerHTML = svg;
+  }
+
+  /* ============================================================
+     Step 6: 细菌耐药性模拟 (Canvas)
+     ============================================================ */
+  let bacteriaCanvas, bacteriaCtx, bacteriaAnim;
+  let bacteria = [];
+  let animDt = 0.016; // 帧间隔（秒），默认 ~60fps
+
+  function initBacteria() {
+    bacteria = [];
+    const count = state.bacteriaPop;
+    for (let i = 0; i < count; i++) {
+      bacteria.push({
+        x: Math.random(),
+        y: Math.random(),
+        resistant: Math.random() < state.bacteriaResistant,
+        vx: (Math.random() - 0.5) * 0.002,
+        vy: (Math.random() - 0.5) * 0.002,
+        size: 3 + Math.random() * 2,
+        alive: true,
+        age: 0,
+      });
+    }
+    state.bacteriaGen = 0;
+    state.antibioticApplied = false;
+  }
+
+  function renderBacteriaSim() {
+    visualContainer.innerHTML = `<canvas id="bacteriaCanvas" width="760" height="420" style="background: #0a0a0a; border-radius: 12px;"></canvas>`;
+    bacteriaCanvas = document.getElementById('bacteriaCanvas');
+    bacteriaCtx = bacteriaCanvas.getContext('2d');
+
+    if (bacteria.length === 0) {
+      initBacteria();
+    }
+    drawBacteria();
+  }
+
+  function drawBacteria() {
+    if (!bacteriaCtx) return;
+    const w = bacteriaCanvas.width;
+    const h = bacteriaCanvas.height;
+
+    // 背景
+    bacteriaCtx.fillStyle = '#0a0a0a';
+    bacteriaCtx.fillRect(0, 0, w, h);
+
+    // 培养皿
+    const dishX = 20, dishY = 20, dishW = w - 40, dishH = h - 40;
+    bacteriaCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+    bacteriaCtx.lineWidth = 2;
+    bacteriaCtx.beginPath();
+    bacteriaCtx.roundRect(dishX, dishY, dishW, dishH, 12);
+    bacteriaCtx.stroke();
+
+    // 网格
+    bacteriaCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+    bacteriaCtx.lineWidth = 0.5;
+    for (let x = dishX; x < dishX + dishW; x += 40) {
+      bacteriaCtx.beginPath();
+      bacteriaCtx.moveTo(x, dishY);
+      bacteriaCtx.lineTo(x, dishY + dishH);
+      bacteriaCtx.stroke();
+    }
+    for (let y = dishY; y < dishY + dishH; y += 40) {
+      bacteriaCtx.beginPath();
+      bacteriaCtx.moveTo(dishX, y);
+      bacteriaCtx.lineTo(dishX + dishW, y);
+      bacteriaCtx.stroke();
+    }
+
+    // 抗生素区域（如果已投放）
+    if (state.antibioticApplied) {
+      const grad = bacteriaCtx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w/2);
+      grad.addColorStop(0, 'rgba(234, 88, 12, 0.08)');
+      grad.addColorStop(0.5, 'rgba(234, 88, 12, 0.04)');
+      grad.addColorStop(1, 'rgba(234, 88, 12, 0)');
+      bacteriaCtx.fillStyle = grad;
+      bacteriaCtx.fillRect(dishX, dishY, dishW, dishH);
+    }
+
+    // 绘制细菌
+    let aliveCount = 0;
+    let resistantCount = 0;
+
+    bacteria.forEach(b => {
+      if (!b.alive) return;
+      aliveCount++;
+      if (b.resistant) resistantCount++;
+
+      const px = dishX + b.x * dishW;
+      const py = dishY + b.y * dishH;
+
+      // 细菌圆点
+      bacteriaCtx.beginPath();
+      bacteriaCtx.arc(px, py, b.size, 0, Math.PI * 2);
+      if (b.resistant) {
+        bacteriaCtx.fillStyle = '#22c55e';
+        bacteriaCtx.shadowColor = '#22c55e';
+        bacteriaCtx.shadowBlur = 4;
+      } else {
+        bacteriaCtx.fillStyle = '#94a3b8';
+        bacteriaCtx.shadowBlur = 0;
+      }
+      bacteriaCtx.fill();
+      bacteriaCtx.shadowBlur = 0;
+
+      // 死亡动画
+      if (state.antibioticApplied && !b.resistant && b.age > 3) {
+        b.alive = false;
+      }
+    });
+
+    // 更新状态
+    state.bacteriaPop = aliveCount;
+    const resistRatio = aliveCount > 0 ? resistantCount / aliveCount : 0;
+    state.bacteriaResistant = resistRatio;
+
+    // 更新数据卡片
+    updateBacteriaData();
+
+    // 移动和繁殖
+    if (state.bacteriaRunning) {
+      const moveScale = animDt * 60; // 归一化到 60fps 基准
+      const prevGen = Math.floor(state.bacteriaGen);
+      bacteria.forEach(b => {
+        if (!b.alive) return;
+        b.x += b.vx * moveScale;
+        b.y += b.vy * moveScale;
+        b.age += 0.1 * moveScale;
+        if (b.x < 0.02) b.x = 0.02;
+        if (b.x > 0.98) b.x = 0.98;
+        if (b.y < 0.02) b.y = 0.02;
+        if (b.y > 0.98) b.y = 0.98;
+        // 随机方向变化
+        if (Math.random() < 0.05 * moveScale) {
+          b.vx = (Math.random() - 0.5) * 0.003;
+          b.vy = (Math.random() - 0.5) * 0.003;
+        }
+      });
+
+      // 繁殖（每代）
+      state.bacteriaGen += animDt; // dt 秒 = 1 代/秒
+      if (Math.floor(state.bacteriaGen) > prevGen) {
+        // 新一代
+        const newBacteria = [];
+        bacteria.forEach(b => {
+          if (!b.alive) return;
+          if (Math.random() < 0.3 && bacteria.length + newBacteria.length < 500) {
+            newBacteria.push({
+              x: Math.max(0.02, Math.min(0.98, b.x + (Math.random() - 0.5) * 0.05)),
+              y: Math.max(0.02, Math.min(0.98, b.y + (Math.random() - 0.5) * 0.05)),
+              resistant: b.resistant, // 遗传
+              vx: (Math.random() - 0.5) * 0.002,
+              vy: (Math.random() - 0.5) * 0.002,
+              size: 3 + Math.random() * 2,
+              alive: true,
+              age: 0,
+            });
+            // 小概率突变
+            if (Math.random() < 0.01) {
+              newBacteria[newBacteria.length - 1].resistant = !b.resistant;
+            }
+          }
+        });
+        bacteria = bacteria.concat(newBacteria);
+      }
+    }
+  }
+
+  function updateBacteriaData() {
+    const genEl = document.getElementById('bacGen');
+    const popEl = document.getElementById('bacPop');
+    const resEl = document.getElementById('bacRes');
+    if (genEl) genEl.textContent = Math.floor(state.bacteriaGen);
+    if (popEl) popEl.textContent = state.bacteriaPop;
+    if (resEl) {
+      resEl.textContent = (state.bacteriaResistant * 100).toFixed(1) + '%';
+      resEl.className = 'data-card-value ' + (state.bacteriaResistant > 0.5 ? 'danger' : '');
+    }
+  }
+
+  // ===== 控件渲染 =====
+  const controlsPanel = document.getElementById('visualControls');
+
+  function updateControls() {
+    const step = state.currentStep;
+    let html = '';
+
+    if (step === 0) {
+      html = `
+        <div class="control-group">
+          <div class="control-label">
+            <span>穿越时光</span>
+            <span class="control-value" id="eraValue">${Math.round(540 * (1 - state.fossilEra/100))} 百万年前</span>
+          </div>
+          <input type="range" id="eraSlider" min="0" max="100" value="${state.fossilEra}">
+        </div>
+        <div class="control-hint">
+          拖动滑块穿越地质年代，点击化石节点查看物种详情。注意<em>越古老的地层，生物越简单</em>。
+        </div>
+      `;
+    } else if (step === 1) {
+      let tabs = '';
+      species.forEach((sp, i) => {
+        tabs += `<button class="species-tab ${state.activeSpecies === i ? 'active' : ''}" data-species="${i}">${sp.name}</button>`;
+      });
+      html = `
+        <div class="control-group">
+          <div class="control-label"><span>选择物种</span></div>
+          <div class="species-tabs">${tabs}</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label">
+            <span>骨骼渐变</span>
+            <span class="control-value" id="morphValue">${state.boneMorph}%</span>
+          </div>
+          <input type="range" id="morphSlider" min="0" max="100" value="${state.boneMorph}">
+        </div>
+        <div class="control-hint">
+          颜色编码：<strong style="color:#dc2626">肱骨</strong> · <strong style="color:#ea580c">桡骨</strong> · <strong style="color:#f59e0b">尺骨</strong> · <strong style="color:#16a34a">腕骨</strong> · <strong style="color:#0891b2">掌骨</strong> · <strong style="color:#7c3aed">指骨</strong>
+        </div>
+      `;
+    } else if (step === 2) {
+      html = `
+        <div class="control-group">
+          <div class="control-label"><span>对比方式</span></div>
+          <div class="mode-tabs">
+            <button class="mode-tab ${state.embryoCompare === 'stage' ? 'active' : ''}" data-mode="stage">同一阶段对比物种</button>
+            <button class="mode-tab ${state.embryoCompare === 'species' ? 'active' : ''}" data-mode="species">同一物种对比阶段</button>
+          </div>
+        </div>
+        <div class="control-hint">
+          早期胚胎（高亮行）<em>惊人地相似</em>——都有鳃裂和尾巴。随着发育，差异逐渐显现。
+        </div>
+      `;
+    } else if (step === 3) {
+      html = `
+        <div class="control-group">
+          <div class="control-label"><span>地图模式</span></div>
+          <div class="mode-tabs">
+            <button class="mode-tab ${state.mapMode === 'present' ? 'active' : ''}" data-mode="present">现代分布</button>
+            <button class="mode-tab ${state.mapMode === 'drift' ? 'active' : ''}" data-mode="drift">大陆漂移</button>
+          </div>
+        </div>
+        <div class="control-hint">
+          点击橙色热点区域查看物种故事。切换到<em>大陆漂移</em>模式，观察2亿年前的盘古大陆如何分裂。
+        </div>
+      `;
+    } else if (step === 4) {
+      html = `
+        <div class="control-group">
+          <div class="control-label"><span>序列对比</span></div>
+          <div class="data-display">
+            <div class="data-card">
+              <div class="data-card-label">人 vs 黑猩猩</div>
+              <div class="data-card-value">98.7%</div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-label">人 vs 小鼠</div>
+              <div class="data-card-value" style="color:#f59e0b">85%</div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-label">共同密码</div>
+              <div class="data-card-value">DNA</div>
+            </div>
+          </div>
+        </div>
+        <div class="control-hint">
+          彩色方块=差异位点，灰色=相同碱基。<em>亲缘越近，差异越少</em>——这是写在基因里的家谱。
+        </div>
+      `;
+    } else if (step === 5) {
+      html = `
+        <div class="data-display">
+          <div class="data-card">
+            <div class="data-card-label">代数</div>
+            <div class="data-card-value" id="bacGen">${Math.floor(state.bacteriaGen)}</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-label">细菌数量</div>
+            <div class="data-card-value" id="bacPop">${state.bacteriaPop}</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-label">耐药比例</div>
+            <div class="data-card-value ${state.bacteriaResistant > 0.5 ? 'danger' : ''}" id="bacRes">${(state.bacteriaResistant * 100).toFixed(1)}%</div>
+          </div>
+        </div>
+        <div class="control-group">
+          <button class="action-btn action-btn-antibiotic" id="antibioticBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>
+            投放抗生素
+          </button>
+        </div>
+        <div class="control-group">
+          <button class="action-btn action-btn-reset" id="resetBacteriaBtn">
+            重置实验
+          </button>
+        </div>
+        <div class="control-hint">
+          点击"投放抗生素"后，<em>不耐药的细菌被杀死</em>，耐药细菌存活并繁殖——几代之内耐药比例飙升。
+        </div>
+      `;
+    }
+
+    controlsPanel.innerHTML = html;
+    attachControlListeners();
+  }
+
+  // ===== 控件事件绑定 =====
+  function attachControlListeners() {
+    const step = state.currentStep;
+
+    // Step 1: 时光滑块
+    const eraSlider = document.getElementById('eraSlider');
+    if (eraSlider) {
+      eraSlider.addEventListener('input', e => {
+        state.fossilEra = parseInt(e.target.value);
+        const mya = Math.round(540 * (1 - state.fossilEra / 100));
+        document.getElementById('eraValue').textContent = `${mya} 百万年前`;
+        renderFossilTimeline();
+      });
+    }
+
+    // Step 2: 物种选择
+    document.querySelectorAll('.species-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.species-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        state.activeSpecies = parseInt(tab.dataset.species);
+        renderHomologousBones();
+      });
+    });
+
+    const morphSlider = document.getElementById('morphSlider');
+    if (morphSlider) {
+      morphSlider.addEventListener('input', e => {
+        state.boneMorph = parseInt(e.target.value);
+        document.getElementById('morphValue').textContent = `${state.boneMorph}%`;
+      });
+    }
+
+    // Step 3: 对比模式
+    document.querySelectorAll('.mode-tab[data-mode="stage"], .mode-tab[data-mode="species"]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        state.embryoCompare = tab.dataset.mode;
+        renderEmbryology();
+      });
+    });
+
+    // Step 4: 地图模式
+    document.querySelectorAll('.mode-tab[data-mode="present"], .mode-tab[data-mode="drift"]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        state.mapMode = tab.dataset.mode;
+        state.activeHotspot = -1;
+        renderBiogeography();
+      });
+    });
+
+    // Step 6: 抗生素按钮
+    const antibioticBtn = document.getElementById('antibioticBtn');
+    if (antibioticBtn) {
+      antibioticBtn.addEventListener('click', () => {
+        state.antibioticApplied = true;
+        state.bacteriaRunning = true;
+        antibioticBtn.textContent = '抗生素已投放';
+        antibioticBtn.style.opacity = '0.6';
+        antibioticBtn.style.cursor = 'not-allowed';
+        antibioticBtn.disabled = true;
+      });
+    }
+
+    const resetBtn = document.getElementById('resetBacteriaBtn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        state.bacteriaGen = 0;
+        state.bacteriaPop = 200;
+        state.bacteriaResistant = 0.02;
+        state.antibioticApplied = false;
+        state.bacteriaRunning = false;
+        initBacteria();
+        drawBacteria();
+        updateBacteriaData();
+        // 重置按钮
+        const abtn = document.getElementById('antibioticBtn');
+        if (abtn) {
+          abtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg> 投放抗生素';
+          abtn.style.opacity = '1';
+          abtn.style.cursor = 'pointer';
+          abtn.disabled = false;
+        }
+      });
+    }
+  }
+
+  // ===== 动画循环 =====
+  let lastTime = 0;
+  function animate(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    animDt = Math.min(dt, 0.05); // 限制最大帧间隔，防止切换标签后大跳
+
+    // Step 6 细菌动画
+    if (state.currentStep === 5 && state.bacteriaRunning) {
+      drawBacteria();
+    }
+
+    // 自动播放进度
+    if (state.isAutoPlaying) {
+      if (state.autoPlayStartTime === 0) state.autoPlayStartTime = timestamp;
+      const elapsed = timestamp - state.autoPlayStartTime;
+      const progress = Math.min(elapsed / AUTO_PLAY_DURATION, 1);
+      autoPlayProgress.style.width = `${progress * 100}%`;
+
+      if (progress >= 1) {
+        if (state.currentStep < steps.length - 1) {
+          state.currentStep++;
+          updateStep();
+          state.autoPlayStartTime = timestamp;
+        } else {
+          toggleAutoPlay();
+        }
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  // ===== 导航栏滚动效果 =====
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  // ===== 加载动画隐藏 =====
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.getElementById('loaderOverlay').classList.add('hidden');
+    }, 1200);
+  });
+
+  // ===== 初始化 =====
+  updateStep();
+  requestAnimationFrame(animate);
+  </script>
+
+</body>
+</html>

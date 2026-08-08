@@ -1,0 +1,2145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>相对论入门：时间膨胀 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css">
+<link rel="stylesheet" href="/assets/css/demo-framework.css">
+<style>
+  /* ===== 时间膨胀 Demo 专属样式 ===== */
+  :root {
+    --space-bg: #0f172a;
+    --space-bg-light: #1e293b;
+    --space-deep: #0a0f1e;
+    --star-gold: #fbbf24;
+    --star-gold-glow: rgba(251, 191, 36, 0.5);
+    --star-gold-soft: rgba(251, 191, 36, 0.12);
+    --cool-silver: #cbd5e1;
+    --cyan-rest: #22d3ee;
+    --violet-motion: #a78bfa;
+    --violet-soft: rgba(167, 139, 250, 0.15);
+    --cyan-soft: rgba(34, 211, 238, 0.12);
+    --physics-accent: #7c3aed;
+  }
+
+  body {
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: var(--bg);
+  }
+
+  .page-wrapper {
+    padding-top: 64px;
+    min-height: 100vh;
+  }
+
+  /* ===== 杂志布局 ===== */
+  .magazine-layout {
+    display: grid;
+    grid-template-columns: 38% 62%;
+    gap: var(--spacer-48);
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: var(--spacer-48) var(--spacer-32);
+    min-height: calc(100vh - 64px);
+  }
+
+  body.has-info-bar .magazine-layout {
+    padding-bottom: calc(var(--spacer-48) + 52px);
+  }
+
+  /* ===== 左侧文章区 ===== */
+  .article-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacer-24);
+  }
+
+  .article-header { display: flex; flex-direction: column; gap: var(--spacer-12); }
+
+  .article-kicker {
+    font-family: var(--font-mono);
+    font-size: var(--fs-tiny);
+    letter-spacing: 0.12em;
+    color: var(--physics-accent);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .article-title {
+    font-family: var(--font-serif);
+    font-size: var(--fs-h1);
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text);
+  }
+
+  .article-subtitle {
+    font-size: var(--fs-body);
+    color: var(--text-muted);
+    line-height: var(--lh-relaxed);
+    font-style: italic;
+    font-family: var(--font-serif);
+  }
+
+  .article-body { display: flex; flex-direction: column; gap: var(--spacer-16); }
+
+  .article-body p {
+    font-size: var(--fs-body);
+    line-height: 1.85;
+    color: var(--text);
+  }
+
+  .article-body p.lead {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.7;
+    color: var(--physics-accent);
+  }
+
+  .article-body strong { color: var(--physics-accent); font-weight: 600; }
+  .article-body em { color: var(--star-gold); font-style: italic; }
+
+  /* ===== 步骤指示器 ===== */
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-12);
+    margin: var(--spacer-8) 0;
+  }
+
+  .step-dots { display: flex; gap: 10px; }
+
+  .step-dot {
+    width: 10px; height: 10px;
+    border-radius: var(--radius-full);
+    background-color: var(--border);
+    transition: all var(--duration-base) var(--ease);
+    cursor: pointer;
+  }
+  .step-dot.active {
+    background-color: var(--physics-accent);
+    transform: scale(1.3);
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+  }
+  .step-dot.completed { background-color: var(--star-gold); }
+  .step-dot:hover:not(.active) { background-color: var(--text-faint); }
+
+  .step-label {
+    font-family: var(--font-mono);
+    font-size: var(--fs-tiny);
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* ===== 步骤内容动画 ===== */
+  .step-content {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all var(--duration-slow) var(--ease);
+    flex: 1;
+    overflow-y: auto;
+    max-height: 440px;
+    padding-right: var(--spacer-8);
+  }
+  .step-content::-webkit-scrollbar { width: 4px; }
+  .step-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .step-content.fade-out { opacity: 0; transform: translateY(8px); }
+  .step-content.fade-in { opacity: 0; transform: translateY(-8px); }
+
+  .step-content h3 {
+    font-family: var(--font-serif);
+    font-size: var(--fs-h2);
+    margin-bottom: var(--spacer-16);
+    color: var(--text);
+  }
+
+  /* ===== 公式框 ===== */
+  .formula-box {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(251, 191, 36, 0.06));
+    border-left: 3px solid var(--star-gold);
+    padding: var(--spacer-16) var(--spacer-20);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    margin: var(--spacer-12) 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--text);
+  }
+  .formula-box .formula-main {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--physics-accent);
+    margin-bottom: var(--spacer-4);
+  }
+  .formula-box .formula-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+  }
+
+  /* ===== 步骤导航按钮 ===== */
+  .step-nav {
+    display: flex;
+    gap: var(--spacer-12);
+    align-items: center;
+    position: relative;
+  }
+  .step-nav .btn {
+    flex: 1;
+    padding: 10px 20px;
+    font-size: var(--fs-small);
+  }
+  .step-nav .btn-primary {
+    background-color: var(--physics-accent);
+    border-color: var(--physics-accent);
+  }
+  .step-nav .btn-primary:hover {
+    background-color: #6d28d9;
+  }
+
+  .autoplay-btn {
+    width: 40px; height: 40px;
+    flex-shrink: 0;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--physics-accent);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--duration-fast) var(--ease);
+  }
+  .autoplay-btn:hover { border-color: var(--physics-accent); background: var(--star-gold-soft); }
+  .autoplay-btn.playing { background: var(--physics-accent); color: white; border-color: var(--physics-accent); }
+  .autoplay-btn svg { width: 16px; height: 16px; }
+
+  .autoplay-progress {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    background: var(--star-gold);
+    width: 0%;
+    transition: width 0.1s linear;
+    border-radius: 1px;
+  }
+
+  /* ===== 右侧可视化区 ===== */
+  .visual-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacer-20);
+  }
+
+  .visual-canvas-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    position: relative;
+    animation: canvasFadeIn 0.8s ease;
+  }
+
+  @keyframes canvasFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .visual-canvas-wrapper canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    transition: opacity 0.3s ease;
+  }
+
+  .visual-canvas-wrapper.switching canvas { opacity: 0.3; }
+
+  .visual-caption {
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+    text-align: center;
+    font-style: italic;
+    font-family: var(--font-serif);
+    padding: 0 var(--spacer-16);
+  }
+
+  /* ===== 控制面板 ===== */
+  .visual-controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: var(--spacer-24);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacer-20);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .control-group { display: flex; flex-direction: column; gap: var(--spacer-8); }
+
+  .control-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .control-value {
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    color: var(--physics-accent);
+    font-weight: 600;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--surface-muted);
+    border-radius: var(--radius-full);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    background: var(--physics-accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+    transition: transform var(--duration-fast) var(--ease);
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    background: var(--physics-accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+  }
+
+  /* ===== 预设速度按钮 ===== */
+  .preset-buttons {
+    display: flex;
+    gap: var(--spacer-8);
+  }
+
+  .preset-btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: var(--fs-tiny);
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    font-family: var(--font-mono);
+  }
+  .preset-btn:hover { border-color: var(--star-gold); color: var(--physics-accent); }
+  .preset-btn.active {
+    background: var(--star-gold-soft);
+    border-color: var(--star-gold);
+    color: var(--physics-accent);
+  }
+
+  /* ===== 数据展示行 ===== */
+  .data-display {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacer-12);
+  }
+
+  .data-cell {
+    padding: var(--spacer-12) var(--spacer-16);
+    background: var(--surface-muted);
+    border-radius: var(--radius);
+    border: 1px solid var(--border-soft);
+  }
+
+  .data-cell-label {
+    font-size: var(--fs-tiny);
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: var(--spacer-4);
+  }
+
+  .data-cell-value {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--physics-accent);
+  }
+
+  .data-cell-value.gold {
+    color: #b45309;
+  }
+
+  .highlight-box {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(124, 58, 237, 0.06));
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    border-radius: var(--radius-card);
+    padding: var(--spacer-16) var(--spacer-20);
+    text-align: center;
+  }
+
+  .highlight-value {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 700;
+    color: #b45309;
+    margin-bottom: var(--spacer-4);
+  }
+
+  .highlight-label {
+    font-size: var(--fs-tiny);
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+  }
+
+  /* ===== 导航栏 ===== */
+  .demo-navbar { justify-content: space-between; }
+  .demo-nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* ===== 底部信息条 ===== */
+  .demo-info-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacer-16) var(--spacer-32);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: var(--fs-small);
+  }
+  .demo-info-left { display: flex; align-items: center; gap: var(--spacer-16); }
+  .demo-info-title {
+    font-family: var(--font-mono);
+    font-size: var(--fs-tiny);
+    color: var(--text-muted);
+  }
+  .demo-tech-tag {
+    padding: 3px 10px;
+    font-size: 10px;
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    background: var(--surface-muted);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 1024px) {
+    .magazine-layout {
+      grid-template-columns: 1fr;
+      gap: var(--spacer-32);
+    }
+    .demo-nav-center { display: none; }
+    .step-content { max-height: 300px; }
+    .data-display { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 768px) {
+    .magazine-layout { padding: var(--spacer-24) var(--spacer-16); }
+    .visual-controls { padding: var(--spacer-16); }
+    .demo-nav-right .demo-btn-download span { display: none; }
+    .data-display { grid-template-columns: 1fr; }
+    .preset-buttons { flex-wrap: wrap; }
+    .preset-btn { min-width: 60px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ===== 顶部导航栏 ===== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">物理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">相对论入门：时间膨胀</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-physics">物理</span>
+      <a href="/skills/jingbo-edu-physics-astronomy-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ===== 页面主体 ===== -->
+<div class="page-wrapper">
+  <div class="magazine-layout">
+
+    <!-- ====== 左侧：文章区 ====== -->
+    <div class="article-side">
+      <div class="article-header">
+        <div class="article-kicker">PHYSICS · 狭义相对论</div>
+        <h1 class="article-title">时间不是<br>绝对的</h1>
+        <p class="article-subtitle">运动的时钟会变慢，高速旅行的宇航员比地球上的孪生兄弟更年轻——爱因斯坦用光速不变原理和一束弹跳的光子，揭示了时间最深处的秘密。</p>
+      </div>
+
+      <div class="step-indicator">
+        <div class="step-dots" id="stepDots">
+          <div class="step-dot active" data-step="0"></div>
+          <div class="step-dot" data-step="1"></div>
+          <div class="step-dot" data-step="2"></div>
+          <div class="step-dot" data-step="3"></div>
+          <div class="step-dot" data-step="4"></div>
+          <div class="step-dot" data-step="5"></div>
+        </div>
+        <span class="step-label" id="stepLabel">第 1 / 6 步</span>
+      </div>
+
+      <div class="article-body">
+        <div class="step-content" id="stepContent"></div>
+      </div>
+
+      <div class="step-nav">
+        <button class="btn btn-secondary" id="prevBtn"><span>←</span> 上一步</button>
+        <button class="autoplay-btn" id="autoPlayBtn" title="自动播放">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="btn btn-primary" id="nextBtn">下一步 <span>→</span></button>
+        <div class="autoplay-progress" id="autoPlayProgress"></div>
+      </div>
+    </div>
+
+    <!-- ====== 右侧：可视化区 ====== -->
+    <div class="visual-side">
+      <div class="visual-canvas-wrapper" id="canvasWrapper">
+        <canvas id="demoCanvas" width="800" height="520"></canvas>
+      </div>
+      <p class="visual-caption" id="visualCaption">经典速度叠加 vs 光速不变——宇宙最深的反直觉</p>
+
+      <div class="visual-controls" id="visualControls">
+        <!-- 控件通过 JS 动态生成 -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== 底部信息条 ===== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">time-dilation-viz</span>
+    <span class="demo-tech-tag">Canvas 2D</span>
+    <span class="demo-tech-tag">60fps</span>
+    <span class="demo-tech-tag">相对论</span>
+  </div>
+  <div class="demo-info-right">
+    <span style="font-size: var(--fs-tiny); color: var(--text-faint); font-family: var(--font-mono);">D106 · 杂志讲解型</span>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   相对论时间膨胀可视化 — 完整实现
+   6 步杂志式讲解 + Canvas 动画 + 交互控件
+   ============================================================ */
+
+// ===== 全局状态 =====
+const state = {
+  currentStep: 0,
+  isAutoPlaying: false,
+  autoPlayStartTime: 0,
+  time: 0,           // 动画时间
+  // Step 3 & 4: 速度滑块
+  velocity: 0.5,     // v/c 比值 (0 ~ 0.999)
+  // Step 5: 仪表盘
+  dashboardV: 0.5,
+  // Step 4: 公式推导进度
+  derivationProgress: 0,
+  // 星空粒子
+  stars: [],
+  // Step 3: 光钟计时
+  staticClockTicks: 0,
+  movingClockTicks: 0,
+};
+
+const AUTO_PLAY_DURATION = 10000; // 10 秒/步
+
+// ===== 颜色系统 =====
+const C = {
+  // 深空背景
+  spaceBg: '#0f172a',
+  spaceBgLight: '#1e293b',
+  spaceDeep: '#0a0f1e',
+  // 文字
+  white: '#f1f5f9',
+  textDim: '#94a3b8',
+  textFaint: '#64748b',
+  // 强调色
+  gold: '#fbbf24',
+  goldGlow: 'rgba(251, 191, 36, 0.5)',
+  goldSoft: 'rgba(251, 191, 36, 0.12)',
+  silver: '#cbd5e1',
+  cyan: '#22d3ee',
+  cyanSoft: 'rgba(34, 211, 238, 0.15)',
+  violet: '#a78bfa',
+  violetSoft: 'rgba(167, 139, 250, 0.15)',
+  red: '#ef4444',
+  green: '#10b981',
+};
+
+// ===== 物理常量 =====
+const c = 1; // 光速归一化
+
+// 洛伦兹因子
+function gamma(beta) {
+  const b2 = Math.min(beta * beta, 0.999999);
+  return 1 / Math.sqrt(1 - b2);
+}
+
+// ===== 步骤内容数据 =====
+const steps = [
+  {
+    title: '光速——宇宙的速度极限',
+    content: `
+      <p class="lead">无论你以多快的速度运动，测量到的光速永远是 c——约 30 万公里/秒。</p>
+      <p>这与我们的日常经验完全矛盾。如果你在行驶的火车上以 5 km/h 向前走，地面观察者看到你的速度是<strong>火车速度 + 5 km/h</strong>——这就是伽利略速度叠加。但光不遵守这个规则。</p>
+      <p>1887 年，迈克尔逊和莫雷设计了一个精密的干涉实验，试图探测地球相对于"以太"的运动。结果令物理界震惊：<em>光速在所有方向上完全相同</em>，与光源和观察者的运动无关。这个"失败"的实验动摇了经典物理学的根基，也成为了爱因斯坦狭义相对论的实验基础。</p>
+      <div class="formula-box">
+        <div class="formula-main">c = 299,792,458 m/s（精确值）</div>
+        <div class="formula-note">光速是宇宙的速度极限 · 任何有质量的物体都无法达到光速</div>
+      </div>
+      <p>右侧动画对比了经典速度叠加与光速不变：上半部分是火车上跑步的人（速度可叠加），下半部分是火车上发出的光（速度不可叠加）。</p>
+    `,
+    caption: '经典速度叠加 vs 光速不变——宇宙最深的反直觉'
+  },
+  {
+    title: '光钟——最简单的时钟',
+    content: `
+      <p class="lead">想象两面平行的镜子，一束光在它们之间来回反射。这就是"光钟"。</p>
+      <p>每次光子从一面镜子弹到另一面再回来，就是一次"嘀嗒"。这是物理学中最简单、最精确的时钟——它的工作原理完全依赖于光速，而光速不变是宇宙的基本法则。</p>
+      <p>如果光钟静止不动，光子走的是<strong>垂直路径</strong>，往返距离为 2h（h 是镜子间距），往返时间为 Δt₀ = 2h/c。</p>
+      <div class="formula-box">
+        <div class="formula-main">Δt₀ = 2h / c</div>
+        <div class="formula-note">静止光钟的"嘀嗒"周期 · h 为镜子间距 · c 为光速</div>
+      </div>
+      <p>右侧展示了一个静止的光钟。金色光子在两面银色镜子之间垂直弹跳，旁边的计数器记录着嘀嗒次数。问题是：<em>如果这个光钟在运动，会发生什么？</em></p>
+    `,
+    caption: '静止的光钟——金色光子在银色镜子间垂直弹跳'
+  },
+  {
+    title: '运动的光钟——时间变慢了',
+    content: `
+      <p class="lead">关键的一步：当光钟以速度 v 水平运动时，静止观察者看到的光子路径变成了斜线。</p>
+      <p>光子不再垂直上下弹跳，而是走了一条更长的斜线路径。但光速不变——它依然是 c。路径变长了，速度不变，所以<em>往返时间必然变长</em>。这就是时间膨胀：运动的时钟走得比静止的时钟慢。</p>
+      <p>右侧并排展示静止光钟和运动光钟。注意运动光钟中光子走的斜线路径，以及虚线构成的直角三角形——它暗示了接下来的公式推导。拖动速度滑块，观察两个时钟的嘀嗒差距如何随速度增大。</p>
+      <div class="formula-box">
+        <div class="formula-main">运动的时钟变慢了</div>
+        <div class="formula-note">速度越快，斜线路径越长，时钟走得越慢</div>
+      </div>
+    `,
+    caption: '静止光钟 vs 运动光钟——斜线路径更长，时间更慢'
+  },
+  {
+    title: '公式的诞生——洛伦兹因子',
+    content: `
+      <p class="lead">用勾股定理，我们可以推导出时间膨胀的精确公式。</p>
+      <p>设静止光钟高度为 h。静止时往返时间 Δt₀ = 2h/c。运动时，光子走斜线，距离为 c·Δt/2，水平距离为 v·Δt/2。根据勾股定理：</p>
+      <div class="formula-box">
+        <div class="formula-main">(cΔt/2)² = (vΔt/2)² + h²</div>
+        <div class="formula-note">斜边² = 底边² + 高² · 代入 h = cΔt₀/2</div>
+      </div>
+      <p>代入 h = cΔt₀/2 并化简，得到：</p>
+      <div class="formula-box">
+        <div class="formula-main">Δt = Δt₀ / √(1 - v²/c²) = γ · Δt₀</div>
+        <div class="formula-note">γ = 1/√(1-v²/c²) 称为洛伦兹因子 · 当 v→c 时 γ→∞</div>
+      </div>
+      <p>右侧展示了推导过程和 γ 随速度变化的曲线。注意：当速度接近光速时，γ 急剧增大——这就是为什么<em>有质量的物体永远达不到光速</em>。</p>
+    `,
+    caption: '勾股定理推导时间膨胀公式 + 洛伦兹因子曲线'
+  },
+  {
+    title: '亲自体验——接近光速的世界',
+    content: `
+      <p class="lead">现在，轮到你来调节速度了。</p>
+      <p>把速度滑块拖到不同的位置，看看时间膨胀效应有多显著。右侧仪表盘实时显示当前速度、洛伦兹因子 γ 和时间膨胀比。</p>
+      <p>几个有趣的数值：</p>
+      <p>• <strong>v = 0.5c</strong>：γ ≈ 1.15，地球上过 1 年，飞船上过约 316 天<br>
+      • <strong>v = 0.9c</strong>：γ ≈ 2.29，地球上过 1 年，飞船上过约 159 天<br>
+      • <strong>v = 0.99c</strong>：γ ≈ 7.09，地球上过 7 年，飞船上只过 1 年<br>
+      • <strong>v = 0.999c</strong>：γ ≈ 22.4，地球上过 22 年，飞船上只过 1 年</p>
+      <p>当速度无限接近光速时，γ 趋向无穷大——<em>时间几乎停止</em>。但要将一个有质量的物体加速到光速，需要无穷大的能量，所以光速是不可逾越的宇宙极限。</p>
+    `,
+    caption: '互动仪表盘——调节速度，实时体验时间膨胀'
+  },
+  {
+    title: '真实的证据——时间膨胀真的存在',
+    content: `
+      <p class="lead">时间膨胀不只是理论——它已经被无数实验证实。</p>
+      <p><strong>μ 子衰变</strong>：宇宙射线在大气层顶部产生的 μ 子平均寿命仅 2.2 微秒，按经典物理计算只能飞行约 0.66 公里就会衰变。但它们实际产生在约 10 公里高空，地面探测器却大量捕获到它们——因为 μ 子以接近光速运动，时间膨胀使它们的寿命在地面参考系中延长了数倍。</p>
+      <p><strong>飞机载原子钟实验</strong>：1971 年，哈菲尔和基廷将铯原子钟放在商用飞机上绕地球飞行。落地后，飞行钟确实与地面钟产生了纳秒级差异，与相对论预测完全吻合。</p>
+      <div class="formula-box">
+        <div class="formula-main">GPS 卫星每天修正约 38 微秒</div>
+        <div class="formula-note">不考虑相对论修正，GPS 定位每天会偏差约 10 公里</div>
+      </div>
+      <p style="color: var(--physics-accent); font-weight: 500; font-family: var(--font-serif); font-style: italic; margin-top: 20px;">—— 时间膨胀不是幻觉，它是真实的。我们每个人乘坐飞机时，都在微小地"穿越时间"。</p>
+    `,
+    caption: 'μ 子衰变实验 + 飞机载原子钟实验——时间膨胀的实验证据'
+  }
+];
+
+// ===== Canvas 设置 =====
+const canvas = document.getElementById('demoCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+
+// roundRect polyfill（兼容旧版浏览器）
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'number') r = [r, r, r, r];
+    else if (Array.isArray(r) && r.length === 1) r = [r[0], r[0], r[0], r[0]];
+    this.beginPath();
+    this.moveTo(x + r[0], y);
+    this.lineTo(x + w - r[1], y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+    this.lineTo(x + w, y + h - r[2]);
+    this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+    this.lineTo(x + r[3], y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+    this.lineTo(x, y + r[0]);
+    this.quadraticCurveTo(x, y, x + r[0], y);
+    this.closePath();
+    return this;
+  };
+}
+
+// ===== 初始化星空 =====
+function initStars() {
+  state.stars = [];
+  for (let i = 0; i < 80; i++) {
+    state.stars.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.5 + 0.3,
+      twinkle: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.02 + 0.01
+    });
+  }
+}
+initStars();
+
+// ===== 绘制星空背景 =====
+function drawStarfield(opacity = 1) {
+  // 深空渐变背景
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, C.spaceDeep);
+  grad.addColorStop(0.5, C.spaceBg);
+  grad.addColorStop(1, C.spaceBgLight);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 星星
+  for (const star of state.stars) {
+    star.twinkle += star.speed;
+    const a = (Math.sin(star.twinkle) * 0.4 + 0.6) * opacity;
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 255, 255, ${a * 0.8})`;
+    ctx.fill();
+  }
+}
+
+// ===== 绘制浅色背景 =====
+function drawLightBg() {
+  ctx.fillStyle = '#faf8f5';
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ===== 绘制光子（带光晕）=====
+function drawPhoton(x, y, r = 6, color = C.gold) {
+  // 光晕
+  for (let i = 4; i > 0; i--) {
+    ctx.beginPath();
+    ctx.arc(x, y, r + i * 3, 0, Math.PI * 2);
+    const alpha = 0.15 / i;
+    ctx.fillStyle = color === C.gold ? `rgba(251, 191, 36, ${alpha})` : `rgba(34, 211, 238, ${alpha})`;
+    ctx.fill();
+  }
+  // 核心
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  // 高光
+  ctx.beginPath();
+  ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.4, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.fill();
+}
+
+// ===== 绘制镜子 =====
+function drawMirror(x, y, w, isTop = true) {
+  const h = 8;
+  // 玻璃质感
+  const grad = ctx.createLinearGradient(x, y, x, y + h);
+  if (isTop) {
+    grad.addColorStop(0, 'rgba(203, 213, 225, 0.9)');
+    grad.addColorStop(0.5, 'rgba(148, 163, 184, 0.7)');
+    grad.addColorStop(1, 'rgba(100, 116, 139, 0.5)');
+  } else {
+    grad.addColorStop(0, 'rgba(100, 116, 139, 0.5)');
+    grad.addColorStop(0.5, 'rgba(148, 163, 184, 0.7)');
+    grad.addColorStop(1, 'rgba(203, 213, 225, 0.9)');
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
+  // 反射线
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, isTop ? y + h : y);
+  ctx.lineTo(x + w, isTop ? y + h : y);
+  ctx.stroke();
+}
+
+// ===== Step 1: 光速不变对比 =====
+function renderStep1() {
+  drawStarfield(0.6);
+
+  const padX = 60;
+  const midY = H / 2;
+
+  // 分隔线
+  ctx.beginPath();
+  ctx.moveTo(20, midY);
+  ctx.lineTo(W - 20, midY);
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([8, 6]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ===== 上半部分：经典速度叠加 =====
+  const t1 = state.time * 60;
+  const trainW1 = 140;
+  const trainH = 50;
+  const trainX1 = ((t1 * 0.8) % (W + trainW1)) - trainW1;
+  const trainY1 = midY - 80;
+
+  // 地面
+  drawGround(20, trainY1 + trainH + 5, W - 40, C.textFaint);
+
+  // 火车
+  drawTrain(trainX1, trainY1, trainW1, trainH, C.cyan);
+
+  // 跑步的人
+  const personX = trainX1 + trainW1 / 2 + Math.sin(t1 * 0.05) * 15;
+  const personY = trainY1 - 15;
+  drawPerson(personX, personY, C.cyan);
+
+  // 速度箭头
+  drawArrow(trainX1 + trainW1 / 2, trainY1 + trainH + 20, trainX1 + trainW1 / 2 + 80, trainY1 + trainH + 20, C.cyan, 'v_火车');
+  drawArrow(personX, personY - 30, personX + 40, personY - 30, C.violet, 'v_人');
+  // 合速度
+  drawArrow(20, midY - 15, trainX1 + trainW1 / 2 + 40, midY - 15, C.gold, 'v_合 = v_火车 + v_人');
+
+  // 标签
+  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.cyan;
+  ctx.textAlign = 'left';
+  ctx.fillText('经典力学：速度可叠加', 20, 30);
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.textDim;
+  ctx.fillText('v_合 = v_火车 + v_人', 20, 48);
+
+  // ===== 下半部分：光速不变 =====
+  const t2 = state.time * 60;
+  const trainX2 = ((t2 * 0.8) % (W + trainW1)) - trainW1;
+  const trainY2 = midY + 35;
+
+  // 地面
+  drawGround(20, trainY2 + trainH + 5, W - 40, C.textFaint);
+
+  // 火车
+  drawTrain(trainX2, trainY2, trainW1, trainH, C.violet);
+
+  // 光束
+  const lightStartX = trainX2 + 10;
+  const lightEndX = trainX2 + trainW1 - 10;
+  const lightProgress = (Math.sin(t2 * 0.04) + 1) / 2;
+  const lightX = lightStartX + (lightEndX - lightStartX) * lightProgress;
+  const lightY = trainY2 + trainH / 2;
+
+  // 光束轨迹
+  ctx.beginPath();
+  ctx.moveTo(lightStartX, lightY);
+  ctx.lineTo(lightX, lightY);
+  ctx.strokeStyle = C.gold;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = C.gold;
+  ctx.shadowBlur = 10;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 光子
+  drawPhoton(lightX, lightY, 5);
+
+  // 速度箭头
+  drawArrow(trainX2 + trainW1 / 2, trainY2 + trainH + 20, trainX2 + trainW1 / 2 + 80, trainY2 + trainH + 20, C.violet, 'v_火车');
+
+  // 光速标注
+  drawArrow(lightStartX - 15, lightY, lightEndX + 15, lightY, C.gold, 'c（不变！）', false);
+
+  // 标签
+  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'left';
+  ctx.fillText('相对论：光速不变', 20, midY + 25);
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.textDim;
+  ctx.fillText('v_合 = c（不是 c + v_火车！）', 20, midY + 43);
+
+  // 叉号标注
+  ctx.font = 'bold 20px serif';
+  ctx.fillStyle = C.red;
+  ctx.textAlign = 'center';
+  ctx.fillText('✗', W - 40, midY - 10);
+  ctx.font = 'bold 20px serif';
+  ctx.fillStyle = C.green;
+  ctx.fillText('✓', W - 40, midY + 35);
+}
+
+function drawGround(x, y, w, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + w, y);
+  ctx.stroke();
+  // 斜线纹理
+  for (let i = 0; i < w; i += 12) {
+    ctx.beginPath();
+    ctx.moveTo(x + i, y);
+    ctx.lineTo(x + i - 6, y + 6);
+    ctx.strokeStyle = 'rgba(100, 116, 139, 0.2)';
+    ctx.stroke();
+  }
+}
+
+function drawTrain(x, y, w, h, color) {
+  // 车身
+  const grad = ctx.createLinearGradient(x, y, x, y + h);
+  grad.addColorStop(0, color + '40');
+  grad.addColorStop(1, color + '20');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, 6);
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 车窗
+  ctx.fillStyle = color + '30';
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.roundRect(x + 15 + i * 38, y + 10, 28, 20, 3);
+    ctx.fill();
+  }
+
+  // 轮子
+  ctx.fillStyle = color + '60';
+  ctx.beginPath();
+  ctx.arc(x + 25, y + h, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + w - 25, y + h, 6, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawPerson(x, y, color) {
+  // 简笔画人
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  // 头
+  ctx.beginPath();
+  ctx.arc(x, y - 8, 5, 0, Math.PI * 2);
+  ctx.stroke();
+  // 身体
+  ctx.beginPath();
+  ctx.moveTo(x, y - 3);
+  ctx.lineTo(x, y + 8);
+  ctx.stroke();
+  // 手臂（跑步姿态）
+  const armSwing = Math.sin(state.time * 8) * 4;
+  ctx.beginPath();
+  ctx.moveTo(x, y + 2);
+  ctx.lineTo(x - 6 + armSwing, y + 6);
+  ctx.moveTo(x, y + 2);
+  ctx.lineTo(x + 6 - armSwing, y + 6);
+  ctx.stroke();
+  // 腿（跑步姿态）
+  const legSwing = Math.sin(state.time * 8 + Math.PI) * 5;
+  ctx.beginPath();
+  ctx.moveTo(x, y + 8);
+  ctx.lineTo(x - 4 + legSwing, y + 16);
+  ctx.moveTo(x, y + 8);
+  ctx.lineTo(x + 4 - legSwing, y + 16);
+  ctx.stroke();
+}
+
+function drawArrow(x1, y1, x2, y2, color, label, withHead = true) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+
+  if (withHead) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const headLen = 8;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(angle - 0.4), y2 - headLen * Math.sin(angle - 0.4));
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(angle + 0.4), y2 - headLen * Math.sin(angle + 0.4));
+    ctx.stroke();
+  }
+
+  if (label) {
+    ctx.font = 'italic 12px "Noto Serif SC", serif';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    ctx.fillText(label, mx, my - 6);
+  }
+}
+
+// ===== Step 2: 静止光钟 =====
+function renderStep2() {
+  drawStarfield(0.8);
+
+  const cx = W / 2;
+  const mirrorW = 160;
+  const mirrorX = cx - mirrorW / 2;
+  const topY = 80;
+  const bottomY = H - 120;
+  const gap = bottomY - topY;
+
+  // 光钟框架标签
+  ctx.font = 'bold 14px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.silver;
+  ctx.textAlign = 'center';
+  ctx.fillText('光钟（静止）', cx, 40);
+
+  // 镜子
+  drawMirror(mirrorX, topY, mirrorW, true);
+  drawMirror(mirrorX, bottomY, mirrorW, false);
+
+  // 镜子标签
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.textDim;
+  ctx.textAlign = 'right';
+  ctx.fillText('镜子 A', mirrorX - 10, topY + 14);
+  ctx.fillText('镜子 B', mirrorX - 10, bottomY + 14);
+
+  // 高度标注
+  ctx.strokeStyle = C.textFaint;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(mirrorX + mirrorW + 20, topY + 4);
+  ctx.lineTo(mirrorX + mirrorW + 20, bottomY + 4);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // h 标注
+  ctx.font = 'italic 14px "Noto Serif SC", serif';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'left';
+  ctx.fillText('h', mirrorX + mirrorW + 30, (topY + bottomY) / 2);
+
+  // 光子动画
+  const period = 2.0; // 往返周期 2 秒
+  const phase = (state.time % period) / period;
+  let photonY;
+  if (phase < 0.5) {
+    // 下行
+    photonY = topY + 4 + (bottomY - topY - 8) * (phase * 2);
+  } else {
+    // 上行
+    photonY = bottomY - 4 - (bottomY - topY - 8) * ((phase - 0.5) * 2);
+  }
+
+  // 光路轨迹（淡）
+  ctx.beginPath();
+  ctx.moveTo(cx, topY + 4);
+  ctx.lineTo(cx, bottomY - 4);
+  ctx.strokeStyle = C.goldSoft;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 光子
+  drawPhoton(cx, photonY, 7);
+
+  // 计时器
+  const tickCount = Math.floor(state.time / period);
+  ctx.font = 'bold 28px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'center';
+  ctx.fillText(`嘀嗒：${tickCount}`, cx, H - 50);
+
+  ctx.font = '11px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.textDim;
+  ctx.fillText('每次光子往返 = 一次嘀嗒', cx, H - 28);
+
+  // 公式标注
+  ctx.font = '12px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.cyan;
+  ctx.textAlign = 'left';
+  ctx.fillText('Δt₀ = 2h / c', 30, H - 30);
+}
+
+// ===== Step 3: 运动光钟对比 =====
+function renderStep3() {
+  drawStarfield(0.7);
+
+  const beta = state.velocity;
+  const g = gamma(beta);
+
+  // 两个光钟并排
+  const clockW = 100;
+  const mirrorGap = 180;
+
+  // 静止光钟（左侧）
+  const sCx = W * 0.22;
+  const sTopY = 80;
+  const sBotY = sTopY + mirrorGap;
+
+  // 运动光钟（右侧）
+  const mCx0 = W * 0.65;
+  const mTopY = 80;
+  const mBotY = mTopY + mirrorGap;
+
+  // 运动光钟的水平位移
+  const moveRange = 100;
+  const movePhase = (state.time * 0.3) % 2;
+  let mOffset;
+  if (movePhase < 1) mOffset = movePhase * moveRange;
+  else mOffset = (2 - movePhase) * moveRange;
+  const mCx = mCx0 + mOffset;
+
+  // 标签
+  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.cyan;
+  ctx.textAlign = 'center';
+  ctx.fillText('静止光钟', sCx, 40);
+  ctx.fillStyle = C.violet;
+  ctx.fillText('运动光钟 (v = ' + beta.toFixed(2) + 'c)', mCx0 + moveRange / 2, 40);
+
+  // ===== 静止光钟 =====
+  drawMirror(sCx - clockW / 2, sTopY, clockW, true);
+  drawMirror(sCx - clockW / 2, sBotY, clockW, false);
+
+  // 光路
+  ctx.beginPath();
+  ctx.moveTo(sCx, sTopY + 4);
+  ctx.lineTo(sCx, sBotY - 4);
+  ctx.strokeStyle = C.cyanSoft;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 静止光子
+  const sPeriod = 2.0;
+  const sPhase = (state.time % sPeriod) / sPeriod;
+  let sPhotonY;
+  if (sPhase < 0.5) sPhotonY = sTopY + 4 + (mirrorGap - 8) * (sPhase * 2);
+  else sPhotonY = sBotY - 4 - (mirrorGap - 8) * ((sPhase - 0.5) * 2);
+  drawPhoton(sCx, sPhotonY, 6, C.cyan);
+
+  // ===== 运动光钟 =====
+  drawMirror(mCx - clockW / 2, mTopY, clockW, true);
+  drawMirror(mCx - clockW / 2, mBotY, clockW, false);
+
+  // 运动光子的位置（基于膨胀的时间）
+  const mPeriod = sPeriod * g; // 时间膨胀！
+  const mPhase = (state.time % mPeriod) / mPeriod;
+  let mPhotonY, mPhotonX;
+
+  // 计算光子位置：垂直方向 + 水平偏移
+  if (mPhase < 0.5) {
+    mPhotonY = mTopY + 4 + (mirrorGap - 8) * (mPhase * 2);
+  } else {
+    mPhotonY = mBotY - 4 - (mirrorGap - 8) * ((mPhase - 0.5) * 2);
+  }
+  mPhotonX = mCx;
+
+  // 斜线光路
+  ctx.beginPath();
+  ctx.moveTo(mCx, mTopY + 4);
+  ctx.lineTo(mPhotonX, mPhotonY);
+  ctx.strokeStyle = C.violetSoft;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 绘制直角三角形（虚线）
+  const triAlpha = 0.4;
+  ctx.strokeStyle = `rgba(251, 191, 36, ${triAlpha})`;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+
+  // 斜边：从镜子到光子当前位置（近似）
+  // 为了清晰，画一个固定的示意三角形
+  const triBase = 60 * beta; // 水平边
+  const triHeight = mirrorGap / 2;
+  const triCx = mCx0 + moveRange / 2;
+  const triStartY = mTopY + 4;
+
+  // 水平虚线（底边 vΔt/2）
+  ctx.beginPath();
+  ctx.moveTo(triCx - triBase / 2, triStartY + triHeight);
+  ctx.lineTo(triCx + triBase / 2, triStartY + triHeight);
+  ctx.stroke();
+
+  // 垂直虚线（高 h）
+  ctx.beginPath();
+  ctx.moveTo(triCx - triBase / 2, triStartY);
+  ctx.lineTo(triCx - triBase / 2, triStartY + triHeight);
+  ctx.stroke();
+
+  // 斜边虚线（cΔt/2）
+  ctx.beginPath();
+  ctx.moveTo(triCx - triBase / 2, triStartY);
+  ctx.lineTo(triCx + triBase / 2, triStartY + triHeight);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 三角形标注
+  ctx.font = 'italic 11px "Noto Serif SC", serif';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'left';
+  ctx.fillText('h', triCx - triBase / 2 - 12, triStartY + triHeight / 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('vΔt/2', triCx, triStartY + triHeight + 16);
+  ctx.fillText('cΔt/2', triCx + triBase / 2 + 15, triStartY + triHeight / 2);
+
+  // 运动光子
+  drawPhoton(mPhotonX, mPhotonY, 6, C.violet);
+
+  // 速度箭头
+  drawArrow(mCx - clockW / 2 - 30, mBotY + 25, mCx - clockW / 2 + 30, mBotY + 25, C.violet, 'v');
+
+  // ===== 时间对比 =====
+  const sTicks = Math.floor(state.time / sPeriod);
+  const mTicks = Math.floor(state.time / mPeriod);
+
+  ctx.font = 'bold 20px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.cyan;
+  ctx.textAlign = 'center';
+  ctx.fillText(`嘀嗒 ${sTicks}`, sCx, sBotY + 50);
+  ctx.fillStyle = C.violet;
+  ctx.fillText(`嘀嗒 ${mTicks}`, mCx0 + moveRange / 2, mBotY + 50);
+
+  // 对比文字
+  ctx.font = '12px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.textDim;
+  ctx.fillText(`静止时钟走了 ${sTicks} 嗒`, sCx, sBotY + 72);
+  ctx.fillText(`运动时钟只走了 ${mTicks} 嗒`, mCx0 + moveRange / 2, mBotY + 72);
+
+  // γ 值
+  ctx.font = 'bold 14px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'right';
+  ctx.fillText(`γ = ${g.toFixed(3)}`, W - 30, H - 30);
+}
+
+// ===== Step 4: 公式推导 + γ 曲线 =====
+function renderStep4() {
+  drawStarfield(0.5);
+
+  const beta = state.velocity;
+  const g = gamma(beta);
+
+  // ===== 左侧：直角三角形 =====
+  const triAreaW = W * 0.42;
+  const triCx = triAreaW * 0.5;
+  const triBaseY = H * 0.65;
+  const triBaseLen = 120 * Math.max(beta, 0.15);
+  const triHeight = 140;
+
+  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'center';
+  ctx.fillText('几何推导', triCx, 35);
+
+  // 三角形
+  const p1 = { x: triCx - triBaseLen / 2, y: triBaseY - triHeight }; // 左上
+  const p2 = { x: triCx - triBaseLen / 2, y: triBaseY }; // 左下
+  const p3 = { x: triCx + triBaseLen / 2, y: triBaseY }; // 右下
+
+  // 填充
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y);
+  ctx.lineTo(p2.x, p2.y);
+  ctx.lineTo(p3.x, p3.y);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.06)';
+  ctx.fill();
+
+  // 高（垂直边）- cyan
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y);
+  ctx.lineTo(p2.x, p2.y);
+  ctx.strokeStyle = C.cyan;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // 底边（水平边）- violet
+  ctx.beginPath();
+  ctx.moveTo(p2.x, p2.y);
+  ctx.lineTo(p3.x, p3.y);
+  ctx.strokeStyle = C.violet;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // 斜边 - gold
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y);
+  ctx.lineTo(p3.x, p3.y);
+  ctx.strokeStyle = C.gold;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = C.gold;
+  ctx.shadowBlur = 8;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 标注
+  ctx.font = 'italic 13px "Noto Serif SC", serif';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.cyan;
+  ctx.fillText('h = cΔt₀/2', p1.x - 8, (p1.y + p2.y) / 2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.violet;
+  ctx.fillText('vΔt/2', (p2.x + p3.x) / 2, p2.y + 20);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = C.gold;
+  ctx.fillText('cΔt/2', p3.x + 8, (p1.y + p3.y) / 2);
+
+  // 直角标记
+  ctx.strokeStyle = C.textDim;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(p2.x + 8, p2.y);
+  ctx.lineTo(p2.x + 8, p2.y - 8);
+  ctx.lineTo(p2.x, p2.y - 8);
+  ctx.stroke();
+
+  // ===== 右侧：γ 曲线 =====
+  const curveX = triAreaW + 40;
+  const curveW = W - curveX - 30;
+  const curveY = 60;
+  const curveH = H * 0.55;
+
+  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'center';
+  ctx.fillText('洛伦兹因子 γ 曲线', curveX + curveW / 2, 35);
+
+  // 坐标轴
+  ctx.strokeStyle = C.textFaint;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(curveX, curveY + curveH);
+  ctx.lineTo(curveX + curveW, curveY + curveH);
+  ctx.moveTo(curveX, curveY);
+  ctx.lineTo(curveX, curveY + curveH);
+  ctx.stroke();
+
+  // 轴标签
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.textDim;
+  ctx.textAlign = 'center';
+  ctx.fillText('v/c', curveX + curveW, curveY + curveH + 18);
+  ctx.textAlign = 'right';
+  ctx.fillText('γ', curveX - 5, curveY + 8);
+
+  // γ 曲线
+  const maxGamma = 5;
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const b = i / 200;
+    const gg = gamma(b);
+    const px = curveX + b * curveW;
+    const py = curveY + curveH - Math.min(gg / maxGamma, 1) * curveH;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.strokeStyle = C.gold;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = C.gold;
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 当前位置标记
+  const curX = curveX + beta * curveW;
+  const curY = curveY + curveH - Math.min(g / maxGamma, 1) * curveH;
+
+  // 垂直辅助线
+  ctx.beginPath();
+  ctx.moveTo(curX, curveY + curveH);
+  ctx.lineTo(curX, curY);
+  ctx.strokeStyle = 'rgba(167, 139, 250, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 当前点
+  drawPhoton(curX, curY, 6);
+
+  // 当前值
+  ctx.font = 'bold 14px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'left';
+  ctx.fillText(`γ = ${g.toFixed(3)}`, curX + 12, curY - 8);
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.violet;
+  ctx.fillText(`v/c = ${beta.toFixed(3)}`, curX + 12, curY + 8);
+
+  // 关键点标注
+  const keyPoints = [
+    { b: 0, label: '1' },
+    { b: 0.5, label: '1.15' },
+    { b: 0.866, label: '2' },
+    { b: 0.9, label: '2.29' },
+    { b: 0.99, label: '7.09' },
+  ];
+  ctx.font = '9px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.textDim;
+  ctx.textAlign = 'center';
+  for (const kp of keyPoints) {
+    const kx = curveX + kp.b * curveW;
+    const ky = curveY + curveH - Math.min(gamma(kp.b) / maxGamma, 1) * curveH;
+    ctx.beginPath();
+    ctx.arc(kx, ky, 2, 0, Math.PI * 2);
+    ctx.fillStyle = C.textFaint;
+    ctx.fill();
+  }
+
+  // ===== 底部：公式推导 =====
+  const formulaY = H * 0.72;
+  ctx.font = 'bold 15px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.white;
+  ctx.textAlign = 'center';
+  ctx.fillText('(cΔt/2)² = (vΔt/2)² + h²', W / 2, formulaY);
+
+  ctx.font = '13px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.textDim;
+  ctx.fillText('代入 h = cΔt₀/2 并化简：', W / 2, formulaY + 25);
+
+  ctx.font = 'bold 18px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.gold;
+  ctx.fillText('Δt = γ · Δt₀', W / 2, formulaY + 55);
+
+  ctx.font = '12px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.textDim;
+  ctx.fillText('γ = 1/√(1 - v²/c²)', W / 2, formulaY + 78);
+}
+
+// ===== Step 5: 互动仪表盘 =====
+function renderStep5() {
+  drawStarfield(0.4);
+
+  const beta = state.dashboardV;
+  const g = gamma(beta);
+
+  // 蓝移效果
+  if (beta > 0.5) {
+    const blueShift = (beta - 0.5) / 0.5;
+    ctx.fillStyle = `rgba(34, 211, 238, ${blueShift * 0.05})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  const cx = W / 2;
+  const cy = H * 0.42;
+
+  // ===== 速度表盘 =====
+  const gaugeR = 130;
+  const gaugeStart = Math.PI * 0.8;
+  const gaugeEnd = Math.PI * 2.2;
+  const gaugeRange = gaugeEnd - gaugeStart;
+
+  // 背景弧
+  ctx.beginPath();
+  ctx.arc(cx, cy, gaugeR, gaugeStart, gaugeEnd);
+  ctx.strokeStyle = 'rgba(100, 116, 139, 0.3)';
+  ctx.lineWidth = 16;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // 渐变弧
+  const grad = ctx.createLinearGradient(cx - gaugeR, cy, cx + gaugeR, cy);
+  grad.addColorStop(0, C.cyan);
+  grad.addColorStop(0.5, C.gold);
+  grad.addColorStop(1, C.red);
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, gaugeR, gaugeStart, gaugeStart + gaugeRange * beta);
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 16;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // 刻度
+  for (let i = 0; i <= 10; i++) {
+    const angle = gaugeStart + gaugeRange * (i / 10);
+    const r1 = gaugeR - 22;
+    const r2 = gaugeR - 12;
+    ctx.beginPath();
+    ctx.moveTo(cx + r1 * Math.cos(angle), cy + r1 * Math.sin(angle));
+    ctx.lineTo(cx + r2 * Math.cos(angle), cy + r2 * Math.sin(angle));
+    ctx.strokeStyle = C.textDim;
+    ctx.lineWidth = i % 5 === 0 ? 2 : 1;
+    ctx.stroke();
+
+    if (i % 5 === 0) {
+      const lr = gaugeR - 35;
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.fillStyle = C.textDim;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText((i / 10).toFixed(1) + 'c', cx + lr * Math.cos(angle), cy + lr * Math.sin(angle));
+    }
+  }
+  ctx.textBaseline = 'alphabetic';
+
+  // 指针
+  const needleAngle = gaugeStart + gaugeRange * beta;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + (gaugeR - 25) * Math.cos(needleAngle), cy + (gaugeR - 25) * Math.sin(needleAngle));
+  ctx.strokeStyle = C.gold;
+  ctx.lineWidth = 3;
+  ctx.shadowColor = C.gold;
+  ctx.shadowBlur = 8;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 中心圆
+  ctx.beginPath();
+  ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+  ctx.fillStyle = C.gold;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = C.spaceDeep;
+  ctx.fill();
+
+  // ===== 数据显示 =====
+  const dataY = H * 0.68;
+  const colW = W / 3;
+
+  // v/c
+  drawDataCell(colW * 0.5, dataY, '速度 v/c', beta.toFixed(4) + 'c', C.violet);
+  // γ
+  drawDataCell(colW * 1.5, dataY, '洛伦兹因子 γ', g.toFixed(3), C.gold);
+  // 时间比
+  drawDataCell(colW * 2.5, dataY, '时间膨胀比', (1/g).toFixed(4), C.cyan);
+
+  // ===== 地球 vs 飞船对比 =====
+  const compareY = H - 55;
+  const earthYears = 1;
+  const shipYears = earthYears / g;
+  const shipDays = shipYears * 365;
+
+  ctx.font = '12px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.cyan;
+  ctx.textAlign = 'center';
+  ctx.fillText(`地球过 ${earthYears} 年`, cx - 100, compareY);
+  ctx.fillStyle = C.white;
+  ctx.font = 'bold 16px "Noto Serif SC", serif';
+  ctx.fillText('=', cx, compareY);
+  ctx.font = '12px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.gold;
+  ctx.fillText(`飞船过 ${shipDays.toFixed(1)} 天`, cx + 100, compareY);
+
+  // 极速警告
+  if (beta > 0.95) {
+    ctx.font = 'italic 11px "Noto Serif SC", serif';
+    ctx.fillStyle = C.red;
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠ 接近光速——时间几乎停止', cx, compareY + 20);
+  }
+}
+
+function drawDataCell(cx, cy, label, value, color) {
+  const w = 120, h = 50;
+  ctx.fillStyle = 'rgba(30, 41, 59, 0.6)';
+  ctx.beginPath();
+  ctx.roundRect(cx - w/2, cy - h/2, w, h, 8);
+  ctx.fill();
+  ctx.strokeStyle = color + '40';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.font = '10px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.textDim;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, cx, cy - 10);
+
+  ctx.font = 'bold 16px "JetBrains Mono", monospace';
+  ctx.fillStyle = color;
+  ctx.fillText(value, cx, cy + 12);
+}
+
+// ===== Step 6: 实验证据 =====
+function renderStep6() {
+  drawStarfield(0.5);
+
+  const midY = H / 2;
+
+  // 分隔线
+  ctx.beginPath();
+  ctx.moveTo(20, midY);
+  ctx.lineTo(W - 20, midY);
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([8, 6]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ===== 上半部分：μ 子衰变 =====
+  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.cyan;
+  ctx.textAlign = 'left';
+  ctx.fillText('μ 子衰变实验', 25, 25);
+
+  // 大气层
+  const atmosTop = 45;
+  const atmosBot = midY - 15;
+  const atmosGrad = ctx.createLinearGradient(0, atmosTop, 0, atmosBot);
+  atmosGrad.addColorStop(0, 'rgba(34, 211, 238, 0.05)');
+  atmosGrad.addColorStop(1, 'rgba(34, 211, 238, 0.02)');
+  ctx.fillStyle = atmosGrad;
+  ctx.fillRect(25, atmosTop, W - 50, atmosBot - atmosTop);
+
+  // 大气层标签
+  ctx.font = '9px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.textFaint;
+  ctx.textAlign = 'left';
+  ctx.fillText('~10 km', 30, atmosTop + 15);
+  ctx.fillText('大气层', 30, atmosBot - 5);
+
+  // 地面线
+  ctx.strokeStyle = C.textFaint;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(25, atmosBot);
+  ctx.lineTo(W - 25, atmosBot);
+  ctx.stroke();
+  ctx.fillStyle = C.textFaint;
+  ctx.font = '9px "JetBrains Mono", monospace';
+  ctx.fillText('地面探测器', W - 80, atmosBot + 14);
+
+  // 宇宙射线
+  const cosmicX = 80;
+  const cosmicPhase = (state.time * 0.5) % 1;
+  drawArrow(cosmicX, atmosTop - 5, cosmicX, atmosTop + 10, C.violet, '');
+
+  // μ 子产生点
+  ctx.beginPath();
+  ctx.arc(cosmicX, atmosTop + 15, 5, 0, Math.PI * 2);
+  ctx.fillStyle = C.cyan;
+  ctx.fill();
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.cyan;
+  ctx.textAlign = 'center';
+  ctx.fillText('μ⁻', cosmicX, atmosTop + 12);
+
+  // 经典路径（短，衰变）
+  const classicEnd = atmosTop + 30;
+  ctx.beginPath();
+  ctx.moveTo(cosmicX, atmosTop + 15);
+  ctx.lineTo(cosmicX, classicEnd);
+  ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 衰变 X 标记
+  ctx.font = 'bold 12px serif';
+  ctx.fillStyle = C.red;
+  ctx.textAlign = 'center';
+  ctx.fillText('✗ 衰变', cosmicX + 30, classicEnd + 3);
+  ctx.font = '9px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.textDim;
+  ctx.fillText('经典预期：0.66 km', cosmicX + 45, classicEnd + 16);
+
+  // 实际路径（长，到达地面）
+  const actualEnd = atmosBot - 5;
+  const muonProgress = ((state.time * 0.3) % 1);
+  const muonY = atmosTop + 15 + (actualEnd - atmosTop - 15) * muonProgress;
+
+  ctx.beginPath();
+  ctx.moveTo(cosmicX + 80, atmosTop + 15);
+  ctx.lineTo(cosmicX + 80, muonY);
+  ctx.strokeStyle = C.cyan;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = C.cyan;
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // μ 子
+  drawPhoton(cosmicX + 80, muonY, 5, C.cyan);
+
+  ctx.font = '10px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.green;
+  ctx.textAlign = 'left';
+  ctx.fillText('✓ 到达地面', cosmicX + 100, actualEnd - 5);
+  ctx.fillStyle = C.textDim;
+  ctx.font = '9px "Noto Sans SC", sans-serif';
+  ctx.fillText('实际：~10 km（时间膨胀）', cosmicX + 100, actualEnd + 10);
+
+  // γ 标注
+  ctx.font = 'bold 11px "JetBrains Mono", monospace';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'right';
+  ctx.fillText('v ≈ 0.99c, γ ≈ 7', W - 35, atmosTop + 30);
+
+  // ===== 下半部分：飞机载原子钟 =====
+  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.violet;
+  ctx.textAlign = 'left';
+  ctx.fillText('飞机载原子钟实验 (1971)', 25, midY + 20);
+
+  // 地球
+  const earthCx = W * 0.35;
+  const earthCy = midY + 100;
+  const earthR = 50;
+
+  ctx.beginPath();
+  ctx.arc(earthCx, earthCy, earthR, 0, Math.PI * 2);
+  const earthGrad = ctx.createRadialGradient(earthCx - 15, earthCy - 15, 5, earthCx, earthCy, earthR);
+  earthGrad.addColorStop(0, 'rgba(34, 211, 238, 0.3)');
+  earthGrad.addColorStop(0.5, 'rgba(30, 41, 59, 0.5)');
+  earthGrad.addColorStop(1, 'rgba(15, 23, 42, 0.8)');
+  ctx.fillStyle = earthGrad;
+  ctx.fill();
+  ctx.strokeStyle = C.cyan + '40';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.font = '10px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.cyan;
+  ctx.textAlign = 'center';
+  ctx.fillText('地球', earthCx, earthCy + 5);
+
+  // 飞机轨道
+  const orbitR = earthR + 25;
+  ctx.beginPath();
+  ctx.arc(earthCx, earthCy, orbitR, 0, Math.PI * 2);
+  ctx.strokeStyle = C.violet + '30';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 飞机
+  const planeAngle = state.time * 0.8;
+  const planeX = earthCx + orbitR * Math.cos(planeAngle);
+  const planeY = earthCy + orbitR * Math.sin(planeAngle);
+  drawPlane(planeX, planeY, planeAngle, C.violet);
+
+  // 地面钟
+  const groundClockX = earthCx;
+  const groundClockY = earthCy + earthR + 15;
+  drawClock(groundClockX, groundClockY, '地面钟', C.cyan, state.time * 0.5);
+
+  // 飞机钟
+  drawClock(planeX + 20, planeY - 20, '飞行钟', C.violet, state.time * 0.5 * 0.999);
+
+  // 数据对比
+  const dataX = W * 0.72;
+  const dataY = midY + 35;
+
+  ctx.font = 'bold 12px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.white;
+  ctx.textAlign = 'left';
+  ctx.fillText('实验结果：', dataX, dataY);
+
+  ctx.font = '11px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = C.textDim;
+  ctx.fillText('• 向东飞行：慢了 59 ns', dataX, dataY + 22);
+  ctx.fillStyle = C.gold;
+  ctx.fillText('（与狭义相对论一致）', dataX + 10, dataY + 38);
+  ctx.fillStyle = C.textDim;
+  ctx.fillText('• 向西飞行：快了 273 ns', dataX, dataY + 58);
+  ctx.fillStyle = C.gold;
+  ctx.fillText('（含广义相对论效应）', dataX + 10, dataY + 74);
+
+  // 底部总结
+  ctx.font = 'italic 11px "Noto Serif SC", serif';
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'center';
+  ctx.fillText('GPS 卫星若不考虑相对论修正，每天会偏差约 10 公里', W / 2, H - 25);
+}
+
+function drawPlane(x, y, angle, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle + Math.PI / 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.fillStyle = color + '30';
+  // 机身
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 4, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  // 机翼
+  ctx.beginPath();
+  ctx.moveTo(-8, 0);
+  ctx.lineTo(8, 0);
+  ctx.stroke();
+  // 尾翼
+  ctx.beginPath();
+  ctx.moveTo(-3, 7);
+  ctx.lineTo(3, 7);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawClock(x, y, label, color, time) {
+  const r = 14;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 指针
+  const handAngle = time % (Math.PI * 2);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + (r - 4) * Math.sin(handAngle), y - (r - 4) * Math.cos(handAngle));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 中心点
+  ctx.beginPath();
+  ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+
+  // 标签
+  ctx.font = '9px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x, y + r + 12);
+}
+
+// ===== 渲染分发 =====
+function render() {
+  switch (state.currentStep) {
+    case 0: renderStep1(); break;
+    case 1: renderStep2(); break;
+    case 2: renderStep3(); break;
+    case 3: renderStep4(); break;
+    case 4: renderStep5(); break;
+    case 5: renderStep6(); break;
+  }
+}
+
+// ===== 动画循环 =====
+let lastTime = 0;
+function animate(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  const dt = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
+  state.time += dt;
+  render();
+
+  // 自动播放进度
+  if (state.isAutoPlaying) {
+    if (state.autoPlayStartTime === 0) state.autoPlayStartTime = timestamp;
+    const elapsed = timestamp - state.autoPlayStartTime;
+    const progress = Math.min(elapsed / AUTO_PLAY_DURATION, 1);
+    document.getElementById('autoPlayProgress').style.width = `${progress * 100}%`;
+
+    if (progress >= 1) {
+      if (state.currentStep < steps.length - 1) {
+        state.currentStep++;
+        updateStep();
+        state.autoPlayStartTime = timestamp;
+      } else {
+        toggleAutoPlay();
+      }
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+// ===== 步骤导航 =====
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDots = document.querySelectorAll('.step-dot');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const visualCaption = document.getElementById('visualCaption');
+const canvasWrapper = document.getElementById('canvasWrapper');
+
+function updateStep() {
+  stepContent.classList.add('fade-out');
+  canvasWrapper.classList.add('switching');
+
+  setTimeout(() => {
+    const step = steps[state.currentStep];
+    stepContent.innerHTML = `<h3>${step.title}</h3>${step.content}`;
+    stepContent.classList.remove('fade-out');
+    stepContent.classList.add('fade-in');
+    setTimeout(() => stepContent.classList.remove('fade-in'), 300);
+    canvasWrapper.classList.remove('switching');
+  }, 200);
+
+  stepLabel.textContent = `第 ${state.currentStep + 1} / ${steps.length} 步`;
+
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === state.currentStep) dot.classList.add('active');
+    else if (i < state.currentStep) dot.classList.add('completed');
+  });
+
+  prevBtn.disabled = state.currentStep === 0;
+  prevBtn.style.opacity = state.currentStep === 0 ? '0.5' : '1';
+  prevBtn.style.cursor = state.currentStep === 0 ? 'not-allowed' : 'pointer';
+  nextBtn.innerHTML = state.currentStep === steps.length - 1
+    ? '完成 ✓'
+    : '下一步 <span>→</span>';
+
+  visualCaption.textContent = steps[state.currentStep] ? steps[state.currentStep].caption : '';
+  state.autoPlayStartTime = 0;
+  updateControls();
+}
+
+prevBtn.addEventListener('click', () => {
+  if (state.currentStep > 0) { state.currentStep--; updateStep(); }
+});
+
+nextBtn.addEventListener('click', () => {
+  if (state.currentStep < steps.length - 1) { state.currentStep++; updateStep(); }
+});
+
+stepDots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const s = parseInt(dot.dataset.step);
+    if (s !== state.currentStep) { state.currentStep = s; updateStep(); }
+  });
+});
+
+// ===== 自动播放 =====
+const autoPlayBtn = document.getElementById('autoPlayBtn');
+const autoPlayProgress = document.getElementById('autoPlayProgress');
+
+function toggleAutoPlay() {
+  state.isAutoPlaying = !state.isAutoPlaying;
+  if (state.isAutoPlaying) {
+    autoPlayBtn.classList.add('playing');
+    autoPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+    state.autoPlayStartTime = 0;
+  } else {
+    autoPlayBtn.classList.remove('playing');
+    autoPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    autoPlayProgress.style.width = '0%';
+  }
+}
+
+autoPlayBtn.addEventListener('click', toggleAutoPlay);
+
+// ===== 控件渲染 =====
+const controlsPanel = document.getElementById('visualControls');
+
+function updateControls() {
+  const step = state.currentStep;
+  let html = '';
+
+  if (step === 0) {
+    html = `
+      <div style="font-size: var(--fs-small); color: var(--text-muted); line-height: 1.7; padding: 8px 0;">
+        上方：火车上跑步的人——速度可叠加（经典力学）。<br>
+        下方：火车上发出的光——速度不可叠加（相对论）。<br>
+        <em style="color: #b45309;">光速 c 是宇宙的速度极限，与观察者的运动无关。</em>
+      </div>
+    `;
+  } else if (step === 1) {
+    html = `
+      <div style="font-size: var(--fs-small); color: var(--text-muted); line-height: 1.7; padding: 8px 0;">
+        金色光子在两面银色镜子之间垂直弹跳。<br>
+        每次往返就是一次"嘀嗒"——这是最简单、最精确的时钟。<br>
+        <em style="color: #b45309;">如果这个光钟在运动，会发生什么？</em>
+      </div>
+    `;
+  } else if (step === 2) {
+    html = `
+      <div class="control-group">
+        <div class="control-label">
+          <span>运动速度 v/c</span>
+          <span class="control-value" id="velValue">${state.velocity.toFixed(3)}c</span>
+        </div>
+        <input type="range" id="velSlider" min="0" max="0.99" step="0.01" value="${state.velocity}">
+      </div>
+      <div style="font-size: var(--fs-small); color: var(--text-muted); line-height: 1.6; padding: 8px 0;">
+        左侧静止光钟正常计时，右侧运动光钟走得更慢。<br>
+        虚线三角形暗示了勾股定理——下一步将用它推导公式。<br>
+        <em style="color: #b45309;">γ = ${gamma(state.velocity).toFixed(3)}——速度越快，差距越大。</em>
+      </div>
+    `;
+  } else if (step === 3) {
+    html = `
+      <div class="control-group">
+        <div class="control-label">
+          <span>运动速度 v/c</span>
+          <span class="control-value" id="velValue">${state.velocity.toFixed(3)}c</span>
+        </div>
+        <input type="range" id="velSlider" min="0" max="0.99" step="0.01" value="${state.velocity}">
+      </div>
+      <div style="font-size: var(--fs-small); color: var(--text-muted); line-height: 1.6; padding: 8px 0;">
+        拖动滑块改变速度，观察 γ 曲线上的点如何移动。<br>
+        <em style="color: #b45309;">当 v→c 时，γ→∞——有质量的物体永远达不到光速。</em>
+      </div>
+    `;
+  } else if (step === 4) {
+    html = `
+      <div class="control-group">
+        <div class="control-label">
+          <span>飞船速度 v/c</span>
+          <span class="control-value" id="dashVelValue">${state.dashboardV.toFixed(3)}c</span>
+        </div>
+        <input type="range" id="dashVelSlider" min="0" max="0.999" step="0.001" value="${state.dashboardV}">
+      </div>
+      <div class="preset-buttons">
+        <button class="preset-btn" data-v="0.1">0.1c</button>
+        <button class="preset-btn" data-v="0.5">0.5c</button>
+        <button class="preset-btn" data-v="0.9">0.9c</button>
+        <button class="preset-btn" data-v="0.99">0.99c</button>
+        <button class="preset-btn" data-v="0.999">0.999c</button>
+      </div>
+      <div class="data-display">
+        <div class="data-cell">
+          <div class="data-cell-label">洛伦兹因子 γ</div>
+          <div class="data-cell-value" id="gammaDisplay">${gamma(state.dashboardV).toFixed(3)}</div>
+        </div>
+        <div class="data-cell">
+          <div class="data-cell-label">时间膨胀比</div>
+          <div class="data-cell-value gold" id="ratioDisplay">${(1/gamma(state.dashboardV)).toFixed(4)}</div>
+        </div>
+      </div>
+      <div class="highlight-box">
+        <div class="highlight-value" id="compareDisplay">地球 1 年 = 飞船 ${(365/gamma(state.dashboardV)).toFixed(1)} 天</div>
+        <div class="highlight-label">时间膨胀效应</div>
+      </div>
+    `;
+  } else if (step === 5) {
+    html = `
+      <div style="font-size: var(--fs-small); color: var(--text-muted); line-height: 1.7; padding: 8px 0;">
+        <strong style="color: var(--physics-accent);">μ 子衰变</strong>：寿命 2.2μs 的 μ 子以 0.99c 运动，γ≈7，实际飞行距离延长 7 倍，到达地面。<br>
+        <strong style="color: var(--physics-accent);">原子钟实验</strong>：1971 年飞机载铯原子钟绕地球飞行，落地后与地面钟产生纳秒级差异。<br>
+        <strong style="color: var(--physics-accent);">GPS 修正</strong>：卫星每天修正约 38 微秒，否则定位偏差 10 公里/天。<br>
+        <em style="color: #b45309; display: block; margin-top: 8px;">时间膨胀不是幻觉——它是真实的物理效应。</em>
+      </div>
+    `;
+  }
+
+  controlsPanel.innerHTML = html;
+  attachControlListeners();
+}
+
+// ===== 控件事件绑定 =====
+function attachControlListeners() {
+  const step = state.currentStep;
+
+  // Step 3 & 4: 速度滑块
+  const velSlider = document.getElementById('velSlider');
+  if (velSlider) {
+    velSlider.addEventListener('input', e => {
+      state.velocity = parseFloat(e.target.value);
+      const valEl = document.getElementById('velValue');
+      if (valEl) valEl.textContent = state.velocity.toFixed(3) + 'c';
+    });
+  }
+
+  // Step 5: 仪表盘速度滑块
+  const dashVelSlider = document.getElementById('dashVelSlider');
+  if (dashVelSlider) {
+    dashVelSlider.addEventListener('input', e => {
+      state.dashboardV = parseFloat(e.target.value);
+      const g = gamma(state.dashboardV);
+      document.getElementById('dashVelValue').textContent = state.dashboardV.toFixed(3) + 'c';
+      document.getElementById('gammaDisplay').textContent = g.toFixed(3);
+      document.getElementById('ratioDisplay').textContent = (1/g).toFixed(4);
+      document.getElementById('compareDisplay').textContent = `地球 1 年 = 飞船 ${(365/g).toFixed(1)} 天`;
+      // 取消预设激活
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    });
+  }
+
+  // Step 5: 预设速度按钮
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = parseFloat(btn.dataset.v);
+      state.dashboardV = v;
+      const g = gamma(v);
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      dashVelSlider.value = v;
+      document.getElementById('dashVelValue').textContent = v.toFixed(3) + 'c';
+      document.getElementById('gammaDisplay').textContent = g.toFixed(3);
+      document.getElementById('ratioDisplay').textContent = (1/g).toFixed(4);
+      document.getElementById('compareDisplay').textContent = `地球 1 年 = 飞船 ${(365/g).toFixed(1)} 天`;
+    });
+  });
+}
+
+// ===== 导航栏滚动效果 =====
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ===== 初始化 =====
+updateStep();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>

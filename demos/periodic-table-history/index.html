@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>元素周期表发展史 · 景礴</title>
+  <link rel="stylesheet" href="/assets/css/design-system.css">
+  <link rel="stylesheet" href="/assets/css/demo-framework.css">
+  <style>
+    /* ===== 周期表发展史 Demo 专属样式 ===== */
+    :root {
+      --pt-primary: #0d9488;
+      --pt-primary-light: #14b8a6;
+      --pt-primary-dark: #0f766e;
+      --pt-primary-soft: rgba(13, 148, 136, 0.1);
+      --pt-accent: #f59e0b;
+      --pt-accent-light: #fbbf24;
+      --pt-accent-soft: rgba(245, 158, 11, 0.1);
+      --pt-bg: #faf8f5;
+      --pt-s: #10b981;
+      --pt-s-soft: rgba(16, 185, 129, 0.15);
+      --pt-s-text: #047857;
+      --pt-p: #3b82f6;
+      --pt-p-soft: rgba(59, 130, 246, 0.15);
+      --pt-p-text: #1e40af;
+      --pt-d: #f59e0b;
+      --pt-d-soft: rgba(245, 158, 11, 0.15);
+      --pt-d-text: #92400e;
+      --pt-f: #ec4899;
+      --pt-f-soft: rgba(236, 72, 153, 0.15);
+      --pt-f-text: #9d174d;
+      --pt-unknown: #d1d5db;
+      --pt-vintage-bg: #f5efe3;
+      --pt-vintage-border: #c4b5a0;
+      --pt-vintage-text: #5c4a32;
+    }
+
+    body {
+      background: var(--pt-bg);
+      overflow-x: hidden;
+    }
+
+    /* 覆盖品牌色为铜绿 */
+    .magazine-kicker { color: var(--pt-primary); }
+    .magazine-step-dot.active {
+      background-color: var(--pt-primary);
+      box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.15);
+    }
+    .magazine-step-dot.completed { background-color: var(--pt-accent); }
+    .magazine-theorem-box {
+      background: linear-gradient(135deg, rgba(13,148,136,0.04), rgba(245,158,11,0.06));
+      border-color: rgba(13,148,136,0.15);
+    }
+    .magazine-theorem-title { color: var(--pt-primary); }
+    .magazine-proof-num { background-color: var(--pt-primary); }
+    .btn-primary {
+      background-color: var(--pt-primary);
+      border-color: var(--pt-primary);
+    }
+    .btn-primary:hover {
+      background-color: var(--pt-primary-dark);
+    }
+    .magazine-visual-wrapper {
+      background: var(--surface);
+    }
+
+    /* ===== 可视化容器 ===== */
+    .visual-container {
+      width: 100%;
+      min-height: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacer-16);
+      position: relative;
+    }
+    .visual-container.fade-out { opacity: 0; transition: opacity 0.2s; }
+    .visual-container.fade-in { animation: vfadeIn 0.4s ease; }
+    @keyframes vfadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .visual-caption {
+      font-size: var(--fs-small);
+      color: var(--text-muted);
+      text-align: center;
+      font-style: italic;
+      font-family: var(--font-serif);
+      margin-top: var(--spacer-12);
+      padding: 0 var(--spacer-16);
+    }
+
+    /* ===== 自动播放按钮 ===== */
+    .autoplay-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .autoplay-btn:hover { border-color: var(--pt-primary); color: var(--pt-primary); }
+    .autoplay-btn.active { background: var(--pt-primary); border-color: var(--pt-primary); color: #fff; }
+    .autoplay-btn svg { width: 14px; height: 14px; }
+
+    /* ===== Step 1: 拉瓦锡元素列表（复古风） ===== */
+    .lavoisier {
+      width: 100%;
+      max-width: 580px;
+      background: var(--pt-vintage-bg);
+      border: 1px solid var(--pt-vintage-border);
+      border-radius: 8px;
+      padding: var(--spacer-24);
+      box-shadow: 0 4px 20px rgba(92, 74, 50, 0.1);
+      font-family: var(--font-serif);
+    }
+    .lav-title {
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--pt-vintage-text);
+      margin-bottom: 4px;
+      letter-spacing: 0.05em;
+    }
+    .lav-year {
+      text-align: center;
+      font-size: 11px;
+      color: var(--pt-vintage-text);
+      opacity: 0.6;
+      margin-bottom: var(--spacer-16);
+      font-family: var(--font-mono);
+    }
+    .lav-category {
+      margin-bottom: var(--spacer-16);
+    }
+    .lav-cat-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--pt-vintage-text);
+      border-bottom: 1px solid var(--pt-vintage-border);
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .lav-cat-note {
+      font-size: 10px;
+      font-weight: 400;
+      font-style: italic;
+      opacity: 0.6;
+    }
+    .lav-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .lav-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 10px;
+      border: 1px solid var(--pt-vintage-border);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.5);
+      min-width: 44px;
+      transition: all 0.2s;
+    }
+    .lav-card:hover {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: var(--pt-accent);
+      transform: translateY(-2px);
+    }
+    .lav-card .lav-sym {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--pt-vintage-text);
+      font-family: var(--font-serif);
+    }
+    .lav-card .lav-label {
+      font-size: 10px;
+      color: var(--pt-vintage-text);
+      opacity: 0.7;
+    }
+    .lav-card.non-element { opacity: 0.4; border-style: dashed; }
+    .lav-card.compound { border-style: dotted; opacity: 0.7; }
+    .lav-card.no-sym .lav-sym { font-size: 11px; }
+
+    /* ===== Step 2: 三元素组 + 八音律 ===== */
+    .step2-container {
+      width: 100%;
+      max-width: 580px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-20);
+    }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--pt-primary);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    /* 三元素组 */
+    .triads { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .triad {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-width: 130px;
+    }
+    .triad-title {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-bottom: 4px;
+    }
+    .triad-el {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      width: 100%;
+      justify-content: space-between;
+    }
+    .triad-el.mid {
+      background: var(--pt-accent-soft);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      font-weight: 600;
+    }
+    .triad-el .el-sym {
+      font-weight: 700;
+      font-family: var(--font-serif);
+      color: var(--text);
+    }
+    .triad-el .el-name {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .triad-el .el-wt {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .triad-formula {
+      font-size: 10px;
+      color: var(--pt-primary);
+      font-family: var(--font-mono);
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    /* 八音律 */
+    .octaves {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 3px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .oct-el {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 2px;
+      border-radius: 4px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    .oct-el:hover { transform: scale(1.1); z-index: 5; }
+    .oct-el .oct-sym { font-weight: 700; font-size: 13px; }
+    .oct-el .oct-wt { font-size: 8px; color: var(--text-muted); font-family: var(--font-mono); }
+    .oct-el.c1 { background: rgba(13, 148, 136, 0.12); }
+    .oct-el.c2 { background: rgba(245, 158, 11, 0.12); }
+    .oct-el.c3 { background: rgba(59, 130, 246, 0.12); }
+    .oct-el.c4 { background: rgba(236, 72, 153, 0.12); }
+    .oct-el.c5 { background: rgba(16, 185, 129, 0.12); }
+    .oct-el.c6 { background: rgba(168, 85, 247, 0.12); }
+    .oct-el.c7 { background: rgba(220, 38, 38, 0.12); }
+    .oct-el.c8 { background: rgba(100, 116, 139, 0.12); }
+    .octave-legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 8px;
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+    .octave-legend span { display: flex; align-items: center; gap: 3px; }
+    .octave-legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+    /* ===== Step 3: 门捷列夫周期表 ===== */
+    .mende-table {
+      display: grid;
+      grid-template-columns: repeat(18, minmax(0, 1fr));
+      grid-template-rows: repeat(3, auto);
+      gap: 2px;
+      max-width: 620px;
+      width: 100%;
+      margin: 0 auto;
+      font-size: 10px;
+    }
+    .mende-el {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 1px;
+      border-radius: 3px;
+      background: var(--pt-primary-soft);
+      color: var(--pt-primary-dark);
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      cursor: default;
+      min-height: 32px;
+    }
+    .mende-el:hover { transform: scale(1.15); z-index: 5; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .mende-el .m-sym { font-weight: 700; font-size: 11px; }
+    .mende-el .m-num { font-size: 7px; opacity: 0.6; }
+    .mende-gap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed var(--pt-accent);
+      background: var(--pt-accent-soft);
+      border-radius: 3px;
+      min-height: 32px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .mende-gap:hover { background: rgba(245, 158, 11, 0.2); transform: scale(1.1); z-index: 5; }
+    .mende-gap .gap-q { font-size: 14px; color: var(--pt-accent); font-weight: 700; }
+    .mende-gap .gap-label {
+      position: absolute;
+      bottom: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 8px;
+      color: var(--pt-accent);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+    .mende-tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 11px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 20;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .mende-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--text);
+    }
+    .mende-gap:hover .mende-tooltip { opacity: 1; }
+    .mende-tooltip .tt-title { color: var(--pt-accent-light); font-weight: 700; margin-bottom: 4px; }
+    .mende-tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; }
+    .mende-tooltip .tt-row .tt-label { color: #a3a3a3; }
+    .mende-tooltip .tt-row .tt-val { color: var(--pt-accent-light); font-family: var(--font-mono); }
+    .mende-empty { visibility: hidden; }
+
+    /* ===== Step 4: 预言对比卡片 ===== */
+    .pred-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 580px;
+    }
+    .pred-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      opacity: 0;
+      transform: translateX(-20px);
+      animation: predSlideIn 0.5s ease forwards;
+    }
+    .pred-card:nth-child(1) { animation-delay: 0.1s; }
+    .pred-card:nth-child(2) { animation-delay: 0.3s; }
+    .pred-card:nth-child(3) { animation-delay: 0.5s; }
+    @keyframes predSlideIn { to { opacity: 1; transform: translateX(0); } }
+    .pred-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, var(--pt-primary-soft), var(--pt-accent-soft));
+      border-bottom: 1px solid var(--border);
+    }
+    .pred-name {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .pred-name .arrow { color: var(--pt-accent); margin: 0 6px; }
+    .pred-year {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--pt-primary);
+      font-weight: 600;
+    }
+    .pred-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    .pred-side {
+      padding: 8px 14px;
+      font-size: 11px;
+    }
+    .pred-side.predicted {
+      border-right: 1px dashed var(--border);
+    }
+    .pred-side-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      font-family: var(--font-mono);
+    }
+    .pred-side.predicted .pred-side-label { color: var(--text-muted); }
+    .pred-side.actual .pred-side-label { color: var(--pt-primary); }
+    .pred-prop {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .pred-prop:last-child { border-bottom: none; }
+    .pred-prop .pp-label { color: var(--text-muted); font-size: 10px; }
+    .pred-prop .pp-val { font-family: var(--font-mono); font-weight: 600; font-size: 11px; }
+    .pred-side.predicted .pp-val { color: var(--text-muted); }
+    .pred-side.actual .pp-val { color: var(--pt-primary); }
+    .pred-match {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--surface-muted);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .pred-match-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .pred-match-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--pt-primary), var(--pt-accent));
+      border-radius: 2px;
+      transition: width 0.8s ease;
+    }
+
+    /* ===== Step 5: 原子序数修正 ===== */
+    .swaps { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 540px; }
+    .swap-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .swap-pair { display: flex; gap: 6px; flex-shrink: 0; }
+    .swap-el {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid;
+      font-size: 12px;
+      min-width: 50px;
+      transition: all 0.4s ease;
+    }
+    .swap-el .se-sym { font-weight: 700; font-family: var(--font-serif); font-size: 14px; }
+    .swap-el .se-wt { font-size: 9px; font-family: var(--font-mono); opacity: 0.7; }
+    .swap-el .se-num { font-size: 8px; font-family: var(--font-mono); }
+    .swap-el.wrong {
+      border-color: rgba(220, 38, 38, 0.3);
+      background: rgba(220, 38, 38, 0.06);
+      color: #991b1b;
+    }
+    .swap-el.right {
+      border-color: rgba(13, 148, 136, 0.3);
+      background: rgba(13, 148, 136, 0.06);
+      color: var(--pt-primary-dark);
+    }
+    .swap-arrow {
+      font-size: 20px;
+      color: var(--pt-accent);
+      flex-shrink: 0;
+    }
+    .swap-info { flex: 1; font-size: 11px; line-height: 1.6; color: var(--text-muted); }
+    .swap-info strong { color: var(--text); }
+    .swap-info .strike { text-decoration: line-through; color: #dc2626; opacity: 0.7; }
+    .swap-info .correct { color: var(--pt-primary); font-weight: 600; }
+
+    /* ===== Step 6: 现代周期表 ===== */
+    .modern-wrap {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .pt-legend {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .pt-legend span { display: flex; align-items: center; gap: 4px; }
+    .pt-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+    .pt-legend i.s { background: var(--pt-s-soft); border: 1px solid var(--pt-s); }
+    .pt-legend i.p { background: var(--pt-p-soft); border: 1px solid var(--pt-p); }
+    .pt-legend i.d { background: var(--pt-d-soft); border: 1px solid var(--pt-d); }
+    .pt-legend i.f { background: var(--pt-f-soft); border: 1px solid var(--pt-f); }
+
+    .pt-table {
+      display: grid;
+      grid-template-columns: repeat(18, 1fr);
+      grid-template-rows: repeat(7, 1fr) 4px repeat(2, 1fr);
+      gap: 2px;
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .pt-el {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      min-height: 0;
+      aspect-ratio: 1;
+    }
+    .pt-el:hover { transform: scale(1.3); z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .pt-el.s { background: var(--pt-s-soft); color: var(--pt-s-text); }
+    .pt-el.p { background: var(--pt-p-soft); color: var(--pt-p-text); }
+    .pt-el.d { background: var(--pt-d-soft); color: var(--pt-d-text); }
+    .pt-el.f { background: var(--pt-f-soft); color: var(--pt-f-text); }
+    .pt-el .pt-num { font-size: 7px; opacity: 0.6; line-height: 1; }
+    .pt-el .pt-sym { font-size: 12px; font-weight: 700; line-height: 1.2; }
+    .pt-el.dim { opacity: 0.12; filter: grayscale(0.8); }
+    .pt-el.lit { opacity: 1; }
+    .pt-el.just-lit { animation: ptLightUp 0.5s ease; }
+    @keyframes ptLightUp { 0% { transform: scale(1); } 50% { transform: scale(1.4); box-shadow: 0 0 8px currentColor; } 100% { transform: scale(1); } }
+    .pt-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7px;
+      color: var(--text-muted);
+      background: var(--surface-muted);
+      border-radius: 3px;
+      aspect-ratio: 1;
+    }
+
+    /* 元素详情 tooltip */
+    .pt-tooltip {
+      position: fixed;
+      background: var(--text);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      z-index: 100;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      min-width: 120px;
+    }
+    .pt-tooltip.show { opacity: 1; }
+    .pt-tooltip .tt-sym { font-size: 22px; font-weight: 700; font-family: var(--font-serif); }
+    .pt-tooltip .tt-name { font-size: 13px; margin: 2px 0 6px; }
+    .pt-tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; font-size: 10px; }
+    .pt-tooltip .tt-row .tt-key { color: #a3a3a3; }
+    .pt-tooltip .tt-row .tt-value { font-family: var(--font-mono); }
+
+    /* 时间轴 */
+    .timeline-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 8px 0 0;
+    }
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .timeline-year {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--pt-primary);
+    }
+    .timeline-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .timeline-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--pt-primary), var(--pt-accent));
+      outline: none;
+      cursor: pointer;
+    }
+    .timeline-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 3px solid var(--pt-primary);
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .timeline-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 3px solid var(--pt-primary);
+      cursor: pointer;
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 1024px) {
+      .magazine-layout {
+        grid-template-columns: 1fr;
+        gap: var(--spacer-24);
+      }
+      .visual-container { min-height: 360px; }
+      .mende-table { max-width: 100%; font-size: 9px; }
+      .pt-table { max-width: 100%; }
+    }
+    @media (max-width: 768px) {
+      .visual-container { min-height: 320px; padding: var(--spacer-8); }
+      .lavoisier { padding: var(--spacer-16); }
+      .lav-grid { gap: 4px; }
+      .lav-card { min-width: 36px; padding: 4px 6px; }
+      .lav-card .lav-sym { font-size: 12px; }
+      .triads { gap: 8px; }
+      .triad { min-width: 100px; padding: 8px; }
+      .octaves { gap: 2px; }
+      .oct-el { padding: 4px 1px; font-size: 10px; }
+      .oct-el .oct-sym { font-size: 11px; }
+      .pred-body { grid-template-columns: 1fr; }
+      .pred-side.predicted { border-right: none; border-bottom: 1px dashed var(--border); }
+      .swap-item { flex-direction: column; gap: 8px; align-items: stretch; }
+      .swap-pair { justify-content: center; }
+      .pt-el .pt-sym { font-size: 10px; }
+      .pt-el .pt-num { font-size: 6px; }
+      .pt-table { gap: 1px; }
+    }
+    @media (max-width: 480px) {
+      .pt-el .pt-sym { font-size: 9px; }
+      .pt-el .pt-num { display: none; }
+      .mende-el .m-num { display: none; }
+    }
+  </style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">化学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">元素周期表发展史</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-chem">化学</span>
+      <a href="/skills/jingbo-edu-chemistry-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="magazine-article">
+        <div class="magazine-article-header">
+          <div class="magazine-kicker">CHEMISTRY · 化学史</div>
+          <h1 class="magazine-title">元素周期表发展史</h1>
+          <p class="magazine-subtitle">从拉瓦锡的第一张元素列表到量子力学的完美解释——两百年的科学发现之旅</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="magazine-step-indicator">
+          <div class="magazine-step-dots" id="stepDots"></div>
+          <span class="magazine-step-label" id="stepLabel">第 1 / 6 步</span>
+          <button class="autoplay-btn" id="autoBtn" title="自动播放">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="magazine-body">
+          <div class="magazine-step-content" id="stepContent"></div>
+        </div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="magazine-step-nav">
+          <button class="btn btn-secondary" id="prevBtn"><span>←</span> 上一步</button>
+          <button class="btn btn-primary" id="nextBtn">下一步 <span>→</span></button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="magazine-visual">
+        <div class="magazine-visual-wrapper" style="padding: var(--spacer-16);">
+          <div class="visual-container" id="visualContainer"></div>
+        </div>
+        <p class="visual-caption" id="visualCaption"></p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">periodic-table-history</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">CSS Grid</span>
+    <span class="demo-tech-tag">Vanilla JS</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-chemistry-lecture-v0.1.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<!-- 元素详情浮动 tooltip -->
+<div class="pt-tooltip" id="ptTooltip"></div>
+
+<script>
+/* ============================================================
+   元素周期表发展史 — 杂志讲解型 Demo
+   ============================================================ */
+
+/* ====== 118 种元素数据 ======
+   [原子序数, 符号, 中文名, 原子量, 分区, 周期, 族, 发现年份]
+   古代元素发现年份用负数 */
+const E = [
+[1,'H','氢',1.008,'s',1,1,1766],[2,'He','氦',4.003,'s',1,18,1868],
+[3,'Li','锂',6.941,'s',2,1,1817],[4,'Be','铍',9.012,'s',2,2,1798],
+[5,'B','硼',10.811,'p',2,13,1808],[6,'C','碳',12.011,'p',2,14,-3750],
+[7,'N','氮',14.007,'p',2,15,1772],[8,'O','氧',15.999,'p',2,16,1774],
+[9,'F','氟',18.998,'p',2,17,1886],[10,'Ne','氖',20.180,'p',2,18,1898],
+[11,'Na','钠',22.990,'s',3,1,1807],[12,'Mg','镁',24.305,'s',3,2,1755],
+[13,'Al','铝',26.982,'p',3,13,1825],[14,'Si','硅',28.086,'p',3,14,1824],
+[15,'P','磷',30.974,'p',3,15,1669],[16,'S','硫',32.066,'p',3,16,-2000],
+[17,'Cl','氯',35.453,'p',3,17,1774],[18,'Ar','氩',39.948,'p',3,18,1894],
+[19,'K','钾',39.098,'s',4,1,1807],[20,'Ca','钙',40.078,'s',4,2,1808],
+[21,'Sc','钪',44.956,'d',4,3,1879],[22,'Ti','钛',47.867,'d',4,4,1791],
+[23,'V','钒',50.942,'d',4,5,1801],[24,'Cr','铬',51.996,'d',4,6,1797],
+[25,'Mn','锰',54.938,'d',4,7,1774],[26,'Fe','铁',55.845,'d',4,8,-5000],
+[27,'Co','钴',58.933,'d',4,9,1735],[28,'Ni','镍',58.693,'d',4,10,1751],
+[29,'Cu','铜',63.546,'d',4,11,-9000],[30,'Zn','锌',65.380,'d',4,12,1746],
+[31,'Ga','镓',69.723,'p',4,13,1875],[32,'Ge','锗',72.640,'p',4,14,1886],
+[33,'As','砷',74.922,'p',4,15,1250],[34,'Se','硒',78.971,'p',4,16,1817],
+[35,'Br','溴',79.904,'p',4,17,1826],[36,'Kr','氪',83.798,'p',4,18,1898],
+[37,'Rb','铷',85.468,'s',5,1,1861],[38,'Sr','锶',87.620,'s',5,2,1790],
+[39,'Y','钇',88.906,'d',5,3,1794],[40,'Zr','锆',91.224,'d',5,4,1789],
+[41,'Nb','铌',92.906,'d',5,5,1801],[42,'Mo','钼',95.950,'d',5,6,1781],
+[43,'Tc','锝',98.000,'d',5,7,1937],[44,'Ru','钌',101.070,'d',5,8,1844],
+[45,'Rh','铑',102.906,'d',5,9,1803],[46,'Pd','钯',106.420,'d',5,10,1803],
+[47,'Ag','银',107.868,'d',5,11,-3000],[48,'Cd','镉',112.411,'d',5,12,1817],
+[49,'In','铟',114.818,'p',5,13,1863],[50,'Sn','锡',118.710,'p',5,14,-3500],
+[51,'Sb','锑',121.760,'p',5,15,-3000],[52,'Te','碲',127.600,'p',5,16,1782],
+[53,'I','碘',126.904,'p',5,17,1811],[54,'Xe','氙',131.293,'p',5,18,1898],
+[55,'Cs','铯',132.905,'s',6,1,1860],[56,'Ba','钡',137.327,'s',6,2,1808],
+[57,'La','镧',138.905,'f',9,3,1839],[58,'Ce','铈',140.116,'f',9,4,1803],
+[59,'Pr','镨',140.908,'f',9,5,1885],[60,'Nd','钕',144.242,'f',9,6,1885],
+[61,'Pm','钷',145.000,'f',9,7,1945],[62,'Sm','钐',150.360,'f',9,8,1879],
+[63,'Eu','铕',151.964,'f',9,9,1901],[64,'Gd','钆',157.250,'f',9,10,1880],
+[65,'Tb','铽',158.925,'f',9,11,1843],[66,'Dy','镝',162.500,'f',9,12,1886],
+[67,'Ho','钬',164.930,'f',9,13,1878],[68,'Er','铒',167.259,'f',9,14,1842],
+[69,'Tm','铥',168.934,'f',9,15,1879],[70,'Yb','镱',173.045,'f',9,16,1878],
+[71,'Lu','镥',174.967,'f',9,17,1907],[72,'Hf','铪',178.490,'d',6,4,1923],
+[73,'Ta','钽',180.948,'d',6,5,1802],[74,'W','钨',183.840,'d',6,6,1783],
+[75,'Re','铼',186.207,'d',6,7,1925],[76,'Os','锇',190.230,'d',6,8,1803],
+[77,'Ir','铱',192.217,'d',6,9,1803],[78,'Pt','铂',195.084,'d',6,10,1735],
+[79,'Au','金',196.967,'d',6,11,-6000],[80,'Hg','汞',200.590,'d',6,12,-2000],
+[81,'Tl','铊',204.383,'p',6,13,1861],[82,'Pb','铅',207.200,'p',6,14,-7000],
+[83,'Bi','铋',208.980,'p',6,15,1753],[84,'Po','钋',209.000,'p',6,16,1898],
+[85,'At','砹',210.000,'p',6,17,1940],[86,'Rn','氡',222.000,'p',6,18,1900],
+[87,'Fr','钫',223.000,'s',7,1,1939],[88,'Ra','镭',226.000,'s',7,2,1898],
+[89,'Ac','锕',227.000,'f',10,3,1899],[90,'Th','钍',232.038,'f',10,4,1829],
+[91,'Pa','镤',231.036,'f',10,5,1913],[92,'U','铀',238.029,'f',10,6,1789],
+[93,'Np','镎',237.000,'f',10,7,1940],[94,'Pu','钚',244.000,'f',10,8,1940],
+[95,'Am','镅',243.000,'f',10,9,1944],[96,'Cm','锔',247.000,'f',10,10,1944],
+[97,'Bk','锫',247.000,'f',10,11,1949],[98,'Cf','锎',251.000,'f',10,12,1950],
+[99,'Es','锿',252.000,'f',10,13,1952],[100,'Fm','镄',257.000,'f',10,14,1952],
+[101,'Md','钔',258.000,'f',10,15,1955],[102,'No','锘',259.000,'f',10,16,1966],
+[103,'Lr','铹',266.000,'f',10,17,1961],[104,'Rf','Rutherfordium',267.000,'d',7,4,1964],
+[105,'Db','Dubnium',268.000,'d',7,5,1967],[106,'Sg','Seaborgium',269.000,'d',7,6,1974],
+[107,'Bh','Bohrium',270.000,'d',7,7,1981],[108,'Hs','Hassium',269.000,'d',7,8,1984],
+[109,'Mt','Meitnerium',278.000,'d',7,9,1982],[110,'Ds','Darmstadtium',281.000,'d',7,10,1994],
+[111,'Rg','Roentgenium',282.000,'d',7,11,1994],[112,'Cn','Copernicium',285.000,'d',7,12,1996],
+[113,'Nh','Nihonium',286.000,'p',7,13,2003],[114,'Fl','Flerovium',289.000,'p',7,14,1998],
+[115,'Mc','Moscovium',290.000,'p',7,15,2003],[116,'Lv','Livermorium',293.000,'p',7,16,2000],
+[117,'Ts','Tennessine',294.000,'p',7,17,2010],[118,'Og','Oganesson',294.000,'p',7,18,2002]
+];
+
+/* ====== 拉瓦锡 1789 年元素列表 ====== */
+const lavoisier = [
+  { cat: '简单气体', note: '', items: [
+    { name: '光', sym: '', type: 'non' }, { name: '热', sym: '', type: 'non' },
+    { name: '氧', sym: 'O', type: 'real' }, { name: '氮', sym: 'N', type: 'real' },
+    { name: '氢', sym: 'H', type: 'real' }
+  ]},
+  { cat: '非金属', note: '可氧化或可成盐', items: [
+    { name: '硫', sym: 'S', type: 'real' }, { name: '磷', sym: 'P', type: 'real' },
+    { name: '碳', sym: 'C', type: 'real' }, { name: '盐酸根', sym: 'Cl', type: 'real', sub: '氯' },
+    { name: '氟酸根', sym: 'F', type: 'real', sub: '氟' }, { name: '硼酸根', sym: 'B', type: 'real', sub: '硼' }
+  ]},
+  { cat: '金属', note: '17种', items: [
+    { name: '锑', sym: 'Sb' }, { name: '银', sym: 'Ag' }, { name: '砷', sym: 'As' },
+    { name: '铋', sym: 'Bi' }, { name: '钴', sym: 'Co' }, { name: '铜', sym: 'Cu' },
+    { name: '锡', sym: 'Sn' }, { name: '铁', sym: 'Fe' }, { name: '锰', sym: 'Mn' },
+    { name: '汞', sym: 'Hg' }, { name: '钼', sym: 'Mo' }, { name: '镍', sym: 'Ni' },
+    { name: '金', sym: 'Au' }, { name: '铂', sym: 'Pt' }, { name: '铅', sym: 'Pb' },
+    { name: '钨', sym: 'W' }, { name: '锌', sym: 'Zn' }
+  ]},
+  { cat: '土质', note: '实为化合物', items: [
+    { name: '石灰', sym: '', type: 'compound', sub: 'CaO' },
+    { name: '苦土', sym: '', type: 'compound', sub: 'MgO' },
+    { name: '重土', sym: '', type: 'compound', sub: 'BaO' },
+    { name: '矾土', sym: '', type: 'compound', sub: 'Al₂O₃' },
+    { name: '硅土', sym: '', type: 'compound', sub: 'SiO₂' }
+  ]}
+];
+
+/* ====== 德贝莱纳三元素组 ====== */
+const triads = [
+  { els: [['Li','锂',6.9],['Na','钠',23.0],['K','钾',39.1]], formula: '(6.9+39.1)/2 = 23.0 ✓' },
+  { els: [['Ca','钙',40.1],['Sr','锶',87.6],['Ba','钡',137.3]], formula: '(40.1+137.3)/2 ≈ 88.7' },
+  { els: [['Cl','氯',35.5],['Br','溴',79.9],['I','碘',126.9]], formula: '(35.5+126.9)/2 ≈ 81.2' }
+];
+
+/* ====== 纽兰兹八音律（前16种元素） ====== */
+const octaves = [
+  ['H','氢',1.0],['Li','锂',6.9],['Be','铍',9.0],['B','硼',10.8],
+  ['C','碳',12.0],['N','氮',14.0],['O','氧',16.0],['F','氟',19.0],
+  ['Na','钠',23.0],['Mg','镁',24.3],['Al','铝',27.0],['Si','硅',28.1],
+  ['P','磷',31.0],['S','硫',32.1],['Cl','氯',35.5],['K','钾',39.1]
+];
+
+/* ====== 门捷列夫预言 ====== */
+const predictions = [
+  {
+    name: '类铝', actual: '镓', symbol: 'Ga', year: '1875年', discoverer: '布瓦博德朗（法）',
+    match: 96,
+    props: [
+      ['原子量', '~68', '69.7'],
+      ['密度 (g/cm³)', '5.9', '5.94'],
+      ['熔点', '低', '29.8°C'],
+      ['氧化物', 'Ea₂O₃', 'Ga₂O₃']
+    ]
+  },
+  {
+    name: '类硼', actual: '钪', symbol: 'Sc', year: '1879年', discoverer: '尼尔森（瑞典）',
+    match: 92,
+    props: [
+      ['原子量', '~44', '45.0'],
+      ['氧化物', 'Eb₂O₃', 'Sc₂O₃'],
+      ['氧化物密度', '3.5', '3.86'],
+      ['盐色', '无色', '无色']
+    ]
+  },
+  {
+    name: '类硅', actual: '锗', symbol: 'Ge', year: '1886年', discoverer: '温克勒（德）',
+    match: 94,
+    props: [
+      ['原子量', '~72', '72.6'],
+      ['密度 (g/cm³)', '5.5', '5.32'],
+      ['氧化物', 'EsO₂', 'GeO₂'],
+      ['氯化物沸点', '<100°C', '86°C']
+    ]
+  }
+];
+
+/* ====== 原子量→原子序数 换位对 ====== */
+const swaps = [
+  { els: [['Ar','氩',39.9,18],['K','钾',39.1,19]], desc: '按原子量 K(39.1) 应在 Ar(39.9) 之前，但按化学性质 Ar 应在 K 之前' },
+  { els: [['Co','钴',58.9,27],['Ni','镍',58.7,28]], desc: '按原子量 Ni(58.7) 应在 Co(58.9) 之前，但按化学性质 Co 应在 Ni 之前' },
+  { els: [['Te','碲',127.6,52],['I','碘',126.9,53]], desc: '按原子量 I(126.9) 应在 Te(127.6) 之前，但按化学性质 Te 应在 I 之前' }
+];
+
+/* ====== 步骤内容 ====== */
+const steps = [
+  {
+    title: '一切从元素开始',
+    content: `
+      <p class="lead">在人类认识物质本质的漫长旅途中，"元素"的概念经历了数千年的蜕变。</p>
+      <p>古希腊哲学家恩培多克勒提出<strong>四元素说</strong>——土、水、气、火，认为万物皆由这四种基本物质构成。这一观点统治了西方思想近两千年。</p>
+      <p>1661年，波义耳在《怀疑的化学家》中打破了这个框架。他指出，<strong>元素应该是无法再分解的原始物质</strong>，而非哲学家的臆想。</p>
+      <p>1789年，拉瓦锡在此基础上发表了人类第一张<strong>近代元素列表</strong>——33种"简单物质"，分为气体、非金属、金属和土质四类。虽然其中一些（如光、热、土质）后来被证明并非元素，但这张列表标志着化学从此走上定量分析的道路。</p>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">历史时刻</div>
+        <div class="magazine-theorem-text">1789年 · 拉瓦锡《化学基础论》<br>33种简单物质，人类第一次系统梳理已知元素</div>
+      </div>
+    `,
+    caption: '拉瓦锡 1789 年元素列表 · 33种"简单物质"分为四类'
+  },
+  {
+    title: '寻找规律的先行者',
+    content: `
+      <p class="lead">19世纪初，道尔顿的原子论为化学奠定了量化基础。人们开始测定各元素的原子量，并试图寻找元素之间的内在联系。</p>
+      <p>到1860年，已知元素已超过60种。化学家们开始追问：<strong>这些元素之间是否存在某种规律？</strong></p>
+      <p>1829年，德贝莱纳注意到某些<strong>三元素组</strong>——三个性质相似的元素中，中间元素的原子量约等于前后两个的平均值。这是周期律的最早萌芽。</p>
+      <p>1865年，纽兰兹更进一步。他将元素按原子量排列，发现<strong>每第8个元素的性质会重复</strong>，如同音乐中的八度音阶。他将这一规律命名为"八音律"。虽然当时被同行嘲笑，但这已经是周期表的雏形。</p>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">!</div>
+        <div class="magazine-proof-text">八音律的局限：纽兰兹没有为未知元素留空位，导致排列到后来无法自洽。但他的直觉是对的——周期性确实存在。</div>
+      </div>
+    `,
+    caption: '上：德贝莱纳三元素组 · 中间元素原子量≈前后平均值　下：纽兰兹八音律 · 每8个元素性质重复'
+  },
+  {
+    title: '门捷列夫的梦',
+    content: `
+      <p class="lead">1869年，门捷列夫做了一件改变化学史的事。</p>
+      <p>他将63种已知元素按原子量排列，发现元素性质呈现出惊人的<strong>周期性变化</strong>。他将这一规律称为"周期律"，并据此绘制了第一张周期表。</p>
+      <p>但门捷列夫的天才之处不在于排列已知元素，而在于他<strong>敢于在表中留下空位</strong>。他断言这些空位属于尚未发现的元素，并预言了它们的性质——类铝、类硼和类硅。</p>
+      <p>更了不起的是，他甚至<strong>修正了已知元素的原子量</strong>，因为它们在表中的位置与实验数据不符。这种自信近乎傲慢，但很快就被证明是对的。</p>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">周期律</div>
+        <div class="magazine-theorem-text">元素的性质随原子量递增而呈周期性变化<br>—— 门捷列夫，1869年</div>
+      </div>
+      <p style="color:var(--pt-primary);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">
+        将鼠标悬停在虚线框上，查看门捷列夫的预言。
+      </p>
+    `,
+    caption: '门捷列夫 1869 年周期表（简化版）· 虚线框为预言的未知元素'
+  },
+  {
+    title: '预言成真——科学最荣耀的时刻',
+    content: `
+      <p class="lead">1875年至1886年间，三个预言元素相继被发现，它们的性质与门捷列夫的预言惊人地吻合。</p>
+      <p><strong>1875年</strong>，法国化学家布瓦博德朗用光谱法发现了镓。他测得密度为4.7 g/cm³，但门捷列夫写信说应该是5.9——重新测量后，果然是5.94。</p>
+      <p><strong>1879年</strong>，瑞典化学家尼尔森发现了钪，其性质完全符合门捷列夫对类硼的预言。</p>
+      <p><strong>1886年</strong>，德国化学家温克勒发现了锗，门捷列夫对类硅的预言几乎分毫不差。</p>
+      <p>这是科学史上最辉煌的预言之一。周期律从此被公认为化学的基本法则，门捷列夫的名字永远镌刻在了科学史上。</p>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">科学的力量</div>
+        <div class="magazine-theorem-text">不是先有元素再列表，而是<strong>先有表再发现元素</strong>——理论预言了实验，这就是科学方法的力量。</div>
+      </div>
+    `,
+    caption: '三个预言元素的对比：门捷列夫预言值 vs 实际发现值'
+  },
+  {
+    title: '从原子量到原子序数——莫斯莱的修正',
+    content: `
+      <p class="lead">门捷列夫的周期表并非完美——有几处"反常"困扰了化学家近半个世纪。</p>
+      <p>按原子量排列，碘（126.9）应该排在碲（127.6）前面，但碘的化学性质明明应该排在碲后面。类似的反常还有<strong>氩/钾</strong>和<strong>钴/镍</strong>。</p>
+      <p>门捷列夫相信这是原子量测量误差，但反复测量证实数据无误。这个矛盾像一根刺，扎在周期律的心脏上。</p>
+      <p>1913年，25岁的英国物理学家莫斯莱用<strong>X射线衍射实验</strong>找到了答案：决定元素位置的不是原子量，而是<strong>原子序数</strong>——即原子核的电荷数。这个修正解决了所有反常，也为后来的量子力学解释铺平了道路。</p>
+      <p>莫斯莱在两年后的加利波利战役中阵亡，年仅27岁。如果他还活着，很可能会获得诺贝尔奖。</p>
+    `,
+    caption: '三处"换位"：按原子量排列的错误顺序 → 按原子序数排列的正确顺序'
+  },
+  {
+    title: '今天的周期表——量子力学的答案',
+    content: `
+      <p class="lead">20世纪初，量子力学的发展揭示了元素周期性的根本原因——电子在原子核外的壳层排布。</p>
+      <p>每个电子壳层分为若干亚层：s、p、d、f。元素的性质取决于其最外层电子的排布方式，这解释了为什么周期表会有<strong>s区、p区、d区、f区</strong>的划分。</p>
+      <p>从拉瓦锡的33种"简单物质"到今天的118种元素，人类认识物质世界的过程历时235年。截至2024年，周期表已无空位——人类已经合成或发现了所有已知可能的元素。</p>
+      <p style="color:var(--pt-primary);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:12px;">
+        拖动下方时间轴，看元素如何被逐一发现、点亮。
+      </p>
+    `,
+    caption: '现代元素周期表 · 118种元素按s/p/d/f分区着色 · 拖动时间轴查看发现历程'
+  }
+];
+
+/* ====== 导航逻辑 ====== */
+let currentStep = 0;
+let autoPlay = false;
+let autoPlayTimer = null;
+const AUTOPLAY_INTERVAL = 8000;
+
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDotsContainer = document.getElementById('stepDots');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const autoBtn = document.getElementById('autoBtn');
+const visualContainer = document.getElementById('visualContainer');
+const visualCaption = document.getElementById('visualCaption');
+const ptTooltip = document.getElementById('ptTooltip');
+
+// 生成步骤圆点
+steps.forEach((_, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'magazine-step-dot' + (i === 0 ? ' active' : '');
+  dot.dataset.step = i;
+  dot.addEventListener('click', () => { if (i !== currentStep) { currentStep = i; updateStep(); } });
+  stepDotsContainer.appendChild(dot);
+});
+
+function updateStep(instant) {
+  const step = steps[currentStep];
+
+  if (instant) {
+    stepContent.innerHTML = `<h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">${step.title}</h3>${step.content}`;
+    visualContainer.innerHTML = '';
+    renderVisual(currentStep);
+    visualCaption.textContent = step.caption || '';
+  } else {
+  // 文字淡出
+  stepContent.classList.add('fade-out');
+  visualContainer.classList.add('fade-out');
+
+  setTimeout(() => {
+    stepContent.innerHTML = `<h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">${step.title}</h3>${step.content}`;
+    stepContent.classList.remove('fade-out');
+    stepContent.classList.add('fade-in');
+    setTimeout(() => stepContent.classList.remove('fade-in'), 400);
+
+    // 渲染可视化
+    visualContainer.classList.remove('fade-out');
+    visualContainer.innerHTML = '';
+    renderVisual(currentStep);
+    visualContainer.classList.add('fade-in');
+    setTimeout(() => visualContainer.classList.remove('fade-in'), 400);
+
+    visualCaption.textContent = step.caption || '';
+  }, 200);
+  }
+
+  stepLabel.textContent = `第 ${currentStep + 1} / ${steps.length} 步`;
+
+  const dots = document.querySelectorAll('.magazine-step-dot');
+  dots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === currentStep) dot.classList.add('active');
+    else if (i < currentStep) dot.classList.add('completed');
+  });
+
+  prevBtn.disabled = currentStep === 0;
+  prevBtn.style.opacity = currentStep === 0 ? '0.5' : '1';
+  prevBtn.style.cursor = currentStep === 0 ? 'not-allowed' : 'pointer';
+
+  nextBtn.innerHTML = currentStep === steps.length - 1 ? '完成 ✓' : '下一步 <span>→</span>';
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) { currentStep--; updateStep(); resetAutoPlay(); }
+});
+nextBtn.addEventListener('click', () => {
+  if (currentStep < steps.length - 1) { currentStep++; updateStep(); resetAutoPlay(); }
+});
+
+/* ====== 自动播放 ====== */
+function toggleAutoPlay() {
+  autoPlay = !autoPlay;
+  if (autoPlay) {
+    autoBtn.classList.add('active');
+    autoBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>';
+    startAutoPlay();
+  } else {
+    autoBtn.classList.remove('active');
+    autoBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    stopAutoPlay();
+  }
+}
+function startAutoPlay() {
+  stopAutoPlay();
+  autoPlayTimer = setInterval(() => {
+    if (currentStep < steps.length - 1) { currentStep++; updateStep(); }
+    else { currentStep = 0; updateStep(); }
+  }, AUTOPLAY_INTERVAL);
+}
+function stopAutoPlay() { if (autoPlayTimer) { clearInterval(autoPlayTimer); autoPlayTimer = null; } }
+function resetAutoPlay() { if (autoPlay) { startAutoPlay(); } }
+autoBtn.addEventListener('click', toggleAutoPlay);
+
+/* ====== 可视化渲染分发 ====== */
+function renderVisual(step) {
+  switch (step) {
+    case 0: renderLavoisier(); break;
+    case 1: renderTriadsOctaves(); break;
+    case 2: renderMendeleev(); break;
+    case 3: renderPredictions(); break;
+    case 4: renderSwaps(); break;
+    case 5: renderModernTable(); break;
+  }
+}
+
+/* ====== Step 1: 拉瓦锡元素列表 ====== */
+function renderLavoisier() {
+  let html = '<div class="lavoisier">';
+  html += '<div class="lav-title">拉瓦锡元素列表</div>';
+  html += '<div class="lav-year">TraitÉ ÉlÉmentaire de Chimie · 1789</div>';
+
+  lavoisier.forEach(cat => {
+    html += `<div class="lav-category">`;
+    html += `<div class="lav-cat-name">${cat.cat}${cat.note ? `<span class="lav-cat-note">${cat.note}</span>` : ''}</div>`;
+    html += `<div class="lav-grid">`;
+    cat.items.forEach(item => {
+      const cls = item.type === 'non' ? 'non-element' : item.type === 'compound' ? 'compound' : '';
+      const noSym = !item.sym ? 'no-sym' : '';
+      html += `<div class="lav-card ${cls} ${noSym}">`;
+      if (item.sym) html += `<span class="lav-sym">${item.sym}</span>`;
+      html += `<span class="lav-label">${item.name}${item.sub ? ` (${item.sub})` : ''}</span>`;
+      html += `</div>`;
+    });
+    html += `</div></div>`;
+  });
+
+  html += '</div>';
+  visualContainer.innerHTML = html;
+}
+
+/* ====== Step 2: 三元素组 + 八音律 ====== */
+function renderTriadsOctaves() {
+  let html = '<div class="step2-container">';
+
+  // 三元素组
+  html += '<div><div class="section-label">德贝莱纳三元素组 · 1829</div>';
+  html += '<div class="triads">';
+  triads.forEach(t => {
+    html += '<div class="triad">';
+    html += `<div class="triad-el"><span class="el-sym">${t.els[0][0]}</span><span class="el-name">${t.els[0][1]}</span><span class="el-wt">${t.els[0][2]}</span></div>`;
+    html += `<div class="triad-el mid"><span class="el-sym">${t.els[1][0]}</span><span class="el-name">${t.els[1][1]}</span><span class="el-wt">${t.els[1][2]}</span></div>`;
+    html += `<div class="triad-el"><span class="el-sym">${t.els[2][0]}</span><span class="el-name">${t.els[2][1]}</span><span class="el-wt">${t.els[2][2]}</span></div>`;
+    html += `<div class="triad-formula">${t.formula}</div>`;
+    html += '</div>';
+  });
+  html += '</div></div>';
+
+  // 八音律
+  html += '<div><div class="section-label">纽兰兹八音律 · 1865</div>';
+  html += '<div class="octaves">';
+  octaves.forEach((o, i) => {
+    const colClass = 'c' + ((i % 8) + 1);
+    html += `<div class="oct-el ${colClass}"><span class="oct-sym">${o[0]}</span><span class="oct-wt">${o[2]}</span></div>`;
+  });
+  html += '</div>';
+  html += '<div class="octave-legend">';
+  html += '<span>同列元素性质相似，每8个重复一次 — 如同音阶的八度</span>';
+  html += '</div>';
+  html += '</div>';
+
+  html += '</div>';
+  visualContainer.innerHTML = html;
+}
+
+/* ====== Step 3: 门捷列夫周期表 ====== */
+function renderMendeleev() {
+  // 简化版：展示周期2-4，标注三个预言空位
+  const mendeElements = [
+    // [symbol, name, period, group, isKnown]
+    ['Li','锂',2,1,true],['Be','铍',2,2,true],['B','硼',2,13,true],['C','碳',2,14,true],
+    ['N','氮',2,15,true],['O','氧',2,16,true],['F','氟',2,17,true],['Ne','氖',2,18,true],
+    ['Na','钠',3,1,true],['Mg','镁',3,2,true],['Al','铝',3,13,true],['Si','硅',3,14,true],
+    ['P','磷',3,15,true],['S','硫',3,16,true],['Cl','氯',3,17,true],['Ar','氩',3,18,true],
+    ['K','钾',4,1,true],['Ca','钙',4,2,true],
+    // 预言空位
+    ['?','类硼(Sc)',4,3,false],
+    ['Ti','钛',4,4,true],['V','钒',4,5,true],['Cr','铬',4,6,true],['Mn','锰',4,7,true],
+    ['Fe','铁',4,8,true],['Co','钴',4,9,true],['Ni','镍',4,10,true],['Cu','铜',4,11,true],
+    ['Zn','锌',4,12,true],
+    // 预言空位
+    ['?','类铝(Ga)',4,13,false],['?','类硅(Ge)',4,14,false],
+    ['As','砷',4,15,true],['Se','硒',4,16,true],['Br','溴',4,17,true],['Kr','氪',4,18,true]
+  ];
+
+  // 预言数据
+  const predData = {
+    '类硼(Sc)': { title: '类硼 → 钪 (1879)', rows: [['原子量','~44','45.0'],['氧化物','Eb₂O₃','Sc₂O₃'],['氧化物密度','3.5','3.86']] },
+    '类铝(Ga)': { title: '类铝 → 镓 (1875)', rows: [['原子量','~68','69.7'],['密度','5.9','5.94'],['熔点','低','29.8°C']] },
+    '类硅(Ge)': { title: '类硅 → 锗 (1886)', rows: [['原子量','~72','72.6'],['密度','5.5','5.32'],['氧化物','EsO₂','GeO₂']] }
+  };
+
+  let html = '<div style="width:100%;max-width:620px;margin:0 auto;">';
+  html += '<div class="mende-table">';
+
+  // 构建网格
+  // 周期2: groups 1-2, 13-18
+  // 周期3: groups 1-2, 13-18
+  // 周期4: groups 1-18
+
+  // 为了简化，构建一个 3行×18列的网格
+  for (let period = 2; period <= 4; period++) {
+    for (let group = 1; group <= 18; group++) {
+      const el = mendeElements.find(e => e[2] === period && e[3] === group);
+      if (el) {
+        if (el[4]) {
+          // 已知元素
+          const num = E.find(e2 => e2[1] === el[0]);
+          html += `<div class="mende-el" style="grid-row:${period-1};grid-column:${group};">
+            <span class="m-num">${num ? num[0] : ''}</span>
+            <span class="m-sym">${el[0]}</span>
+          </div>`;
+        } else {
+          // 预言空位
+          const pd = predData[el[1]];
+          let ttHtml = `<div class="mende-tooltip"><div class="tt-title">${pd.title}</div>`;
+          ttHtml += `<div style="display:grid;grid-template-columns:auto auto;gap:2px 12px;font-size:10px;">`;
+          ttHtml += `<span></span><span style="color:#a3a3a3;font-size:9px;">预言 → 实际</span>`;
+          pd.rows.forEach(r => {
+            ttHtml += `<span style="color:#a3a3a3;">${r[0]}</span><span style="color:var(--pt-accent-light);font-family:var(--font-mono);">${r[1]} → ${r[2]}</span>`;
+          });
+          ttHtml += `</div></div>`;
+          html += `<div class="mende-gap" style="grid-row:${period-1};grid-column:${group};">
+            <span class="gap-q">?</span>
+            <span class="gap-label">${el[1]}</span>
+            ${ttHtml}
+          </div>`;
+        }
+      } else {
+        // 空格
+        html += `<div class="mende-empty" style="grid-row:${period-1};grid-column:${group};"></div>`;
+      }
+    }
+  }
+
+  html += '</div>';
+  html += '<div style="margin-top:20px;display:flex;gap:12px;justify-content:center;font-size:10px;color:var(--text-muted);">';
+  html += '<span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:var(--pt-primary-soft);border-radius:3px;display:inline-block;"></span>已知元素</span>';
+  html += '<span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;border:2px dashed var(--pt-accent);border-radius:3px;display:inline-block;"></span>预言空位</span>';
+  html += '</div>';
+  html += '</div>';
+
+  visualContainer.innerHTML = html;
+}
+
+/* ====== Step 4: 预言对比卡片 ====== */
+function renderPredictions() {
+  let html = '<div class="pred-cards">';
+  predictions.forEach(p => {
+    html += '<div class="pred-card">';
+    html += `<div class="pred-header">
+      <span class="pred-name">${p.name} <span class="arrow">→</span> ${p.actual} (${p.symbol})</span>
+      <span class="pred-year">${p.year}</span>
+    </div>`;
+    html += '<div class="pred-body">';
+    // 预言侧
+    html += '<div class="pred-side predicted">';
+    html += '<div class="pred-side-label">门捷列夫预言</div>';
+    p.props.forEach(prop => {
+      html += `<div class="pred-prop"><span class="pp-label">${prop[0]}</span><span class="pp-val">${prop[1]}</span></div>`;
+    });
+    html += '</div>';
+    // 实际侧
+    html += '<div class="pred-side actual">';
+    html += '<div class="pred-side-label">实际发现</div>';
+    p.props.forEach(prop => {
+      html += `<div class="pred-prop"><span class="pp-label">${prop[0]}</span><span class="pp-val">${prop[2]}</span></div>`;
+    });
+    html += '</div>';
+    html += '</div>';
+    // 匹配度
+    html += `<div class="pred-match">
+      <span>匹配度</span>
+      <div class="pred-match-bar"><div class="pred-match-fill" style="width:0%;" data-target="${p.match}"></div></div>
+      <span style="font-family:var(--font-mono);font-weight:600;color:var(--pt-primary);">${p.match}%</span>
+    </div>`;
+    html += '</div>';
+  });
+  html += '</div>';
+
+  visualContainer.innerHTML = html;
+
+  // 动画填充匹配度
+  setTimeout(() => {
+    visualContainer.querySelectorAll('.pred-match-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 600);
+}
+
+/* ====== Step 5: 原子序数修正 ====== */
+function renderSwaps() {
+  let html = '<div class="swaps">';
+  swaps.forEach((s, idx) => {
+    html += '<div class="swap-item">';
+    // 按原子量排列（错误）
+    const lighter = s.els[0][2] < s.els[1][2] ? s.els[0] : s.els[1];
+    const heavier = s.els[0][2] >= s.els[1][2] ? s.els[0] : s.els[1];
+
+    html += '<div class="swap-pair">';
+    // 错误顺序
+    html += `<div class="swap-el wrong">
+      <span class="se-sym">${lighter[0]}</span>
+      <span class="se-wt">${lighter[2]}</span>
+      <span class="se-num">Z=${lighter[3]}</span>
+    </div>`;
+    html += `<div class="swap-el wrong">
+      <span class="se-sym">${heavier[0]}</span>
+      <span class="se-wt">${heavier[2]}</span>
+      <span class="se-num">Z=${heavier[3]}</span>
+    </div>`;
+    html += '</div>';
+
+    html += '<div class="swap-arrow">→</div>';
+
+    // 正确顺序（按原子序数）
+    const lower = s.els[0][3] < s.els[1][3] ? s.els[0] : s.els[1];
+    const higher = s.els[0][3] >= s.els[1][3] ? s.els[0] : s.els[1];
+    html += '<div class="swap-pair">';
+    html += `<div class="swap-el right">
+      <span class="se-sym">${lower[0]}</span>
+      <span class="se-num">Z=${lower[3]}</span>
+    </div>`;
+    html += `<div class="swap-el right">
+      <span class="se-sym">${higher[0]}</span>
+      <span class="se-num">Z=${higher[3]}</span>
+    </div>`;
+    html += '</div>';
+
+    html += `<div class="swap-info">${s.desc}<br><span class="strike">按原子量排列</span> → <span class="correct">按原子序数排列 ✓</span></div>`;
+    html += '</div>';
+  });
+
+  html += '<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--text-muted);font-style:italic;font-family:var(--font-serif);">';
+  html += '莫斯莱 (1913)：决定元素位置的是原子序数（核电荷数），而非原子量';
+  html += '</div>';
+  html += '</div>';
+
+  visualContainer.innerHTML = html;
+}
+
+/* ====== Step 6: 现代周期表 + 时间轴 ====== */
+let timelineSlider = null;
+let timelineYearDisplay = null;
+let timelineCountDisplay = null;
+
+function renderModernTable() {
+  let html = '<div class="modern-wrap">';
+
+  // 图例
+  html += '<div class="pt-legend">';
+  html += '<span><i class="s"></i>s区</span>';
+  html += '<span><i class="p"></i>p区</span>';
+  html += '<span><i class="d"></i>d区</span>';
+  html += '<span><i class="f"></i>f区</span>';
+  html += '</div>';
+
+  // 周期表
+  html += '<div class="pt-table" id="ptTable">';
+
+  // 渲染所有元素
+  E.forEach(el => {
+    const [n, sym, name, mass, block, period, group, year] = el;
+    let row, col;
+    if (block === 'f' && n >= 57 && n <= 71) { row = 9; col = n - 54; }
+    else if (block === 'f' && n >= 89 && n <= 103) { row = 10; col = n - 86; }
+    else { row = period; col = group; }
+
+    html += `<div class="pt-el ${block}" style="grid-row:${row};grid-column:${col};" data-n="${n}" data-name="${name}" data-mass="${mass}" data-block="${block}" data-year="${year}">`;
+    html += `<span class="pt-num">${n}</span>`;
+    html += `<span class="pt-sym">${sym}</span>`;
+    html += '</div>';
+  });
+
+  // 占位符
+  html += `<div class="pt-placeholder" style="grid-row:6;grid-column:3;">57-71</div>`;
+  html += `<div class="pt-placeholder" style="grid-row:7;grid-column:3;">89-103</div>`;
+
+  html += '</div>';
+
+  // 时间轴
+  html += '<div class="timeline-wrap">';
+  html += '<div class="timeline-header">';
+  html += '<span>1789 · 拉瓦锡</span>';
+  html += '<span class="timeline-year" id="timelineYear">2024</span>';
+  html += '<span>2024 · 今天</span>';
+  html += '</div>';
+  html += '<input type="range" class="timeline-slider" id="timelineSlider" min="1789" max="2024" value="2024" step="1">';
+  html += '<div class="timeline-header">';
+  html += '<span class="timeline-count" id="timelineCount">118 / 118 种元素已知</span>';
+  html += '<span style="font-size:9px;">拖动滑块 ←</span>';
+  html += '</div>';
+  html += '</div>';
+
+  html += '</div>';
+
+  visualContainer.innerHTML = html;
+
+  // 绑定时间轴
+  timelineSlider = document.getElementById('timelineSlider');
+  timelineYearDisplay = document.getElementById('timelineYear');
+  timelineCountDisplay = document.getElementById('timelineCount');
+
+  timelineSlider.addEventListener('input', updateTimeline);
+
+  // 绑定元素悬停
+  visualContainer.querySelectorAll('.pt-el').forEach(el => {
+    el.addEventListener('mouseenter', showPtTooltip);
+    el.addEventListener('mouseleave', hidePtTooltip);
+    el.addEventListener('mousemove', movePtTooltip);
+  });
+
+  // 初始：全部点亮
+  updateTimeline();
+}
+
+function updateTimeline() {
+  const year = parseInt(timelineSlider.value);
+  timelineYearDisplay.textContent = year;
+
+  let count = 0;
+  visualContainer.querySelectorAll('.pt-el').forEach(el => {
+    const elYear = parseInt(el.dataset.year);
+    if (elYear <= year) {
+      const wasDim = el.classList.contains('dim');
+      el.classList.remove('dim');
+      el.classList.add('lit');
+      if (wasDim) {
+        el.classList.add('just-lit');
+        setTimeout(() => el.classList.remove('just-lit'), 500);
+      }
+      count++;
+    } else {
+      el.classList.add('dim');
+      el.classList.remove('lit');
+    }
+  });
+
+  timelineCountDisplay.textContent = `${count} / 118 种元素已知`;
+}
+
+function showPtTooltip(e) {
+  const el = e.currentTarget;
+  const n = el.dataset.n;
+  const name = el.dataset.name;
+  const mass = el.dataset.mass;
+  const block = el.dataset.block;
+  const year = parseInt(el.dataset.year);
+  const yearStr = year < 0 ? '古代' : year + '年';
+  const blockNames = { s: 's区', p: 'p区', d: 'd区', f: 'f区' };
+  const sym = el.querySelector('.pt-sym').textContent;
+
+  ptTooltip.innerHTML = `
+    <div class="tt-sym" style="color: var(--pt-${block});">${sym}</div>
+    <div class="tt-name">${name}</div>
+    <div class="tt-row"><span class="tt-key">原子序数</span><span class="tt-value">${n}</span></div>
+    <div class="tt-row"><span class="tt-key">原子量</span><span class="tt-value">${mass}</span></div>
+    <div class="tt-row"><span class="tt-key">分区</span><span class="tt-value">${blockNames[block]}</span></div>
+    <div class="tt-row"><span class="tt-key">发现</span><span class="tt-value">${yearStr}</span></div>
+  `;
+  ptTooltip.classList.add('show');
+  movePtTooltip(e);
+}
+
+function hidePtTooltip() {
+  ptTooltip.classList.remove('show');
+}
+
+function movePtTooltip(e) {
+  const x = e.clientX + 14;
+  const y = e.clientY - 10;
+  const rect = ptTooltip.getBoundingClientRect();
+  const maxX = window.innerWidth - rect.width - 20;
+  const maxY = window.innerHeight - rect.height - 20;
+  ptTooltip.style.left = Math.min(x, maxX) + 'px';
+  ptTooltip.style.top = Math.min(y, maxY) + 'px';
+}
+
+/* ====== 导航栏滚动 ====== */
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+/* ====== 初始化 ====== */
+updateStep(true);
+</script>
+
+</body>
+</html>

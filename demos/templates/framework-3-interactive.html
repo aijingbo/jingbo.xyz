@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>框架三 · 交互工具型 — 模板 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏（浅色） ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/demos.html" class="demo-back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </a>
+    <span class="demo-nav-divider"></span>
+    <a href="/" class="demo-nav-logo">景礴</a>
+  </div>
+  <div class="demo-nav-center">Demo 标题（交互工具型）</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-physics">学科</span>
+    <a href="/skills.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 主体：上下分栏 ====== -->
+<div class="framework-interactive">
+  <div class="interactive-main">
+
+    <!-- ========== 上方：画布区 ========== -->
+    <div class="interactive-canvas-area">
+      <canvas id="demoCanvas"></canvas>
+
+      <!-- 数据显示卡片（右上浮动） -->
+      <div class="interactive-data-display">
+        <div class="data-row">
+          <span class="data-label">参数 A</span>
+          <span class="data-value" id="dataA">0.00</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">参数 B</span>
+          <span class="data-value" id="dataB">0.00</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">状态</span>
+          <span class="data-value" id="dataStatus" style="color:var(--brand);">运行中</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 下方：控制面板 ========== -->
+    <div class="interactive-control-panel">
+
+      <!-- 参数滑块组 -->
+      <div class="control-sliders">
+        <div class="control-slider-group">
+          <div class="control-slider-header">
+            <span class="control-slider-label">参数 A</span>
+            <span class="control-slider-value" id="sliderAValue">50</span>
+          </div>
+          <input type="range" class="control-slider" id="sliderA" min="0" max="100" value="50" />
+        </div>
+
+        <div class="control-slider-group">
+          <div class="control-slider-header">
+            <span class="control-slider-label">参数 B</span>
+            <span class="control-slider-value" id="sliderBValue">30</span>
+          </div>
+          <input type="range" class="control-slider" id="sliderB" min="0" max="100" value="30" />
+        </div>
+
+        <div class="control-slider-group">
+          <div class="control-slider-header">
+            <span class="control-slider-label">速度</span>
+            <span class="control-slider-value" id="sliderSpeedValue">1.0</span>
+          </div>
+          <input type="range" class="control-slider" id="sliderSpeed" min="0" max="50" value="10" />
+        </div>
+      </div>
+
+      <!-- 功能按钮组 -->
+      <div class="control-buttons">
+        <button class="control-btn control-btn-play" id="playBtn" title="播放/暂停">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        </button>
+        <button class="control-btn" id="resetBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          重置
+        </button>
+        <button class="control-btn active" id="modeBtn1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+          模式 A
+        </button>
+        <button class="control-btn" id="modeBtn2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>
+          模式 B
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">skill-name</span>
+    <span class="demo-tech-tag">Canvas</span>
+    <span class="demo-tech-tag">实时计算</span>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="fpsTag">60 FPS</span>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   框架三：交互工具型 — 模板脚本
+   演示滑块控制 Canvas 实时绘制 + 播放/暂停/重置
+   ============================================================ */
+
+const canvas = document.getElementById('demoCanvas');
+const ctx = canvas.getContext('2d');
+
+// 状态
+let isPlaying = false;
+let paramA = 50;
+let paramB = 30;
+let speed = 1.0;
+let mode = 'A';
+let time = 0;
+let lastFrame = 0;
+let fps = 60;
+
+// ====== Canvas 尺寸自适应 ======
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  // setTransform 重置变换矩阵，避免 scale 叠加
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+// ====== 绘制 ======
+function draw(dt) {
+  const w = canvas.width / window.devicePixelRatio;
+  const h = canvas.height / window.devicePixelRatio;
+
+  // 背景
+  ctx.fillStyle = '#faf8f5';
+  ctx.fillRect(0, 0, w, h);
+
+  // 网格
+  ctx.strokeStyle = '#eeeae3';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y < h; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // 中心
+  const cx = w / 2;
+  const cy = h / 2;
+
+  // 根据 paramA 和 paramB 绘制一个动态图形
+  const radius = 50 + paramA * 2;
+  const innerRadius = 20 + paramB * 1.5;
+
+  if (mode === 'A') {
+    // 模式 A：同心圆 + 旋转射线
+    ctx.strokeStyle = '#c2410c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(194, 65, 12, 0.3)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 旋转射线
+    const rays = 12;
+    for (let i = 0; i < rays; i++) {
+      const angle = (i / rays) * Math.PI * 2 + time * speed;
+      const x1 = cx + Math.cos(angle) * innerRadius;
+      const y1 = cy + Math.sin(angle) * innerRadius;
+      const x2 = cx + Math.cos(angle) * radius;
+      const y2 = cy + Math.sin(angle) * radius;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = `rgba(194, 65, 12, ${0.2 + 0.3 * Math.sin(angle + time)})`;
+      ctx.stroke();
+    }
+  } else {
+    // 模式 B：波形
+    ctx.strokeStyle = '#c2410c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const amplitude = radius * 0.5;
+    const frequency = (innerRadius / 30) * 2;
+    for (let x = 0; x < w; x += 2) {
+      const y = cy + Math.sin((x / w) * Math.PI * 2 * frequency + time * speed) * amplitude;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(13, 148, 136, 0.5)';
+    ctx.beginPath();
+    for (let x = 0; x < w; x += 2) {
+      const y = cy + Math.cos((x / w) * Math.PI * 2 * frequency + time * speed) * amplitude;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // 中心点
+  ctx.fillStyle = '#c2410c';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ====== 动画循环 ======
+function animate(now) {
+  const dt = (now - lastFrame) / 1000 || 0.016;
+  lastFrame = now;
+  fps = Math.round(1 / dt);
+
+  if (isPlaying) {
+    time += dt;
+  }
+
+  draw(dt);
+
+  // 更新数据显示
+  document.getElementById('dataA').textContent = paramA.toFixed(2);
+  document.getElementById('dataB').textContent = paramB.toFixed(2);
+  document.getElementById('fpsTag').textContent = `${fps} FPS`;
+
+  requestAnimationFrame(animate);
+}
+
+// ====== 交互绑定 ======
+document.addEventListener('DOMContentLoaded', () => {
+  resizeCanvas();
+
+  // 滑块 A
+  const sliderA = document.getElementById('sliderA');
+  sliderA.addEventListener('input', (e) => {
+    paramA = parseInt(e.target.value);
+    document.getElementById('sliderAValue').textContent = paramA;
+  });
+
+  // 滑块 B
+  const sliderB = document.getElementById('sliderB');
+  sliderB.addEventListener('input', (e) => {
+    paramB = parseInt(e.target.value);
+    document.getElementById('sliderBValue').textContent = paramB;
+  });
+
+  // 速度滑块
+  const sliderSpeed = document.getElementById('sliderSpeed');
+  sliderSpeed.addEventListener('input', (e) => {
+    speed = parseInt(e.target.value) / 10;
+    document.getElementById('sliderSpeedValue').textContent = speed.toFixed(1);
+  });
+
+  // 播放/暂停
+  const playBtn = document.getElementById('playBtn');
+  const playIcon = document.getElementById('playIcon');
+  playBtn.addEventListener('click', () => {
+    isPlaying = !isPlaying;
+    if (isPlaying) {
+      // 暂停图标 → 两条竖线
+      playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+      document.getElementById('dataStatus').textContent = '运行中';
+      document.getElementById('dataStatus').style.color = 'var(--brand)';
+    } else {
+      // 播放图标 → 三角形
+      playIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+      document.getElementById('dataStatus').textContent = '已暂停';
+      document.getElementById('dataStatus').style.color = 'var(--text-muted)';
+    }
+  });
+
+  // 重置
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    time = 0;
+    paramA = 50;
+    paramB = 30;
+    speed = 1.0;
+    sliderA.value = 50;
+    sliderB.value = 30;
+    sliderSpeed.value = 10;
+    document.getElementById('sliderAValue').textContent = '50';
+    document.getElementById('sliderBValue').textContent = '30';
+    document.getElementById('sliderSpeedValue').textContent = '1.0';
+  });
+
+  // 模式切换
+  document.getElementById('modeBtn1').addEventListener('click', () => {
+    mode = 'A';
+    document.getElementById('modeBtn1').classList.add('active');
+    document.getElementById('modeBtn2').classList.remove('active');
+  });
+
+  document.getElementById('modeBtn2').addEventListener('click', () => {
+    mode = 'B';
+    document.getElementById('modeBtn2').classList.add('active');
+    document.getElementById('modeBtn1').classList.remove('active');
+  });
+
+  // 导航栏滚动效果
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  // 启动动画
+  requestAnimationFrame(animate);
+});
+</script>
+
+</body>
+</html>

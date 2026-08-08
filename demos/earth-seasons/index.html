@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>地球公转与四季 3D · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%; margin: 0; padding: 0; overflow: hidden;
+    background: #05050a; color: #e5e5e5;
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ====== 加载层 ====== */
+  #loading {
+    position: fixed; inset: 0; z-index: 999;
+    background: #05050a;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    transition: opacity 0.6s ease;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+  .loading-ring {
+    width: 48px; height: 48px;
+    border: 2px solid rgba(255,193,7,0.15);
+    border-top-color: #FFC107;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: var(--font-serif); font-size: 14px;
+    color: rgba(255,255,255,0.5); letter-spacing: 0.1em;
+  }
+
+  /* ====== 3D 画布 ====== */
+  #canvas-container { position: fixed; inset: 0; }
+  #scene { display: block; width: 100%; height: 100%; }
+
+  /* ====== 左侧信息面板 ====== */
+  .info-panel {
+    position: fixed; top: 72px; left: 20px; z-index: 50;
+    width: 240px; padding: 16px 18px;
+    background: rgba(8, 8, 16, 0.6);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--radius-card);
+  }
+  .info-date {
+    font-family: var(--font-serif); font-size: 22px; font-weight: 700;
+    color: #fff; margin-bottom: 2px;
+  }
+  .info-season-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .season-name {
+    font-family: var(--font-serif); font-size: 16px; font-weight: 600;
+    color: #FFC107;
+  }
+  .season-desc { font-size: 11px; color: #8a8a8a; line-height: 1.5; }
+  .info-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 12px 0; }
+  .info-section-title {
+    font-size: 10px; font-weight: 600; color: #666;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0; font-size: 12px;
+  }
+  .info-label { color: #888; }
+  .info-value {
+    font-family: var(--font-mono); font-weight: 600;
+    color: #e5e5e5; font-size: 12px;
+  }
+  .info-value.highlight { color: #FFC107; }
+
+  /* ====== 弹出面板 ====== */
+  .popup {
+    position: fixed; top: 132px; right: 20px; z-index: 55;
+    padding: 14px 16px; min-width: 180px;
+    background: rgba(8, 8, 16, 0.85);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-card);
+    display: none;
+  }
+  .popup.show { display: block; animation: popIn 0.2s ease; }
+  @keyframes popIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .popup-title {
+    font-size: 11px; font-weight: 600; color: #666;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+  }
+  .toggle-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; cursor: pointer; font-size: 13px; color: #c5c5c5;
+  }
+  .toggle-item input[type="checkbox"] {
+    accent-color: #FFC107; width: 15px; height: 15px; cursor: pointer;
+  }
+  .view-btn {
+    display: block; width: 100%; text-align: left;
+    padding: 8px 12px; margin-bottom: 4px;
+    font-size: 13px; color: #c5c5c5; cursor: pointer;
+    background: transparent; border: 1px solid transparent;
+    border-radius: var(--radius); font-family: var(--font-sans);
+    transition: all var(--duration-fast) var(--ease);
+  }
+  .view-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .view-btn.active {
+    background: rgba(255,193,7,0.12);
+    border-color: rgba(255,193,7,0.2);
+    color: #FFC107;
+  }
+  .tilt-slider-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .tilt-label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: #c5c5c5; margin-bottom: 6px;
+  }
+  .tilt-value { font-family: var(--font-mono); color: #FFC107; font-weight: 600; }
+
+  /* ====== 底部控制栏 ====== */
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    padding: 12px 20px 16px;
+    background: linear-gradient(180deg, transparent, rgba(5,5,10,0.8) 40%);
+  }
+  .season-buttons {
+    display: flex; justify-content: center; gap: 8px; margin-bottom: 10px;
+  }
+  .season-btn {
+    padding: 6px 18px; font-size: 12px; font-weight: 500;
+    color: #aaa; cursor: pointer; font-family: var(--font-serif);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-full);
+    transition: all var(--duration-fast) var(--ease);
+  }
+  .season-btn:hover {
+    background: rgba(255,193,7,0.1);
+    border-color: rgba(255,193,7,0.2);
+    color: #fff;
+  }
+  .season-btn.active {
+    background: rgba(255,193,7,0.2);
+    border-color: rgba(255,193,7,0.4);
+    color: #FFC107;
+  }
+  .timeline-row {
+    display: flex; align-items: center; gap: 14px;
+    max-width: 760px; margin: 0 auto;
+  }
+  .play-btn {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #fff;
+    background: rgba(255,193,7,0.15);
+    border: 1px solid rgba(255,193,7,0.3);
+    transition: all var(--duration-fast) var(--ease);
+  }
+  .play-btn:hover { background: rgba(255,193,7,0.25); transform: scale(1.05); }
+  .play-btn svg { width: 16px; height: 16px; }
+  .timeline-wrap { flex: 1; position: relative; }
+  .timeline-ticks {
+    display: flex; justify-content: space-between;
+    margin-bottom: 2px; pointer-events: none;
+  }
+  .timeline-tick {
+    font-size: 10px; color: rgba(255,255,255,0.3);
+    font-family: var(--font-sans);
+  }
+  #timeline {
+    -webkit-appearance: none; width: 100%; height: 5px;
+    border-radius: 3px; outline: none; cursor: pointer;
+    background: linear-gradient(90deg,
+      rgba(34,197,94,0.3) 0%, rgba(34,197,94,0.3) 25%,
+      rgba(239,68,68,0.3) 25%, rgba(239,68,68,0.3) 50%,
+      rgba(245,158,11,0.3) 50%, rgba(245,158,11,0.3) 75%,
+      rgba(59,130,246,0.3) 75%, rgba(59,130,246,0.3) 100%);
+  }
+  #timeline::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: #FFC107; cursor: pointer;
+    box-shadow: 0 0 8px rgba(255,193,7,0.6);
+    border: 2px solid #fff;
+  }
+  #timeline::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #FFC107; cursor: pointer; border: 2px solid #fff;
+  }
+  .speed-btn {
+    padding: 7px 12px; font-size: 11px; font-weight: 500;
+    color: #c5c5c5; cursor: pointer; white-space: nowrap;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius); font-family: var(--font-mono);
+    transition: all var(--duration-fast) var(--ease);
+  }
+  .speed-btn:hover { color: #FFC107; border-color: rgba(255,193,7,0.2); }
+
+  /* ====== 操作提示 ====== */
+  .scene-hint {
+    position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+    z-index: 40; font-size: 11px; font-family: var(--font-mono);
+    color: rgba(255,255,255,0.25); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ====== 响应式 ====== */
+  @media (max-width: 768px) {
+    .demo-nav-center { display: none; }
+    .info-panel { width: 180px; padding: 12px 14px; top: 64px; left: 12px; }
+    .info-date { font-size: 18px; }
+    .season-btn { padding: 5px 12px; font-size: 11px; }
+    .bottom-bar { padding: 10px 12px 14px; }
+    .scene-hint { display: none; }
+    .info-panel .info-section-title,
+    .info-panel .info-row { font-size: 11px; }
+  }
+  @media (max-width: 480px) {
+    .info-panel { width: 160px; }
+    .info-panel .info-row:nth-child(n+8) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 加载层 -->
+<div id="loading">
+  <div class="loading-ring"></div>
+  <div class="loading-text">正在构建宇宙…</div>
+</div>
+
+<!-- 3D 画布 -->
+<div id="canvas-container">
+  <canvas id="scene"></canvas>
+</div>
+
+<!-- 顶部导航 -->
+<header class="demo-navbar immersive" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">地理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">地球公转与四季</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-geo">地理</span>
+      <a href="/skills/jingbo-edu-3d-earth-science-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- 右侧浮动控件（视角/辅助/全屏） -->
+<div class="demo-floating-group" style="top:76px;right:20px;bottom:auto;flex-direction:row;">
+  <button class="demo-icon-btn" id="btnView" data-tooltip="视角模式">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6M4.22 4.22l4.24 4.24m7.08 7.08l4.24 4.24M1 12h6m10 0h6M4.22 19.78l4.24-4.24m7.08-7.08l4.24-4.24"/></svg>
+  </button>
+  <button class="demo-icon-btn" id="btnAux" data-tooltip="辅助显示">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M12 3v18"/></svg>
+  </button>
+  <button class="demo-icon-btn" id="btnFullscreen" data-tooltip="全屏">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m13 0h3a2 2 0 0 0 2-2v-3"/></svg>
+  </button>
+</div>
+
+<!-- 左侧信息面板 -->
+<div class="info-panel" id="infoPanel">
+  <div class="info-date" id="infoDate">3月21日</div>
+  <div class="info-season-row">
+    <span class="season-name" id="seasonName">春分</span>
+  </div>
+  <div class="season-desc" id="seasonDesc">太阳直射赤道，全球昼夜平分</div>
+  <div class="info-divider"></div>
+  <div class="info-row">
+    <span class="info-label">太阳直射点</span>
+    <span class="info-value highlight" id="subsolarLat">0.0°</span>
+  </div>
+  <div class="info-divider"></div>
+  <div class="info-section-title">昼长参考</div>
+  <div class="info-row">
+    <span class="info-label">北回归线 23.5°N</span>
+    <span class="info-value" id="dayLen235N">12时00分</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">北京 40°N</span>
+    <span class="info-value" id="dayLen40N">12时00分</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">赤道 0°</span>
+    <span class="info-value" id="dayLen0">12时00分</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">南回归线 23.5°S</span>
+    <span class="info-value" id="dayLen235S">12时00分</span>
+  </div>
+</div>
+
+<!-- 视角弹出面板 -->
+<div class="popup" id="viewPopup">
+  <div class="popup-title">视角模式</div>
+  <button class="view-btn active" data-view="free">自由视角</button>
+  <button class="view-btn" data-view="top">俯瞰轨道</button>
+  <button class="view-btn" data-view="side">侧视</button>
+  <button class="view-btn" data-view="follow">跟随地球</button>
+</div>
+
+<!-- 辅助线弹出面板 -->
+<div class="popup" id="auxPopup">
+  <div class="popup-title">辅助显示</div>
+  <label class="toggle-item"><input type="checkbox" id="tglOrbit" checked><span>公转轨道</span></label>
+  <label class="toggle-item"><input type="checkbox" id="tglAxis" checked><span>地轴与赤道</span></label>
+  <label class="toggle-item"><input type="checkbox" id="tglTropics" checked><span>回归线与极圈</span></label>
+  <label class="toggle-item"><input type="checkbox" id="tglRays" checked><span>太阳光线</span></label>
+  <label class="toggle-item"><input type="checkbox" id="tglSubsolar" checked><span>直射点标记</span></label>
+  <div class="tilt-slider-row">
+    <div class="tilt-label">
+      <span>地轴倾角</span>
+      <span class="tilt-value" id="tiltValue">23.5°</span>
+    </div>
+    <input type="range" id="tiltSlider" min="0" max="45" step="0.5" value="23.5"
+      style="width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:rgba(255,255,255,0.1);outline:none;">
+  </div>
+</div>
+
+<!-- 操作提示 -->
+<div class="scene-hint">拖拽旋转 · 滚轮缩放</div>
+
+<!-- 底部控制栏 -->
+<div class="bottom-bar">
+  <div class="season-buttons">
+    <button class="season-btn active" data-day="0">春分</button>
+    <button class="season-btn" data-day="92">夏至</button>
+    <button class="season-btn" data-day="186">秋分</button>
+    <button class="season-btn" data-day="276">冬至</button>
+  </div>
+  <div class="timeline-row">
+    <button class="play-btn" id="playBtn">
+      <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><polygon points="6 3 20 12 6 21"/></svg>
+    </button>
+    <div class="timeline-wrap">
+      <div class="timeline-ticks">
+        <span class="timeline-tick">春分</span>
+        <span class="timeline-tick">夏至</span>
+        <span class="timeline-tick">秋分</span>
+        <span class="timeline-tick">冬至</span>
+        <span class="timeline-tick">春分</span>
+      </div>
+      <input type="range" id="timeline" min="0" max="365" step="0.5" value="0">
+    </div>
+    <button class="speed-btn" id="speedBtn">1天/秒</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   常量
+   ============================================================ */
+const SUN_RADIUS = 3;
+const EARTH_RADIUS = 1.0;
+const ORBIT_RADIUS = 14;
+const CLOUD_RADIUS = 1.025;
+const ATMOS_RADIUS = 1.15;
+
+/* ============================================================
+   状态
+   ============================================================ */
+let currentDay = 0;
+let currentTilt = 23.5;
+let isPlaying = true;
+let speedIndex = 1;
+const speeds = [
+  { label: '暂停', value: 0 },
+  { label: '1天/秒', value: 1 },
+  { label: '3天/秒', value: 3 },
+  { label: '7天/秒', value: 7 },
+  { label: '14天/秒', value: 14 },
+  { label: '30天/秒', value: 30 },
+];
+let viewMode = 'free';
+let loadingProgress = 0;
+let dayAnim = null;
+let camAnim = null;
+
+const auxVisible = { orbit: true, axis: true, tropics: true, rays: true, subsolar: true };
+
+/* ============================================================
+   渲染器 / 场景 / 相机
+   ============================================================ */
+const container = document.getElementById('canvas-container');
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05050a);
+
+const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 500);
+camera.position.set(0, 14, 30);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 6;
+controls.maxDistance = 70;
+controls.maxPolarAngle = Math.PI * 0.85;
+controls.minPolarAngle = Math.PI * 0.1;
+
+/* ============================================================
+   星空（自定义着色器 · 闪烁）
+   ============================================================ */
+// 球面随机星 + 银河带星
+const sphereStars = 2400;
+const milkyStars = 800;
+const starCount = sphereStars + milkyStars;
+const starGeo = new THREE.BufferGeometry();
+const starPos = new Float32Array(starCount * 3);
+const starSize = new Float32Array(starCount);
+const starPhase = new Float32Array(starCount);
+const starColor = new Float32Array(starCount * 3);
+
+// 球面均匀分布星
+for (let i = 0; i < sphereStars; i++) {
+  const r = 100 + Math.random() * 80;
+  const theta = Math.random() * Math.PI * 2;
+  const phi = Math.acos(2 * Math.random() - 1);
+  starPos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+  starPos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+  starPos[i*3+2] = r * Math.cos(phi);
+  starSize[i] = Math.random() * 1.5 + 0.3;
+  starPhase[i] = Math.random() * Math.PI * 2;
+  const tint = Math.random();
+  if (tint < 0.7) { starColor[i*3]=1; starColor[i*3+1]=1; starColor[i*3+2]=0.95; }
+  else if (tint < 0.85) { starColor[i*3]=1; starColor[i*3+1]=0.92; starColor[i*3+2]=0.75; }
+  else { starColor[i*3]=0.8; starColor[i*3+1]=0.85; starColor[i*3+2]=1; }
+}
+
+// 银河带：沿倾斜平面集中分布，密度向中心递增
+const mwTilt = 0.52; // ~30° 倾斜
+const cosT = Math.cos(mwTilt), sinT = Math.sin(mwTilt);
+for (let i = sphereStars; i < starCount; i++) {
+  const r = 100 + Math.random() * 70;
+  const theta = Math.random() * Math.PI * 2;
+  // 高斯分布形成中间密两侧疏的带状
+  const u = Math.random(), v = Math.random();
+  const bandOff = (u + v - 1) * 0.42; // 中心聚集
+  const phi = Math.PI / 2 + bandOff;
+  let x = r * Math.sin(phi) * Math.cos(theta);
+  let y = r * Math.sin(phi) * Math.sin(theta);
+  let z = r * Math.cos(phi);
+  // 倾斜旋转
+  const yN = y * cosT - z * sinT;
+  const zN = y * sinT + z * cosT;
+  starPos[i*3] = x;
+  starPos[i*3+1] = yN;
+  starPos[i*3+2] = zN;
+  starSize[i] = Math.random() * 1.1 + 0.2;
+  starPhase[i] = Math.random() * Math.PI * 2;
+  // 银河偏暖白与淡蓝
+  const tint = Math.random();
+  if (tint < 0.35) { starColor[i*3]=0.88; starColor[i*3+1]=0.93; starColor[i*3+2]=1; }
+  else if (tint < 0.65) { starColor[i*3]=1; starColor[i*3+1]=0.94; starColor[i*3+2]=0.82; }
+  else { starColor[i*3]=1; starColor[i*3+1]=0.85; starColor[i*3+2]=0.65; }
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+starGeo.setAttribute('aSize', new THREE.BufferAttribute(starSize, 1));
+starGeo.setAttribute('aPhase', new THREE.BufferAttribute(starPhase, 1));
+starGeo.setAttribute('aColor', new THREE.BufferAttribute(starColor, 3));
+
+const starMat = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: `
+    attribute float aSize;
+    attribute float aPhase;
+    attribute vec3 aColor;
+    varying float vAlpha;
+    varying vec3 vColor;
+    uniform float uTime;
+    void main() {
+      vColor = aColor;
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = aSize * (320.0 / -mv.z);
+      vAlpha = 0.35 + 0.65 * (0.5 + 0.5 * sin(uTime * 1.5 + aPhase));
+    }
+  `,
+  fragmentShader: `
+    varying float vAlpha;
+    varying vec3 vColor;
+    void main() {
+      vec2 c = gl_PointCoord - 0.5;
+      float d = length(c);
+      if (d > 0.5) discard;
+      float a = (1.0 - d * 2.0) * vAlpha;
+      gl_FragColor = vec4(vColor, a);
+    }
+  `,
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+const starField = new THREE.Points(starGeo, starMat);
+scene.add(starField);
+
+/* ---- 流星系统 ---- */
+const meteorPool = [];
+for (let i = 0; i < 3; i++) {
+  const pts = [new THREE.Vector3(), new THREE.Vector3()];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({
+    color: 0xfffde0, transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+  meteorPool.push({
+    line, pts, mat,
+    active: false,
+    pos: new THREE.Vector3(),
+    vel: new THREE.Vector3(),
+    life: 0, maxLife: 0,
+    delay: Math.random() * 6 + 3,
+  });
+}
+function spawnMeteor(m) {
+  const r = 120;
+  const theta = Math.random() * Math.PI * 2;
+  const phi = Math.acos(2 * Math.random() - 1);
+  m.pos.set(
+    r * Math.sin(phi) * Math.cos(theta),
+    r * Math.sin(phi) * Math.sin(theta),
+    r * Math.cos(phi)
+  );
+  const dir = new THREE.Vector3(
+    Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5
+  ).normalize();
+  m.vel.copy(dir).multiplyScalar(28 + Math.random() * 18);
+  m.life = 0;
+  m.maxLife = 0.7 + Math.random() * 0.5;
+  m.active = true;
+}
+function updateMeteors(delta) {
+  meteorPool.forEach(m => {
+    if (!m.active) {
+      m.delay -= delta;
+      if (m.delay <= 0) { spawnMeteor(m); m.delay = Math.random() * 10 + 5; }
+      return;
+    }
+    m.life += delta;
+    if (m.life >= m.maxLife) { m.active = false; m.mat.opacity = 0; return; }
+    const prev = m.pos.clone();
+    m.pos.addScaledVector(m.vel, delta);
+    m.pts[0].copy(m.pos);
+    m.pts[1].copy(prev);
+    m.line.geometry.setFromPoints(m.pts);
+    m.mat.opacity = Math.sin((m.life / m.maxLife) * Math.PI) * 0.75;
+  });
+}
+
+/* ============================================================
+   太阳
+   ============================================================ */
+const sunGroup = new THREE.Group();
+scene.add(sunGroup);
+
+// 太阳主体
+const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFD54F });
+const sun = new THREE.Mesh(new THREE.SphereGeometry(SUN_RADIUS, 48, 48), sunMat);
+sunGroup.add(sun);
+
+// 内层辉光
+const innerGlowMat = new THREE.MeshBasicMaterial({
+  color: 0xFF8F00, transparent: true, opacity: 0.35, side: THREE.BackSide,
+});
+sunGroup.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_RADIUS * 1.12, 32, 32), innerGlowMat));
+
+// 日冕 Sprite
+function makeGlowTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0, 'rgba(255,249,196,0.9)');
+  g.addColorStop(0.15, 'rgba(255,200,50,0.5)');
+  g.addColorStop(0.4, 'rgba(255,143,0,0.2)');
+  g.addColorStop(1, 'rgba(255,143,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c);
+}
+const corona = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: makeGlowTexture(),
+  blending: THREE.AdditiveBlending,
+  transparent: true,
+  depthWrite: false,
+}));
+corona.scale.set(SUN_RADIUS * 5, SUN_RADIUS * 5, 1);
+sunGroup.add(corona);
+
+// 太阳光源（辅助元素用）
+const sunLight = new THREE.PointLight(0xffeebb, 1.5, 200);
+sunGroup.add(sunLight);
+
+/* ============================================================
+   地球纹理（程序化生成）
+   ============================================================ */
+function createEarthTexture() {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 512;
+  const ctx = c.getContext('2d');
+
+  // 海洋
+  ctx.fillStyle = '#16478c';
+  ctx.fillRect(0, 0, 1024, 512);
+  // 海洋深浅变化
+  for (let i = 0; i < 120; i++) {
+    ctx.fillStyle = `rgba(13,55,120,${Math.random()*0.25})`;
+    ctx.beginPath();
+    ctx.arc(Math.random()*1024, Math.random()*512, Math.random()*55+20, 0, Math.PI*2);
+    ctx.fill();
+  }
+  for (let i = 0; i < 60; i++) {
+    ctx.fillStyle = `rgba(40,110,190,${Math.random()*0.15})`;
+    ctx.beginPath();
+    ctx.arc(Math.random()*1024, Math.random()*512, Math.random()*35+15, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  const G = '#2d6a3e', DG = '#1b5e20', BR = '#8d6e2f', TN = '#c4a35a';
+
+  function blob(cx, cy, shapes) {
+    shapes.forEach(s => {
+      ctx.fillStyle = s.c || G;
+      ctx.beginPath();
+      ctx.ellipse(cx + (s.dx||0), cy + (s.dy||0), s.rx, s.ry, s.rot||0, 0, Math.PI*2);
+      ctx.fill();
+    });
+  }
+
+  // 北美
+  blob(190, 145, [
+    {rx:72,ry:55,rot:0.15,c:G},{dx:-18,dy:18,rx:48,ry:38,c:DG},
+    {dx:28,dy:-8,rx:32,ry:28,c:BR},{dx:5,dy:50,rx:22,ry:18,c:TN},
+    {dx:-28,dy:-15,rx:28,ry:22,c:DG},{dx:45,dy:30,rx:18,ry:14,c:DG},
+  ]);
+  // 南美
+  blob(285, 335, [
+    {rx:32,ry:52,rot:0.2,c:G},{dx:-4,dy:-18,rx:22,ry:32,c:DG},
+    {dx:8,dy:28,rx:18,ry:35,c:G},{dx:-8,dy:48,rx:13,ry:22,c:TN},
+  ]);
+  // 欧洲
+  blob(515, 145, [
+    {rx:38,ry:22,c:G},{dx:-8,dy:8,rx:22,ry:16,c:DG},
+    {dx:14,dy:-4,rx:18,ry:13,c:BR},{dx:-15,dy:15,rx:15,ry:10,c:G},
+  ]);
+  // 非洲
+  blob(530, 295, [
+    {rx:42,ry:58,c:TN},{dx:-4,dy:-22,rx:32,ry:32,c:G},
+    {dx:4,dy:18,rx:28,ry:38,c:BR},{dx:0,dy:48,rx:18,ry:22,c:G},
+  ]);
+  // 亚洲
+  blob(700, 160, [
+    {rx:95,ry:48,c:G},{dx:-28,dy:8,rx:55,ry:32,c:DG},
+    {dx:38,dy:-4,rx:42,ry:28,c:BR},{dx:18,dy:22,rx:32,ry:22,c:TN},
+    {dx:-45,dy:-8,rx:38,ry:28,c:G},{dx:60,dy:15,rx:25,ry:18,c:DG},
+  ]);
+  // 印度
+  blob(705, 230, [{rx:18,ry:28,rot:0.3,c:G}]);
+  // 东南亚
+  blob(800, 245, [{rx:22,ry:13,c:G},{dx:12,dy:8,rx:10,ry:7,c:DG}]);
+  // 澳大利亚
+  blob(845, 340, [
+    {rx:38,ry:23,rot:0.1,c:TN},{dx:-8,dy:4,rx:22,ry:14,c:BR},
+    {dx:8,dy:-4,rx:18,ry:13,c:G},
+  ]);
+  // 格陵兰
+  blob(375, 85, [{rx:22,ry:18,c:'#e0f2fe'}]);
+  // 日本
+  blob(835, 175, [{rx:8,ry:18,rot:0.4,c:DG}]);
+  // 新西兰
+  blob(905, 370, [{rx:7,ry:12,rot:0.3,c:G}]);
+
+  // 北极冰盖
+  const np = ctx.createLinearGradient(0, 0, 0, 55);
+  np.addColorStop(0, '#f0f8ff');
+  np.addColorStop(1, 'rgba(240,248,255,0)');
+  ctx.fillStyle = np;
+  ctx.fillRect(0, 0, 1024, 55);
+
+  // 南极冰盖
+  const sp = ctx.createLinearGradient(0, 457, 0, 512);
+  sp.addColorStop(0, 'rgba(240,248,255,0)');
+  sp.addColorStop(1, '#f0f8ff');
+  ctx.fillStyle = sp;
+  ctx.fillRect(0, 457, 1024, 55);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 8;
+  return tex;
+}
+
+function createCloudTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const ctx = c.getContext('2d');
+  for (let i = 0; i < 70; i++) {
+    const x = Math.random()*512, y = Math.random()*256;
+    const r = Math.random()*28 + 8;
+    const o = Math.random()*0.55 + 0.2;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(255,255,255,${o})`);
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+/* ============================================================
+   地球（自定义着色器 · 昼夜/晨昏线/大气）
+   ============================================================ */
+const sunDirectionUniform = { value: new THREE.Vector3(-1, 0, 0) };
+const earthTexture = createEarthTexture();
+const cloudTexture = createCloudTexture();
+
+const earthVS = `
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPos;
+  void main() {
+    vUv = uv;
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    vWorldPos = wp.xyz;
+    gl_Position = projectionMatrix * viewMatrix * wp;
+  }
+`;
+
+const earthFS = `
+  uniform sampler2D dayTexture;
+  uniform vec3 sunDirection;
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPos;
+  void main() {
+    vec3 normal = normalize(vWorldNormal);
+    vec3 sunDir = normalize(sunDirection);
+    float sunDot = dot(normal, sunDir);
+    vec3 dayColor = texture2D(dayTexture, vUv).rgb;
+    // 夜半球
+    vec3 nightColor = dayColor * 0.06 + vec3(0.003, 0.006, 0.012);
+    // 昼夜过渡
+    float dayFactor = smoothstep(-0.18, 0.18, sunDot);
+    vec3 color = mix(nightColor, dayColor, dayFactor);
+    // 晨昏线金色辉光
+    float term = 1.0 - clamp(abs(sunDot) / 0.22, 0.0, 1.0);
+    color += vec3(1.0, 0.65, 0.25) * term * 0.28;
+    // 视线方向
+    vec3 viewDir = normalize(cameraPosition - vWorldPos);
+    // 海洋镜面反射（太阳在海面的闪烁）
+    vec3 halfVec = normalize(sunDir + viewDir);
+    float spec = pow(max(0.0, dot(normal, halfVec)), 48.0);
+    float oceanMask = smoothstep(0.18, 0.38, dayColor.b - dayColor.r);
+    color += vec3(1.0, 0.95, 0.82) * spec * oceanMask * dayFactor * 0.7;
+    // 大气边缘辉光
+    float rim = 1.0 - max(0.0, dot(normal, viewDir));
+    color += vec3(0.2, 0.45, 0.9) * pow(rim, 2.5) * 0.35;
+    gl_FragColor = vec4(color, 1.0);
+  }
+`;
+
+const earthMat = new THREE.ShaderMaterial({
+  uniforms: {
+    dayTexture: { value: earthTexture },
+    sunDirection: sunDirectionUniform,
+  },
+  vertexShader: earthVS,
+  fragmentShader: earthFS,
+});
+
+const earthGroup = new THREE.Group();   // 公转位置
+scene.add(earthGroup);
+
+const earthTiltGroup = new THREE.Group(); // 倾斜
+earthGroup.add(earthTiltGroup);
+earthTiltGroup.rotation.x = -23.5 * Math.PI / 180;
+
+const earthMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(EARTH_RADIUS, 64, 64),
+  earthMat
+);
+earthTiltGroup.add(earthMesh);
+
+// 云层
+const cloudMat = new THREE.ShaderMaterial({
+  uniforms: {
+    cloudTexture: { value: cloudTexture },
+    sunDirection: sunDirectionUniform,
+  },
+  vertexShader: earthVS,
+  fragmentShader: `
+    uniform sampler2D cloudTexture;
+    uniform vec3 sunDirection;
+    varying vec2 vUv;
+    varying vec3 vWorldNormal;
+    void main() {
+      vec3 normal = normalize(vWorldNormal);
+      float sunDot = dot(normal, normalize(sunDirection));
+      float dayFactor = smoothstep(-0.12, 0.22, sunDot);
+      vec4 cc = texture2D(cloudTexture, vUv);
+      gl_FragColor = vec4(1.0, 1.0, 1.0, cc.a * dayFactor * 0.55);
+    }
+  `,
+  transparent: true,
+  depthWrite: false,
+});
+const cloudMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(CLOUD_RADIUS, 48, 48),
+  cloudMat
+);
+earthTiltGroup.add(cloudMesh);
+
+// 大气层（菲涅尔辉光）
+const atmosMat = new THREE.ShaderMaterial({
+  uniforms: { glowColor: { value: new THREE.Color(0x4488ff) } },
+  vertexShader: earthVS,
+  fragmentShader: `
+    uniform vec3 glowColor;
+    varying vec3 vWorldNormal;
+    varying vec3 vWorldPos;
+    void main() {
+      vec3 normal = normalize(vWorldNormal);
+      vec3 viewDir = normalize(cameraPosition - vWorldPos);
+      float intensity = pow(1.0 - abs(dot(normal, viewDir)), 3.0);
+      gl_FragColor = vec4(glowColor, intensity * 0.7);
+    }
+  `,
+  transparent: true,
+  side: THREE.BackSide,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+const atmosphere = new THREE.Mesh(
+  new THREE.SphereGeometry(ATMOS_RADIUS, 48, 48),
+  atmosMat
+);
+earthTiltGroup.add(atmosphere);
+
+/* ============================================================
+   辅助元素
+   ============================================================ */
+
+// 公转轨道
+const orbitLine = (() => {
+  const pts = [];
+  for (let i = 0; i <= 128; i++) {
+    const a = (i / 128) * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * ORBIT_RADIUS, 0, Math.sin(a) * ORBIT_RADIUS));
+  }
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  return new THREE.Line(g, new THREE.LineBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.12,
+  }));
+})();
+scene.add(orbitLine);
+
+// 轨道四至日标记
+const seasonMarkers = [];
+const seasonData = [
+  { day: 0, name: '春分', color: 0x22c55e },
+  { day: 92, name: '夏至', color: 0xef4444 },
+  { day: 186, name: '秋分', color: 0xf59e0b },
+  { day: 276, name: '冬至', color: 0x3b82f6 },
+];
+seasonData.forEach(s => {
+  const theta = (s.day / 365) * Math.PI * 2;
+  const x = Math.cos(theta) * ORBIT_RADIUS;
+  const z = Math.sin(theta) * ORBIT_RADIUS;
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12, 16, 16),
+    new THREE.MeshBasicMaterial({ color: s.color })
+  );
+  m.position.set(x, 0, z);
+  scene.add(m);
+  seasonMarkers.push(m);
+});
+
+// 地轴 + 赤道
+const axisGroup = new THREE.Group();
+earthTiltGroup.add(axisGroup);
+
+const axisLine = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.012, 0.012, EARTH_RADIUS * 2.8, 8),
+  new THREE.MeshBasicMaterial({ color: 0xFFC107, transparent: true, opacity: 0.7 })
+);
+axisGroup.add(axisLine);
+
+// 北极标记
+const northMark = new THREE.Mesh(
+  new THREE.ConeGeometry(0.05, 0.12, 8),
+  new THREE.MeshBasicMaterial({ color: 0xFFC107 })
+);
+northMark.position.y = EARTH_RADIUS * 1.45;
+axisGroup.add(northMark);
+
+// 赤道
+const equatorLine = (() => {
+  const pts = [];
+  for (let i = 0; i <= 64; i++) {
+    const a = (i / 64) * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * EARTH_RADIUS * 1.003, 0, Math.sin(a) * EARTH_RADIUS * 1.003));
+  }
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  return new THREE.Line(g, new THREE.LineBasicMaterial({
+    color: 0xFFC107, transparent: true, opacity: 0.35,
+  }));
+})();
+axisGroup.add(equatorLine);
+
+// 回归线 / 极圈（随倾角变化）
+const tropicGroup = new THREE.Group();
+earthTiltGroup.add(tropicGroup);
+
+function rebuildTropicLines(tilt) {
+  while (tropicGroup.children.length > 0) {
+    const c = tropicGroup.children[0];
+    tropicGroup.remove(c);
+    c.geometry?.dispose();
+    c.material?.dispose();
+  }
+  const lats = [
+    { lat: tilt, op: 0.5 },
+    { lat: -tilt, op: 0.5 },
+    { lat: 90 - tilt, op: 0.35 },
+    { lat: -(90 - tilt), op: 0.35 },
+  ];
+  lats.forEach(({ lat, op }) => {
+    const lr = lat * Math.PI / 180;
+    const r = EARTH_RADIUS * Math.cos(lr) * 1.004;
+    const y = EARTH_RADIUS * Math.sin(lr);
+    const pts = [];
+    for (let j = 0; j <= 64; j++) {
+      const a = (j / 64) * Math.PI * 2;
+      pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
+    }
+    const g = new THREE.BufferGeometry().setFromPoints(pts);
+    const m = new THREE.LineDashedMaterial({
+      color: 0x00BCD4, transparent: true, opacity: op,
+      dashSize: 0.06, gapSize: 0.04,
+    });
+    const l = new THREE.Line(g, m);
+    l.computeLineDistances();
+    tropicGroup.add(l);
+  });
+}
+rebuildTropicLines(23.5);
+
+// 太阳直射点标记
+const subsolarMarker = new THREE.Mesh(
+  new THREE.SphereGeometry(0.06, 16, 16),
+  new THREE.MeshBasicMaterial({ color: 0xFFD700 })
+);
+earthTiltGroup.add(subsolarMarker);
+
+// 直射点辉光
+const subsolarGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: makeGlowTexture(),
+  blending: THREE.AdditiveBlending,
+  transparent: true,
+  depthWrite: false,
+  color: 0xFFD700,
+}));
+subsolarGlow.scale.set(0.5, 0.5, 1);
+earthTiltGroup.add(subsolarGlow);
+
+// 太阳平行光线
+const sunRaysGroup = new THREE.Group();
+scene.add(sunRaysGroup);
+const rayCount = 5;
+const rayLen = 5;
+for (let i = 0; i < rayCount; i++) {
+  const off = (i - (rayCount - 1) / 2) * 0.45;
+  const pts = [
+    new THREE.Vector3(-rayLen / 2, off, 0),
+    new THREE.Vector3(rayLen / 2, off, 0),
+  ];
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  sunRaysGroup.add(new THREE.Line(g, new THREE.LineBasicMaterial({
+    color: 0xFFD700, transparent: true, opacity: 0.25,
+  })));
+}
+
+/* ============================================================
+   日期/节气/天文计算
+   ============================================================ */
+function dayToDate(day) {
+  const base = new Date(2024, 2, 21);
+  base.setDate(base.getDate() + Math.round(day));
+  return `${base.getMonth() + 1}月${base.getDate()}日`;
+}
+
+function getDeclination(day, tilt) {
+  const theta = (day / 365) * Math.PI * 2;
+  const tRad = tilt * Math.PI / 180;
+  return Math.asin(Math.sin(tRad) * Math.sin(theta)) * 180 / Math.PI;
+}
+
+function getDayLength(lat, dec) {
+  const lr = lat * Math.PI / 180;
+  const dr = dec * Math.PI / 180;
+  const cosH = -Math.tan(lr) * Math.tan(dr);
+  if (cosH > 1) return 0;
+  if (cosH < -1) return 24;
+  return 2 * Math.acos(cosH) * 180 / Math.PI / 15;
+}
+
+function fmtDayLen(h) {
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return `${hh}时${mm.toString().padStart(2, '0')}分`;
+}
+
+function fmtLat(d) {
+  const abs = Math.abs(d).toFixed(1);
+  return `${abs}°${d >= 0 ? 'N' : 'S'}`;
+}
+
+function getSeasonInfo(day) {
+  const tol = 3;
+  if (day < tol || day > 365 - tol) return { name: '春分', desc: '太阳直射赤道，全球昼夜平分' };
+  if (Math.abs(day - 92) < tol) return { name: '夏至', desc: '太阳直射北回归线，北半球昼最长' };
+  if (Math.abs(day - 186) < tol) return { name: '秋分', desc: '太阳直射赤道，全球昼夜平分' };
+  if (Math.abs(day - 276) < tol) return { name: '冬至', desc: '太阳直射南回归线，北半球昼最短' };
+  if (day < 92) return { name: '春季', desc: '太阳直射点从赤道向北回归线移动' };
+  if (day < 186) return { name: '夏季', desc: '太阳直射点在北半球，北半球受热多' };
+  if (day < 276) return { name: '秋季', desc: '太阳直射点从北回归线向赤道移动' };
+  return { name: '冬季', desc: '太阳直射点在南半球，北半球受热少' };
+}
+
+function checkSeasonBtn(day) {
+  const tol = 3;
+  document.querySelectorAll('.season-btn').forEach(btn => {
+    const target = parseFloat(btn.dataset.day);
+    let near = Math.abs(day - target) < tol;
+    if (target === 0 && day > 365 - tol) near = true;
+    btn.classList.toggle('active', near);
+  });
+}
+
+/* ============================================================
+   更新场景
+   ============================================================ */
+function updateScene() {
+  const theta = (currentDay / 365) * Math.PI * 2;
+  const tiltRad = currentTilt * Math.PI / 180;
+
+  // 地球公转位置
+  const ex = Math.cos(theta) * ORBIT_RADIUS;
+  const ez = Math.sin(theta) * ORBIT_RADIUS;
+  earthGroup.position.set(ex, 0, ez);
+
+  // 太阳方向（世界空间，从地球指向太阳）
+  const sunDir = new THREE.Vector3(-Math.cos(theta), 0, -Math.sin(theta));
+  sunDirectionUniform.value.copy(sunDir);
+
+  // 地球自转（独立速度，便于观察昼夜交替）
+  if (isPlaying && !dayAnim) {
+    earthMesh.rotation.y += 0.012;
+    cloudMesh.rotation.y += 0.009;
+  }
+
+  // 直射点位置（在倾斜组的局部空间中）
+  // 将世界太阳方向变换到倾斜组局部空间（逆倾角旋转）
+  const localSunDir = new THREE.Vector3(
+    -Math.cos(theta),
+    Math.sin(theta) * Math.sin(tiltRad),
+    -Math.sin(theta) * Math.cos(tiltRad)
+  ).normalize();
+  subsolarMarker.position.copy(localSunDir.clone().multiplyScalar(EARTH_RADIUS * 1.04));
+  subsolarGlow.position.copy(localSunDir.clone().multiplyScalar(EARTH_RADIUS * 1.04));
+
+  // 太阳光线
+  sunRaysGroup.position.copy(earthGroup.position);
+  const xAxis = new THREE.Vector3(1, 0, 0);
+  sunRaysGroup.quaternion.setFromUnitVectors(xAxis, sunDir);
+
+  // 信息面板
+  const dec = getDeclination(currentDay, currentTilt);
+  const season = getSeasonInfo(currentDay);
+  document.getElementById('infoDate').textContent = dayToDate(currentDay);
+  document.getElementById('seasonName').textContent = season.name;
+  document.getElementById('seasonDesc').textContent = season.desc;
+  document.getElementById('subsolarLat').textContent = fmtLat(dec);
+  document.getElementById('dayLen235N').textContent = fmtDayLen(getDayLength(23.5, dec));
+  document.getElementById('dayLen40N').textContent = fmtDayLen(getDayLength(40, dec));
+  document.getElementById('dayLen0').textContent = fmtDayLen(getDayLength(0, dec));
+  document.getElementById('dayLen235S').textContent = fmtDayLen(getDayLength(-23.5, dec));
+
+  // 时间轴
+  if (!isDraggingTimeline) {
+    document.getElementById('timeline').value = currentDay;
+  }
+  checkSeasonBtn(currentDay);
+}
+
+/* ============================================================
+   动画循环
+   ============================================================ */
+const clock = new THREE.Clock();
+let isDraggingTimeline = false;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  // 加载动画
+  if (loadingProgress < 1) {
+    loadingProgress += delta / 2.0;
+    loadingProgress = Math.min(loadingProgress, 1);
+    if (loadingProgress > 0.15) {
+      const p = Math.min((loadingProgress - 0.15) / 0.35, 1);
+      sunGroup.scale.setScalar(p);
+    }
+    if (loadingProgress > 0.45) {
+      const p = Math.min((loadingProgress - 0.45) / 0.35, 1);
+      earthGroup.scale.setScalar(p);
+    }
+    if (loadingProgress > 0.85) {
+      document.getElementById('loading').style.opacity = 1 - (loadingProgress - 0.85) / 0.15;
+    }
+    if (loadingProgress >= 1) {
+      document.getElementById('loading').classList.add('hidden');
+    }
+  }
+
+  // 日历动画（四季按钮跳转）
+  if (dayAnim) {
+    const elapsed = performance.now() - dayAnim.start;
+    const k = Math.min(elapsed / dayAnim.duration, 1);
+    const eased = 1 - Math.pow(1 - k, 3);
+    let d = dayAnim.from + (dayAnim.to - dayAnim.from) * eased;
+    d = ((d % 365) + 365) % 365;
+    currentDay = d;
+    if (k >= 1) {
+      dayAnim = null;
+      if (speeds[speedIndex].value > 0) isPlaying = true;
+    }
+  } else if (isPlaying && speeds[speedIndex].value > 0) {
+    currentDay += speeds[speedIndex].value * delta;
+    if (currentDay >= 365) currentDay -= 365;
+  }
+
+  // 星空闪烁
+  starMat.uniforms.uTime.value = t;
+
+  // 太阳脉动
+  const pulse = 1 + Math.sin(t * 1.8) * 0.015;
+  sun.scale.setScalar(pulse);
+  corona.material.rotation = t * 0.05;
+
+  // 星空缓慢旋转 + 流星更新
+  starField.rotation.y += 0.00008;
+  updateMeteors(delta);
+
+  // 视角动画
+  if (camAnim) {
+    const k = Math.min((performance.now() - camAnim.start) / camAnim.duration, 1);
+    const eased = 1 - Math.pow(1 - k, 3);
+    camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, eased);
+    const look = new THREE.Vector3().lerpVectors(camAnim.fromLook, camAnim.toLook, eased);
+    camera.lookAt(look);
+    controls.target.copy(look);
+    if (k >= 1) camAnim = null;
+  } else if (viewMode === 'follow') {
+    const ep = earthGroup.position;
+    const targetPos = new THREE.Vector3(ep.x * 0.6, 3, ep.z * 0.6 + 5);
+    camera.position.lerp(targetPos, 0.06);
+    camera.lookAt(ep);
+    controls.target.copy(ep);
+  }
+
+  updateScene();
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+/* ============================================================
+   UI 交互
+   ============================================================ */
+
+// 播放/暂停
+const playBtn = document.getElementById('playBtn');
+const iconPlay = document.getElementById('iconPlay');
+const iconPause = document.getElementById('iconPause');
+playBtn.addEventListener('click', () => {
+  isPlaying = !isPlaying;
+  iconPlay.style.display = isPlaying ? 'none' : 'block';
+  iconPause.style.display = isPlaying ? 'block' : 'none';
+});
+
+// 速度切换
+const speedBtn = document.getElementById('speedBtn');
+speedBtn.addEventListener('click', () => {
+  speedIndex = (speedIndex + 1) % speeds.length;
+  speedBtn.textContent = speeds[speedIndex].label;
+  if (speeds[speedIndex].value === 0) {
+    isPlaying = false;
+    iconPlay.style.display = 'block';
+    iconPause.style.display = 'none';
+  } else {
+    isPlaying = true;
+    iconPlay.style.display = 'none';
+    iconPause.style.display = 'block';
+  }
+});
+
+// 时间轴
+const timeline = document.getElementById('timeline');
+timeline.addEventListener('input', () => {
+  isDraggingTimeline = true;
+  currentDay = parseFloat(timeline.value);
+  if (isPlaying) {
+    isPlaying = false;
+    iconPlay.style.display = 'block';
+    iconPause.style.display = 'none';
+  }
+});
+timeline.addEventListener('change', () => { isDraggingTimeline = false; });
+timeline.addEventListener('mouseup', () => { isDraggingTimeline = false; });
+timeline.addEventListener('touchend', () => { isDraggingTimeline = false; });
+
+// 四季按钮
+function goToDay(target) {
+  let diff = target - currentDay;
+  if (diff < -182.5) diff += 365;
+  if (diff > 182.5) diff -= 365;
+  dayAnim = {
+    from: currentDay,
+    to: currentDay + diff,
+    start: performance.now(),
+    duration: 700,
+  };
+  isPlaying = false;
+  iconPlay.style.display = 'block';
+  iconPause.style.display = 'none';
+}
+document.querySelectorAll('.season-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    goToDay(parseFloat(btn.dataset.day));
+  });
+});
+
+// 弹出面板切换
+const btnView = document.getElementById('btnView');
+const btnAux = document.getElementById('btnAux');
+const viewPopup = document.getElementById('viewPopup');
+const auxPopup = document.getElementById('auxPopup');
+btnView.addEventListener('click', (e) => {
+  e.stopPropagation();
+  viewPopup.classList.toggle('show');
+  auxPopup.classList.remove('show');
+});
+btnAux.addEventListener('click', (e) => {
+  e.stopPropagation();
+  auxPopup.classList.toggle('show');
+  viewPopup.classList.remove('show');
+});
+document.addEventListener('click', () => {
+  viewPopup.classList.remove('show');
+  auxPopup.classList.remove('show');
+});
+viewPopup.addEventListener('click', e => e.stopPropagation());
+auxPopup.addEventListener('click', e => e.stopPropagation());
+
+// 视角切换
+document.querySelectorAll('.view-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    viewMode = btn.dataset.view;
+    if (viewMode === 'free') {
+      controls.enabled = true;
+    } else {
+      controls.enabled = false;
+    }
+    if (viewMode !== 'follow') {
+      let tp, tl;
+      if (viewMode === 'top') { tp = new THREE.Vector3(0, 50, 0.01); tl = new THREE.Vector3(0,0,0); }
+      else if (viewMode === 'side') { tp = new THREE.Vector3(0, 2, 32); tl = new THREE.Vector3(0,0,0); }
+      else { tp = camera.position.clone(); tl = controls.target.clone(); }
+      camAnim = {
+        fromPos: camera.position.clone(),
+        toPos: tp,
+        fromLook: controls.target.clone(),
+        toLook: tl,
+        start: performance.now(),
+        duration: 800,
+      };
+    }
+  });
+});
+
+// 辅助线开关
+function bindToggle(id, obj) {
+  document.getElementById(id).addEventListener('change', e => {
+    auxVisible[obj] = e.target.checked;
+    applyAuxVisibility();
+  });
+}
+bindToggle('tglOrbit', 'orbit');
+bindToggle('tglAxis', 'axis');
+bindToggle('tglTropics', 'tropics');
+bindToggle('tglRays', 'rays');
+bindToggle('tglSubsolar', 'subsolar');
+
+function applyAuxVisibility() {
+  orbitLine.visible = auxVisible.orbit;
+  seasonMarkers.forEach(m => m.visible = auxVisible.orbit);
+  axisGroup.visible = auxVisible.axis;
+  tropicGroup.visible = auxVisible.tropics;
+  sunRaysGroup.visible = auxVisible.rays;
+  subsolarMarker.visible = auxVisible.subsolar;
+  subsolarGlow.visible = auxVisible.subsolar;
+}
+
+// 倾角滑块
+const tiltSlider = document.getElementById('tiltSlider');
+const tiltValue = document.getElementById('tiltValue');
+tiltSlider.addEventListener('input', () => {
+  currentTilt = parseFloat(tiltSlider.value);
+  tiltValue.textContent = currentTilt.toFixed(1) + '°';
+  earthTiltGroup.rotation.x = -currentTilt * Math.PI / 180;
+  rebuildTropicLines(currentTilt);
+  applyAuxVisibility();
+});
+
+// 全屏
+document.getElementById('btnFullscreen').addEventListener('click', () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+});
+
+/* ============================================================
+   响应式
+   ============================================================ */
+function onResize() {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+// 初始更新
+updateScene();
+applyAuxVisibility();
+</script>
+
+</body>
+</html>

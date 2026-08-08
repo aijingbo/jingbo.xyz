@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>工业革命与城市化进程 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://unpkg.com" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+<style>
+/* ============================================================
+   工业革命与城市化进程 — 专属样式
+   工程蓝图 × 蒸汽钢铁 × 时空叙事
+   ============================================================ */
+
+:root {
+  /* 工业配色 */
+  --ir-steel: #4A4A4A;
+  --ir-steel-dark: #2C2C2C;
+  --ir-steel-light: #6B6B6B;
+  --ir-rust: #8B4513;
+  --ir-rust-light: #A0522D;
+  --ir-brass: #B8860B;
+  --ir-brass-light: #DAA520;
+  --ir-blueprint: #E8ECF0;
+  --ir-blueprint-dark: #D5DCE3;
+  --ir-orange: #FF6B35;
+  --ir-orange-soft: rgba(255, 107, 53, 0.15);
+  --ir-paper: #F0F2F5;
+  --ir-text: #2C2C2C;
+  --ir-text-muted: #7A7A7A;
+  --ir-border: #C5CCD3;
+  --ir-white: rgba(255, 255, 255, 0.96);
+
+  /* 字体 */
+  --ir-font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', Georgia, 'Times New Roman', serif;
+  --ir-font-sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+  --ir-font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', 'Consolas', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--ir-font-sans);
+  background: var(--ir-blueprint);
+  color: var(--ir-text);
+}
+
+/* ---------- 蓝图网格背景 ---------- */
+.blueprint-bg {
+  background-color: var(--ir-blueprint);
+  background-image:
+    linear-gradient(rgba(74, 74, 74, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 74, 74, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(74, 74, 74, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 74, 74, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+}
+
+/* ---------- 加载动画 ---------- */
+.ir-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ir-blueprint);
+  background-image:
+    linear-gradient(rgba(74, 74, 74, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 74, 74, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(74, 74, 74, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 74, 74, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+  transition: opacity 0.8s ease;
+}
+.ir-loader.hidden { opacity: 0; pointer-events: none; }
+
+.ir-gear-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.ir-gear {
+  position: absolute;
+  fill: var(--ir-steel);
+  opacity: 0.85;
+}
+.ir-gear-lg {
+  width: 80px;
+  height: 80px;
+  top: 10px;
+  left: 0;
+  animation: ir-gear-spin 4s linear infinite;
+}
+.ir-gear-sm {
+  width: 50px;
+  height: 50px;
+  top: 55px;
+  left: 60px;
+  fill: var(--ir-rust);
+  opacity: 0.8;
+  animation: ir-gear-spin 3s linear infinite reverse;
+}
+
+/* 蒸汽粒子 */
+.ir-steam {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 80px;
+  pointer-events: none;
+}
+.ir-steam-particle {
+  position: absolute;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(74, 74, 74, 0.08);
+  filter: blur(4px);
+  animation: ir-steam-rise 3s ease-out infinite;
+}
+.ir-steam-particle:nth-child(1) { left: 20%; animation-delay: 0s; }
+.ir-steam-particle:nth-child(2) { left: 50%; animation-delay: 0.8s; }
+.ir-steam-particle:nth-child(3) { left: 75%; animation-delay: 1.5s; }
+
+@keyframes ir-steam-rise {
+  0% { bottom: 0; opacity: 0; transform: scale(0.5) translateX(0); }
+  20% { opacity: 0.6; }
+  100% { bottom: 70px; opacity: 0; transform: scale(2) translateX(10px); }
+}
+
+@keyframes ir-gear-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ir-loader-text {
+  position: absolute;
+  top: 150px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+}
+.ir-loader-title {
+  font-family: var(--ir-font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ir-steel);
+  letter-spacing: 0.15em;
+}
+.ir-loader-sub {
+  font-family: var(--ir-font-mono);
+  font-size: 11px;
+  color: var(--ir-text-muted);
+  margin-top: 6px;
+  letter-spacing: 0.1em;
+}
+
+/* ---------- 导航栏 ---------- */
+.demo-navbar {
+  background-color: rgba(232, 236, 240, 0.88) !important;
+  border-bottom: 1px solid var(--ir-border) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.demo-navbar.scrolled {
+  background-color: rgba(232, 236, 240, 0.95) !important;
+}
+.demo-nav-logo { font-family: var(--ir-font-serif); }
+
+/* ---------- 主体布局 ---------- */
+.framework-narrative {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding-top: 64px;
+}
+
+.ir-main {
+  display: grid;
+  grid-template-columns: 68% 32%;
+  height: calc(100vh - 64px);
+  overflow: hidden;
+}
+
+/* ---------- 地图区域 ---------- */
+.ir-map-area {
+  position: relative;
+  background: var(--ir-blueprint);
+  border-right: 1px solid var(--ir-border);
+  overflow: hidden;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  background: var(--ir-blueprint);
+  z-index: 1;
+}
+
+/* Leaflet 蓝图滤镜 */
+.leaflet-tile-pane {
+  filter: grayscale(0.6) brightness(1.05) contrast(0.92) saturate(0.3) hue-rotate(185deg);
+}
+
+.leaflet-container {
+  background: var(--ir-blueprint) !important;
+  font-family: var(--ir-font-sans) !important;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid var(--ir-border) !important;
+  border-radius: 4px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(44, 44, 44, 0.1) !important;
+}
+.leaflet-control-zoom a {
+  background: var(--ir-white) !important;
+  color: var(--ir-steel) !important;
+  border-bottom: 1px solid var(--ir-border) !important;
+  font-weight: 600;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--ir-blueprint-dark) !important;
+  color: var(--ir-rust) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(232, 236, 240, 0.7) !important;
+  color: var(--ir-text-muted) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a { color: var(--ir-rust) !important; }
+
+/* ---------- 蓝图角标 ---------- */
+.ir-blueprint-stamp {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  padding: 6px 14px;
+  background: rgba(232, 236, 240, 0.85);
+  border: 1px solid var(--ir-border);
+  border-radius: 2px;
+  font-family: var(--ir-font-mono);
+  font-size: 10px;
+  color: var(--ir-steel-light);
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+
+/* ---------- 工业图标标记 ---------- */
+.ir-marker-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.ir-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ir-marker-core {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ir-border);
+  border: 2px solid var(--ir-white);
+  box-shadow: 0 1px 4px rgba(44, 44, 44, 0.2);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ir-marker.past .ir-marker-core {
+  background: var(--ir-steel);
+  opacity: 0.55;
+}
+
+.ir-marker.active .ir-marker-core {
+  width: 18px;
+  height: 18px;
+  background: var(--ir-rust);
+  border: 3px solid var(--ir-white);
+  box-shadow: 0 0 0 5px rgba(139, 69, 19, 0.18), 0 2px 10px rgba(139, 69, 19, 0.35);
+}
+
+.ir-marker.active::before {
+  content: '';
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--ir-rust);
+  opacity: 0;
+  animation: ir-pulse 2.2s ease-out infinite;
+}
+
+@keyframes ir-pulse {
+  0% { opacity: 0.5; transform: scale(0.5); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+
+/* 标记标签 */
+.ir-marker-label {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--ir-font-serif);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ir-steel);
+  background: var(--ir-white);
+  padding: 3px 9px;
+  border-radius: 2px;
+  border: 1px solid var(--ir-border);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 2px 6px rgba(44, 44, 44, 0.08);
+}
+.ir-marker.past .ir-marker-label,
+.ir-marker.active .ir-marker-label { opacity: 1; }
+.ir-marker.active .ir-marker-label {
+  color: var(--ir-rust);
+  border-color: var(--ir-rust);
+  font-weight: 700;
+}
+
+/* 工业图标（烟囱/齿轮/火车） */
+.ir-marker-icon {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.ir-marker.active .ir-marker-icon { opacity: 1; }
+
+/* ---------- 信息卡片 ---------- */
+.ir-info-card {
+  position: absolute;
+  bottom: 80px;
+  left: 20px;
+  z-index: 20;
+  max-width: 400px;
+  background: var(--ir-white);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--ir-border);
+  border-radius: 6px;
+  box-shadow: 0 12px 40px rgba(44, 44, 44, 0.12);
+  overflow: hidden;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.ir-info-card.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ir-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--ir-border);
+  background: linear-gradient(180deg, rgba(232, 236, 240, 0.5), transparent);
+}
+
+.ir-card-year-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ir-card-year {
+  font-family: var(--ir-font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ir-rust);
+  line-height: 1;
+}
+
+.ir-card-phase {
+  font-family: var(--ir-font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ir-brass);
+  background: rgba(184, 134, 11, 0.1);
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ir-card-seal {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--ir-steel);
+  border-radius: 2px;
+}
+.ir-card-seal svg { width: 18px; height: 18px; fill: var(--ir-brass-light); }
+
+.ir-card-body { padding: 14px 20px 18px; }
+
+.ir-card-title {
+  font-family: var(--ir-font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ir-steel-dark);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.ir-card-location {
+  font-family: var(--ir-font-mono);
+  font-size: 11px;
+  color: var(--ir-text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ir-card-location::before {
+  content: '◆';
+  color: var(--ir-rust);
+  font-size: 8px;
+}
+
+.ir-card-desc {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ir-text);
+}
+
+/* ---------- 播放控制栏 ---------- */
+.ir-playback {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  background: var(--ir-white);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--ir-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(44, 44, 44, 0.08);
+}
+
+.ir-playback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 4px;
+  background: var(--ir-steel);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.ir-playback-btn:hover {
+  background: var(--ir-rust);
+  transform: scale(1.05);
+}
+.ir-playback-btn svg { width: 16px; height: 16px; fill: #fff; }
+
+.ir-playback-btn.ir-btn-play { width: 42px; height: 42px; }
+
+.ir-progress-track {
+  flex: 1;
+  height: 4px;
+  background: var(--ir-blueprint-dark);
+  border-radius: 2px;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+.ir-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ir-rust), var(--ir-brass));
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.5s ease;
+}
+
+.ir-progress-label {
+  font-family: var(--ir-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ir-steel);
+  white-space: nowrap;
+  min-width: 90px;
+  text-align: right;
+}
+
+/* ---------- 右侧时间轴面板 ---------- */
+.ir-timeline-panel {
+  background: var(--ir-paper);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.ir-timeline-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(74, 74, 74, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 74, 74, 0.025) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+.ir-timeline-header {
+  padding: 20px 22px 14px;
+  border-bottom: 2px solid var(--ir-steel);
+  position: relative;
+  z-index: 1;
+}
+
+.ir-timeline-title {
+  font-family: var(--ir-font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ir-steel-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ir-timeline-title svg { width: 22px; height: 22px; fill: var(--ir-rust); }
+
+.ir-timeline-subtitle {
+  font-family: var(--ir-font-mono);
+  font-size: 11px;
+  color: var(--ir-text-muted);
+  margin-top: 4px;
+  letter-spacing: 0.05em;
+}
+
+.ir-phase-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.ir-phase-tab {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  background: transparent;
+  border: 1px solid var(--ir-border);
+  border-radius: 3px;
+  color: var(--ir-text-muted);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: var(--ir-font-sans);
+}
+.ir-phase-tab:hover { border-color: var(--ir-steel-light); color: var(--ir-steel); }
+.ir-phase-tab.active {
+  background: var(--ir-steel);
+  border-color: var(--ir-steel);
+  color: #fff;
+}
+
+.ir-timeline-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.ir-timeline-scroll::-webkit-scrollbar { width: 5px; }
+.ir-timeline-scroll::-webkit-scrollbar-track { background: transparent; }
+.ir-timeline-scroll::-webkit-scrollbar-thumb {
+  background: var(--ir-border);
+  border-radius: 3px;
+}
+.ir-timeline-scroll::-webkit-scrollbar-thumb:hover { background: var(--ir-steel-light); }
+
+/* 时间轴竖线 */
+.ir-timeline-rail {
+  position: absolute;
+  left: 44px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ir-border);
+  z-index: 0;
+}
+.ir-timeline-rail-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(180deg, var(--ir-rust), var(--ir-brass));
+  transition: height 0.5s ease;
+}
+
+/* 事件项 */
+.ir-event {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 20px 10px 30px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  border-left: 3px solid transparent;
+}
+.ir-event:hover {
+  background: rgba(74, 74, 74, 0.03);
+}
+.ir-event.active {
+  background: rgba(139, 69, 19, 0.06);
+  border-left-color: var(--ir-rust);
+}
+.ir-event.past { opacity: 0.6; }
+.ir-event.past .ir-event-dot { background: var(--ir-steel); }
+
+.ir-event-dot-wrap {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  margin-right: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.ir-event-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ir-border);
+  border: 2px solid var(--ir-paper);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 0 0 transparent;
+}
+
+/* 阶段颜色指示器 */
+.ir-event[data-phase="1"] .ir-event-dot { background: var(--ir-steel); }
+.ir-event[data-phase="2"] .ir-event-dot { background: var(--ir-brass); }
+.ir-event[data-phase="3"] .ir-event-dot { background: var(--ir-rust); }
+.ir-event.past[data-phase="1"] .ir-event-dot { background: var(--ir-steel); opacity: 0.5; }
+.ir-event.past[data-phase="2"] .ir-event-dot { background: var(--ir-brass); opacity: 0.5; }
+.ir-event.past[data-phase="3"] .ir-event-dot { background: var(--ir-rust); opacity: 0.5; }
+
+.ir-event.active .ir-event-dot {
+  background: var(--ir-rust);
+  border-color: var(--ir-paper);
+  box-shadow: 0 0 0 4px rgba(139, 69, 19, 0.15);
+  width: 14px;
+  height: 14px;
+  top: 1px;
+  left: 1px;
+}
+
+.ir-event.active .ir-event-dot-wrap::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ir-rust);
+  opacity: 0;
+  animation: ir-pulse 2s ease-out infinite;
+}
+
+.ir-event-content { flex: 1; min-width: 0; }
+
+.ir-event-year {
+  font-family: var(--ir-font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ir-steel);
+  line-height: 1.2;
+}
+.ir-event.active .ir-event-year { color: var(--ir-rust); }
+
+.ir-event-title {
+  font-family: var(--ir-font-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ir-steel-dark);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+.ir-event.active .ir-event-title { color: var(--ir-rust); }
+
+.ir-event-location {
+  font-family: var(--ir-font-mono);
+  font-size: 10px;
+  color: var(--ir-text-muted);
+  margin-top: 2px;
+}
+
+/* ---------- 扩散路径动画样式 ---------- */
+.ir-diffusion-path {
+  stroke-dasharray: 8 6;
+  animation: ir-dash-flow 2s linear infinite;
+}
+@keyframes ir-dash-flow {
+  to { stroke-dashoffset: -28; }
+}
+
+/* ---------- 统计信息浮窗 ---------- */
+.ir-stats-overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+}
+
+.ir-stat-chip {
+  padding: 8px 14px;
+  background: var(--ir-white);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--ir-border);
+  border-radius: 4px;
+  text-align: center;
+  min-width: 70px;
+}
+
+.ir-stat-value {
+  font-family: var(--ir-font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ir-rust);
+  line-height: 1.1;
+}
+
+.ir-stat-label {
+  font-size: 10px;
+  color: var(--ir-text-muted);
+  margin-top: 2px;
+  letter-spacing: 0.03em;
+}
+
+/* ---------- 图例 ---------- */
+.ir-legend {
+  position: absolute;
+  bottom: 80px;
+  right: 16px;
+  z-index: 10;
+  padding: 12px 16px;
+  background: var(--ir-white);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--ir-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(44, 44, 44, 0.06);
+}
+
+.ir-legend-title {
+  font-family: var(--ir-font-serif);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ir-steel);
+  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+}
+
+.ir-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ir-text-muted);
+  margin-bottom: 4px;
+}
+.ir-legend-item:last-child { margin-bottom: 0; }
+
+.ir-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ir-legend-line {
+  width: 18px;
+  height: 2px;
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 768px) {
+  .ir-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 55% 45%;
+  }
+
+  .ir-timeline-panel {
+    border-right: none;
+    border-top: 1px solid var(--ir-border);
+  }
+
+  .ir-info-card {
+    bottom: auto;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+
+  .ir-playback {
+    left: 10px;
+    right: 10px;
+    padding: 8px 12px;
+  }
+
+  .ir-legend { display: none; }
+  .ir-stats-overlay { display: none; }
+
+  .ir-timeline-scroll {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .ir-timeline-rail { display: none; }
+
+  .ir-event {
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+    padding: 8px 10px;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    text-align: center;
+  }
+  .ir-event.active { border-bottom-color: var(--ir-rust); }
+  .ir-event-dot-wrap { margin: 0 0 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- 加载动画 -->
+<div class="ir-loader" id="loader">
+  <div class="ir-gear-container">
+    <svg class="ir-gear ir-gear-lg" viewBox="0 0 24 24">
+      <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+    </svg>
+    <svg class="ir-gear ir-gear-sm" viewBox="0 0 24 24">
+      <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+    </svg>
+    <div class="ir-steam">
+      <div class="ir-steam-particle"></div>
+      <div class="ir-steam-particle"></div>
+      <div class="ir-steam-particle"></div>
+    </div>
+  </div>
+  <div class="ir-loader-text">
+    <div class="ir-loader-title">工业革命与城市化进程</div>
+    <div class="ir-loader-sub">STEAM · STEEL · CITY · 1769—1900</div>
+  </div>
+</div>
+
+<!-- 导航栏 -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">历史</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">工业革命与城市化进程</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-history">历史</span>
+    <a href="/skills/jingbo-edu-history-map-narrative-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- 主体 -->
+<div class="framework-narrative blueprint-bg">
+  <div class="ir-main">
+
+    <!-- 地图区 -->
+    <div class="ir-map-area">
+      <div id="map"></div>
+
+      <!-- 蓝图角标 -->
+      <div class="ir-blueprint-stamp">BLUEPRINT · INDUSTRIAL REVOLUTION · 1769—1900</div>
+
+      <!-- 统计浮窗 -->
+      <div class="ir-stats-overlay">
+        <div class="ir-stat-chip">
+          <div class="ir-stat-value" id="statYear">1769</div>
+          <div class="ir-stat-label">当前年份</div>
+        </div>
+        <div class="ir-stat-chip">
+          <div class="ir-stat-value" id="statCities">1</div>
+          <div class="ir-stat-label">工业城市</div>
+        </div>
+        <div class="ir-stat-chip">
+          <div class="ir-stat-value" id="statPhase">I</div>
+          <div class="ir-stat-label">革命阶段</div>
+        </div>
+      </div>
+
+      <!-- 图例 -->
+      <div class="ir-legend">
+        <div class="ir-legend-title">图例</div>
+        <div class="ir-legend-item">
+          <span class="ir-legend-dot" style="background: var(--ir-rust);"></span>
+          当前事件
+        </div>
+        <div class="ir-legend-item">
+          <span class="ir-legend-dot" style="background: var(--ir-steel); opacity: 0.55;"></span>
+          已发生
+        </div>
+        <div class="ir-legend-item">
+          <span class="ir-legend-line" style="background: var(--ir-rust); border-top: 2px dashed var(--ir-rust); background: none;"></span>
+          技术扩散路径
+        </div>
+        <div class="ir-legend-item">
+          <span class="ir-legend-line" style="background: var(--ir-steel-dark);"></span>
+          铁路线
+        </div>
+        <div class="ir-legend-item">
+          <span class="ir-legend-line" style="background: var(--ir-orange);"></span>
+          城市扩张
+        </div>
+      </div>
+
+      <!-- 信息卡片 -->
+      <div class="ir-info-card" id="infoCard">
+        <div class="ir-card-header">
+          <div class="ir-card-year-row">
+            <span class="ir-card-year" id="cardYear">1769</span>
+            <span class="ir-card-phase" id="cardPhase">第一次工业革命</span>
+          </div>
+          <div class="ir-card-seal">
+            <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+          </div>
+        </div>
+        <div class="ir-card-body">
+          <div class="ir-card-title" id="cardTitle">瓦特改良蒸汽机</div>
+          <div class="ir-card-location" id="cardLocation">格拉斯哥 · 英国</div>
+          <div class="ir-card-desc" id="cardDesc"></div>
+        </div>
+      </div>
+
+      <!-- 播放控制 -->
+      <div class="ir-playback">
+        <button class="ir-playback-btn" id="btnPrev" title="上一个">
+          <svg viewBox="0 0 16 16"><path d="M11 3L5 8L11 13Z"/></svg>
+        </button>
+        <button class="ir-playback-btn ir-btn-play" id="btnPlay" title="播放/暂停">
+          <svg viewBox="0 0 16 16" id="playIcon"><path d="M4 3L13 8L4 13Z"/></svg>
+        </button>
+        <button class="ir-playback-btn" id="btnNext" title="下一个">
+          <svg viewBox="0 0 16 16"><path d="M5 3L11 8L5 13Z"/></svg>
+        </button>
+        <div class="ir-progress-track" id="progressTrack">
+          <div class="ir-progress-fill" id="progressFill"></div>
+        </div>
+        <span class="ir-progress-label" id="progressLabel">1 / 13</span>
+      </div>
+    </div>
+
+    <!-- 时间轴面板 -->
+    <div class="ir-timeline-panel">
+      <div class="ir-timeline-header">
+        <div class="ir-timeline-title">
+          <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+          工业革命编年
+        </div>
+        <div class="ir-timeline-subtitle">1769 — 1900 · 从蒸汽到电气</div>
+        <div class="ir-phase-tabs">
+          <button class="ir-phase-tab active" data-phase="all">全部</button>
+          <button class="ir-phase-tab" data-phase="1">第一次</button>
+          <button class="ir-phase-tab" data-phase="2">扩散鼎盛</button>
+          <button class="ir-phase-tab" data-phase="3">第二次</button>
+        </div>
+      </div>
+      <div class="ir-timeline-scroll" id="timelineScroll">
+        <div class="ir-timeline-rail">
+          <div class="ir-timeline-rail-fill" id="railFill"></div>
+        </div>
+        <!-- 事件列表由 JS 动态生成 -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ============================================================
+// 事件数据
+// ============================================================
+const EVENTS = [
+  {
+    id: 1, year: 1769, phase: 1, phaseName: '第一次工业革命',
+    location: '格拉斯哥', region: '英国',
+    lat: 55.8642, lng: -4.2518,
+    title: '瓦特改良蒸汽机',
+    desc: '詹姆斯·瓦特在格拉斯哥大学维修纽科门蒸汽机模型时，萌生了改良的想法。经过多年实验，他发明了分离式冷凝器，使蒸汽机效率提高四倍以上。瓦特的改良蒸汽机不再局限于矿井排水，而是可以驱动各种机器，成为工业革命的"原动机"，人类由此进入"蒸汽时代"。',
+    icon: '⚙',
+    diffusion: null
+  },
+  {
+    id: 2, year: 1771, phase: 1, phaseName: '第一次工业革命',
+    location: '克罗姆福德', region: '英国德比郡',
+    lat: 53.1059, lng: -1.5543,
+    title: '水力纺纱厂建立',
+    desc: '理查德·阿克莱特在德文特河畔建立克罗姆福德水力纺纱厂，这是世界上第一座真正意义上的工厂。此前的纺织生产分散在家庭作坊中，阿克莱特将工人集中到工厂，用水力驱动纺纱机，实行严格的劳动纪律。工厂制度的诞生标志着生产组织方式的根本变革。',
+    icon: '🏭',
+    diffusion: null
+  },
+  {
+    id: 3, year: 1784, phase: 1, phaseName: '第一次工业革命',
+    location: '科尔布鲁克代尔', region: '英国什罗普郡',
+    lat: 52.6277, lng: -2.4924,
+    title: '冶铁技术革新',
+    desc: '亨利·科特发明了搅炼法和压延法，使生铁可以大规模转化为熟铁，产量和质量大幅提高。早在1709年亚伯拉罕·达比已发明焦炭炼铁法。冶铁技术的突破使钢铁产量激增，为铁路、轮船、机械制造提供了充足的原材料，推动工业革命向深度发展。',
+    icon: '🔨',
+    diffusion: null
+  },
+  {
+    id: 4, year: 1814, phase: 1, phaseName: '第一次工业革命',
+    location: '纽卡斯尔', region: '英国',
+    lat: 54.9783, lng: -1.6178,
+    title: '蒸汽机车诞生',
+    desc: '乔治·史蒂芬森发明了第一台实用的蒸汽机车"布鲁克号"，在煤矿轨道上牵引运煤车厢。史蒂芬森被称为"铁路之父"，他不仅改进了机车设计，还推动了铁路标准轨距的确立（1435毫米标准轨距沿用至今）。蒸汽机车的发明彻底改变了陆地交通。',
+    icon: '🚂',
+    diffusion: null
+  },
+  {
+    id: 5, year: 1825, phase: 1, phaseName: '第一次工业革命',
+    location: '斯托克顿-达灵顿', region: '英国',
+    lat: 54.5685, lng: -1.3147,
+    title: '第一条公共铁路',
+    desc: '世界上第一条公共客货两用铁路——斯托克顿至达灵顿铁路正式通车，全长约40公里。史蒂芬森设计的"旅行号"机车载450人，以每小时约24公里的速度行驶。铁路的出现大大降低了运输成本，促进了商品流通和人口流动，开启了人类大规模建设铁路的时代。',
+    icon: '🚂',
+    diffusion: null,
+    railway: [[54.5685, -1.3147], [54.5236, -1.4391]]
+  },
+  {
+    id: 6, year: 1830, phase: 1, phaseName: '第一次工业革命',
+    location: '利物浦-曼彻斯特', region: '英国',
+    lat: 53.4808, lng: -2.2426,
+    title: '城际铁路通车',
+    desc: '利物浦至曼彻斯特铁路全线通车，这是世界上第一条完全使用蒸汽机车、全封闭、定时运行的城际铁路，全长约56公里。这条铁路的成功运营证明了铁路运输的商业价值，引发了英国乃至全世界的"铁路狂热"。',
+    icon: '🚂',
+    diffusion: null,
+    railway: [[53.4084, -2.9916], [53.4808, -2.2426]]
+  },
+  {
+    id: 7, year: 1837, phase: 2, phaseName: '扩散与鼎盛',
+    location: '伦敦', region: '英国',
+    lat: 51.5074, lng: -0.1278,
+    title: '维多利亚时代开启',
+    desc: '维多利亚女王登基，开启了长达64年的维多利亚时代。这一时期英国工业革命达到鼎盛，成为"世界工厂"，工业产量占世界一半以上。伦敦成为世界金融中心和最大城市，人口从1800年的100万增长到1900年的660万。维多利亚时代是大英帝国的黄金时代。',
+    icon: '👑',
+    cityGrowth: { 1800: 100, 1900: 660 }
+  },
+  {
+    id: 8, year: 1842, phase: 2, phaseName: '扩散与鼎盛',
+    location: '鲁尔区', region: '普鲁士',
+    lat: 51.4503, lng: 7.0164,
+    title: '工业革命传入德国',
+    desc: '普鲁士开始大规模工业化，鲁尔区凭借丰富的煤炭资源和便利的水运条件，迅速发展成为德国最重要的工业基地。克虏伯、蒂森等钢铁巨头崛起，德国在钢铁、化工、电气等领域快速追赶英国。工业革命的扩散改变了欧洲的经济格局，也为后来德国的统一和崛起奠定了物质基础。',
+    icon: '⚒',
+    diffusion: { from: [51.5074, -0.1278], to: [51.4503, 7.0164] }
+  },
+  {
+    id: 9, year: 1851, phase: 2, phaseName: '扩散与鼎盛',
+    location: '伦敦', region: '英国',
+    lat: 51.5074, lng: -0.1278,
+    title: '万国工业博览会',
+    desc: '第一届世界博览会在伦敦海德公园的水晶宫举办。水晶宫由约瑟夫·帕克斯顿设计，全部采用玻璃和钢铁预制构件建造，长564米，高33米，是工业时代建筑的代表作。博览会展示了英国及各国的工业成就，吸引了600万参观者，标志着工业文明在全球范围内的胜利。',
+    icon: '🏛',
+    diffusion: null
+  },
+  {
+    id: 10, year: 1869, phase: 3, phaseName: '第二次工业革命',
+    location: '普罗蒙特里', region: '美国犹他州',
+    lat: 41.6205, lng: -112.5512,
+    title: '太平洋铁路贯通',
+    desc: '第一条横贯北美大陆的太平洋铁路在犹他州普罗蒙特里接轨，从纽约到旧金山的旅程从数月缩短到一周。铁路沿线兴起了芝加哥、丹佛、奥克兰等一大批城市。美国凭借广袤的国土、丰富的资源和庞大的国内市场，在第二次工业革命中迅速崛起，工业产值于1894年超越英国。',
+    icon: '🚂',
+    diffusion: { from: [40.7128, -74.0060], to: [41.6205, -112.5512] },
+    railway: [[40.7128, -74.0060], [41.8781, -87.6298], [41.4995, -81.6954], [41.6205, -112.5512], [37.7749, -122.4194]]
+  },
+  {
+    id: 11, year: 1879, phase: 3, phaseName: '第二次工业革命',
+    location: '门洛帕克', region: '美国新泽西州',
+    lat: 40.5059, lng: -74.4127,
+    title: '爱迪生发明电灯',
+    desc: '托马斯·爱迪生在新泽西州门洛帕克的实验室成功研制出实用的白炽电灯，随后建立了世界上第一个发电站和供电系统。电力的广泛应用是第二次工业革命的核心标志，电灯、电话、电报、电动机、电车等发明层出不穷，人类从"蒸汽时代"进入"电气时代"。',
+    icon: '💡',
+    diffusion: { from: [51.5074, -0.1278], to: [40.5059, -74.4127] }
+  },
+  {
+    id: 12, year: 1886, phase: 3, phaseName: '第二次工业革命',
+    location: '曼海姆', region: '德国',
+    lat: 49.4875, lng: 8.4660,
+    title: '汽车的发明',
+    desc: '卡尔·本茨在德国曼海姆制造出世界上第一辆以汽油内燃机为动力的三轮汽车，并获得专利。几乎同时，戈特利布·戴姆勒也发明了四轮汽车。内燃机的发明不仅催生了汽车工业，还推动了航空、石油、化工等一系列新兴产业的发展。德国在第二次工业革命中走在前列。',
+    icon: '🚗',
+    diffusion: { from: [51.4503, 7.0164], to: [49.4875, 8.4660] }
+  },
+  {
+    id: 13, year: 1900, phase: 3, phaseName: '第二次工业革命',
+    location: '全球', region: '欧美世界',
+    lat: 50.0, lng: -10.0,
+    title: '城市化时代到来',
+    desc: '到1900年，工业革命已从英国扩散到整个欧美世界。英国城市人口占比超过75%，成为世界上第一个城市化国家；德国、美国、法国等国城市人口也快速增长。伦敦、纽约、巴黎、柏林、芝加哥等大城市崛起，摩天大楼、地铁、电灯、电话等现代城市设施纷纷出现。人类社会从农业文明迈入工业文明。',
+    icon: '🏙',
+    diffusion: null,
+    cityGrowth: { 1800: 20, 1900: 75 }
+  }
+];
+
+// ============================================================
+// 地图初始化
+// ============================================================
+const map = L.map('map', {
+  center: [52, -5],
+  zoom: 4,
+  minZoom: 3,
+  maxZoom: 7,
+  zoomControl: true,
+  scrollWheelZoom: true,
+  attributionControl: true
+});
+
+// 高德地图底图（国产瓦片，中文标注）
+L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+  attribution: '© 高德地图',
+  subdomains: ['1', '2', '3', '4'],
+  maxZoom: 18
+}).addTo(map);
+
+// ============================================================
+// 状态管理
+// ============================================================
+let currentEventIndex = 0;
+let isPlaying = false;
+let playTimer = null;
+let markers = [];
+let diffusionLayers = [];
+let railwayLayers = [];
+let cityGrowthLayers = [];
+let activeFilterPhase = 'all';
+
+// ============================================================
+// 创建标记
+// ============================================================
+function createMarkers() {
+  EVENTS.forEach((evt, idx) => {
+    const icon = L.divIcon({
+      className: 'ir-marker-wrap',
+      html: `<div class="ir-marker future" data-idx="${idx}">
+               <div class="ir-marker-icon">${evt.icon || ''}</div>
+               <div class="ir-marker-core"></div>
+               <div class="ir-marker-label">${evt.location}</div>
+             </div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+
+    const marker = L.marker([evt.lat, evt.lng], { icon }).addTo(map);
+    marker.on('click', () => goToEvent(idx));
+    markers.push(marker);
+  });
+}
+
+// ============================================================
+// 更新标记状态
+// ============================================================
+function updateMarkers(activeIdx) {
+  markers.forEach((marker, idx) => {
+    const el = marker.getElement();
+    if (!el) return;
+    const inner = el.querySelector('.ir-marker');
+    if (!inner) return;
+    inner.classList.remove('active', 'past', 'future');
+    if (idx === activeIdx) {
+      inner.classList.add('active');
+    } else if (idx < activeIdx) {
+      inner.classList.add('past');
+    } else {
+      inner.classList.add('future');
+    }
+  });
+}
+
+// ============================================================
+// 扩散路径动画
+// ============================================================
+function showDiffusion(evt) {
+  clearDiffusion();
+  if (!evt.diffusion) return;
+
+  const from = evt.diffusion.from;
+  const to = evt.diffusion.to;
+
+  // 弧线扩散路径
+  const latlngs = [from, to];
+  const path = L.polyline(latlngs, {
+    color: '#8B4513',
+    weight: 2,
+    opacity: 0.7,
+    dashArray: '8 6',
+    className: 'ir-diffusion-path'
+  }).addTo(map);
+
+  diffusionLayers.push(path);
+
+  // 起点和终点波纹
+  const fromRipple = L.circleMarker(from, {
+    radius: 8,
+    color: '#8B4513',
+    fillColor: '#8B4513',
+    fillOpacity: 0.1,
+    weight: 1
+  }).addTo(map);
+  diffusionLayers.push(fromRipple);
+
+  // 动画扩散波纹
+  let rippleRadius = 8;
+  const rippleInterval = setInterval(() => {
+    rippleRadius += 3;
+    if (rippleRadius > 30) {
+      rippleRadius = 8;
+    }
+    fromRipple.setRadius(rippleRadius);
+  }, 50);
+  diffusionLayers.push({ _interval: rippleInterval, _isAnim: true });
+
+  // 移动粒子
+  let progress = 0;
+  const particle = L.circleMarker(from, {
+    radius: 4,
+    color: '#B8860B',
+    fillColor: '#DAA520',
+    fillOpacity: 0.9,
+    weight: 1
+  }).addTo(map);
+  diffusionLayers.push(particle);
+
+  const particleInterval = setInterval(() => {
+    progress += 0.02;
+    if (progress >= 1) {
+      progress = 0;
+    }
+    const lat = from[0] + (to[0] - from[0]) * progress;
+    const lng = from[1] + (to[1] - from[1]) * progress;
+    particle.setLatLng([lat, lng]);
+  }, 30);
+  diffusionLayers.push({ _interval: particleInterval, _isAnim: true });
+}
+
+function clearDiffusion() {
+  diffusionLayers.forEach(layer => {
+    if (layer._interval) {
+      clearInterval(layer._interval);
+    } else {
+      map.removeLayer(layer);
+    }
+  });
+  diffusionLayers = [];
+}
+
+// ============================================================
+// 铁路线
+// ============================================================
+function showRailway(evt) {
+  // 保留所有已触发事件的铁路
+  clearRailways();
+
+  EVENTS.forEach((e, idx) => {
+    if (idx <= currentEventIndex && e.railway) {
+      const line = L.polyline(e.railway, {
+        color: '#2C2C2C',
+        weight: 2.5,
+        opacity: 0.6,
+        lineCap: 'round'
+      }).addTo(map);
+      railwayLayers.push(line);
+    }
+  });
+}
+
+function clearRailways() {
+  railwayLayers.forEach(layer => map.removeLayer(layer));
+  railwayLayers = [];
+}
+
+// ============================================================
+// 城市增长可视化
+// ============================================================
+function showCityGrowth(evt) {
+  if (!evt.cityGrowth) return;
+
+  const [y1800, v1800] = [1800, evt.cityGrowth[1800]];
+  const [y1900, v1900] = [1900, evt.cityGrowth[1900]];
+
+  // 当前事件年份对应的城市规模
+  const ratio = (evt.year - y1800) / (y1900 - y1800);
+  const currentSize = v1800 + (v1900 - v1800) * Math.min(1, ratio);
+
+  const radius = Math.max(15, Math.min(60, currentSize / 12));
+
+  const growthCircle = L.circle([evt.lat, evt.lng], {
+    radius: radius * 1000,
+    color: '#FF6B35',
+    fillColor: '#FF6B35',
+    fillOpacity: 0.1,
+    weight: 1.5,
+    dashArray: '4 4'
+  }).addTo(map);
+  cityGrowthLayers.push(growthCircle);
+
+  // 标注人口
+  const popLabel = L.marker([evt.lat, evt.lng], {
+    icon: L.divIcon({
+      className: 'ir-pop-label',
+      html: `<div style="position:absolute; top:-40px; left:50%; transform:translateX(-50%); white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; color:#FF6B35; background:rgba(255,255,255,0.9); padding:2px 8px; border-radius:2px; border:1px solid #FF6B35; pointer-events:none;">≈${Math.round(currentSize)}万人口</div>`,
+      iconSize: [0, 0]
+    })
+  }).addTo(map);
+  cityGrowthLayers.push(popLabel);
+}
+
+function clearCityGrowth() {
+  cityGrowthLayers.forEach(layer => map.removeLayer(layer));
+  cityGrowthLayers = [];
+}
+
+// ============================================================
+// 时间轴渲染
+// ============================================================
+function renderTimeline() {
+  const scroll = document.getElementById('timelineScroll');
+  // 保留竖线
+  const rail = scroll.querySelector('.ir-timeline-rail');
+  scroll.innerHTML = '';
+  scroll.appendChild(rail);
+
+  EVENTS.forEach((evt, idx) => {
+    if (activeFilterPhase !== 'all' && evt.phase !== parseInt(activeFilterPhase)) return;
+
+    const item = document.createElement('div');
+    item.className = 'ir-event';
+    item.dataset.idx = idx;
+    item.dataset.phase = evt.phase;
+    item.innerHTML = `
+      <div class="ir-event-dot-wrap">
+        <div class="ir-event-dot"></div>
+      </div>
+      <div class="ir-event-content">
+        <div class="ir-event-year">${evt.year}年</div>
+        <div class="ir-event-title">${evt.title}</div>
+        <div class="ir-event-location">${evt.location} · ${evt.region}</div>
+      </div>
+    `;
+    item.addEventListener('click', () => goToEvent(idx));
+    scroll.appendChild(item);
+  });
+
+  updateTimelineState(currentEventIndex);
+}
+
+function updateTimelineState(activeIdx) {
+  const items = document.querySelectorAll('.ir-event');
+  items.forEach(item => {
+    const idx = parseInt(item.dataset.idx);
+    item.classList.remove('active', 'past');
+    if (idx === activeIdx) {
+      item.classList.add('active');
+      // 滚动到可见
+      item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (idx < activeIdx) {
+      item.classList.add('past');
+    }
+  });
+
+  // 更新进度条
+  const progress = ((activeIdx + 1) / EVENTS.length) * 100;
+  document.getElementById('railFill').style.height = progress + '%';
+}
+
+// ============================================================
+// 跳转到事件
+// ============================================================
+function goToEvent(idx) {
+  if (idx < 0 || idx >= EVENTS.length) return;
+
+  currentEventIndex = idx;
+  const evt = EVENTS[idx];
+
+  // 更新标记
+  updateMarkers(idx);
+
+  // 地图飞行
+  const targetLat = evt.lat;
+  const targetLng = evt.lng;
+  let zoomLevel = 5;
+  if (evt.id === 13) zoomLevel = 3; // 全球事件缩小
+  map.flyTo([targetLat, targetLng], zoomLevel, { duration: 1.2 });
+
+  // 信息卡片
+  showInfoCard(evt);
+
+  // 扩散路径
+  setTimeout(() => showDiffusion(evt), 300);
+
+  // 铁路线
+  showRailway(evt);
+
+  // 城市增长
+  clearCityGrowth();
+  if (evt.cityGrowth) {
+    setTimeout(() => showCityGrowth(evt), 500);
+  }
+
+  // 时间轴
+  updateTimelineState(idx);
+
+  // 播放进度
+  updateProgress(idx);
+
+  // 统计
+  updateStats(evt);
+}
+
+// ============================================================
+// 信息卡片
+// ============================================================
+function showInfoCard(evt) {
+  const card = document.getElementById('infoCard');
+  document.getElementById('cardYear').textContent = evt.year;
+  document.getElementById('cardPhase').textContent = evt.phaseName;
+  document.getElementById('cardTitle').textContent = evt.title;
+  document.getElementById('cardLocation').textContent = `${evt.location} · ${evt.region}`;
+  document.getElementById('cardDesc').textContent = evt.desc;
+
+  // 先隐藏再显示，触发 CSS 过渡动画
+  card.classList.remove('visible');
+  void card.offsetWidth; // 强制重排
+  requestAnimationFrame(() => {
+    card.classList.add('visible');
+  });
+}
+
+// ============================================================
+// 进度条
+// ============================================================
+function updateProgress(idx) {
+  const progress = ((idx + 1) / EVENTS.length) * 100;
+  document.getElementById('progressFill').style.width = progress + '%';
+  document.getElementById('progressLabel').textContent = `${idx + 1} / ${EVENTS.length}`;
+}
+
+// ============================================================
+// 统计
+// ============================================================
+function updateStats(evt) {
+  document.getElementById('statYear').textContent = evt.year;
+  document.getElementById('statCities').textContent = currentEventIndex + 1;
+  document.getElementById('statPhase').textContent =
+    evt.phase === 1 ? 'I' : evt.phase === 2 ? 'II' : 'III';
+}
+
+// ============================================================
+// 播放控制
+// ============================================================
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+
+  if (isPlaying) {
+    icon.innerHTML = '<path d="M4 3H7V13H4Z M9 3H12V13H9Z"/>';
+    startPlayback();
+  } else {
+    icon.innerHTML = '<path d="M4 3L13 8L4 13Z"/>';
+    stopPlayback();
+  }
+}
+
+function startPlayback() {
+  if (currentEventIndex >= EVENTS.length - 1) {
+    currentEventIndex = 0;
+  }
+  goToEvent(currentEventIndex);
+
+  playTimer = setInterval(() => {
+    if (currentEventIndex < EVENTS.length - 1) {
+      goToEvent(currentEventIndex + 1);
+    } else {
+      stopPlayback();
+      isPlaying = false;
+      document.getElementById('playIcon').innerHTML = '<path d="M4 3L13 8L4 13Z"/>';
+    }
+  }, 7000);
+}
+
+function stopPlayback() {
+  if (playTimer) {
+    clearInterval(playTimer);
+    playTimer = null;
+  }
+}
+
+// ============================================================
+// 阶段筛选
+// ============================================================
+function filterPhase(phase) {
+  activeFilterPhase = phase;
+  document.querySelectorAll('.ir-phase-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.phase === phase);
+  });
+  renderTimeline();
+}
+
+// ============================================================
+// 事件绑定
+// ============================================================
+document.getElementById('btnPlay').addEventListener('click', togglePlay);
+document.getElementById('btnPrev').addEventListener('click', () => {
+  if (currentEventIndex > 0) goToEvent(currentEventIndex - 1);
+});
+document.getElementById('btnNext').addEventListener('click', () => {
+  if (currentEventIndex < EVENTS.length - 1) goToEvent(currentEventIndex + 1);
+});
+
+document.getElementById('progressTrack').addEventListener('click', (e) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const ratio = (e.clientX - rect.left) / rect.width;
+  const idx = Math.floor(ratio * EVENTS.length);
+  if (idx >= 0 && idx < EVENTS.length) goToEvent(idx);
+});
+
+document.querySelectorAll('.ir-phase-tab').forEach(tab => {
+  tab.addEventListener('click', () => filterPhase(tab.dataset.phase));
+});
+
+// 键盘控制
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && currentEventIndex > 0) goToEvent(currentEventIndex - 1);
+  if (e.key === 'ArrowRight' && currentEventIndex < EVENTS.length - 1) goToEvent(currentEventIndex + 1);
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+});
+
+// 导航栏滚动效果（虽然页面不滚动，但保留交互）
+window.addEventListener('wheel', () => {
+  document.getElementById('navbar').classList.add('scrolled');
+});
+
+// ============================================================
+// 初始化
+// ============================================================
+createMarkers();
+renderTimeline();
+
+// 延迟开始第一个事件
+setTimeout(() => {
+  goToEvent(0);
+}, 800);
+
+// 隐藏加载动画 — 不依赖 window.load，避免外部资源阻塞
+setTimeout(() => {
+  document.getElementById('loader').classList.add('hidden');
+}, 1500);
+
+// 确保地图尺寸正确
+setTimeout(() => {
+  map.invalidateSize();
+}, 200);
+setTimeout(() => {
+  map.invalidateSize();
+}, 2000);
+</script>
+
+</body>
+</html>

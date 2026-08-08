@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>框架四 · 时空叙事型 — 模板 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+</head>
+<body>
+
+<!-- ====== 顶部导航栏（浅色） ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/demos.html" class="demo-back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </a>
+    <span class="demo-nav-divider"></span>
+    <a href="/" class="demo-nav-logo">景礴</a>
+  </div>
+  <div class="demo-nav-center">Demo 标题（时空叙事型）</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-history">学科</span>
+    <a href="/skills.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 主体：左右分栏 ====== -->
+<div class="framework-narrative">
+  <div class="narrative-main">
+
+    <!-- ========== 左侧：地图区域（70%） ========== -->
+    <div class="narrative-map-area">
+      <canvas id="mapCanvas"></canvas>
+
+      <!-- 信息卡片（左下浮动） -->
+      <div class="narrative-info-card" id="infoCard">
+        <div class="narrative-info-year" id="infoYear">1900</div>
+        <div class="narrative-info-title" id="infoTitle">事件标题</div>
+        <div class="narrative-info-desc" id="infoDesc">事件描述文字，用无衬线字体，行高 1.7，简洁地描述这个时间节点发生了什么。</div>
+      </div>
+    </div>
+
+    <!-- ========== 右侧：时间轴面板（30%） ========== -->
+    <div class="narrative-timeline-panel">
+
+      <!-- 时间轴标题 -->
+      <div class="narrative-timeline-header">
+        <div class="narrative-timeline-title">时间轴标题</div>
+        <div class="narrative-timeline-subtitle">副标题 / 时间范围</div>
+      </div>
+
+      <!-- 时间轴事件列表 -->
+      <div class="narrative-timeline-list" id="timelineList">
+        <!-- 事件项由 JS 生成 -->
+      </div>
+
+      <!-- 底部播放控件 -->
+      <div class="narrative-timeline-footer">
+        <button class="narrative-play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="playLabel">播放</span>
+        </button>
+        <div class="narrative-progress">
+          <div class="narrative-progress-bar" id="progressBar" style="width:0%"></div>
+        </div>
+        <span class="demo-tech-tag" id="eventCounter">1 / 5</span>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   框架四：时空叙事型 — 模板脚本
+   演示地图标记 + 时间轴联动 + 自动播放
+   ============================================================ */
+
+// ====== 事件数据 ======
+const events = [
+  {
+    year: '1900',
+    title: '起点',
+    desc: '故事的起点，描述这个时间节点发生的事情。',
+    x: 0.15,
+    y: 0.6,
+  },
+  {
+    year: '1920',
+    title: '发展',
+    desc: '事件发展的阶段，有新的进展和变化。',
+    x: 0.35,
+    y: 0.4,
+  },
+  {
+    year: '1940',
+    title: '转折',
+    desc: '关键的转折点，改变了故事的走向。',
+    x: 0.55,
+    y: 0.5,
+  },
+  {
+    year: '1960',
+    title: '扩展',
+    desc: '大规模扩展阶段，影响范围扩大。',
+    x: 0.72,
+    y: 0.35,
+  },
+  {
+    year: '1980',
+    title: '终点',
+    desc: '故事的终点，总结性的时间节点。',
+    x: 0.88,
+    y: 0.55,
+  },
+];
+
+let currentEvent = 0;
+let isPlaying = false;
+let playTimer = null;
+
+// ====== Canvas ======
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  drawMap();
+});
+
+// ====== 绘制地图 ======
+function drawMap() {
+  const w = canvas.width / window.devicePixelRatio;
+  const h = canvas.height / window.devicePixelRatio;
+
+  // 背景
+  ctx.fillStyle = '#faf8f5';
+  ctx.fillRect(0, 0, w, h);
+
+  // 网格（地图感）
+  ctx.strokeStyle = '#eeeae3';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 50) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y < h; y += 50) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // 连接路径（虚线）
+  ctx.strokeStyle = 'rgba(194, 65, 12, 0.3)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  events.forEach((e, i) => {
+    const x = e.x * w;
+    const y = e.y * h;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 绘制标记点
+  events.forEach((e, i) => {
+    const x = e.x * w;
+    const y = e.y * h;
+    const isActive = i === currentEvent;
+    const isPast = i < currentEvent;
+
+    // 外圈光晕（活跃点）
+    if (isActive) {
+      ctx.fillStyle = 'rgba(194, 65, 12, 0.15)';
+      ctx.beginPath();
+      ctx.arc(x, y, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 点
+    ctx.fillStyle = isActive ? '#c2410c' : (isPast ? '#a3a3a3' : '#e5ded4');
+    ctx.beginPath();
+    ctx.arc(x, y, isActive ? 8 : 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 边框
+    ctx.strokeStyle = isActive ? '#a33a0a' : '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 年份标签
+    ctx.font = isActive ? 'bold 13px monospace' : '11px monospace';
+    ctx.fillStyle = isActive ? '#c2410c' : '#6b6b6b';
+    ctx.textAlign = 'center';
+    ctx.fillText(e.year, x, y - 14);
+  });
+}
+
+// ====== 时间轴列表生成 ======
+function buildTimeline() {
+  const list = document.getElementById('timelineList');
+  list.innerHTML = events.map((e, i) => `
+    <div class="timeline-event ${i === currentEvent ? 'active' : ''}" data-idx="${i}">
+      <div class="timeline-event-dot"></div>
+      <div class="timeline-event-content">
+        <div class="timeline-event-year">${e.year}</div>
+        <div class="timeline-event-title">${e.title}</div>
+        <div class="timeline-event-desc">${e.desc}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // 绑定点击
+  list.querySelectorAll('.timeline-event').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      selectEvent(idx);
+    });
+  });
+}
+
+// ====== 选中事件 ======
+function selectEvent(idx) {
+  currentEvent = idx;
+  const e = events[idx];
+
+  // 更新信息卡片
+  document.getElementById('infoYear').textContent = e.year;
+  document.getElementById('infoTitle').textContent = e.title;
+  document.getElementById('infoDesc').textContent = e.desc;
+
+  // 更新时间轴高亮
+  document.querySelectorAll('.timeline-event').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+
+  // 更新进度条
+  const progress = ((idx + 1) / events.length) * 100;
+  document.getElementById('progressBar').style.width = `${progress}%`;
+  document.getElementById('eventCounter').textContent = `${idx + 1} / ${events.length}`;
+
+  // 重绘地图
+  drawMap();
+}
+
+// ====== 播放控制 ======
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+  const label = document.getElementById('playLabel');
+
+  if (isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    label.textContent = '暂停';
+
+    playTimer = setInterval(() => {
+      let next = currentEvent + 1;
+      if (next >= events.length) next = 0;
+      selectEvent(next);
+    }, 2000);
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent = '播放';
+    clearInterval(playTimer);
+  }
+}
+
+// ====== Canvas 点击交互 ======
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const w = rect.width;
+  const h = rect.height;
+
+  events.forEach((ev, i) => {
+    const ex = ev.x * w;
+    const ey = ev.y * h;
+    const dist = Math.sqrt((mx - ex) ** 2 + (my - ey) ** 2);
+    if (dist < 20) {
+      selectEvent(i);
+    }
+  });
+});
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', () => {
+  resizeCanvas();
+  buildTimeline();
+  selectEvent(0);
+  drawMap();
+
+  // 播放按钮
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // 导航栏滚动效果
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+});
+</script>
+
+</body>
+</html>

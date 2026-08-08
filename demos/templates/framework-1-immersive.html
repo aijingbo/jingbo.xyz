@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>框架一 · 沉浸式全屏型 — 模板 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏（沉浸式深色） ====== -->
+<header class="demo-navbar immersive" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/demos.html" class="demo-back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </a>
+    <span class="demo-nav-divider"></span>
+    <a href="/" class="demo-nav-logo">景礴</a>
+  </div>
+  <div class="demo-nav-center">Demo 标题（沉浸式全屏型）</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-chem">学科</span>
+    <a href="/skills.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 全屏 3D 画布 ====== -->
+<div class="framework-immersive">
+  <div class="demo-canvas-full" id="canvasContainer"></div>
+</div>
+
+<!-- ====== 加载提示 ====== -->
+<div class="demo-loading active" id="loading">加载中</div>
+
+<!-- ====== 左上：选择面板（可选） ====== -->
+<div class="demo-floating-panel" style="top:88px;left:24px;">
+  <div class="demo-panel-title">选择面板</div>
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);cursor:pointer;font-size:12px;color:#e5e5e5;">选项 A</div>
+    <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);cursor:pointer;font-size:12px;color:#a3a3a3;">选项 B</div>
+  </div>
+  <div class="demo-panel-divider"></div>
+  <div class="demo-panel-info">
+    <p><span class="label">信息：</span>这里是辅助信息</p>
+  </div>
+</div>
+
+<!-- ====== 右上：图例面板（可选） ====== -->
+<div class="demo-floating-panel" style="top:88px;right:24px;">
+  <div class="demo-panel-title">图例</div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px 16px;">
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#a3a3a3;">
+      <span style="width:14px;height:14px;border-radius:50%;background:#c2410c;flex-shrink:0;"></span> 类型 A
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#a3a3a3;">
+      <span style="width:14px;height:14px;border-radius:50%;background:#0d9488;flex-shrink:0;"></span> 类型 B
+    </div>
+  </div>
+</div>
+
+<!-- ====== 操作提示 ====== -->
+<div class="demo-scene-hint">拖拽旋转 · 滚轮缩放 · 右键平移</div>
+
+<!-- ====== 左下：浮动控件 ====== -->
+<div class="demo-floating-group demo-floating-left">
+  <button class="demo-icon-btn active" id="spinBtn" data-tooltip="自动旋转">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+  </button>
+  <button class="demo-icon-btn" id="resetBtn" data-tooltip="重置视角">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+  </button>
+</div>
+
+<!-- ====== 右下：浮动控件 ====== -->
+<div class="demo-floating-group demo-floating-right">
+  <button class="demo-icon-btn" id="fullscreenBtn" data-tooltip="全屏">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+  </button>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar immersive">
+  <div class="demo-info-left">
+    <span class="demo-info-title">skill-name</span>
+    <span class="demo-tech-tag">Three.js</span>
+    <span class="demo-tech-tag">WebGL</span>
+  </div>
+  <div class="demo-info-center">
+    <div class="demo-mode-switcher">
+      <button class="demo-mode-btn active" data-mode="solid">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+        <span>模式 A</span>
+      </button>
+      <button class="demo-mode-btn" data-mode="wireframe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>
+        <span>模式 B</span>
+      </button>
+    </div>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="statusTag">就绪</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ============================================================
+   框架一：沉浸式全屏型 — 模板脚本
+   展示一个旋转的二十面体，演示框架的基本交互
+   ============================================================ */
+
+let scene, camera, renderer, mesh;
+let isSpinning = true;
+let currentMode = 'solid';
+
+function init() {
+  const container = document.getElementById('canvasContainer');
+
+  // 场景
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a0f);
+  scene.fog = new THREE.Fog(0x0a0a0f, 8, 25);
+
+  // 相机
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+  camera.position.set(0, 0, 6);
+
+  // 渲染器
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  // 灯光
+  const ambient = new THREE.AmbientLight(0x404060, 0.5);
+  scene.add(ambient);
+
+  const keyLight = new THREE.DirectionalLight(0xc2410c, 1.2);
+  keyLight.position.set(5, 5, 5);
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0x0d9488, 0.6);
+  fillLight.position.set(-5, -3, 2);
+  scene.add(fillLight);
+
+  // 主体：二十面体
+  const geometry = new THREE.IcosahedronGeometry(1.8, 0);
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xc2410c,
+    metalness: 0.3,
+    roughness: 0.4,
+    flatShading: true,
+  });
+  mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+
+  // 边线
+  const edges = new THREE.EdgesGeometry(geometry);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.3 });
+  const wireframe = new THREE.LineSegments(edges, lineMat);
+  mesh.add(wireframe);
+
+  document.getElementById('loading').classList.remove('active');
+  animate();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (isSpinning) {
+    mesh.rotation.x += 0.003;
+    mesh.rotation.y += 0.005;
+  }
+
+  renderer.render(scene, camera);
+}
+
+// 窗口大小
+window.addEventListener('resize', () => {
+  const container = document.getElementById('canvasContainer');
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// ====== 交互绑定 ======
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+
+  // 自动旋转
+  document.getElementById('spinBtn').addEventListener('click', (e) => {
+    isSpinning = !isSpinning;
+    e.currentTarget.classList.toggle('active', isSpinning);
+  });
+
+  // 重置视角
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    mesh.rotation.set(0, 0, 0);
+    camera.position.set(0, 0, 6);
+  });
+
+  // 全屏
+  document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  // 模式切换
+  document.querySelectorAll('.demo-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.demo-mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+
+      if (currentMode === 'wireframe') {
+        mesh.material.wireframe = true;
+      } else {
+        mesh.material.wireframe = false;
+      }
+    });
+  });
+
+  // 导航栏滚动效果
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+});
+</script>
+
+</body>
+</html>

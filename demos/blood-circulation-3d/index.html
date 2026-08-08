@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>血液循环 3D · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #0f1115;
+    color: #e5e5e5;
+    font-family: var(--font-sans);
+  }
+
+  /* ============ 顶部导航栏 ============ */
+  .navbar-immerse {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    background-color: rgba(15, 17, 21, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .navbar-left, .navbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-16);
+  }
+  .navbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: #e5e5e5;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #a3a3a3;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color var(--duration-fast) var(--ease);
+  }
+  .back-link:hover { color: #ffffff; }
+  .back-link svg { width: 16px; height: 16px; }
+  .brand-logo {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-weight: 700;
+    color: #ffffff;
+    text-decoration: none;
+  }
+  .brand-divider {
+    width: 1px; height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background-color: var(--brand);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--duration-base) var(--ease);
+    white-space: nowrap;
+  }
+  .btn-download:hover {
+    background-color: var(--brand-hover);
+    transform: translateY(-1px);
+  }
+  .btn-download svg { width: 14px; height: 14px; }
+
+  /* ============ 3D 画布 ============ */
+  #canvas-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  #scene { display: block; width: 100%; height: 100%; }
+
+  /* ============ 加载提示 ============ */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f1115;
+    transition: opacity 0.8s ease;
+  }
+  .loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .loading-text {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: rgba(245, 158, 11, 0.5);
+    letter-spacing: 0.15em;
+    animation: pulse-fade 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-fade {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+  }
+
+  /* ============ 左侧信息面板 ============ */
+  .info-panel {
+    position: fixed;
+    top: 84px;
+    left: 20px;
+    z-index: 50;
+    width: 260px;
+    padding: 18px 20px;
+    background-color: rgba(15, 17, 21, 0.65);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-card, 12px);
+    transition: opacity 0.3s ease;
+  }
+  .info-panel-title {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 2px;
+  }
+  .info-panel-subtitle {
+    font-size: 11px;
+    color: #6b6b6b;
+    font-family: var(--font-mono);
+    margin-bottom: 16px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 7px 0;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    gap: 8px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label {
+    color: #6b6b6b;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .info-value {
+    color: #e5e5e5;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    text-align: right;
+  }
+  .info-value.arterial { color: #ef4444; }
+  .info-value.venous { color: #60a5fa; }
+
+  /* ============ 右侧结构选择面板 ============ */
+  .structure-panel {
+    position: fixed;
+    top: 84px;
+    right: 20px;
+    z-index: 50;
+    width: 220px;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    padding: 16px 14px;
+    background-color: rgba(15, 17, 21, 0.65);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-card, 12px);
+  }
+  .structure-panel::-webkit-scrollbar { width: 4px; }
+  .structure-panel::-webkit-scrollbar-track { background: transparent; }
+  .structure-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+  .panel-title {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5e5e5;
+    margin-bottom: 4px;
+  }
+  .panel-subtitle {
+    font-size: 10px;
+    color: #6b6b6b;
+    font-family: var(--font-mono);
+    margin-bottom: 12px;
+  }
+  .structure-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .structure-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .structure-item:hover {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.2);
+  }
+  .structure-item.active {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+  }
+  .structure-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .structure-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #a3a3a3;
+    flex: 1;
+  }
+  .structure-item.active .structure-name {
+    color: #fbbf24;
+  }
+  .structure-tag {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: #6b6b6b;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  /* ============ 浮动控件 ============ */
+  .floating-controls-left {
+    position: fixed;
+    bottom: 80px;
+    left: 24px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .floating-controls-right {
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .icon-btn {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e5e5e5;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--duration-base) var(--ease);
+    position: relative;
+  }
+  .icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+  }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .icon-btn.active {
+    background-color: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+  }
+  .icon-btn .tooltip {
+    position: absolute;
+    left: 100%;
+    margin-left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: #e5e5e5;
+    background: rgba(15, 17, 21, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .icon-btn:hover .tooltip { opacity: 1; }
+
+  /* ============ 底部信息条 ============ */
+  .info-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    background-color: rgba(15, 17, 21, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .info-bar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-12);
+  }
+  .info-bar-title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: #e5e5e5;
+  }
+  .tech-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.5;
+    border-radius: var(--radius-full, 999px);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #a3a3a3;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  /* ============ 模式切换器 ============ */
+  .mode-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-full, 999px);
+    padding: 3px;
+  }
+  .mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b6b6b;
+    background: none;
+    border: none;
+    border-radius: var(--radius-full, 999px);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: var(--font-sans);
+  }
+  .mode-btn:hover { color: #a3a3a3; }
+  .mode-btn.active {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.12);
+  }
+  .mode-btn svg { width: 14px; height: 14px; }
+
+  .info-bar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-12);
+  }
+  .status-tag {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: #6b6b6b;
+    transition: color 0.3s ease;
+  }
+  .status-tag.active { color: #fbbf24; }
+
+  /* ============ 心率指示器 ============ */
+  .bpm-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #a3a3a3;
+  }
+  .bpm-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .bpm-dot.beat {
+    transform: scale(1.6);
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.9);
+  }
+
+  /* ============ 操作提示 ============ */
+  .scene-hint {
+    position: fixed;
+    bottom: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    pointer-events: none;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+  }
+
+  /* ============ 图例 ============ */
+  .legend {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #a3a3a3;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 768px) {
+    .navbar-center { display: none; }
+    .info-panel {
+      width: calc(100% - 40px);
+      top: auto;
+      bottom: 64px;
+      left: 20px;
+      right: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .structure-panel { display: none; }
+    .floating-controls-left { bottom: 280px; }
+    .floating-controls-right { bottom: 280px; }
+    .info-bar-title { display: none; }
+    .btn-download span { display: none; }
+    .btn-download { padding: 8px 12px; }
+    .scene-hint { display: none; }
+    .bpm-indicator { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 加载层 -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-text">INITIALIZING HEART...</div>
+</div>
+
+<!-- 顶部导航栏 -->
+<header class="demo-navbar immersive" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">生物</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">血液循环 3D</div>
+  <div class="demo-nav-right">
+    <a href="/skills/jingbo-edu-3d-bio-structure-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- 3D 画布 -->
+<div id="canvas-container">
+  <canvas id="scene"></canvas>
+</div>
+
+<!-- 左侧信息面板 -->
+<div class="info-panel" id="infoPanel">
+  <div class="info-panel-title" id="structName">心脏</div>
+  <div class="info-panel-subtitle" id="structSubtitle">Heart · 循环系统核心器官</div>
+  <div id="structInfo">
+    <div class="info-row">
+      <span class="info-label">功能</span>
+      <span class="info-value">推动血液在全身循环</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">心率</span>
+      <span class="info-value">60-100 次/分钟</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">每搏输出量</span>
+      <span class="info-value">约 70 mL</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">每日泵血</span>
+      <span class="info-value">约 7,000 升</span>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="legend-row">
+      <span class="legend-dot" style="background:#ef4444;box-shadow:0 0 6px #ef4444;"></span> 富氧血（动脉血）
+    </div>
+    <div class="legend-row">
+      <span class="legend-dot" style="background:#3b82f6;box-shadow:0 0 6px #3b82f6;"></span> 缺氧血（静脉血）
+    </div>
+    <div class="legend-row">
+      <span class="legend-dot" style="background:#f59e0b;box-shadow:0 0 6px #f59e0b;"></span> 心肌组织
+    </div>
+  </div>
+</div>
+
+<!-- 右侧结构选择面板 -->
+<div class="structure-panel" id="structurePanel">
+  <div class="panel-title">心脏结构</div>
+  <div class="panel-subtitle">点击选择 · 查看详情</div>
+  <div class="structure-list" id="structureList"></div>
+</div>
+
+<!-- 操作提示 -->
+<div class="scene-hint">拖拽旋转 · 滚轮缩放 · 点击结构查看详情</div>
+
+<!-- 左下浮动控件 -->
+<div class="floating-controls-left">
+  <button class="icon-btn active" id="playPauseBtn">
+    <svg id="playIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    <span class="tooltip">暂停 / 播放</span>
+  </button>
+  <button class="icon-btn" id="resetViewBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    <span class="tooltip">重置视角</span>
+  </button>
+  <button class="icon-btn" id="beatBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    <span class="tooltip">触发心跳</span>
+  </button>
+</div>
+
+<!-- 右下浮动控件 -->
+<div class="floating-controls-right">
+  <button class="icon-btn" id="flowToggleBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12c0-4.97 4.03-9 9-9s9 4.03 9 9-4.03 9-9 9"/><path d="M12 3v3"/><path d="M12 18v3"/></svg>
+    <span class="tooltip">血流开关</span>
+  </button>
+  <button class="icon-btn" id="fullscreenBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+    <span class="tooltip">全屏</span>
+  </button>
+</div>
+
+<!-- 底部信息条 -->
+<footer class="info-bar">
+  <div class="info-bar-left">
+    <span class="info-bar-title">blood-circulation-3d</span>
+    <span class="tech-tag">Three.js</span>
+    <span class="tech-tag">WebGL</span>
+    <span class="tech-tag">循环系统</span>
+  </div>
+  <div class="mode-switcher">
+    <button class="mode-btn active" data-mode="solid">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span>实体</span>
+    </button>
+    <button class="mode-btn" data-mode="xray">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20"/><path d="M2 12h20"/></svg>
+      <span>透视</span>
+    </button>
+    <button class="mode-btn" data-mode="flow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h6"/><path d="M22 12h-6"/><path d="M12 2v6"/><path d="M12 22v-6"/><circle cx="12" cy="12" r="3"/></svg>
+      <span>血流</span>
+    </button>
+  </div>
+  <div class="info-bar-right">
+    <div class="bpm-indicator">
+      <span class="bpm-dot" id="bpmDot"></span>
+      <span id="bpmText">72 BPM</span>
+    </div>
+    <span class="status-tag" id="statusTag">就绪</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   结构数据
+   ============================================================ */
+const STRUCTURES = [
+  {
+    id: 'heart',
+    name: '心脏',
+    en: 'Heart',
+    tag: '',
+    dotColor: '#f59e0b',
+    subtitle: 'Heart · 循环系统核心器官',
+    info: [
+      { label: '功能', value: '推动血液在全身循环' },
+      { label: '心率', value: '60-100 次/分钟' },
+      { label: '每搏输出量', value: '约 70 mL' },
+      { label: '每日泵血', value: '约 7,000 升' },
+    ]
+  },
+  {
+    id: 'left-atrium',
+    name: '左心房',
+    en: 'Left Atrium',
+    tag: 'LA',
+    dotColor: '#f59e0b',
+    subtitle: 'Left Atrium · 接收富氧血',
+    info: [
+      { label: '功能', value: '接收肺静脉富氧血，泵入左心室' },
+      { label: '血液类型', value: '富氧血', cls: 'arterial' },
+      { label: '连接', value: '肺静脉 → 左心房 → 左心室' },
+      { label: '壁厚', value: '约 3 mm' },
+    ]
+  },
+  {
+    id: 'right-atrium',
+    name: '右心房',
+    en: 'Right Atrium',
+    tag: 'RA',
+    dotColor: '#f59e0b',
+    subtitle: 'Right Atrium · 接收缺氧血',
+    info: [
+      { label: '功能', value: '接收腔静脉缺氧血，泵入右心室' },
+      { label: '血液类型', value: '缺氧血', cls: 'venous' },
+      { label: '连接', value: '上/下腔静脉 → 右心房 → 右心室' },
+      { label: '壁厚', value: '约 2 mm' },
+    ]
+  },
+  {
+    id: 'left-ventricle',
+    name: '左心室',
+    en: 'Left Ventricle',
+    tag: 'LV',
+    dotColor: '#f59e0b',
+    subtitle: 'Left Ventricle · 全身泵血',
+    info: [
+      { label: '功能', value: '高压泵入主动脉，输送至全身' },
+      { label: '血液类型', value: '富氧血', cls: 'arterial' },
+      { label: '连接', value: '左心房 → 左心室 → 主动脉' },
+      { label: '壁厚', value: '10-15 mm（最厚）' },
+    ]
+  },
+  {
+    id: 'right-ventricle',
+    name: '右心室',
+    en: 'Right Ventricle',
+    tag: 'RV',
+    dotColor: '#f59e0b',
+    subtitle: 'Right Ventricle · 肺循环泵血',
+    info: [
+      { label: '功能', value: '泵入肺动脉，送往肺部气体交换' },
+      { label: '血液类型', value: '缺氧血', cls: 'venous' },
+      { label: '连接', value: '右心房 → 右心室 → 肺动脉' },
+      { label: '壁厚', value: '5-8 mm' },
+    ]
+  },
+  {
+    id: 'aorta',
+    name: '主动脉',
+    en: 'Aorta',
+    tag: 'AO',
+    dotColor: '#ef4444',
+    subtitle: 'Aorta · 全身最大动脉',
+    info: [
+      { label: '功能', value: '富氧血从左心室输送至全身' },
+      { label: '血液类型', value: '富氧血', cls: 'arterial' },
+      { label: '直径', value: '2.5-3.5 cm' },
+      { label: '特点', value: '富含弹性纤维，缓冲收缩压' },
+    ]
+  },
+  {
+    id: 'pulmonary-artery',
+    name: '肺动脉',
+    en: 'Pulmonary Artery',
+    tag: 'PA',
+    dotColor: '#3b82f6',
+    subtitle: 'Pulmonary Artery · 通向肺部',
+    info: [
+      { label: '功能', value: '缺氧血输送至肺部气体交换' },
+      { label: '血液类型', value: '缺氧血', cls: 'venous' },
+      { label: '特点', value: '唯一运输缺氧血的动脉' },
+      { label: '连接', value: '右心室 → 肺 → 肺静脉' },
+    ]
+  },
+  {
+    id: 'svc',
+    name: '上腔静脉',
+    en: 'Superior Vena Cava',
+    tag: 'SVC',
+    dotColor: '#3b82f6',
+    subtitle: 'Superior Vena Cava · 上身回流',
+    info: [
+      { label: '功能', value: '收集头颈和上肢缺氧血' },
+      { label: '血液类型', value: '缺氧血', cls: 'venous' },
+      { label: '直径', value: '约 2 cm' },
+      { label: '回流', value: '回流至右心房' },
+    ]
+  },
+  {
+    id: 'ivc',
+    name: '下腔静脉',
+    en: 'Inferior Vena Cava',
+    tag: 'IVC',
+    dotColor: '#3b82f6',
+    subtitle: 'Inferior Vena Cava · 下身回流',
+    info: [
+      { label: '功能', value: '收集下肢和腹部缺氧血' },
+      { label: '血液类型', value: '缺氧血', cls: 'venous' },
+      { label: '直径', value: '约 3 cm（最大静脉）' },
+      { label: '回流', value: '回流至右心房' },
+    ]
+  },
+  {
+    id: 'pulmonary-vein',
+    name: '肺静脉',
+    en: 'Pulmonary Veins',
+    tag: 'PV',
+    dotColor: '#ef4444',
+    subtitle: 'Pulmonary Veins · 肺部回流',
+    info: [
+      { label: '功能', value: '肺部气体交换后富氧血回流' },
+      { label: '血液类型', value: '富氧血', cls: 'arterial' },
+      { label: '特点', value: '唯一运输富氧血的静脉' },
+      { label: '数量', value: '通常 4 条' },
+    ]
+  },
+];
+
+/* ============================================================
+   血管定义
+   ============================================================ */
+const VESSELS = [
+  {
+    id: 'aorta',
+    name: '主动脉',
+    color: 0xef4444,
+    radius: 0.16,
+    points: [
+      [0.35, -0.15, 0.15],
+      [0.30, 0.6, 0.15],
+      [0.20, 1.4, 0.10],
+      [0.05, 2.1, 0.0],
+      [-0.15, 2.4, -0.05],
+      [-0.40, 2.2, -0.05],
+      [-0.50, 1.5, 0.0],
+      [-0.45, 0.5, 0.05],
+      [-0.30, -0.8, 0.05],
+      [-0.20, -2.0, 0.0],
+    ],
+    bloodColor: 0xef4444,
+    particleCount: 12,
+  },
+  {
+    id: 'pulmonary-artery',
+    name: '肺动脉',
+    color: 0x3b82f6,
+    radius: 0.13,
+    points: [
+      [-0.35, 0.05, 0.15],
+      [-0.25, 0.7, 0.10],
+      [-0.10, 1.4, 0.0],
+      [0.05, 1.9, -0.15],
+      [0.30, 2.2, -0.25],
+      [0.60, 2.35, -0.30],
+    ],
+    bloodColor: 0x3b82f6,
+    particleCount: 10,
+  },
+  {
+    id: 'svc',
+    name: '上腔静脉',
+    color: 0x3b82f6,
+    radius: 0.12,
+    points: [
+      [-0.65, 3.0, 0.0],
+      [-0.67, 2.2, 0.0],
+      [-0.68, 1.5, 0.05],
+      [-0.65, 1.0, 0.05],
+    ],
+    bloodColor: 0x3b82f6,
+    particleCount: 8,
+  },
+  {
+    id: 'ivc',
+    name: '下腔静脉',
+    color: 0x3b82f6,
+    radius: 0.13,
+    points: [
+      [-0.45, -2.5, 0.0],
+      [-0.55, -1.5, 0.05],
+      [-0.60, -0.5, 0.05],
+      [-0.62, 0.2, 0.05],
+    ],
+    bloodColor: 0x3b82f6,
+    particleCount: 8,
+  },
+  {
+    id: 'pulmonary-vein',
+    name: '肺静脉',
+    color: 0xef4444,
+    radius: 0.09,
+    points: [
+      [1.6, 1.3, 0.4],
+      [1.2, 1.1, 0.25],
+      [0.85, 0.95, 0.15],
+      [0.65, 0.85, 0.10],
+    ],
+    bloodColor: 0xef4444,
+    particleCount: 7,
+  },
+  {
+    id: 'pulmonary-vein-2',
+    name: '肺静脉2',
+    color: 0xef4444,
+    radius: 0.08,
+    points: [
+      [1.5, 0.5, -0.4],
+      [1.1, 0.6, -0.2],
+      [0.8, 0.7, -0.05],
+      [0.65, 0.8, 0.05],
+    ],
+    bloodColor: 0xef4444,
+    particleCount: 6,
+  },
+];
+
+/* ============================================================
+   心脏腔室定义
+   ============================================================ */
+const CHAMBERS = [
+  {
+    id: 'left-atrium',
+    name: '左心房',
+    position: [0.62, 0.80, 0.05],
+    scale: [0.52, 0.48, 0.52],
+    rotation: [0, 0, 0],
+  },
+  {
+    id: 'right-atrium',
+    position: [-0.62, 0.80, 0.05],
+    scale: [0.52, 0.48, 0.52],
+    rotation: [0, 0, 0],
+  },
+  {
+    id: 'left-ventricle',
+    position: [0.42, -0.45, 0.10],
+    scale: [0.82, 0.98, 0.78],
+    rotation: [0, 0, -0.12],
+  },
+  {
+    id: 'right-ventricle',
+    position: [-0.42, -0.38, 0.10],
+    scale: [0.72, 0.88, 0.72],
+    rotation: [0, 0, 0.10],
+  },
+];
+
+/* ============================================================
+   全局状态
+   ============================================================ */
+let scene, camera, renderer, controls, clock;
+let heartGroup, chamberMeshes = {}, vesselMeshes = {}, vesselCurves = {};
+let raycaster, mouse;
+let currentStructure = 'heart';
+let currentMode = 'solid';
+let isPlaying = true;
+let bloodFlowEnabled = true;
+let entranceProgress = 0;
+let beatTriggerTime = -1;
+let bgStars = null;
+let bloodParticles = [];
+let heartGlowMesh = null;
+let bpmDot = document.getElementById('bpmDot');
+
+/* ============================================================
+   场景初始化
+   ============================================================ */
+const container = document.getElementById('canvas-container');
+const canvas = document.getElementById('scene');
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.localClippingEnabled = true;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0f1115);
+  scene.fog = new THREE.Fog(0x0f1115, 12, 40);
+
+  camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 200);
+  camera.position.set(0, 1, 9);
+
+  controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 3;
+  controls.maxDistance = 25;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.5;
+  controls.target.set(0, 0.2, 0);
+
+  clock = new THREE.Clock();
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  setupLights();
+  setupBackground();
+  buildHeart();
+  buildVessels();
+  buildBloodFlow();
+}
+
+/* ============================================================
+   灯光系统
+   ============================================================ */
+function setupLights() {
+  scene.add(new THREE.AmbientLight(0x1a1a2e, 0.5));
+
+  // 主光（暖色调，从右上方）
+  const keyLight = new THREE.DirectionalLight(0xfff0e0, 0.8);
+  keyLight.position.set(5, 5, 5);
+  scene.add(keyLight);
+
+  // 补光（冷色调）
+  const fillLight = new THREE.DirectionalLight(0x6080a0, 0.3);
+  fillLight.position.set(-5, -2, 3);
+  scene.add(fillLight);
+
+  // 心脏内部发光
+  const heartLight = new THREE.PointLight(0xf59e0b, 1.5, 8);
+  heartLight.position.set(0, 0, 0);
+  heartLight.name = 'heartLight';
+  scene.add(heartLight);
+
+  // 红色补光（模拟血液反射）
+  const redLight = new THREE.PointLight(0xef4444, 0.5, 6);
+  redLight.position.set(0.5, -0.3, 0.5);
+  scene.add(redLight);
+
+  // 蓝色补光
+  const blueLight = new THREE.PointLight(0x3b82f6, 0.3, 6);
+  blueLight.position.set(-0.5, 0.3, 0.5);
+  scene.add(blueLight);
+}
+
+/* ============================================================
+   背景粒子
+   ============================================================ */
+function setupBackground() {
+  const starCount = 600;
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(starCount * 3);
+  const starColors = new Float32Array(starCount * 3);
+
+  for (let i = 0; i < starCount; i++) {
+    const r = 20 + Math.random() * 25;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 2 - 1);
+    starPos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    starPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    starPos[i * 3 + 2] = r * Math.cos(phi);
+
+    const hue = 0.05 + Math.random() * 0.1;
+    const c = new THREE.Color().setHSL(hue, 0.3, 0.2 + Math.random() * 0.2);
+    starColors[i * 3]     = c.r;
+    starColors[i * 3 + 1] = c.g;
+    starColors[i * 3 + 2] = c.b;
+  }
+
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+  const starMat = new THREE.PointsMaterial({
+    size: 0.06,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.4,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+
+  bgStars = new THREE.Points(starGeo, starMat);
+  scene.add(bgStars);
+}
+
+/* ============================================================
+   构建心脏
+   ============================================================ */
+function buildHeart() {
+  heartGroup = new THREE.Group();
+  scene.add(heartGroup);
+
+  // 心脏材质（琥珀金色，有光泽）
+  const heartMat = new THREE.MeshStandardMaterial({
+    color: 0xf59e0b,
+    emissive: 0xd97706,
+    emissiveIntensity: 0.15,
+    metalness: 0.2,
+    roughness: 0.45,
+    transparent: true,
+    opacity: 1.0,
+  });
+
+  // 构建四个腔室
+  CHAMBERS.forEach(chamber => {
+    const geo = new THREE.SphereGeometry(0.8, 48, 48);
+
+    // 修改几何体使腔室看起来更自然
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+
+      // 底部稍微拉长（心室尖部）
+      if (y < 0 && (chamber.id.includes('ventricle'))) {
+        const taper = 1 + Math.abs(y) * 0.15;
+        pos.setX(i, x / taper);
+        pos.setZ(i, z / taper);
+        pos.setY(i, y * 1.15);
+      }
+
+      // 添加表面不规则性
+      const noise = (Math.sin(x * 8) * Math.cos(y * 8) * Math.sin(z * 8)) * 0.015;
+      const r = Math.sqrt(x * x + y * y + z * z);
+      if (r > 0.001) {
+        pos.setX(i, x + (x / r) * noise);
+        pos.setY(i, y + (y / r) * noise);
+        pos.setZ(i, z + (z / r) * noise);
+      }
+    }
+    geo.computeVertexNormals();
+
+    const mesh = new THREE.Mesh(geo, heartMat.clone());
+    mesh.position.fromArray(chamber.position);
+    mesh.scale.fromArray(chamber.scale);
+    mesh.rotation.fromArray(chamber.rotation);
+    mesh.userData.structureId = chamber.id;
+    mesh.userData.basePosition = mesh.position.clone();
+    mesh.userData.baseScale = mesh.scale.clone();
+    mesh.userData.baseRotation = mesh.rotation.clone();
+
+    chamberMeshes[chamber.id] = mesh;
+    heartGroup.add(mesh);
+  });
+
+  // 心脏外发光层
+  const glowGeo = new THREE.SphereGeometry(2.5, 32, 32);
+  const glowMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color(0xf59e0b) },
+      uIntensity: { value: 0.3 },
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uIntensity;
+      uniform float uTime;
+      varying vec3 vNormal;
+      void main() {
+        float fresnel = 1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0));
+        fresnel = pow(fresnel, 2.5);
+        float pulse = sin(uTime * 2.5) * 0.08 + 0.92;
+        gl_FragColor = vec4(uColor * uIntensity * fresnel * pulse, fresnel * 0.25);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    depthWrite: false,
+  });
+  heartGlowMesh = new THREE.Mesh(glowGeo, glowMat);
+  heartGlowMesh.position.set(0, 0.1, 0);
+  heartGroup.add(heartGlowMesh);
+}
+
+/* ============================================================
+   构建血管
+   ============================================================ */
+function buildVessels() {
+  VESSELS.forEach(vessel => {
+    const points = vessel.points.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+    const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.3);
+    vesselCurves[vessel.id] = curve;
+
+    const radius = Math.max(0.01, vessel.radius);
+    const tubeGeo = new THREE.TubeGeometry(curve, 80, radius, 16, false);
+
+    const tubeMat = new THREE.MeshStandardMaterial({
+      color: vessel.color,
+      emissive: vessel.color,
+      emissiveIntensity: 0.2,
+      metalness: 0.1,
+      roughness: 0.5,
+      transparent: true,
+      opacity: 0.85,
+    });
+
+    const mesh = new THREE.Mesh(tubeGeo, tubeMat);
+    mesh.userData.structureId = vessel.id === 'pulmonary-vein-2' ? 'pulmonary-vein' : vessel.id;
+    mesh.userData.vesselId = vessel.id;
+    vesselMeshes[vessel.id] = mesh;
+    scene.add(mesh);
+  });
+}
+
+/* ============================================================
+   构建血流粒子
+   ============================================================ */
+function buildBloodFlow() {
+  const particleGeo = new THREE.SphereGeometry(0.055, 8, 8);
+
+  VESSELS.forEach(vessel => {
+    const curve = vesselCurves[vessel.id];
+    const count = vessel.particleCount;
+
+    const particleMat = new THREE.MeshBasicMaterial({
+      color: vessel.bloodColor,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+    });
+
+    for (let i = 0; i < count; i++) {
+      const particle = new THREE.Mesh(particleGeo, particleMat.clone());
+      particle.userData = {
+        curve: curve,
+        progress: i / count,
+        speed: 0.0015 + Math.random() * 0.001,
+        baseOpacity: 0.9,
+        vesselId: vessel.id,
+      };
+
+      // 初始位置
+      const pos = curve.getPointAt(particle.userData.progress);
+      particle.position.copy(pos);
+
+      bloodParticles.push(particle);
+      scene.add(particle);
+    }
+  });
+}
+
+/* ============================================================
+   渲染循环
+   ============================================================ */
+function animate() {
+  requestAnimationFrame(animate);
+
+  const t = clock.getElapsedTime();
+  const dt = clock.getDelta();
+
+  // 入场动画
+  if (entranceProgress < 1) {
+    entranceProgress = Math.min(1, entranceProgress + dt * 0.7);
+  }
+
+  // 心跳动画
+  if (isPlaying) {
+    updateHeartbeat(t);
+  }
+
+  // 血流粒子
+  if (isPlaying && bloodFlowEnabled) {
+    updateBloodParticles(dt);
+  }
+
+  // 心脏发光层
+  if (heartGlowMesh && heartGlowMesh.material.uniforms) {
+    heartGlowMesh.material.uniforms.uTime.value = t;
+    heartGlowMesh.material.uniforms.uIntensity.value = 0.25 + Math.sin(t * 2.5) * 0.08;
+  }
+
+  // 中心光源脉动
+  const hLight = scene.getObjectByName('heartLight');
+  if (hLight) {
+    const bpm = 72;
+    const beatPeriod = 60 / bpm;
+    const phase = (t % beatPeriod) / beatPeriod;
+    let lightIntensity = 1.2;
+    if (phase < 0.1) {
+      lightIntensity = 1.2 + (1 - Math.abs(phase / 0.1 - 1)) * 0.6;
+    }
+    hLight.intensity = lightIntensity;
+  }
+
+  // 背景星尘旋转
+  if (bgStars) {
+    bgStars.rotation.y = t * 0.008;
+    bgStars.rotation.x = t * 0.004;
+  }
+
+  // 血管呼吸效果
+  Object.values(vesselMeshes).forEach((mesh, i) => {
+    if (mesh.material) {
+      mesh.material.emissiveIntensity = 0.15 + Math.sin(t * 1.5 + i * 0.5) * 0.08;
+    }
+  });
+
+  // 入场缩放
+  if (entranceProgress < 1) {
+    const eased = easeOutCubic(entranceProgress);
+    heartGroup.scale.setScalar(0.1 + eased * 0.9);
+    Object.values(vesselMeshes).forEach(m => {
+      m.scale.setScalar(0.1 + eased * 0.9);
+    });
+    bloodParticles.forEach(p => {
+      p.scale.setScalar(eased);
+    });
+  } else {
+    heartGroup.scale.setScalar(1);
+    Object.values(vesselMeshes).forEach(m => {
+      if (m.scale.x !== 1) m.scale.setScalar(1);
+    });
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   心跳动画
+   ============================================================ */
+function updateHeartbeat(t) {
+  const bpm = 72;
+  const beatPeriod = 60 / bpm;
+  let phase = (t % beatPeriod) / beatPeriod;
+
+  // 手动触发的心跳
+  if (beatTriggerTime > 0) {
+    const sinceTrigger = t - beatTriggerTime;
+    if (sinceTrigger < beatPeriod) {
+      phase = sinceTrigger / beatPeriod;
+    } else {
+      beatTriggerTime = -1;
+    }
+  }
+
+  // 心动周期：
+  // 0.00-0.08: 心房收缩
+  // 0.08-0.25: 心室收缩
+  // 0.25-1.00: 舒张
+
+  let atriumScale = 1.0;
+  let ventricleScale = 1.0;
+
+  if (phase < 0.08) {
+    // 心房收缩
+    const p = phase / 0.08;
+    atriumScale = 1.0 - 0.06 * Math.sin(p * Math.PI);
+  } else if (phase < 0.25) {
+    // 心室收缩
+    const p = (phase - 0.08) / 0.17;
+    ventricleScale = 1.0 - 0.10 * Math.sin(p * Math.PI);
+    atriumScale = 1.0 + 0.02 * Math.sin(p * Math.PI);
+  }
+
+  // 应用缩放
+  const la = chamberMeshes['left-atrium'];
+  const ra = chamberMeshes['right-atrium'];
+  const lv = chamberMeshes['left-ventricle'];
+  const rv = chamberMeshes['right-ventricle'];
+
+  if (la) la.scale.set(la.userData.baseScale.x * atriumScale, la.userData.baseScale.y * atriumScale, la.userData.baseScale.z * atriumScale);
+  if (ra) ra.scale.set(ra.userData.baseScale.x * atriumScale, ra.userData.baseScale.y * atriumScale, ra.userData.baseScale.z * atriumScale);
+  if (lv) lv.scale.set(lv.userData.baseScale.x * ventricleScale, lv.userData.baseScale.y * ventricleScale, lv.userData.baseScale.z * ventricleScale);
+  if (rv) rv.scale.set(rv.userData.baseScale.x * ventricleScale, rv.userData.baseScale.y * ventricleScale, rv.userData.baseScale.z * ventricleScale);
+
+  // 心率指示器闪烁
+  if (phase < 0.08 || (phase >= 0.08 && phase < 0.12)) {
+    bpmDot.classList.add('beat');
+  } else {
+    bpmDot.classList.remove('beat');
+  }
+}
+
+/* ============================================================
+   血流粒子更新
+   ============================================================ */
+function updateBloodParticles(dt) {
+  bloodParticles.forEach(particle => {
+    particle.userData.progress += particle.userData.speed * (dt * 60);
+    if (particle.userData.progress >= 1) {
+      particle.userData.progress -= 1;
+    }
+
+    const pos = particle.userData.curve.getPointAt(particle.userData.progress);
+    particle.position.copy(pos);
+
+    // 粒子大小随流速变化
+    const pulse = 0.8 + Math.sin(particle.userData.progress * Math.PI * 4) * 0.2;
+    particle.scale.setScalar(pulse * entranceProgress);
+  });
+}
+
+/* ============================================================
+   模式切换
+   ============================================================ */
+function setMode(mode) {
+  currentMode = mode;
+
+  Object.values(chamberMeshes).forEach(mesh => {
+    if (mode === 'solid') {
+      mesh.material.transparent = false;
+      mesh.material.opacity = 1.0;
+      mesh.material.wireframe = false;
+      mesh.material.emissiveIntensity = 0.15;
+    } else if (mode === 'xray') {
+      mesh.material.transparent = true;
+      mesh.material.opacity = 0.35;
+      mesh.material.wireframe = false;
+      mesh.material.emissiveIntensity = 0.3;
+    } else if (mode === 'flow') {
+      mesh.material.transparent = true;
+      mesh.material.opacity = 0.15;
+      mesh.material.wireframe = true;
+      mesh.material.emissiveIntensity = 0.1;
+    }
+    mesh.material.needsUpdate = true;
+  });
+
+  Object.values(vesselMeshes).forEach(mesh => {
+    if (mode === 'flow') {
+      mesh.material.opacity = 0.4;
+      mesh.material.emissiveIntensity = 0.4;
+    } else {
+      mesh.material.opacity = 0.85;
+      mesh.material.emissiveIntensity = 0.2;
+    }
+    mesh.material.needsUpdate = true;
+  });
+
+  // 血流模式粒子更亮
+  bloodParticles.forEach(p => {
+    p.material.opacity = mode === 'flow' ? 1.0 : 0.9;
+  });
+}
+
+/* ============================================================
+   高亮结构
+   ============================================================ */
+let highlightedId = null;
+
+function highlightStructure(id) {
+  // 恢复之前的高亮
+  if (highlightedId && highlightedId !== id) {
+    const prev = chamberMeshes[highlightedId] || vesselMeshes[highlightedId] || vesselMeshes[highlightedId + '-2'];
+    if (prev) {
+      prev.material.emissiveIntensity = currentMode === 'flow' ? 0.1 : (currentMode === 'xray' ? 0.3 : 0.15);
+    }
+    // 对于血管，还要恢复关联的
+    if (highlightedId === 'pulmonary-vein') {
+      const pv2 = vesselMeshes['pulmonary-vein-2'];
+      if (pv2) pv2.material.emissiveIntensity = currentMode === 'flow' ? 0.1 : (currentMode === 'xray' ? 0.3 : 0.15);
+    }
+  }
+
+  highlightedId = id;
+
+  if (id === 'heart') {
+    // 高亮所有
+    Object.values(chamberMeshes).forEach(m => {
+      m.material.emissiveIntensity = currentMode === 'flow' ? 0.25 : 0.4;
+    });
+  } else if (chamberMeshes[id]) {
+    chamberMeshes[id].material.emissiveIntensity = 0.6;
+    // 降低其他腔室
+    Object.entries(chamberMeshes).forEach(([key, m]) => {
+      if (key !== id) {
+        m.material.emissiveIntensity = currentMode === 'flow' ? 0.05 : 0.1;
+      }
+    });
+  } else if (id === 'pulmonary-vein') {
+    if (vesselMeshes['pulmonary-vein']) vesselMeshes['pulmonary-vein'].material.emissiveIntensity = 0.6;
+    if (vesselMeshes['pulmonary-vein-2']) vesselMeshes['pulmonary-vein-2'].material.emissiveIntensity = 0.6;
+  } else if (vesselMeshes[id]) {
+    vesselMeshes[id].material.emissiveIntensity = 0.6;
+  }
+}
+
+/* ============================================================
+   选择结构
+   ============================================================ */
+function selectStructure(id) {
+  currentStructure = id;
+  const struct = STRUCTURES.find(s => s.id === id);
+  if (!struct) return;
+
+  // 更新信息面板
+  document.getElementById('structName').textContent = struct.name;
+  document.getElementById('structSubtitle').textContent = struct.subtitle;
+
+  const infoContainer = document.getElementById('structInfo');
+  infoContainer.innerHTML = struct.info.map(row => {
+    const cls = row.cls ? ` ${row.cls}` : '';
+    return `<div class="info-row">
+      <span class="info-label">${row.label}</span>
+      <span class="info-value${cls}">${row.value}</span>
+    </div>`;
+  }).join('');
+
+  // 更新选择列表
+  document.querySelectorAll('.structure-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.id === id);
+  });
+
+  // 高亮3D模型
+  highlightStructure(id);
+
+  showStatus(`已选中：${struct.name}`);
+}
+
+/* ============================================================
+   构建结构选择列表
+   ============================================================ */
+function buildStructureList() {
+  const list = document.getElementById('structureList');
+  list.innerHTML = '';
+
+  STRUCTURES.forEach(struct => {
+    const item = document.createElement('div');
+    item.className = 'structure-item';
+    if (struct.id === currentStructure) item.classList.add('active');
+    item.dataset.id = struct.id;
+    item.innerHTML = `
+      <span class="structure-dot" style="background:${struct.dotColor};box-shadow:0 0 6px ${struct.dotColor}80;"></span>
+      <span class="structure-name">${struct.name}</span>
+      ${struct.tag ? `<span class="structure-tag">${struct.tag}</span>` : ''}
+    `;
+    item.addEventListener('click', () => selectStructure(struct.id));
+    list.appendChild(item);
+  });
+}
+
+/* ============================================================
+   工具函数
+   ============================================================ */
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function showStatus(msg) {
+  const tag = document.getElementById('statusTag');
+  tag.textContent = msg;
+  tag.classList.add('active');
+  clearTimeout(showStatus._timer);
+  showStatus._timer = setTimeout(() => {
+    tag.classList.remove('active');
+    tag.textContent = '就绪';
+  }, 2500);
+}
+
+/* ============================================================
+   UI 交互
+   ============================================================ */
+
+// 播放/暂停
+const playPauseBtn = document.getElementById('playPauseBtn');
+const playIcon = document.getElementById('playIcon');
+const pauseIcon = document.getElementById('pauseIcon');
+
+playPauseBtn.addEventListener('click', () => {
+  isPlaying = !isPlaying;
+  controls.autoRotate = isPlaying;
+  playPauseBtn.classList.toggle('active', isPlaying);
+  playIcon.style.display = isPlaying ? 'none' : 'block';
+  pauseIcon.style.display = isPlaying ? 'block' : 'none';
+  showStatus(isPlaying ? '播放' : '已暂停');
+});
+
+// 重置视角
+document.getElementById('resetViewBtn').addEventListener('click', () => {
+  animateCameraTo(0, 1, 9, 0, 0.2, 0);
+  showStatus('视角已重置');
+});
+
+// 触发心跳
+document.getElementById('beatBtn').addEventListener('click', () => {
+  beatTriggerTime = clock.getElapsedTime();
+  showStatus('触发额外心跳');
+});
+
+// 血流开关
+const flowToggleBtn = document.getElementById('flowToggleBtn');
+flowToggleBtn.classList.add('active');
+flowToggleBtn.addEventListener('click', () => {
+  bloodFlowEnabled = !bloodFlowEnabled;
+  flowToggleBtn.classList.toggle('active', bloodFlowEnabled);
+  bloodParticles.forEach(p => {
+    p.visible = bloodFlowEnabled;
+  });
+  showStatus(bloodFlowEnabled ? '血流已开启' : '血流已关闭');
+});
+
+// 全屏
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+});
+
+// 模式切换
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    setMode(btn.dataset.mode);
+    const modeNames = { solid: '实体模式', xray: '透视模式', flow: '血流模式' };
+    showStatus(modeNames[btn.dataset.mode]);
+  });
+});
+
+// 相机动画
+function animateCameraTo(x, y, z, tx, ty, tz) {
+  const startPos = camera.position.clone();
+  const endPos = new THREE.Vector3(x, y, z);
+  const startTarget = controls.target.clone();
+  const endTarget = new THREE.Vector3(tx, ty, tz);
+  const startTime = clock.getElapsedTime();
+
+  function step() {
+    const elapsed = clock.getElapsedTime() - startTime;
+    const t = Math.min(elapsed / 1.0, 1);
+    const eased = easeOutCubic(t);
+
+    camera.position.lerpVectors(startPos, endPos, eased);
+    controls.target.lerpVectors(startTarget, endTarget, eased);
+    controls.update();
+
+    if (t < 1) requestAnimationFrame(step);
+  }
+  step();
+}
+
+// 点击交互（Raycaster）
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  // 检测腔室
+  const chamberObjects = Object.values(chamberMeshes);
+  const vesselObjects = Object.values(vesselMeshes);
+  const allObjects = [...chamberObjects, ...vesselObjects];
+
+  const intersects = raycaster.intersectObjects(allObjects);
+  if (intersects.length > 0) {
+    const obj = intersects[0].object;
+    const structId = obj.userData.structureId;
+    if (structId) {
+      selectStructure(structId);
+    }
+  }
+});
+
+// 窗口自适应
+function onResize() {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+/* ============================================================
+   启动
+   ============================================================ */
+initScene();
+buildStructureList();
+selectStructure('heart');
+setMode('solid');
+animate();
+
+// 隐藏加载层
+setTimeout(() => {
+  document.getElementById('loadingOverlay').classList.add('hidden');
+}, 800);
+
+</script>
+
+</body>
+</html>

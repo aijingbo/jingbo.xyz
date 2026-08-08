@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>电子云与原子轨道 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #0f1115;
+    color: #e5e5e5;
+    font-family: var(--font-sans);
+  }
+
+  /* ============ 3D 画布 ============ */
+  #canvas-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  #scene-canvas { display: block; width: 100%; height: 100%; }
+
+  /* ============ 加载层 ============ */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    background: #0f1115;
+    transition: opacity 0.8s ease;
+  }
+  .loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .loading-ring {
+    width: 48px;
+    height: 48px;
+    border: 2px solid rgba(16, 185, 129, 0.15);
+    border-top-color: #10B981;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(16, 185, 129, 0.5);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* ============ 右侧轨道选择面板 ============ */
+  .orbital-panel {
+    position: fixed;
+    top: 84px;
+    right: 20px;
+    z-index: 50;
+    width: 220px;
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+    padding: 14px 14px 16px;
+    background-color: rgba(15, 17, 21, 0.65);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-card);
+  }
+  .orbital-panel::-webkit-scrollbar { width: 4px; }
+  .orbital-panel::-webkit-scrollbar-track { background: transparent; }
+  .orbital-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+  .panel-header {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5e5e5;
+    margin-bottom: 2px;
+  }
+  .panel-sub {
+    font-size: 10px;
+    color: #6b6b6b;
+    font-family: var(--font-mono);
+    margin-bottom: 10px;
+  }
+  .orbital-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #10B981;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 10px;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+  }
+  .orbital-group-label:first-of-type { margin-top: 0; }
+  .orbital-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+  .orbital-cell {
+    aspect-ratio: 1.3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .orbital-cell:hover {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.25);
+  }
+  .orbital-cell.active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+  }
+  .orbital-cell .orb-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e5e5e5;
+    font-family: var(--font-serif);
+    line-height: 1.2;
+  }
+  .orbital-cell.active .orb-name { color: #10B981; }
+  .orbital-cell .orb-qn {
+    font-size: 8px;
+    color: #6b6b6b;
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+  .orbital-cell.active .orb-qn { color: rgba(16, 185, 129, 0.6); }
+
+  /* ============ 左侧信息面板 ============ */
+  .info-panel {
+    position: fixed;
+    top: 84px;
+    left: 20px;
+    z-index: 50;
+    width: 250px;
+    padding: 16px 18px;
+    background-color: rgba(15, 17, 21, 0.65);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-card);
+  }
+  .info-orbital-name {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 2px;
+  }
+  .info-orbital-subtitle {
+    font-size: 11px;
+    color: #6b6b6b;
+    font-family: var(--font-mono);
+    margin-bottom: 14px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: #6b6b6b; font-weight: 500; }
+  .info-value {
+    color: #e5e5e5;
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+  .info-value .qn-n { color: #10B981; }
+  .info-value .qn-l { color: #34D399; }
+  .info-value .qn-m { color: #6EE7B7; }
+
+  .orbital-description {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.12);
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #a3a3a3;
+  }
+
+  /* ============ 图例 ============ */
+  .legend-mini {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #a3a3a3;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ============ 浮动控件 ============ */
+  .floating-controls-left {
+    position: fixed;
+    bottom: 76px;
+    left: 24px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .floating-controls-right {
+    position: fixed;
+    bottom: 76px;
+    right: 24px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .icon-btn {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e5e5e5;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+    position: relative;
+  }
+  .icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+  }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .icon-btn.active {
+    background-color: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #10B981;
+  }
+  .icon-btn .tooltip {
+    position: absolute;
+    left: 100%;
+    margin-left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: #e5e5e5;
+    background: rgba(15, 17, 21, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .icon-btn:hover .tooltip { opacity: 1; }
+
+  /* ============ 底部信息条 ============ */
+  .info-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    background-color: rgba(15, 17, 21, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .info-bar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-12);
+  }
+  .info-bar-title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: #e5e5e5;
+  }
+  .tech-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #a3a3a3;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  /* ============ 模式切换器 ============ */
+  .mode-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-full);
+    padding: 3px;
+  }
+  .mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b6b6b;
+    background: none;
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: var(--font-sans);
+  }
+  .mode-btn:hover { color: #a3a3a3; }
+  .mode-btn.active {
+    color: #10B981;
+    background: rgba(16, 185, 129, 0.12);
+  }
+  .mode-btn svg { width: 14px; height: 14px; }
+
+  .info-bar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-12);
+  }
+  .status-tag {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: #6b6b6b;
+    transition: color 0.3s ease;
+  }
+  .status-tag.active { color: #10B981; }
+
+  /* ============ 操作提示 ============ */
+  .scene-hint {
+    position: fixed;
+    bottom: 66px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    pointer-events: none;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+  }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 768px) {
+    .demo-nav-center { display: none; }
+    .orbital-panel {
+      width: calc(100% - 40px);
+      max-height: 140px;
+      top: auto;
+      bottom: 64px;
+      right: 20px;
+      left: 20px;
+    }
+    .orbital-grid { grid-template-columns: repeat(7, 1fr); }
+    .info-panel { display: none; }
+    .floating-controls-left { bottom: 220px; }
+    .floating-controls-right { bottom: 220px; }
+    .info-bar-title { display: none; }
+    .demo-btn-download span { display: none; }
+    .demo-btn-download { padding: 8px 12px; }
+    .scene-hint { display: none; }
+    .mode-btn span { display: none; }
+    .mode-btn { padding: 6px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 加载层 -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-ring"></div>
+  <div class="loading-text">QUANTUM FIELD INITIALIZING</div>
+</div>
+
+<!-- 顶部导航栏 -->
+<header class="demo-navbar immersive" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/demos.html" class="demo-back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </a>
+    <span class="demo-nav-divider"></span>
+    <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">化学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">电子云与原子轨道</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-chem">化学</span>
+    <a href="/skills/jingbo-edu-3d-micro-structure-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- 3D 画布 -->
+<div id="canvas-container">
+  <canvas id="scene-canvas"></canvas>
+</div>
+
+<!-- 左侧信息面板 -->
+<div class="info-panel" id="infoPanel">
+  <div class="info-orbital-name" id="orbitalName">1s</div>
+  <div class="info-orbital-subtitle" id="orbitalSubtitle">球对称 · 基态轨道</div>
+  <div class="info-row">
+    <span class="info-label">主量子数 n</span>
+    <span class="info-value"><span class="qn-n" id="qnN">1</span></span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">角量子数 l</span>
+    <span class="info-value"><span class="qn-l" id="qnL">0</span></span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">磁量子数 m</span>
+    <span class="info-value"><span class="qn-m" id="qnM">0</span></span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">轨道类型</span>
+    <span class="info-value" id="orbType">s 轨道</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">最大电子数</span>
+    <span class="info-value" id="maxElectrons">2</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">节面数</span>
+    <span class="info-value" id="nodeCount">0</span>
+  </div>
+  <div class="orbital-description" id="orbitalDesc">
+    1s 轨道是氢原子的基态轨道，电子云呈球对称分布。概率密度在原子核处最大，随距离增大指数衰减。
+  </div>
+  <div class="legend-mini">
+    <div class="legend-row">
+      <span class="legend-dot" style="background:#10B981;box-shadow:0 0 6px #10B981;"></span> 电子概率云
+    </div>
+    <div class="legend-row">
+      <span class="legend-dot" style="background:#fbbf24;box-shadow:0 0 6px #fbbf24;"></span> 原子核
+    </div>
+    <div class="legend-row">
+      <span class="legend-dot" style="background:#64748B;opacity:0.5;"></span> 节面（ψ=0）
+    </div>
+  </div>
+</div>
+
+<!-- 右侧轨道选择面板 -->
+<div class="orbital-panel" id="orbitalPanel">
+  <div class="panel-header">选择轨道</div>
+  <div class="panel-sub">s · p · d · f 轨道</div>
+  <div id="orbitalList"></div>
+</div>
+
+<!-- 操作提示 -->
+<div class="scene-hint">拖拽旋转 · 滚轮缩放 · 点击轨道切换</div>
+
+<!-- 左下浮动控件 -->
+<div class="floating-controls-left">
+  <button class="icon-btn active" id="playPauseBtn">
+    <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    <svg id="playIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <span class="tooltip">自动旋转</span>
+  </button>
+  <button class="icon-btn" id="resetViewBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    <span class="tooltip">重置视角</span>
+  </button>
+  <button class="icon-btn" id="nodesBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v18"/></svg>
+    <span class="tooltip">显示节面</span>
+  </button>
+</div>
+
+<!-- 右下浮动控件 -->
+<div class="floating-controls-right">
+  <button class="icon-btn" id="nucleusFocusBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6M4.22 4.22l4.24 4.24m7.08 7.08l4.24 4.24M1 12h6m10 0h6"/></svg>
+    <span class="tooltip">聚焦原子核</span>
+  </button>
+  <button class="icon-btn" id="fullscreenBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+    <span class="tooltip">全屏</span>
+  </button>
+</div>
+
+<!-- 底部信息条 -->
+<footer class="info-bar">
+  <div class="info-bar-left">
+    <span class="info-bar-title">electron-cloud-orbitals</span>
+    <span class="tech-tag">Three.js</span>
+    <span class="tech-tag">WebGL</span>
+    <span class="tech-tag">量子力学</span>
+  </div>
+  <div class="mode-switcher">
+    <button class="mode-btn active" data-mode="cloud">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" opacity="0.5"/><circle cx="12" cy="12" r="10" opacity="0.2"/></svg>
+      <span>概率云</span>
+    </button>
+    <button class="mode-btn" data-mode="surface">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v18" opacity="0.4"/></svg>
+      <span>等值面</span>
+    </button>
+    <button class="mode-btn" data-mode="cross">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M12 3v18"/><circle cx="12" cy="12" r="4"/></svg>
+      <span>剖切</span>
+    </button>
+  </div>
+  <div class="info-bar-right">
+    <span class="status-tag active" id="statusTag">就绪</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   轨道数据
+   ============================================================ */
+const ORBITALS = [
+  // s 轨道
+  { id: '1s',  name: '1s',  type: 's', group: 's', n: 1, l: 0, m: 0,  maxE: 2, nodes: 0, radius: 2.0, subtitle: '球对称 · 基态', desc: '1s 轨道是氢原子的基态轨道，电子云呈球对称分布。概率密度在原子核处最大，随距离增大指数衰减。' },
+  { id: '2s',  name: '2s',  type: 's', group: 's', n: 2, l: 0, m: 0,  maxE: 2, nodes: 1, radius: 4.5, subtitle: '球对称 · 含径向节面', desc: '2s 轨道同样球对称，但含有一个径向节面（概率密度为零的球面），电子云分为内层和外层两个区域。' },
+  { id: '3s',  name: '3s',  type: 's', group: 's', n: 3, l: 0, m: 0,  maxE: 2, nodes: 2, radius: 7.0, subtitle: '球对称 · 双径向节面', desc: '3s 轨道含有两个径向节面，电子云呈现三层球壳结构，随主量子数增大轨道体积显著膨胀。' },
+
+  // p 轨道
+  { id: '2px', name: '2px', type: 'p', group: 'p', n: 2, l: 1, m: -1, maxE: 2, nodes: 1, radius: 4.5, subtitle: '哑铃形 · x 轴方向', axis: 'x', desc: '2px 轨道沿 x 轴方向呈哑铃形，由一个节面（yz 平面）分隔为两个相位相反的瓣。电子在 x 轴方向出现概率最大。' },
+  { id: '2py', name: '2py', type: 'p', group: 'p', n: 2, l: 1, m: 1,  maxE: 2, nodes: 1, radius: 4.5, subtitle: '哑铃形 · y 轴方向', axis: 'y', desc: '2py 轨道沿 y 轴方向呈哑铃形，节面为 xz 平面。与 2px、2pz 共同构成 p 轨道三重简并态。' },
+  { id: '2pz', name: '2pz', type: 'p', group: 'p', n: 2, l: 1, m: 0,  maxE: 2, nodes: 1, radius: 4.5, subtitle: '哑铃形 · z 轴方向', axis: 'z', desc: '2pz 轨道沿 z 轴方向呈哑铃形，节面为 xy 平面。是 p 轨道中最常见的表示形式。' },
+
+  // d 轨道
+  { id: '3dxy',  name: '3dxy',  type: 'd', group: 'd', n: 3, l: 2, m: -2, maxE: 2, nodes: 2, radius: 6.5, subtitle: '四叶形 · xy 对角', axis: 'xy',  desc: '3dxy 轨道在 xy 平面上呈四叶花瓣形，瓣沿 x、y 轴的对角线方向分布。两个节面为 xz 和 yz 平面。' },
+  { id: '3dxz',  name: '3dxz',  type: 'd', group: 'd', n: 3, l: 2, m: -1, maxE: 2, nodes: 2, radius: 6.5, subtitle: '四叶形 · xz 对角', axis: 'xz',  desc: '3dxz 轨道在 xz 平面上呈四叶花瓣形，瓣沿 x、z 轴的对角线方向分布。' },
+  { id: '3dyz',  name: '3dyz',  type: 'd', group: 'd', n: 3, l: 2, m: 1,  maxE: 2, nodes: 2, radius: 6.5, subtitle: '四叶形 · yz 对角', axis: 'yz',  desc: '3dyz 轨道在 yz 平面上呈四叶花瓣形，瓣沿 y、z 轴的对角线方向分布。' },
+  { id: '3dx2y2', name: '3dx²-y²', type: 'd', group: 'd', n: 3, l: 2, m: 2, maxE: 2, nodes: 2, radius: 6.5, subtitle: '四叶形 · 沿坐标轴', axis: 'x2y2', desc: '3dx²-y² 轨道在 xy 平面上呈四叶形，但瓣沿 x、y 坐标轴方向分布，与 3dxy 互补。' },
+  { id: '3dz2',  name: '3dz²',  type: 'd', group: 'd', n: 3, l: 2, m: 0,  maxE: 2, nodes: 2, radius: 6.5, subtitle: '哑铃+环 · z 轴', axis: 'z2',  desc: '3dz² 轨道形状独特：沿 z 轴的哑铃形加上 xy 平面上的环形电子云，可视为 dz²-y² 与 dy² 的线性组合。' },
+
+  // f 轨道
+  { id: '4fz3',   name: '4fz³',   type: 'f', group: 'f', n: 4, l: 3, m: 0,  maxE: 2, nodes: 3, radius: 9.0, subtitle: '六叶形 · z 轴', axis: 'fz3',   desc: '4fz³ 轨道沿 z 轴方向呈复杂的多叶结构，包含六个花瓣形区域，是 f 轨道中较对称的形态。' },
+  { id: '4fxyz',  name: '4fxyz',  type: 'f', group: 'f', n: 4, l: 3, m: -3, maxE: 2, nodes: 3, radius: 9.0, subtitle: '八叶形 · 三对角', axis: 'fxyz',  desc: '4fxyz 轨道在八个卦限中各有一个花瓣形分布，是 f 轨道中形态最复杂的轨道之一。' },
+  { id: '4fx3',   name: '4fx³',   type: 'f', group: 'f', n: 4, l: 3, m: -3, maxE: 2, nodes: 3, radius: 9.0, subtitle: '多叶形 · x 轴', axis: 'fx3',    desc: '4fx³ 轨道沿 x 轴方向呈多叶结构，类似 px 轨道但具有更复杂的内部节面分布。' },
+];
+
+/* ============================================================
+   全局状态
+   ============================================================ */
+let scene, camera, renderer, controls, clock;
+let raycaster, mouse;
+let currentOrbital = ORBITALS[0];
+let currentMode = 'cloud';
+let isPlaying = true;
+let showNodes = false;
+let entranceProgress = 0;
+let isTransitioning = false;
+
+let orbitalGroup, nucleusMesh, nucleusGlow;
+let particleSystem, particleMaterial, particleGeometry;
+let nodePlanes = [];
+let bgStars;
+let clipPlane;
+
+// 颜色常量
+const C_MAIN   = new THREE.Color(0x10B981);
+const C_BRIGHT = new THREE.Color(0x34D399);
+const C_DIM    = new THREE.Color(0x064E3B);
+const C_NUCLEUS = new THREE.Color(0xfbbf24);
+const C_NUCLEUS_GLOW = new THREE.Color(0xf59e0b);
+
+/* ============================================================
+   场景初始化
+   ============================================================ */
+const container = document.getElementById('canvas-container');
+const canvas = document.getElementById('scene-canvas');
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.localClippingEnabled = true;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0f1115);
+  scene.fog = new THREE.Fog(0x0f1115, 20, 55);
+
+  camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 200);
+  camera.position.set(0, 3, 16);
+
+  controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 3;
+  controls.maxDistance = 40;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.5;
+
+  clock = new THREE.Clock();
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  // 剖切平面
+  clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
+
+  setupLights();
+  setupBackground();
+  buildOrbital();
+}
+
+/* ============================================================
+   灯光系统
+   ============================================================ */
+function setupLights() {
+  scene.add(new THREE.AmbientLight(0x1a2a25, 0.5));
+
+  // 原子核暖色光
+  const nucleusLight = new THREE.PointLight(0xfbbf24, 1.2, 18);
+  nucleusLight.position.set(0, 0, 0);
+  scene.add(nucleusLight);
+
+  // 主光（翠绿冷光）
+  const mainLight = new THREE.PointLight(0x10B981, 0.8, 20);
+  mainLight.position.set(5, 4, 5);
+  scene.add(mainLight);
+
+  // 补光
+  const fillLight = new THREE.DirectionalLight(0x4488aa, 0.25);
+  fillLight.position.set(-5, -3, -5);
+  scene.add(fillLight);
+}
+
+/* ============================================================
+   背景星尘
+   ============================================================ */
+function setupBackground() {
+  const starCount = 600;
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(starCount * 3);
+  const starColors = new Float32Array(starCount * 3);
+
+  for (let i = 0; i < starCount; i++) {
+    const r = 28 + Math.random() * 25;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 2 - 1);
+    starPos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    starPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    starPos[i * 3 + 2] = r * Math.cos(phi);
+
+    // 绿色/青色调星尘
+    const hue = 0.35 + Math.random() * 0.12;
+    const c = new THREE.Color().setHSL(hue, 0.4, 0.2 + Math.random() * 0.25);
+    starColors[i * 3]     = c.r;
+    starColors[i * 3 + 1] = c.g;
+    starColors[i * 3 + 2] = c.b;
+  }
+
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+  const starMat = new THREE.PointsMaterial({
+    size: 0.07,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.4,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+
+  bgStars = new THREE.Points(starGeo, starMat);
+  scene.add(bgStars);
+}
+
+/* ============================================================
+   构建轨道可视化
+   ============================================================ */
+function buildOrbital() {
+  if (orbitalGroup) {
+    scene.remove(orbitalGroup);
+    disposeGroup(orbitalGroup);
+  }
+
+  orbitalGroup = new THREE.Group();
+  scene.add(orbitalGroup);
+
+  buildNucleus();
+  buildParticleCloud();
+  buildNodeSurfaces();
+  updateModeVisibility();
+}
+
+/* ============================================================
+   原子核
+   ============================================================ */
+function buildNucleus() {
+  const nucleusGeo = new THREE.SphereGeometry(0.35, 24, 24);
+  const nucleusMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    emissive: 0xf59e0b,
+    emissiveIntensity: 0.6,
+    metalness: 0.4,
+    roughness: 0.3,
+  });
+  nucleusMesh = new THREE.Mesh(nucleusGeo, nucleusMat);
+  nucleusMesh.name = 'nucleus';
+  orbitalGroup.add(nucleusMesh);
+
+  // 原子核辉光层
+  const glowGeo = new THREE.SphereGeometry(0.7, 32, 32);
+  const glowMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color(0xfbbf24) },
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uTime;
+      varying vec3 vNormal;
+      void main() {
+        float fresnel = 1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0));
+        fresnel = pow(fresnel, 2.5);
+        float pulse = sin(uTime * 2.5) * 0.1 + 0.9;
+        gl_FragColor = vec4(uColor * fresnel * pulse, fresnel * 0.35);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    depthWrite: false,
+  });
+  nucleusGlow = new THREE.Mesh(glowGeo, glowMat);
+  nucleusGlow.name = 'nucleusGlow';
+  orbitalGroup.add(nucleusGlow);
+}
+
+/* ============================================================
+   量子力学概率密度函数
+   ============================================================ */
+
+// 角度部分 |Y_l,m(θ,φ)|² 的简化实现
+function angularDensitySquared(orbital, theta, phi) {
+  const { type, axis } = orbital;
+
+  if (type === 's') {
+    return 1.0; // 球对称
+  }
+
+  if (type === 'p') {
+    const ct = Math.cos(theta);
+    const st = Math.sin(theta);
+    const cp = Math.cos(phi);
+    const sp = Math.sin(phi);
+    if (axis === 'x') return (st * cp) ** 2;
+    if (axis === 'y') return (st * sp) ** 2;
+    if (axis === 'z') return ct * ct;
+  }
+
+  if (type === 'd') {
+    const ct = Math.cos(theta);
+    const st = Math.sin(theta);
+    const cp = Math.cos(phi);
+    const sp = Math.sin(phi);
+    if (axis === 'xy')  return (st * st * cp * sp) ** 2 * 4; // sin²θ sin²φ cos²φ → 4sin²θ sin²(2φ)/4
+    if (axis === 'xz')  return (st * ct * cp) ** 2;
+    if (axis === 'yz')  return (st * ct * sp) ** 2;
+    if (axis === 'x2y2') return (st * st * (cp * cp - sp * sp)) ** 2;
+    if (axis === 'z2')  {
+      const v = 3 * ct * ct - 1;
+      return v * v;
+    }
+  }
+
+  if (type === 'f') {
+    const ct = Math.cos(theta);
+    const st = Math.sin(theta);
+    const cp = Math.cos(phi);
+    const sp = Math.sin(phi);
+    if (axis === 'fz3') {
+      const v = ct * (5 * ct * ct - 3) * 0.5;
+      return v * v;
+    }
+    if (axis === 'fxyz') {
+      const v = st * st * st * cp * sp * Math.cos(theta);
+      return v * v * 4;
+    }
+    if (axis === 'fx3') {
+      const v = st * (st * st * 3 * cp * (cp * cp - sp * sp) - cp);
+      return v * v;
+    }
+  }
+
+  return 1.0;
+}
+
+// 径向概率密度（简化类氢原子）
+function radialDensitySquared(orbital, r) {
+  const n = orbital.n;
+  const l = orbital.type === 's' ? 0 : orbital.type === 'p' ? 1 : orbital.type === 'd' ? 2 : 3;
+  const rn = orbital.radius;
+
+  // |R_n,l|² ∝ r^(2l) * e^(-2r/(n*a₀)) * L²(...)
+  // 简化：使用 r^(2l) * e^(-2r/rn) 形式
+  const effectiveR = r / (rn * 0.5);
+  const radialPart = Math.pow(Math.max(r, 0.01), 2 * l) * Math.exp(-2 * effectiveR);
+  return radialPart;
+}
+
+// 完整概率密度 |ψ(r,θ,φ)|² = |R(r)|² * |Y(θ,φ)|²
+function probabilityDensity(orbital, x, y, z) {
+  const r = Math.sqrt(x * x + y * y + z * z);
+  if (r < 0.01) return 0;
+
+  const theta = Math.acos(z / r);
+  const phi = Math.atan2(y, x);
+
+  const radial = radialDensitySquared(orbital, r);
+  const angular = angularDensitySquared(orbital, theta, phi);
+
+  return radial * angular;
+}
+
+/* ============================================================
+   粒子云生成（拒绝采样法）
+   ============================================================ */
+function buildParticleCloud() {
+  const isMobile = window.innerWidth < 768;
+  const targetCount = isMobile ? 2000 : 4500;
+  const boundR = currentOrbital.radius * 1.3;
+
+  const positions = new Float32Array(targetCount * 3);
+  const colors = new Float32Array(targetCount * 3);
+  const sizes = new Float32Array(targetCount);
+  const phases = new Float32Array(targetCount);
+
+  // 预计算最大密度用于归一化
+  let maxDensity = 0;
+  const sampleCount = 5000;
+  for (let i = 0; i < sampleCount; i++) {
+    const x = (Math.random() - 0.5) * 2 * boundR;
+    const y = (Math.random() - 0.5) * 2 * boundR;
+    const z = (Math.random() - 0.5) * 2 * boundR;
+    const d = probabilityDensity(currentOrbital, x, y, z);
+    if (d > maxDensity) maxDensity = d;
+  }
+  if (maxDensity < 1e-10) maxDensity = 1;
+
+  // 存储初始位置（入场起点）和目标位置
+  const initPositions = new Float32Array(targetCount * 3);
+  targetPositions = new Float32Array(targetCount * 3);
+
+  let accepted = 0;
+  let attempts = 0;
+  const maxAttempts = targetCount * 30;
+
+  while (accepted < targetCount && attempts < maxAttempts) {
+    // 在包围球内随机采样
+    const r = Math.cbrt(Math.random()) * boundR;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 2 - 1);
+    const x = r * Math.sin(phi) * Math.cos(theta);
+    const y = r * Math.sin(phi) * Math.sin(theta);
+    const z = r * Math.cos(phi);
+
+    const density = probabilityDensity(currentOrbital, x, y, z);
+    const acceptProb = density / maxDensity;
+
+    if (Math.random() < acceptProb) {
+      // 入场动画初始位置（远处随机散布）
+      const entranceR = 15 + Math.random() * 10;
+      const entranceTheta = Math.random() * Math.PI * 2;
+      const entrancePhi = Math.acos(Math.random() * 2 - 1);
+      initPositions[accepted * 3]     = entranceR * Math.sin(entrancePhi) * Math.cos(entranceTheta);
+      initPositions[accepted * 3 + 1] = entranceR * Math.sin(entrancePhi) * Math.sin(entranceTheta);
+      initPositions[accepted * 3 + 2] = entranceR * Math.cos(entrancePhi);
+
+      // 目标位置
+      targetPositions[accepted * 3]     = x;
+      targetPositions[accepted * 3 + 1] = y;
+      targetPositions[accepted * 3 + 2] = z;
+
+      // 初始 position 用入场位置
+      positions[accepted * 3]     = initPositions[accepted * 3];
+      positions[accepted * 3 + 1] = initPositions[accepted * 3 + 1];
+      positions[accepted * 3 + 2] = initPositions[accepted * 3 + 2];
+
+      // 颜色根据密度和距离
+      const dist = Math.sqrt(x * x + y * y + z * z);
+      const intensity = Math.min(1, density / maxDensity * 1.5);
+      const colorMix = Math.min(1, dist / (boundR * 0.7));
+
+      // 内层亮绿，外层暗绿
+      const col = C_BRIGHT.clone().lerp(C_DIM, colorMix * 0.7);
+      col.multiplyScalar(0.5 + intensity * 0.8);
+      colors[accepted * 3]     = col.r;
+      colors[accepted * 3 + 1] = col.g;
+      colors[accepted * 3 + 2] = col.b;
+
+      sizes[accepted] = 0.04 + intensity * 0.1 + Math.random() * 0.02;
+      phases[accepted] = Math.random() * Math.PI * 2;
+
+      accepted++;
+    }
+    attempts++;
+  }
+
+  const actualCount = accepted;
+
+  particleGeometry = new THREE.BufferGeometry();
+  particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions.slice(0, actualCount * 3), 3));
+  particleGeometry.setAttribute('aColor', new THREE.BufferAttribute(colors.slice(0, actualCount * 3), 3));
+  particleGeometry.setAttribute('aSize', new THREE.BufferAttribute(sizes.slice(0, actualCount), 1));
+  particleGeometry.setAttribute('aPhase', new THREE.BufferAttribute(phases.slice(0, actualCount), 1));
+
+  // 存储元数据
+  particleGeometry.userData.count = actualCount;
+  particleGeometry.userData.initPositions = initPositions.slice(0, actualCount * 3);
+  particleGeometry.userData.targetPositions = targetPositions.slice(0, actualCount * 3);
+
+  particleMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uEntrance: { value: 0 },
+      uOpacity: { value: 1 },
+      uPixelRatio: { value: renderer.getPixelRatio() },
+      uClipPlane: { value: new THREE.Vector4(0, 0, -1, 0) },
+      uClipEnabled: { value: 0 },
+    },
+    vertexShader: `
+      attribute vec3 aColor;
+      attribute float aSize;
+      attribute float aPhase;
+      uniform float uTime;
+      uniform float uEntrance;
+      uniform float uPixelRatio;
+      uniform vec4 uClipPlane;
+      uniform float uClipEnabled;
+      varying vec3 vColor;
+      varying float vAlpha;
+      varying float vClipDist;
+
+      void main() {
+        vColor = aColor;
+
+        vec3 pos = position;
+
+        // 剖切距离（与 Three.js clipping 行为一致）
+        vClipDist = dot(pos, uClipPlane.xyz) + uClipPlane.w;
+
+        // 闪烁效果
+        float twinkle = sin(uTime * 2.0 + aPhase) * 0.15 + 0.85;
+        vAlpha = twinkle * uEntrance;
+
+        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+        gl_PointSize = aSize * 300.0 * uPixelRatio / -mvPosition.z;
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform float uOpacity;
+      uniform float uClipEnabled;
+      varying vec3 vColor;
+      varying float vAlpha;
+      varying float vClipDist;
+
+      void main() {
+        if (uClipEnabled > 0.5 && vClipDist < 0.0) discard;
+
+        vec2 uv = gl_PointCoord - 0.5;
+        float dist = length(uv);
+        if (dist > 0.5) discard;
+
+        float alpha = smoothstep(0.5, 0.1, dist);
+        alpha *= alpha;
+        gl_FragColor = vec4(vColor, alpha * vAlpha * uOpacity);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+
+  particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+  particleSystem.name = 'particleCloud';
+  orbitalGroup.add(particleSystem);
+
+  // 重置入场进度
+  entranceProgress = 0;
+}
+
+// 存储目标位置（Float32Array）
+let targetPositions = null;
+
+/* ============================================================
+   节面可视化
+   ============================================================ */
+function buildNodeSurfaces() {
+  nodePlanes.forEach(p => orbitalGroup.remove(p));
+  nodePlanes = [];
+
+  if (!currentOrbital) return;
+
+  const { type, axis, nodes } = currentOrbital;
+  const r = currentOrbital.radius * 0.9;
+  const planeMat = new THREE.MeshBasicMaterial({
+    color: 0x64748B,
+    transparent: true,
+    opacity: 0.08,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  // 角节面
+  if (type === 'p') {
+    // p 轨道：一个平面节面
+    let geo;
+    if (axis === 'x') geo = new THREE.PlaneGeometry(r * 2, r * 2); // yz 平面
+    else if (axis === 'y') {
+      geo = new THREE.PlaneGeometry(r * 2, r * 2);
+      geo.rotateY(Math.PI / 2);
+    } else { // z
+      geo = new THREE.PlaneGeometry(r * 2, r * 2);
+      geo.rotateX(Math.PI / 2);
+    }
+    const plane = new THREE.Mesh(geo, planeMat.clone());
+    plane.visible = showNodes;
+    nodePlanes.push(plane);
+    orbitalGroup.add(plane);
+  }
+
+  if (type === 'd') {
+    if (axis === 'z2') {
+      // dz²: 锥形节面（近似为两个平面）
+      const geo1 = new THREE.PlaneGeometry(r * 2, r * 2);
+      geo1.rotateX(Math.PI / 3);
+      const p1 = new THREE.Mesh(geo1, planeMat.clone());
+      p1.visible = showNodes;
+      nodePlanes.push(p1);
+      orbitalGroup.add(p1);
+
+      const geo2 = new THREE.PlaneGeometry(r * 2, r * 2);
+      geo2.rotateX(-Math.PI / 3);
+      const p2 = new THREE.Mesh(geo2, planeMat.clone());
+      p2.visible = showNodes;
+      nodePlanes.push(p2);
+      orbitalGroup.add(p2);
+    } else {
+      // 四叶 d 轨道：两个平面节面
+      const planes = [];
+      if (axis === 'xy') {
+        planes.push(new THREE.PlaneGeometry(r * 2, r * 2).rotateX(Math.PI / 2));
+        planes.push(new THREE.PlaneGeometry(r * 2, r * 2).rotateY(Math.PI / 2));
+      } else if (axis === 'xz') {
+        planes.push(new THREE.PlaneGeometry(r * 2, r * 2));
+        planes.push(new THREE.PlaneGeometry(r * 2, r * 2).rotateY(Math.PI / 2));
+      } else if (axis === 'yz') {
+        planes.push(new THREE.PlaneGeometry(r * 2, r * 2));
+        planes.push(new THREE.PlaneGeometry(r * 2, r * 2).rotateX(Math.PI / 2));
+      } else if (axis === 'x2y2') {
+        const g1 = new THREE.PlaneGeometry(r * 2, r * 2);
+        g1.rotateX(Math.PI / 2);
+        const g2 = new THREE.PlaneGeometry(r * 2, r * 2);
+        g2.rotateY(Math.PI / 2);
+        planes.push(g1, g2);
+      }
+      planes.forEach(g => {
+        const p = new THREE.Mesh(g, planeMat.clone());
+        p.visible = showNodes;
+        nodePlanes.push(p);
+        orbitalGroup.add(p);
+      });
+    }
+  }
+
+  if (type === 'f') {
+    // f 轨道：三个节面（近似）
+    const planes = [];
+    planes.push(new THREE.PlaneGeometry(r * 2, r * 2).rotateX(Math.PI / 2));
+    planes.push(new THREE.PlaneGeometry(r * 2, r * 2).rotateY(Math.PI / 2));
+    planes.push(new THREE.PlaneGeometry(r * 2, r * 2));
+    planes.forEach(g => {
+      const p = new THREE.Mesh(g, planeMat.clone());
+      p.visible = showNodes;
+      nodePlanes.push(p);
+      orbitalGroup.add(p);
+    });
+  }
+
+  // s 轨道径向节面（球面）
+  if (type === 's' && nodes > 0) {
+    for (let i = 0; i < nodes; i++) {
+      const nodeR = currentOrbital.radius * (i + 1) / (nodes + 1);
+      const geo = new THREE.SphereGeometry(nodeR, 32, 16);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x64748B,
+        transparent: true,
+        opacity: 0.06,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        wireframe: true,
+      });
+      const sphere = new THREE.Mesh(geo, mat);
+      sphere.visible = showNodes;
+      nodePlanes.push(sphere);
+      orbitalGroup.add(sphere);
+    }
+  }
+}
+
+/* ============================================================
+   模式切换
+   ============================================================ */
+function updateModeVisibility() {
+  if (!particleMaterial) return;
+
+  if (currentMode === 'cross') {
+    particleMaterial.uniforms.uClipEnabled.value = 1.0;
+    if (nucleusMesh) nucleusMesh.material.clippingPlanes = [clipPlane];
+  } else {
+    particleMaterial.uniforms.uClipEnabled.value = 0.0;
+    if (nucleusMesh) nucleusMesh.material.clippingPlanes = null;
+  }
+}
+
+/* ============================================================
+   工具函数
+   ============================================================ */
+function disposeGroup(group) {
+  group.traverse(obj => {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+      else obj.material.dispose();
+    }
+  });
+}
+
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+/* ============================================================
+   轨道切换
+   ============================================================ */
+function switchOrbital(orbital) {
+  if (isTransitioning) return;
+  isTransitioning = true;
+  currentOrbital = orbital;
+
+  setStatus('切换中...');
+
+  // 淡出旧轨道，然后构建新轨道
+  const oldMaterial = particleMaterial;
+  let fadeOut = 1;
+  const fadeStep = () => {
+    fadeOut -= 0.08;
+    if (oldMaterial) oldMaterial.uniforms.uOpacity.value = Math.max(0, fadeOut);
+    if (fadeOut <= 0) {
+      buildOrbital();
+      updateInfoPanel(orbital);
+      updateOrbitalSelection();
+      isTransitioning = false;
+      setStatus('就绪');
+    } else {
+      requestAnimationFrame(fadeStep);
+    }
+  };
+  fadeStep();
+}
+
+/* ============================================================
+   UI 更新
+   ============================================================ */
+function updateInfoPanel(orbital) {
+  document.getElementById('orbitalName').textContent = orbital.name;
+  document.getElementById('orbitalSubtitle').textContent = orbital.subtitle;
+  document.getElementById('qnN').textContent = orbital.n;
+  document.getElementById('qnL').textContent = orbital.l;
+  document.getElementById('qnM').textContent = orbital.m;
+  document.getElementById('orbType').textContent = orbital.type.toUpperCase() + ' 轨道';
+  document.getElementById('maxElectrons').textContent = orbital.maxE;
+  document.getElementById('nodeCount').textContent = orbital.nodes;
+  document.getElementById('orbitalDesc').textContent = orbital.desc;
+}
+
+function buildOrbitalSelector() {
+  const list = document.getElementById('orbitalList');
+  const groups = ['s', 'p', 'd', 'f'];
+  const groupNames = { s: 's 轨道', p: 'p 轨道', d: 'd 轨道', f: 'f 轨道' };
+
+  list.innerHTML = '';
+  groups.forEach(g => {
+    const orbitals = ORBITALS.filter(o => o.group === g);
+    if (orbitals.length === 0) return;
+
+    const label = document.createElement('div');
+    label.className = 'orbital-group-label';
+    label.textContent = groupNames[g];
+    list.appendChild(label);
+
+    const grid = document.createElement('div');
+    grid.className = 'orbital-grid';
+    orbitals.forEach(o => {
+      const cell = document.createElement('div');
+      cell.className = 'orbital-cell' + (o.id === currentOrbital.id ? ' active' : '');
+      cell.dataset.orbitalId = o.id;
+      cell.innerHTML = `
+        <span class="orb-name">${o.name}</span>
+        <span class="orb-qn">n=${o.n} l=${o.l}</span>
+      `;
+      cell.addEventListener('click', () => switchOrbital(o));
+      grid.appendChild(cell);
+    });
+    list.appendChild(grid);
+  });
+}
+
+function updateOrbitalSelection() {
+  document.querySelectorAll('.orbital-cell').forEach(cell => {
+    cell.classList.toggle('active', cell.dataset.orbitalId === currentOrbital.id);
+  });
+}
+
+function setStatus(text) {
+  const tag = document.getElementById('statusTag');
+  tag.textContent = text;
+  tag.classList.toggle('active', text === '就绪');
+}
+
+/* ============================================================
+   动画循环
+   ============================================================ */
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.getElapsedTime();
+
+  // 入场动画
+  if (entranceProgress < 1) {
+    entranceProgress = Math.min(1, entranceProgress + dt * 0.7);
+    const eased = easeOutCubic(entranceProgress);
+
+    // 更新粒子位置：从初始位置插值到目标位置
+    if (particleGeometry && particleGeometry.userData.initPositions) {
+      const positions = particleGeometry.attributes.position.array;
+      const initPos = particleGeometry.userData.initPositions;
+      const targetPos = particleGeometry.userData.targetPositions;
+      const count = particleGeometry.userData.count;
+      for (let i = 0; i < count; i++) {
+        positions[i * 3]     = initPos[i * 3]     + (targetPos[i * 3]     - initPos[i * 3])     * eased;
+        positions[i * 3 + 1] = initPos[i * 3 + 1] + (targetPos[i * 3 + 1] - initPos[i * 3 + 1]) * eased;
+        positions[i * 3 + 2] = initPos[i * 3 + 2] + (targetPos[i * 3 + 2] - initPos[i * 3 + 2]) * eased;
+      }
+      particleGeometry.attributes.position.needsUpdate = true;
+    }
+
+    if (particleMaterial) particleMaterial.uniforms.uEntrance.value = eased;
+  }
+
+  // 更新着色器时间
+  if (particleMaterial) {
+    particleMaterial.uniforms.uTime.value = t;
+  }
+
+  if (nucleusGlow && nucleusGlow.material.uniforms) {
+    nucleusGlow.material.uniforms.uTime.value = t;
+  }
+
+  // 原子核微脉动
+  if (nucleusMesh) {
+    const pulse = 1 + Math.sin(t * 2) * 0.03;
+    nucleusMesh.scale.setScalar(pulse);
+  }
+
+  // 背景星尘缓慢旋转
+  if (bgStars) bgStars.rotation.y = t * 0.01;
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   窗口大小
+   ============================================================ */
+function onResize() {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+
+/* ============================================================
+   控件交互
+   ============================================================ */
+function setupControls() {
+  // 播放/暂停
+  document.getElementById('playPauseBtn').addEventListener('click', () => {
+    isPlaying = !isPlaying;
+    controls.autoRotate = isPlaying;
+    document.getElementById('playPauseBtn').classList.toggle('active', isPlaying);
+    document.getElementById('playIcon').style.display = isPlaying ? 'none' : 'block';
+    document.getElementById('pauseIcon').style.display = isPlaying ? 'block' : 'none';
+  });
+
+  // 重置视角
+  document.getElementById('resetViewBtn').addEventListener('click', () => {
+    const targetPos = new THREE.Vector3(0, 3, 16);
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const targetTarget = new THREE.Vector3(0, 0, 0);
+    let progress = 0;
+    const animateReset = () => {
+      progress = Math.min(1, progress + 0.04);
+      const eased = easeOutCubic(progress);
+      camera.position.lerpVectors(startPos, targetPos, eased);
+      controls.target.lerpVectors(startTarget, targetTarget, eased);
+      if (progress < 1) requestAnimationFrame(animateReset);
+    };
+    animateReset();
+  });
+
+  // 节面显示
+  document.getElementById('nodesBtn').addEventListener('click', () => {
+    showNodes = !showNodes;
+    document.getElementById('nodesBtn').classList.toggle('active', showNodes);
+    nodePlanes.forEach(p => p.visible = showNodes);
+  });
+
+  // 聚焦原子核
+  document.getElementById('nucleusFocusBtn').addEventListener('click', () => {
+    const targetPos = new THREE.Vector3(0, 1, 6);
+    const startPos = camera.position.clone();
+    let progress = 0;
+    const animateZoom = () => {
+      progress = Math.min(1, progress + 0.03);
+      const eased = easeOutCubic(progress);
+      camera.position.lerpVectors(startPos, targetPos, eased);
+      controls.target.lerp(new THREE.Vector3(0, 0, 0), eased * 0.1);
+      if (progress < 1) requestAnimationFrame(animateZoom);
+    };
+    animateZoom();
+  });
+
+  // 全屏
+  document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      container.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  });
+
+  // 模式切换
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+      updateModeVisibility();
+    });
+  });
+
+  // 导航栏滚动效果
+  window.addEventListener('scroll', () => {
+    const navbar = document.getElementById('demoNavbar');
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+function start() {
+  initScene();
+  buildOrbitalSelector();
+  setupControls();
+  onResize();
+  animate();
+
+  // 隐藏加载层
+  setTimeout(() => {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }, 600);
+
+  window.addEventListener('resize', onResize);
+}
+
+start();
+</script>
+</body>
+</html>

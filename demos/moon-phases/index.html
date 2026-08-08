@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>月相变化 3D 模拟 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #05050a;
+    color: #e5e5e5;
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ============ 顶部导航栏 ============ */
+  .navbar-immerse {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    background-color: rgba(10, 10, 24, 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .navbar-left, .navbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-16);
+  }
+  .navbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 700;
+    color: #e5e5e5;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #a3a3a3;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: #fff; }
+  .back-link svg { width: 16px; height: 16px; }
+  .brand-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.1); }
+  .brand-logo {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+  }
+  .tag-geo {
+    display: inline-flex;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 100px;
+    background: var(--accent-geo-soft);
+    color: var(--accent-geo);
+    border: 1px solid rgba(8, 145, 178, 0.2);
+  }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s;
+    white-space: nowrap;
+  }
+  .btn-download:hover { background: var(--brand-hover); transform: translateY(-1px); }
+  .btn-download svg { width: 14px; height: 14px; }
+
+  /* ============ 3D 画布 ============ */
+  #canvas-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  #main-canvas { display: block; width: 100%; height: 100%; }
+
+  /* ============ 加载提示 ============ */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #05050a;
+    transition: opacity 0.8s ease;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loading-moon {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f0f0e8, #c0c0b8 50%, #5a5a5a);
+    box-shadow: 0 0 40px rgba(224, 224, 216, 0.15);
+    animation: loadingPulse 2s ease-in-out infinite;
+  }
+  @keyframes loadingPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(224,224,216,0.1); transform: scale(1); }
+    50% { box-shadow: 0 0 50px rgba(224,224,216,0.25); transform: scale(1.05); }
+  }
+  .loading-text {
+    margin-top: 20px;
+    font-family: var(--font-serif);
+    font-size: 14px;
+    color: #6b6b6b;
+    letter-spacing: 0.1em;
+  }
+
+  /* ============ 左侧信息面板 ============ */
+  .info-panel {
+    position: fixed;
+    top: 80px; left: 24px;
+    z-index: 50;
+    width: 240px;
+    padding: 18px 20px;
+    background: rgba(10, 10, 24, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+  }
+  .panel-title {
+    font-family: var(--font-serif);
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+  .phase-name {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 700;
+    color: #e3f2fd;
+    margin-bottom: 4px;
+    text-shadow: 0 0 20px rgba(227, 242, 253, 0.15);
+  }
+  .phase-lunar {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 14px;
+  }
+  .phase-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+  .detail-label { color: #6b7280; }
+  .detail-value { color: #d1d5db; font-family: var(--font-mono); font-size: 11px; }
+  .panel-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 14px 0;
+  }
+  .view-toggle {
+    display: flex;
+    gap: 6px;
+  }
+  .view-btn {
+    flex: 1;
+    padding: 7px 0;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    text-align: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius);
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .view-btn:hover { color: #d1d5db; border-color: rgba(255,255,255,0.15); }
+  .view-btn.active {
+    background: rgba(227, 242, 253, 0.1);
+    border-color: rgba(227, 242, 253, 0.3);
+    color: #e3f2fd;
+  }
+
+  /* ============ 速度控制 ============ */
+  .speed-control { display: flex; flex-direction: column; gap: 6px; }
+  .speed-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #6b7280;
+  }
+  .speed-value {
+    font-family: var(--font-mono);
+    color: #fbbf24;
+    font-weight: 600;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.1);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #e3f2fd;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(227, 242, 253, 0.4);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border: none;
+    border-radius: 50%;
+    background: #e3f2fd;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(227, 242, 253, 0.4);
+  }
+
+  /* ============ 月相视图（右上圆形窗口） ============ */
+  .moon-view-container {
+    position: fixed;
+    top: 80px; right: 24px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .moon-view-frame {
+    position: relative;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 0 30px rgba(227, 242, 253, 0.06), inset 0 0 20px rgba(0,0,0,0.5);
+    background: #05050a;
+  }
+  .moon-view-frame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+    pointer-events: none;
+  }
+  #moon-canvas { display: block; width: 100%; height: 100%; }
+  .moon-view-label {
+    margin-top: 10px;
+    font-family: var(--font-serif);
+    font-size: 12px;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+  }
+
+  /* ============ 底部控制栏 ============ */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    background: rgba(10, 10, 24, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 14px 24px 16px;
+  }
+  .phase-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .phase-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 64px;
+  }
+  .phase-btn:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.15);
+  }
+  .phase-btn.active {
+    background: rgba(227, 242, 253, 0.08);
+    border-color: rgba(227, 242, 253, 0.25);
+  }
+  .phase-btn-icon {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+  }
+  .phase-btn-label {
+    font-size: 10px;
+    color: #9ca3af;
+    white-space: nowrap;
+  }
+  .phase-btn.active .phase-btn-label { color: #e3f2fd; }
+
+  .timeline-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .play-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(227, 242, 253, 0.1);
+    border: 1px solid rgba(227, 242, 253, 0.2);
+    color: #e3f2fd;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .play-btn:hover {
+    background: rgba(227, 242, 253, 0.15);
+    transform: scale(1.05);
+  }
+  .play-btn svg { width: 18px; height: 18px; }
+
+  .timeline-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #6b7280;
+    font-family: var(--font-mono);
+  }
+  .timeline-slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, rgba(255,255,255,0.08), rgba(255,255,255,0.08));
+    border-radius: 3px;
+    outline: none;
+  }
+  .timeline-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #e3f2fd;
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(227, 242, 253, 0.5);
+    border: 2px solid #05050a;
+  }
+  .timeline-slider::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border: 2px solid #05050a;
+    border-radius: 50%;
+    background: #e3f2fd;
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(227, 242, 253, 0.5);
+  }
+
+  .speed-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100px;
+    flex-shrink: 0;
+  }
+  .speed-wrap .speed-label { font-size: 10px; }
+  .speed-wrap input[type="range"] { height: 4px; }
+
+  /* ============ 操作提示 ============ */
+  .scene-hint {
+    position: fixed;
+    bottom: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    color: rgba(255,255,255,0.3);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* ============ 3D 天体标签 ============ */
+  .body-label {
+    position: absolute;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    color: rgba(255,255,255,0.6);
+    pointer-events: none;
+    white-space: nowrap;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    transform: translate(-50%, -50%);
+    z-index: 30;
+    transition: opacity 0.3s;
+  }
+  .body-label::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .body-label.sun-label::before { background: #FFC107; box-shadow: 0 0 6px #FFC107; }
+  .body-label.earth-label::before { background: #4488cc; box-shadow: 0 0 6px #4488cc; }
+  .body-label.moon-label::before { background: #e0e0d0; box-shadow: 0 0 6px #e0e0d0; }
+  .body-label .label-sub {
+    font-size: 9px;
+    color: rgba(255,255,255,0.35);
+    margin-left: 4px;
+  }
+
+  /* ============ 误区提示气泡 ============ */
+  .misconception-tip {
+    position: fixed;
+    bottom: 140px;
+    right: 24px;
+    z-index: 45;
+    max-width: 260px;
+    padding: 14px 16px;
+    background: rgba(10, 10, 24, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(251, 191, 36, 0.15);
+    border-radius: 10px;
+    font-size: 12px;
+    color: #d1d5db;
+    line-height: 1.6;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.4s ease;
+    pointer-events: none;
+  }
+  .misconception-tip.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .misconception-tip .tip-title {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    font-weight: 600;
+    color: #fbbf24;
+    margin-bottom: 6px;
+  }
+  .misconception-tip .tip-close {
+    position: absolute;
+    top: 8px; right: 10px;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .misconception-tip .tip-close:hover { color: #d1d5db; }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 768px) {
+    .navbar-center { display: none; }
+    .info-panel {
+      width: 160px;
+      top: 72px;
+      left: 12px;
+      padding: 12px 14px;
+    }
+    .phase-name { font-size: 17px; }
+    .moon-view-container { top: 72px; right: 12px; }
+    .moon-view-frame { width: 130px; height: 130px; }
+    .moon-view-label { font-size: 10px; }
+    .scene-hint { display: none; }
+    .misconception-tip { max-width: 200px; right: 12px; bottom: 160px; }
+    .bottom-bar { padding: 10px 12px 12px; }
+    .phase-buttons { gap: 2px; margin-bottom: 8px; }
+    .phase-btn { min-width: 44px; padding: 4px 6px; }
+    .phase-btn-icon { width: 18px; height: 18px; }
+    .phase-btn-label { font-size: 9px; }
+    .speed-wrap { width: 70px; }
+    .btn-download span { display: none; }
+    .btn-download { padding: 8px 12px; }
+  }
+
+  @media (max-width: 480px) {
+    .info-panel { display: none; }
+    .moon-view-frame { width: 100px; height: 100px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 加载遮罩 -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-moon"></div>
+  <div class="loading-text">月相加载中</div>
+</div>
+
+<!-- 顶部导航栏 -->
+<header class="demo-navbar immersive" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">地理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">月相变化 3D 模拟</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-geo">地理</span>
+      <a href="/skills/jingbo-edu-3d-celestial-motion-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- 3D 主画布 -->
+<div id="canvas-container">
+  <canvas id="main-canvas"></canvas>
+</div>
+
+<!-- 3D 天体标签 -->
+<div class="body-label sun-label" id="sunLabel">太阳<span class="label-sub">光源</span></div>
+<div class="body-label earth-label" id="earthLabel">地球<span class="label-sub">观测者</span></div>
+<div class="body-label moon-label" id="moonLabel">月球<span class="label-sub">反射光</span></div>
+
+<!-- 左侧信息面板 -->
+<div class="info-panel">
+  <div class="panel-title">当前月相</div>
+  <div class="phase-name" id="phaseName">满月（望）</div>
+  <div class="phase-lunar" id="phaseLunar">农历十五~十六</div>
+  <div class="phase-detail">
+    <div class="detail-row">
+      <span class="detail-label">月出</span>
+      <span class="detail-value" id="moonRise">黄昏</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">月落</span>
+      <span class="detail-value" id="moonSet">清晨</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">可见时段</span>
+      <span class="detail-value" id="moonVisible">通宵可见</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">照亮率</span>
+      <span class="detail-value" id="illumination">100%</span>
+    </div>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="panel-title">视角模式</div>
+  <div class="view-toggle">
+    <button class="view-btn active" data-view="dual">双视图</button>
+    <button class="view-btn" data-view="orbital">轨道</button>
+    <button class="view-btn" data-view="earth">地球</button>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="panel-title">辅助显示</div>
+  <div class="view-toggle" style="margin-bottom:8px;">
+    <button class="view-btn active" data-toggle="orbit">轨道线</button>
+    <button class="view-btn active" data-toggle="rays">光线</button>
+    <button class="view-btn active" data-toggle="labels">标签</button>
+  </div>
+</div>
+
+<!-- 右上月相视图 -->
+<div class="moon-view-container">
+  <div class="moon-view-frame">
+    <canvas id="moon-canvas"></canvas>
+  </div>
+  <div class="moon-view-label">地球视角 · 所见月相</div>
+</div>
+
+<!-- 操作提示 -->
+<div class="scene-hint">拖拽旋转 · 滚轮缩放 · 右键平移</div>
+
+<!-- 误区提示 -->
+<div class="misconception-tip" id="misconceptionTip">
+  <span class="tip-close" onclick="document.getElementById('misconceptionTip').classList.remove('show')">×</span>
+  <div class="tip-title">常见误区</div>
+  <span id="tipContent">月相变化是日地月位置变化导致的，不是地球遮挡太阳光造成的。地球遮挡形成的是月食，仅在满月时偶尔发生。</span>
+</div>
+
+<!-- 底部控制栏 -->
+<footer class="bottom-bar">
+  <div class="phase-buttons" id="phaseButtons"></div>
+  <div class="timeline-row">
+    <button class="play-btn" id="playBtn">
+      <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><polygon points="5,3 19,12 5,21"/></svg>
+      <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+    </button>
+    <div class="timeline-wrap">
+      <div class="timeline-labels">
+        <span id="dayLabel">第 0 天</span>
+        <span style="color:#4b5563;">朔望月 29.53 天</span>
+      </div>
+      <input type="range" class="timeline-slider" id="timelineSlider" min="0" max="2953" value="1477" step="1" />
+    </div>
+    <div class="speed-wrap">
+      <div class="speed-label">
+        <span>速度</span>
+        <span class="speed-value" id="speedValue">1.0d/s</span>
+      </div>
+      <input type="range" id="speedSlider" min="0.1" max="10" step="0.1" value="1" />
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   配置常量
+   ============================================================ */
+const CFG = {
+  orbitRadius: 5.5,
+  sunDistance: 22,
+  sunRadius: 2.4,
+  earthRadius: 1.3,
+  moonRadius: 0.55,
+  synodicPeriod: 29.53,
+  starCount: 1800,
+  moonViewSize: 200,
+};
+
+/* ============================================================
+   月相数据
+   ============================================================ */
+const PHASES = [
+  { name: '新月（朔）',  angle: 0,             lunar: '农历初一',     rise: '清晨日出', set: '黄昏日落', visible: '彻夜不可见', illum: 0 },
+  { name: '蛾眉月',      angle: Math.PI / 4,   lunar: '农历初三~初四', rise: '日出后',   set: '日落后不久', visible: '傍晚西方天空', illum: 25 },
+  { name: '上弦月',      angle: Math.PI / 2,   lunar: '农历初七~初八', rise: '正午',     set: '半夜',     visible: '上半夜西方天空', illum: 50 },
+  { name: '盈凸月',      angle: 3*Math.PI/4,   lunar: '农历十一~十二', rise: '午后',     set: '凌晨',     visible: '前半夜东方天空', illum: 75 },
+  { name: '满月（望）',  angle: Math.PI,       lunar: '农历十五~十六', rise: '黄昏',     set: '清晨',     visible: '通宵可见', illum: 100 },
+  { name: '亏凸月',      angle: 5*Math.PI/4,   lunar: '农历十八~十九', rise: '入夜后',   set: '上午',     visible: '后半夜西方天空', illum: 75 },
+  { name: '下弦月',      angle: 3*Math.PI/2,   lunar: '农历廿二~廿三', rise: '半夜',     set: '正午',     visible: '下半夜东方天空', illum: 50 },
+  { name: '残月',        angle: 7*Math.PI/4,   lunar: '农历廿六~廿七', rise: '凌晨',     set: '午后',     visible: '黎明前东方天空', illum: 25 },
+];
+
+/* ============================================================
+   全局变量
+   ============================================================ */
+let mainScene, mainCamera, mainRenderer, orbitControls;
+let moonScene, moonCamera, moonRenderer;
+let sun, sunGlow, earth, earthAtmosphere, moon, orbitLine, earthMoonLine, sunRayGroup, stars;
+let moonPhaseMesh, moonPhaseLight, moonPhaseAmbient, moonPhaseEarthLight;
+let isPlaying = true;
+let speed = 1.0;
+let currentDay = 14.77; // 从满月开始
+let viewMode = 'dual';
+let showOrbit = true, showRays = true, showLabels = true;
+let clock = new THREE.Clock();
+
+/* ============================================================
+   程序化纹理生成
+   ============================================================ */
+function createMoonTexture() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // 基础色
+  const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  grad.addColorStop(0, '#d8d8d0');
+  grad.addColorStop(0.6, '#c0c0b8');
+  grad.addColorStop(1, '#a0a098');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+
+  // 月海（大暗斑）
+  for (let i = 0; i < 6; i++) {
+    const cx = size * (0.2 + Math.random() * 0.6);
+    const cy = size * (0.2 + Math.random() * 0.6);
+    const r = 40 + Math.random() * 60;
+    const maria = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    maria.addColorStop(0, 'rgba(80, 80, 75, 0.6)');
+    maria.addColorStop(0.7, 'rgba(100, 100, 95, 0.3)');
+    maria.addColorStop(1, 'rgba(120, 120, 115, 0)');
+    ctx.fillStyle = maria;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 环形山
+  for (let i = 0; i < 80; i++) {
+    const cx = Math.random() * size;
+    const cy = Math.random() * size;
+    const r = 2 + Math.random() * 12;
+
+    // 暗边
+    ctx.fillStyle = `rgba(70, 70, 65, ${0.3 + Math.random() * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 亮心
+    ctx.fillStyle = `rgba(220, 220, 210, ${0.15 + Math.random() * 0.2})`;
+    ctx.beginPath();
+    ctx.arc(cx - r*0.15, cy - r*0.15, r * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 小陨石坑
+  for (let i = 0; i < 200; i++) {
+    const cx = Math.random() * size;
+    const cy = Math.random() * size;
+    const r = 0.5 + Math.random() * 2;
+    ctx.fillStyle = `rgba(60, 60, 55, ${0.2 + Math.random() * 0.2})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function createMoonBumpTexture() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, size, size);
+
+  // 环形山凹凸
+  for (let i = 0; i < 100; i++) {
+    const cx = Math.random() * size;
+    const cy = Math.random() * size;
+    const r = 3 + Math.random() * 15;
+
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    grad.addColorStop(0, '#202020');
+    grad.addColorStop(0.7, '#606060');
+    grad.addColorStop(0.9, '#c0c0c0');
+    grad.addColorStop(1, '#808080');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  return new THREE.CanvasTexture(canvas);
+}
+
+function createEarthTexture() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size / 2;
+  const ctx = canvas.getContext('2d');
+
+  // 海洋
+  const oceanGrad = ctx.createLinearGradient(0, 0, 0, size/2);
+  oceanGrad.addColorStop(0, '#1565C0');
+  oceanGrad.addColorStop(0.5, '#1976D2');
+  oceanGrad.addColorStop(1, '#0D47A1');
+  ctx.fillStyle = oceanGrad;
+  ctx.fillRect(0, 0, size, size/2);
+
+  // 陆地（简化的大陆形状）
+  ctx.fillStyle = '#2E7D32';
+  // 欧亚大陆
+  ctx.beginPath();
+  ctx.ellipse(size*0.55, size*0.15, size*0.18, size*0.08, 0, 0, Math.PI*2);
+  ctx.fill();
+  // 非洲
+  ctx.beginPath();
+  ctx.ellipse(size*0.52, size*0.28, size*0.06, size*0.1, 0, 0, Math.PI*2);
+  ctx.fill();
+  // 美洲
+  ctx.beginPath();
+  ctx.ellipse(size*0.2, size*0.2, size*0.05, size*0.12, -0.2, 0, Math.PI*2);
+  ctx.fill();
+  // 澳洲
+  ctx.beginPath();
+  ctx.ellipse(size*0.78, size*0.3, size*0.06, size*0.04, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // 沙漠/山脉色
+  ctx.fillStyle = 'rgba(180, 140, 80, 0.3)';
+  ctx.beginPath();
+  ctx.ellipse(size*0.52, size*0.22, size*0.08, size*0.03, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // 云层
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+  for (let i = 0; i < 12; i++) {
+    const cx = Math.random() * size;
+    const cy = Math.random() * size/2;
+    const r = 15 + Math.random() * 30;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r, r*0.5, Math.random()*Math.PI, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function createSunGlowTexture() {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  grad.addColorStop(0, 'rgba(255, 200, 80, 0.8)');
+  grad.addColorStop(0.2, 'rgba(255, 180, 60, 0.4)');
+  grad.addColorStop(0.5, 'rgba(255, 150, 40, 0.1)');
+  grad.addColorStop(1, 'rgba(255, 140, 30, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+
+  return new THREE.CanvasTexture(canvas);
+}
+
+/* ============================================================
+   主场景初始化
+   ============================================================ */
+function initMainScene() {
+  const canvas = document.getElementById('main-canvas');
+
+  mainScene = new THREE.Scene();
+  mainScene.background = new THREE.Color(0x05050a);
+
+  mainCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+  mainCamera.position.set(0, 8, 18);
+  mainCamera.lookAt(0, 0, 0);
+
+  mainRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  mainRenderer.setSize(window.innerWidth, window.innerHeight);
+  mainRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  mainRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  mainRenderer.toneMappingExposure = 1.0;
+
+  orbitControls = new OrbitControls(mainCamera, canvas);
+  orbitControls.enableDamping = true;
+  orbitControls.dampingFactor = 0.05;
+  orbitControls.minDistance = 5;
+  orbitControls.maxDistance = 50;
+  orbitControls.target.set(0, 0, 0);
+
+  // 灯光
+  const ambient = new THREE.AmbientLight(0x222244, 0.3);
+  mainScene.add(ambient);
+
+  // 太阳光（方向光）
+  const sunLight = new THREE.DirectionalLight(0xffeecc, 1.2);
+  sunLight.position.set(-CFG.sunDistance, 2, 0);
+  mainScene.add(sunLight);
+
+  // 微弱环境光（地照效果模拟）
+  const earthShine = new THREE.PointLight(0x3a5a8a, 0.15, 20);
+  earthShine.position.set(0, 0, 0);
+  mainScene.add(earthShine);
+}
+
+function createStars() {
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(CFG.starCount * 3);
+  const colors = new Float32Array(CFG.starCount * 3);
+  const sizes = new Float32Array(CFG.starCount);
+
+  for (let i = 0; i < CFG.starCount; i++) {
+    // 球面分布
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    const r = 80 + Math.random() * 40;
+    positions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i*3+2] = r * Math.cos(phi);
+
+    // 颜色变化
+    const brightness = 0.5 + Math.random() * 0.5;
+    const tint = Math.random();
+    if (tint < 0.7) {
+      colors[i*3] = brightness; colors[i*3+1] = brightness; colors[i*3+2] = brightness;
+    } else if (tint < 0.85) {
+      colors[i*3] = brightness; colors[i*3+1] = brightness * 0.9; colors[i*3+2] = brightness * 0.7;
+    } else {
+      colors[i*3] = brightness * 0.8; colors[i*3+1] = brightness * 0.9; colors[i*3+2] = brightness;
+    }
+
+    sizes[i] = 0.5 + Math.random() * 1.5;
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+  const material = new THREE.PointsMaterial({
+    size: 0.4,
+    sizeAttenuation: true,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+  });
+
+  stars = new THREE.Points(geometry, material);
+  mainScene.add(stars);
+}
+
+function createSun() {
+  // 太阳球体
+  const geo = new THREE.SphereGeometry(CFG.sunRadius, 48, 48);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xFFC107,
+  });
+  sun = new THREE.Mesh(geo, mat);
+  sun.position.set(-CFG.sunDistance, 0, 0);
+  mainScene.add(sun);
+
+  // 光晕（多层 Sprite）
+  const glowTex = createSunGlowTexture();
+  const glowMat = new THREE.SpriteMaterial({
+    map: glowTex,
+    color: 0xFFB300,
+    transparent: true,
+    opacity: 0.7,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  sunGlow = new THREE.Sprite(glowMat);
+  sunGlow.scale.set(CFG.sunRadius * 4, CFG.sunRadius * 4, 1);
+  sunGlow.position.copy(sun.position);
+  mainScene.add(sunGlow);
+
+  // 第二层更柔和的光晕
+  const glowMat2 = new THREE.SpriteMaterial({
+    map: glowTex,
+    color: 0xFF8F00,
+    transparent: true,
+    opacity: 0.3,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const sunGlow2 = new THREE.Sprite(glowMat2);
+  sunGlow2.scale.set(CFG.sunRadius * 8, CFG.sunRadius * 8, 1);
+  sunGlow2.position.copy(sun.position);
+  mainScene.add(sunGlow2);
+}
+
+function createEarth() {
+  const geo = new THREE.SphereGeometry(CFG.earthRadius, 48, 48);
+  const tex = createEarthTexture();
+  const mat = new THREE.MeshStandardMaterial({
+    map: tex,
+    roughness: 0.8,
+    metalness: 0.1,
+    emissive: 0x112244,
+    emissiveIntensity: 0.05,
+  });
+  earth = new THREE.Mesh(geo, mat);
+  earth.position.set(0, 0, 0);
+  mainScene.add(earth);
+
+  // 大气辉光
+  const atmoGeo = new THREE.SphereGeometry(CFG.earthRadius * 1.08, 48, 48);
+  const atmoMat = new THREE.ShaderMaterial({
+    uniforms: {
+      glowColor: { value: new THREE.Color(0x4488cc) },
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPositionNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPositionNormal = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 glowColor;
+      varying vec3 vNormal;
+      varying vec3 vPositionNormal;
+      void main() {
+        float intensity = pow(1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.5);
+        gl_FragColor = vec4(glowColor, intensity * 0.6);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    depthWrite: false,
+  });
+  earthAtmosphere = new THREE.Mesh(atmoGeo, atmoMat);
+  earth.add(earthAtmosphere);
+}
+
+function createMoon() {
+  const geo = new THREE.SphereGeometry(CFG.moonRadius, 48, 48);
+  const tex = createMoonTexture();
+  const bumpTex = createMoonBumpTexture();
+  const mat = new THREE.MeshStandardMaterial({
+    map: tex,
+    bumpMap: bumpTex,
+    bumpScale: 0.03,
+    roughness: 0.95,
+    metalness: 0.0,
+  });
+  moon = new THREE.Mesh(geo, mat);
+  mainScene.add(moon);
+
+  // 月球轨道线
+  const orbitPoints = [];
+  const segs = 128;
+  for (let i = 0; i <= segs; i++) {
+    const a = (i / segs) * Math.PI * 2;
+    orbitPoints.push(new THREE.Vector3(
+      -Math.cos(a) * CFG.orbitRadius, 0, Math.sin(a) * CFG.orbitRadius
+    ));
+  }
+  const orbitGeo = new THREE.BufferGeometry().setFromPoints(orbitPoints);
+  const orbitMat = new THREE.LineBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.12,
+  });
+  orbitLine = new THREE.Line(orbitGeo, orbitMat);
+  mainScene.add(orbitLine);
+
+  // 地球-月球视线连线（虚线）
+  const viewLineGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(CFG.orbitRadius, 0, 0),
+  ]);
+  const viewLineMat = new THREE.LineDashedMaterial({
+    color: 0xe3f2fd,
+    transparent: true,
+    opacity: 0.25,
+    dashSize: 0.3,
+    gapSize: 0.2,
+  });
+  earthMoonLine = new THREE.Line(viewLineGeo, viewLineMat);
+  earthMoonLine.computeLineDistances();
+  mainScene.add(earthMoonLine);
+}
+
+function createSunRays() {
+  sunRayGroup = new THREE.Group();
+
+  // 平行光线示意
+  const rayCount = 16;
+  const rayLength = CFG.sunDistance + CFG.orbitRadius + 3;
+  const raySpread = CFG.orbitRadius * 2.6;
+
+  for (let i = 0; i < rayCount; i++) {
+    const y = -raySpread/2 + (i / (rayCount - 1)) * raySpread;
+    const points = [
+      new THREE.Vector3(-CFG.sunDistance, y, 0),
+      new THREE.Vector3(-CFG.sunDistance + rayLength, y, 0),
+    ];
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
+    const mat = new THREE.LineBasicMaterial({
+      color: 0xFFEB3B,
+      transparent: true,
+      opacity: 0.12,
+    });
+    sunRayGroup.add(new THREE.Line(geo, mat));
+  }
+
+  // 太阳方向箭头（从太阳指向地球方向）
+  const arrowDir = new THREE.Vector3(1, 0, 0);
+  const arrowOrigin = new THREE.Vector3(-CFG.sunDistance + CFG.sunRadius + 1.5, 0, 0);
+  const arrowLen = 3;
+  sunRayGroup.userData.arrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, arrowLen, 0xFFC107, 0.6, 0.35);
+  sunRayGroup.add(sunRayGroup.userData.arrow);
+
+  mainScene.add(sunRayGroup);
+}
+
+/* ============================================================
+   月相视图初始化（地球视角）
+   ============================================================ */
+function initMoonPhaseView() {
+  const canvas = document.getElementById('moon-canvas');
+  const frame = canvas.parentElement;
+  const size = frame.clientWidth || CFG.moonViewSize;
+
+  moonScene = new THREE.Scene();
+  moonScene.background = null;
+
+  moonCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+  moonCamera.position.set(0, 0, 4);
+  moonCamera.lookAt(0, 0, 0);
+
+  moonRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  moonRenderer.setSize(size, size, false);
+  moonRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  moonRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  moonRenderer.toneMappingExposure = 1.1;
+
+  // 月球网格
+  const geo = new THREE.SphereGeometry(1.2, 64, 64);
+  const tex = createMoonTexture();
+  const bumpTex = createMoonBumpTexture();
+  const mat = new THREE.MeshStandardMaterial({
+    map: tex,
+    bumpMap: bumpTex,
+    bumpScale: 0.04,
+    roughness: 0.95,
+    metalness: 0.0,
+  });
+  moonPhaseMesh = new THREE.Mesh(geo, mat);
+  moonScene.add(moonPhaseMesh);
+
+  // 太阳方向光
+  moonPhaseLight = new THREE.DirectionalLight(0xfff5e0, 2.0);
+  moonPhaseLight.position.set(1, 0, 1);
+  moonScene.add(moonPhaseLight);
+
+  // 环境光（极低，模拟星空背景反射）
+  moonPhaseAmbient = new THREE.AmbientLight(0x111122, 0.15);
+  moonScene.add(moonPhaseAmbient);
+
+  // 地照光（地球反射光，从地球方向照射月球暗面）
+  moonPhaseEarthLight = new THREE.DirectionalLight(0x3a5a8a, 0.12);
+  moonPhaseEarthLight.position.set(0, 0, 1);
+  moonScene.add(moonPhaseEarthLight);
+}
+
+/* ============================================================
+   月相计算与更新
+   ============================================================ */
+function getOrbitalAngle(day) {
+  // day: 0 = 新月, 14.77 = 满月
+  return (day / CFG.synodicPeriod) * Math.PI * 2;
+}
+
+function updateMoonPosition() {
+  const angle = getOrbitalAngle(currentDay);
+  // angle=0: 新月（月球在日地之间）
+  // angle=π: 满月（月球在地球背面）
+  const x = -Math.cos(angle) * CFG.orbitRadius;
+  const z = Math.sin(angle) * CFG.orbitRadius;
+  moon.position.set(x, 0, z);
+
+  // 更新地球-月球视线连线
+  if (earthMoonLine) {
+    const positions = earthMoonLine.geometry.attributes.position;
+    positions.setXYZ(0, 0, 0, 0);
+    positions.setXYZ(1, x, 0, z);
+    positions.needsUpdate = true;
+    earthMoonLine.computeLineDistances();
+  }
+
+  // 更新月相视图的光照方向
+  // 太阳方向 = (sin(angle), 0, -cos(angle))
+  const sunDir = new THREE.Vector3(Math.sin(angle), 0, -Math.cos(angle));
+  moonPhaseLight.position.copy(sunDir.multiplyScalar(5));
+
+  // 地照光始终从地球方向（z+）照射
+  moonPhaseEarthLight.position.set(0, 0, 5);
+}
+
+function getPhaseInfo(day) {
+  const angle = getOrbitalAngle(day);
+  // 找到最近的月相
+  let closest = PHASES[0];
+  let minDiff = Infinity;
+  for (const p of PHASES) {
+    let diff = Math.abs(angle - p.angle);
+    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = p;
+    }
+  }
+
+  // 计算照亮率
+  const illumFraction = (1 - Math.cos(angle)) / 2;
+  const illumPercent = Math.round(illumFraction * 100);
+
+  return { ...closest, illumPercent, angle };
+}
+
+function updateInfoPanel() {
+  const info = getPhaseInfo(currentDay);
+  document.getElementById('phaseName').textContent = info.name;
+  document.getElementById('phaseLunar').textContent = info.lunar;
+  document.getElementById('moonRise').textContent = info.rise;
+  document.getElementById('moonSet').textContent = info.set;
+  document.getElementById('moonVisible').textContent = info.visible;
+  document.getElementById('illumination').textContent = info.illumPercent + '%';
+  document.getElementById('dayLabel').textContent = '第 ' + currentDay.toFixed(1) + ' 天';
+
+  // 更新月相按钮高亮
+  const closestIdx = PHASES.findIndex(p => p.name === info.name);
+  document.querySelectorAll('.phase-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === closestIdx);
+  });
+
+  // 更新时间轴滑块
+  document.getElementById('timelineSlider').value = Math.round(currentDay * 100);
+}
+
+/* ============================================================
+   月相按钮图标生成（CSS 绘制月相）
+   ============================================================ */
+function createPhaseIconCSS(illumination, waxing) {
+  // illumination: 0-1
+  // waxing: true for waxing, false for waning
+  if (illumination === 0) {
+    return 'background: #1a1a2e; border: 1px solid #333;';
+  }
+  if (illumination === 1) {
+    return 'background: #e0e0d0;';
+  }
+
+  const pct = illumination * 100;
+  if (waxing) {
+    // 盈月：右侧亮
+    if (illumination < 0.5) {
+      // 蛾眉月：窄条
+      return `background: linear-gradient(90deg, #1a1a2e ${100 - pct*2}%, #e0e0d0 ${100 - pct*2}%);`;
+    } else {
+      // 盈凸月：大部分亮
+      return `background: linear-gradient(90deg, #1a1a2e ${(1-illumination)*200}%, #e0e0d0 ${(1-illumination)*200}%);`;
+    }
+  } else {
+    // 亏月：左侧亮
+    if (illumination < 0.5) {
+      // 残月
+      return `background: linear-gradient(90deg, #e0e0d0 ${pct*2}%, #1a1a2e ${pct*2}%);`;
+    } else {
+      // 亏凸月
+      return `background: linear-gradient(90deg, #e0e0d0 ${illumination*200}%, #1a1a2e ${illumination*200}%);`;
+    }
+  }
+}
+
+function createPhaseButtons() {
+  const container = document.getElementById('phaseButtons');
+  PHASES.forEach((phase, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'phase-btn';
+    btn.dataset.index = i;
+
+    const icon = document.createElement('div');
+    icon.className = 'phase-btn-icon';
+
+    // 计算月相图标
+    const illum = (1 - Math.cos(phase.angle)) / 2;
+    const waxing = phase.angle < Math.PI;
+    icon.style.cssText = createPhaseIconCSS(illum, waxing) + ' border-radius: 50%;';
+
+    const label = document.createElement('div');
+    label.className = 'phase-btn-label';
+    label.textContent = phase.name.replace(/（.*）/, '');
+
+    btn.appendChild(icon);
+    btn.appendChild(label);
+
+    btn.addEventListener('click', () => {
+      // 点击月相按钮时暂停动画
+      if (isPlaying) {
+        isPlaying = false;
+        document.getElementById('playIcon').style.display = 'block';
+        document.getElementById('pauseIcon').style.display = 'none';
+      }
+      currentDay = (phase.angle / (Math.PI * 2)) * CFG.synodicPeriod;
+      updateInfoPanel();
+      updateMoonPosition();
+    });
+
+    container.appendChild(btn);
+  });
+}
+
+/* ============================================================
+   3D 标签位置更新
+   ============================================================ */
+const _projVec = new THREE.Vector3();
+
+function updateLabels() {
+  if (!showLabels) {
+    document.getElementById('sunLabel').style.opacity = '0';
+    document.getElementById('earthLabel').style.opacity = '0';
+    document.getElementById('moonLabel').style.opacity = '0';
+    return;
+  }
+
+  const labels = [
+    { obj: sun, el: 'sunLabel', offset: { x: 0, y: -CFG.sunRadius * 20 } },
+    { obj: earth, el: 'earthLabel', offset: { x: 0, y: -CFG.earthRadius * 25 } },
+    { obj: moon, el: 'moonLabel', offset: { x: 0, y: -CFG.moonRadius * 30 } },
+  ];
+
+  for (const { obj, el, offset } of labels) {
+    _projVec.setFromMatrixPosition(obj.matrixWorld);
+    _projVec.project(mainCamera);
+
+    const labelEl = document.getElementById(el);
+    if (_projVec.z > 1 || _projVec.z < -1) {
+      labelEl.style.opacity = '0';
+      continue;
+    }
+
+    const x = (_projVec.x * 0.5 + 0.5) * window.innerWidth + offset.x;
+    const y = (-_projVec.y * 0.5 + 0.5) * window.innerHeight + offset.y;
+    labelEl.style.left = x + 'px';
+    labelEl.style.top = y + 'px';
+    labelEl.style.opacity = '1';
+  }
+}
+
+/* ============================================================
+   动画循环
+   ============================================================ */
+function animate() {
+  requestAnimationFrame(animate);
+
+  const delta = clock.getDelta();
+
+  if (isPlaying) {
+    currentDay += delta * speed;
+    if (currentDay >= CFG.synodicPeriod) currentDay -= CFG.synodicPeriod;
+    if (currentDay < 0) currentDay += CFG.synodicPeriod;
+    updateMoonPosition();
+    updateInfoPanel();
+  }
+
+  // 地球自转
+  if (earth) earth.rotation.y += 0.002;
+
+  // 月球自转（潮汐锁定，公转周期=自转周期）
+  if (moon) {
+    const angle = getOrbitalAngle(currentDay);
+    moon.rotation.y = angle + Math.PI / 2;
+  }
+
+  // 太阳光晕脉动
+  if (sunGlow) {
+    const t = clock.getElapsedTime();
+    sunGlow.material.opacity = 0.6 + Math.sin(t * 1.5) * 0.08;
+  }
+
+  // 星空缓慢旋转
+  if (stars) stars.rotation.y += 0.00008;
+
+  // 更新3D标签位置
+  updateLabels();
+
+  orbitControls.update();
+  mainRenderer.render(mainScene, mainCamera);
+
+  // 渲染月相视图
+  if (moonRenderer) {
+    moonRenderer.render(moonScene, moonCamera);
+  }
+}
+
+/* ============================================================
+   事件处理
+   ============================================================ */
+function setupControls() {
+  // 播放/暂停
+  const playBtn = document.getElementById('playBtn');
+  const playIcon = document.getElementById('playIcon');
+  const pauseIcon = document.getElementById('pauseIcon');
+  playBtn.addEventListener('click', () => {
+    isPlaying = !isPlaying;
+    playIcon.style.display = isPlaying ? 'none' : 'block';
+    pauseIcon.style.display = isPlaying ? 'block' : 'none';
+  });
+
+  // 时间轴
+  const timeline = document.getElementById('timelineSlider');
+  timeline.addEventListener('input', (e) => {
+    // 拖动时间轴时暂停动画
+    if (isPlaying) {
+      isPlaying = false;
+      document.getElementById('playIcon').style.display = 'block';
+      document.getElementById('pauseIcon').style.display = 'none';
+    }
+    currentDay = parseInt(e.target.value) / 100;
+    updateMoonPosition();
+    updateInfoPanel();
+  });
+
+  // 速度
+  const speedSlider = document.getElementById('speedSlider');
+  const speedValue = document.getElementById('speedValue');
+  speedSlider.addEventListener('input', (e) => {
+    speed = parseFloat(e.target.value);
+    speedValue.textContent = speed.toFixed(1) + 'd/s';
+  });
+
+  // 视角模式
+  document.querySelectorAll('.view-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-btn[data-view]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      viewMode = btn.dataset.view;
+      applyViewMode();
+    });
+  });
+
+  // 辅助显示开关
+  document.querySelectorAll('.view-btn[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+      const toggle = btn.dataset.toggle;
+      const active = btn.classList.contains('active');
+      if (toggle === 'orbit') { showOrbit = active; orbitLine.visible = active; earthMoonLine.visible = active; }
+      if (toggle === 'rays') { showRays = active; sunRayGroup.visible = active; }
+      if (toggle === 'labels') { showLabels = active; }
+    });
+  });
+
+  // 误区提示自动显示
+  setTimeout(() => {
+    document.getElementById('misconceptionTip').classList.add('show');
+  }, 3000);
+}
+
+function applyViewMode() {
+  const moonViewContainer = document.querySelector('.moon-view-container');
+  if (viewMode === 'orbital') {
+    moonViewContainer.style.display = 'none';
+    // 俯视角度
+    animateCamera(new THREE.Vector3(0, 18, 8));
+  } else if (viewMode === 'earth') {
+    moonViewContainer.style.display = 'flex';
+    // 地球视角
+    animateCamera(new THREE.Vector3(0, 1, 4));
+  } else {
+    moonViewContainer.style.display = 'flex';
+    // 双视图默认角度
+    animateCamera(new THREE.Vector3(0, 8, 18));
+  }
+}
+
+function animateCamera(targetPos) {
+  const startPos = mainCamera.position.clone();
+  const startTarget = orbitControls.target.clone();
+  const duration = 800;
+  const startTime = performance.now();
+
+  function tween() {
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+
+    mainCamera.position.lerpVectors(startPos, targetPos, ease);
+    orbitControls.target.lerpVectors(startTarget, new THREE.Vector3(0, 0, 0), ease);
+    orbitControls.update();
+
+    if (t < 1) requestAnimationFrame(tween);
+  }
+  tween();
+}
+
+function onResize() {
+  mainCamera.aspect = window.innerWidth / window.innerHeight;
+  mainCamera.updateProjectionMatrix();
+  mainRenderer.setSize(window.innerWidth, window.innerHeight);
+
+  // 月相视图尺寸
+  const moonCanvas = document.getElementById('moon-canvas');
+  const moonSize = moonCanvas.clientWidth;
+  if (moonSize > 0) {
+    moonCamera.aspect = 1;
+    moonCamera.updateProjectionMatrix();
+    moonRenderer.setSize(moonSize, moonSize);
+  }
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+function init() {
+  initMainScene();
+  createStars();
+  createSun();
+  createEarth();
+  createMoon();
+  createSunRays();
+  initMoonPhaseView();
+  createPhaseButtons();
+  setupControls();
+  updateMoonPosition();
+  updateInfoPanel();
+
+  window.addEventListener('resize', onResize);
+
+  // 延迟校正月相视图尺寸
+  setTimeout(() => {
+    onResize();
+  }, 100);
+
+  // 隐藏加载遮罩
+  setTimeout(() => {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }, 800);
+
+  animate();
+}
+
+init();
+</script>
+</body>
+</html>

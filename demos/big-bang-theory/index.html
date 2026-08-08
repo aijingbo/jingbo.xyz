@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宇宙大爆炸理论 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css">
+<link rel="stylesheet" href="/assets/css/demo-framework.css">
+<style>
+/* ===== 大爆炸 Demo 专属样式 ===== */
+:root {
+  --space-deep: #0a0612;
+  --space-mid: #13092a;
+  --space-purple: #4c1d95;
+  --space-purple-light: #6d28d9;
+  --star-gold: #fbbf24;
+  --star-gold-glow: rgba(251,191,36,0.5);
+  --star-gold-soft: rgba(251,191,36,0.12);
+  --nebula-pink: #ec4899;
+  --cmb-blue: #2563eb;
+  --cmb-red: #dc2626;
+  --dark-matter: rgba(167,139,250,0.25);
+  --cosmic-accent: #a78bfa;
+}
+
+body { min-height: 100vh; overflow-x: hidden; background: var(--bg); }
+
+/* ===== 开场动画 ===== */
+.opening-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 1s ease;
+}
+.opening-overlay.hidden { opacity: 0; pointer-events: none; }
+.opening-canvas { width: 100%; height: 100%; display: block; }
+
+/* ===== 杂志布局 ===== */
+.magazine-layout {
+  display: grid;
+  grid-template-columns: 38% 62%;
+  gap: var(--spacer-48);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--spacer-48) var(--spacer-32);
+  min-height: calc(100vh - 64px);
+}
+body.has-info-bar .magazine-layout { padding-bottom: calc(var(--spacer-48) + 52px); }
+
+/* ===== 左侧文章区 ===== */
+.article-side { display: flex; flex-direction: column; gap: var(--spacer-24); }
+.article-header { display: flex; flex-direction: column; gap: var(--spacer-12); }
+.article-kicker {
+  font-family: var(--font-mono); font-size: var(--fs-tiny);
+  letter-spacing: 0.12em; color: var(--space-purple); text-transform: uppercase; font-weight: 600;
+}
+.article-title {
+  font-family: var(--font-serif); font-size: var(--fs-h1);
+  font-weight: 700; line-height: 1.25; color: var(--text);
+}
+.article-subtitle {
+  font-size: var(--fs-body); color: var(--text-muted);
+  line-height: var(--lh-relaxed); font-style: italic; font-family: var(--font-serif);
+}
+.article-body { display: flex; flex-direction: column; gap: var(--spacer-16); }
+.article-body p { font-size: var(--fs-body); line-height: 1.85; color: var(--text); }
+.article-body p.lead { font-size: 16px; font-weight: 500; line-height: 1.7; color: var(--space-purple); }
+.article-body strong { color: var(--space-purple); font-weight: 600; }
+.article-body em { color: var(--star-gold); font-style: italic; }
+
+/* ===== 步骤指示器 ===== */
+.step-indicator { display: flex; align-items: center; gap: var(--spacer-12); margin: var(--spacer-8) 0; }
+.step-dots { display: flex; gap: 10px; }
+.step-dot {
+  width: 10px; height: 10px; border-radius: var(--radius-full);
+  background-color: var(--border); transition: all var(--duration-base) var(--ease); cursor: pointer;
+}
+.step-dot.active { background-color: var(--space-purple); transform: scale(1.3); box-shadow: 0 0 0 4px rgba(76,29,149,0.12); }
+.step-dot.completed { background-color: var(--star-gold); }
+.step-dot:hover:not(.active) { background-color: var(--text-faint); }
+.step-label { font-family: var(--font-mono); font-size: var(--fs-tiny); color: var(--text-muted); letter-spacing: 0.05em; }
+
+/* ===== 步骤内容 ===== */
+.step-content {
+  opacity: 1; transform: translateY(0);
+  transition: all var(--duration-slow) var(--ease);
+  flex: 1; overflow-y: auto; max-height: 440px; padding-right: var(--spacer-8);
+}
+.step-content::-webkit-scrollbar { width: 4px; }
+.step-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.step-content.fade-out { opacity: 0; transform: translateY(8px); }
+.step-content.fade-in { opacity: 0; transform: translateY(-8px); }
+.step-content h3 { font-family: var(--font-serif); font-size: var(--fs-h2); margin-bottom: var(--spacer-16); color: var(--text); }
+
+/* ===== 公式框 ===== */
+.formula-box {
+  background: linear-gradient(135deg, rgba(76,29,149,0.05), rgba(251,191,36,0.06));
+  border-left: 3px solid var(--star-gold);
+  padding: var(--spacer-16) var(--spacer-20);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: var(--spacer-12) 0;
+}
+.formula-box .formula-main {
+  font-family: var(--font-mono); font-size: 15px; font-weight: 600;
+  color: var(--space-purple); margin-bottom: var(--spacer-4);
+}
+.formula-box .formula-note { font-size: 12px; color: var(--text-muted); font-family: var(--font-sans); }
+
+/* ===== 步骤导航 ===== */
+.step-nav { display: flex; gap: var(--spacer-12); align-items: center; position: relative; }
+.step-nav .btn { flex: 1; padding: 10px 20px; font-size: var(--fs-small); }
+.step-nav .btn-primary { background-color: var(--space-purple); border-color: var(--space-purple); }
+.step-nav .btn-primary:hover { background-color: var(--space-purple-light); }
+.autoplay-btn {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: var(--radius-full); border: 1px solid var(--border);
+  background: var(--surface); color: var(--space-purple);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all var(--duration-fast) var(--ease);
+}
+.autoplay-btn:hover { border-color: var(--space-purple); background: var(--star-gold-soft); }
+.autoplay-btn.playing { background: var(--space-purple); color: white; border-color: var(--space-purple); }
+.autoplay-btn svg { width: 16px; height: 16px; }
+.autoplay-progress {
+  position: absolute; bottom: 0; left: 0; height: 2px;
+  background: var(--star-gold); width: 0%; transition: width 0.1s linear; border-radius: 1px;
+}
+
+/* ===== 右侧可视化区 ===== */
+.visual-side { display: flex; flex-direction: column; gap: var(--spacer-20); }
+.visual-canvas-wrapper {
+  background: var(--space-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden; box-shadow: var(--shadow-soft);
+  position: relative; animation: canvasFadeIn 0.8s ease;
+}
+@keyframes canvasFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.visual-canvas-wrapper canvas { display: block; width: 100%; height: auto; }
+.visual-canvas-wrapper.switching canvas { opacity: 0.3; }
+.visual-caption {
+  font-size: var(--fs-small); color: var(--text-muted);
+  text-align: center; font-style: italic; font-family: var(--font-serif); padding: 0 var(--spacer-16);
+}
+
+/* ===== 控制面板 ===== */
+.viz-controls {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: var(--spacer-20) var(--spacer-24);
+  box-shadow: var(--shadow-soft); min-height: 80px;
+}
+.control-group { display: none; flex-direction: column; gap: var(--spacer-8); }
+.control-group.active { display: flex; }
+.control-label {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: var(--fs-small); font-weight: 500; color: var(--text);
+}
+.control-value { font-family: var(--font-mono); font-size: var(--fs-small); color: var(--space-purple); font-weight: 600; }
+
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+  border-radius: var(--radius-full); background: var(--border); outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--star-gold); cursor: pointer; border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%; background: var(--star-gold);
+  cursor: pointer; border: 2px solid var(--surface); box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.scenario-buttons { display: flex; gap: var(--spacer-8); }
+.scenario-btn {
+  flex: 1; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface);
+  font-size: var(--fs-small); font-weight: 500; color: var(--text-muted);
+  cursor: pointer; transition: all var(--duration-fast) var(--ease); text-align: center;
+}
+.scenario-btn.active { background: var(--star-gold-soft); border-color: var(--star-gold); color: var(--star-gold); font-weight: 600; }
+.scenario-btn:hover:not(.active) { border-color: var(--text-faint); color: var(--text); }
+
+.play-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; background: var(--space-purple); color: white;
+  border: none; border-radius: var(--radius); font-size: var(--fs-small);
+  font-weight: 500; cursor: pointer; transition: all var(--duration-fast) var(--ease);
+}
+.play-btn:hover { background: var(--space-purple-light); }
+.play-btn svg { width: 14px; height: 14px; }
+
+/* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .magazine-layout { grid-template-columns: 1fr; gap: var(--spacer-32); }
+  .demo-nav-center { display: none; }
+  .step-content { max-height: 350px; }
+}
+@media (max-width: 768px) {
+  .magazine-layout { padding: var(--spacer-24) var(--spacer-16); }
+  .demo-nav-center { display: none; }
+  .demo-btn-download span { display: none; }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 开场动画 ====== -->
+<div class="opening-overlay" id="openingOverlay">
+  <canvas class="opening-canvas" id="openingCanvas"></canvas>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">地理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">宇宙大爆炸理论</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-geo">地理</span>
+      <a href="/skills/jingbo-edu-physics-astronomy-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="article-side">
+        <div class="article-header">
+          <div class="article-kicker">COSMOS · 宇宙起源</div>
+          <h1 class="article-title">宇宙大爆炸理论</h1>
+          <p class="article-subtitle">138 亿年的壮丽史诗——从一个无限小的奇点，到浩瀚星海。</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="step-indicator">
+          <div class="step-dots" id="stepDots"></div>
+          <span class="step-label" id="stepLabel">第 1 / 6 步</span>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="step-content" id="stepContent"></div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="step-nav">
+          <button class="btn btn-secondary" id="prevBtn"><span>←</span> 上一步</button>
+          <button class="btn btn-primary" id="nextBtn">下一步 <span>→</span></button>
+          <button class="autoplay-btn" id="autoplayBtn" title="自动播放">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
+          <div class="autoplay-progress" id="autoplayProgress"></div>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="visual-side">
+        <div class="visual-canvas-wrapper" id="canvasWrapper">
+          <canvas id="vizCanvas" width="760" height="480"></canvas>
+        </div>
+        <p class="visual-caption" id="visualCaption">图 1：宇宙膨胀——空间本身在拉伸，星系彼此远离</p>
+
+        <!-- 控制面板 -->
+        <div class="viz-controls" id="vizControls">
+          <!-- Step 0: 时间滑块 -->
+          <div class="control-group active" data-step="0">
+            <div class="control-label">
+              <span>时间演化（过去 ← → 未来）</span>
+              <span class="control-value" id="expansionValue">现在</span>
+            </div>
+            <input type="range" id="expansionSlider" min="0" max="100" value="50">
+          </div>
+          <!-- Step 1: 速度滑块 -->
+          <div class="control-group" data-step="1">
+            <div class="control-label">
+              <span>星系退行速度</span>
+              <span class="control-value" id="velocityValue">0.30c</span>
+            </div>
+            <input type="range" id="velocitySlider" min="0" max="95" value="30">
+          </div>
+          <!-- Step 2: 温度滑块 -->
+          <div class="control-group" data-step="2">
+            <div class="control-label">
+              <span>宇宙温度（膨胀冷却）</span>
+              <span class="control-value" id="tempValue">2.7K</span>
+            </div>
+            <input type="range" id="tempSlider" min="0" max="100" value="100">
+          </div>
+          <!-- Step 3: 无控制 -->
+          <div class="control-group" data-step="3">
+            <div class="control-label"><span>原初核合成反应链（自动展示）</span></div>
+          </div>
+          <!-- Step 4: 播放按钮 -->
+          <div class="control-group" data-step="4">
+            <div class="control-label">
+              <span>宇宙演化时间线</span>
+              <button class="play-btn" id="timelinePlayBtn">
+                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                播放宇宙历史
+              </button>
+            </div>
+          </div>
+          <!-- Step 5: 场景选择 -->
+          <div class="control-group" data-step="5">
+            <div class="control-label"><span>宇宙的未来命运</span></div>
+            <div class="scenario-buttons">
+              <button class="scenario-btn active" data-scenario="0">大冻结</button>
+              <button class="scenario-btn" data-scenario="1">大撕裂</button>
+              <button class="scenario-btn" data-scenario="2">大挤压</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">S111 · 宇宙大爆炸理论可视化生成器</span>
+    <span class="demo-tech-tag">Canvas</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">CSS Animation</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-physics-astronomy-lecture-v0.1.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   宇宙大爆炸理论 · 杂志讲解型 Demo
+   6 步可视化：膨胀 → 红移 → CMB → 核合成 → 时间线 → 未来
+   ============================================================ */
+
+// ====== 配置 ======
+const CW = 760, CH = 480;
+const AUTOPLAY_MS = 9000;
+
+// roundRect polyfill（兼容旧浏览器）
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (r > w/2) r = w/2; if (r > h/2) r = h/2;
+    this.beginPath();
+    this.moveTo(x+r, y);
+    this.arcTo(x+w, y, x+w, y+h, r);
+    this.arcTo(x+w, y+h, x, y+h, r);
+    this.arcTo(x, y+h, x, y, r);
+    this.arcTo(x, y, x+w, y, r);
+    this.closePath();
+    return this;
+  };
+}
+
+// ====== 步骤内容 ======
+const steps = [
+  {
+    title: '宇宙正在膨胀——哈勃的惊人发现',
+    content: `
+      <p class="lead">1929 年，天文学家哈勃发现了一个改变宇宙学的惊人事实。</p>
+      <p>所有遥远的星系都在远离我们，而且<strong>越远的星系退行速度越快</strong>——这就是哈勃定律 <em>v = H₀d</em>。如果宇宙正在膨胀，那么倒推回去，宇宙应该有一个起点。这个发现彻底改变了人类的宇宙观——宇宙不是永恒不变的，而是有开端的。</p>
+      <div class="formula-box">
+        <div class="formula-main">v = H₀ × d</div>
+        <div class="formula-note">退行速度 = 哈勃常数 × 距离。越远的星系，退行越快。</div>
+      </div>
+      <p>拖动下方滑块，观察宇宙从过去到未来的膨胀过程。注意：不是星系在空间中运动，而是<em>空间本身在膨胀</em>。</p>
+    `,
+    caption: '图 1：宇宙膨胀——空间本身在拉伸，星系彼此远离'
+  },
+  {
+    title: '三大证据之一——哈勃红移',
+    content: `
+      <p class="lead">怎么知道星系在远离我们？答案是红移。</p>
+      <p>当光源远离观察者时，光的波长会被拉长，向红光方向移动，这就是<strong>多普勒红移</strong>。哈勃测量了许多星系的光谱，发现几乎所有星系的光谱都有红移，而且红移量与距离成正比。</p>
+      <div class="formula-box">
+        <div class="formula-main">z = (λ观测 - λ发射) / λ发射</div>
+        <div class="formula-note">红移值 z 越大，退行速度越快。z=1 意味着波长被拉长了一倍。</div>
+      </div>
+      <p>拖动速度滑块，观察光谱中<em>吸收线</em>如何向红色方向偏移。右下方的哈勃图显示了退行速度与距离的线性关系。</p>
+    `,
+    caption: '图 2：光谱红移——退行速度越大，吸收线越向红端偏移'
+  },
+  {
+    title: '三大证据之二——宇宙微波背景辐射',
+    content: `
+      <p class="lead">1965 年，彭齐亚斯和威尔逊偶然发现了一种来自天空各个方向的微弱微波信号。</p>
+      <p>这就是<strong>宇宙微波背景辐射（CMB）</strong>——大爆炸后 38 万年的余辉。当时宇宙刚变得透明，光子开始自由传播。随着宇宙膨胀，这些光子的波长被拉长到了微波波段，温度只有 <em>2.7K（-270.45°C）</em>。</p>
+      <div class="formula-box">
+        <div class="formula-main">T ∝ 1 / a(t)</div>
+        <div class="formula-note">温度与宇宙尺度因子成反比。宇宙膨胀到 2 倍，温度降低一半。</div>
+      </div>
+      <p>CMB 被称为大爆炸理论最有力的证据。拖动温度滑块，观察从 3000K 到 2.7K 的冷却过程——光子从可见光变为微波。</p>
+    `,
+    caption: '图 3：CMB 全天空图——大爆炸余辉的温度涨落'
+  },
+  {
+    title: '三大证据之三——轻元素丰度',
+    content: `
+      <p class="lead">大爆炸后最初几分钟，宇宙温度极高，发生了原初核合成。</p>
+      <p>质子和中子结合形成氢、氦和少量锂的原子核。根据大爆炸理论计算，宇宙中<strong>氢约占 75%，氦约占 25%</strong>，这与天文观测结果惊人地吻合。任何其他理论都无法解释为什么氦的丰度恰好是 25%。</p>
+      <div class="formula-box">
+        <div class="formula-main">H ≈ 75%  ·  ⁴He ≈ 25%  ·  D, ³He, ⁷Li ≈ 痕量</div>
+        <div class="formula-note">理论预言与观测吻合到小数点后——大爆炸核合成的精确预测。</div>
+      </div>
+      <p>右侧饼图展示了轻元素的原初丰度，反应链展示了从质子到氦-4的核合成过程。</p>
+    `,
+    caption: '图 4：轻元素丰度——大爆炸核合成的精确预言'
+  },
+  {
+    title: '宇宙演化史——138 亿年的史诗',
+    content: `
+      <p class="lead">从大爆炸到今天，宇宙经历了 138 亿年的壮丽演化。</p>
+      <p>从普朗克时代（10⁻⁴³秒）到暴胀时期，从夸克时代到核合成时代，从黑暗时代到第一批恒星点亮，从星系形成到太阳系诞生——<strong>宇宙 138 亿年的历史，人类只不过是最后一秒的产物</strong>。</p>
+      <p>点击"播放宇宙历史"按钮，让时间轴从大爆炸流向今天，感受<em>宇宙演化的壮阔史诗</em>。时间轴使用对数刻度，因为早期事件发生得极其迅速。</p>
+    `,
+    caption: '图 5：宇宙演化时间线——138 亿年压缩在一条轴上'
+  },
+  {
+    title: '宇宙的未来与未解之谜',
+    content: `
+      <p class="lead">宇宙的命运取决于什么？暗能量的发现让我们知道宇宙膨胀正在加速。</p>
+      <p>宇宙的未来可能是：<strong>大冻结</strong>（永远膨胀下去，越来越冷）、<strong>大撕裂</strong>（膨胀加速到撕裂一切）、或<strong>大挤压</strong>（重新收缩回到奇点）。目前的观测支持大冻结。</p>
+      <div class="formula-box">
+        <div class="formula-main">暗能量 68%  ·  暗物质 27%  ·  普通物质 5%</div>
+        <div class="formula-note">我们对 95% 的宇宙几乎一无所知。</div>
+      </div>
+      <p>还有许多未解之谜：暴胀的本质是什么？暗物质是什么？暗能量又是什么？大爆炸之前有什么？<em>宇宙最深处的秘密，仍在等待我们去探索。</em></p>
+    `,
+    caption: '图 6：宇宙的未来——三种命运与未知的暗宇宙'
+  }
+];
+
+// ====== Canvas 初始化 ======
+const canvas = document.getElementById('vizCanvas');
+const ctx = canvas.getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+canvas.width = CW * dpr;
+canvas.height = CH * dpr;
+canvas.style.width = '100%';
+canvas.style.height = 'auto';
+ctx.scale(dpr, dpr);
+
+// ====== 全局状态 ======
+const state = {
+  currentStep: 0,
+  time: 0,
+  expansion: 0.5,
+  velocity: 0.30,
+  temperature: 1.0,
+  timelineProgress: 0,
+  timelinePlaying: false,
+  futureScenario: 0,
+  isAutoplay: false,
+  autoplayStart: 0,
+};
+
+// ====== 预生成数据 ======
+// 背景星空
+const stars = [];
+for (let i = 0; i < 180; i++) {
+  stars.push({
+    x: Math.random() * CW, y: Math.random() * CH,
+    size: Math.random() * 1.2 + 0.3,
+    brightness: Math.random() * 0.6 + 0.2,
+    twinkle: Math.random() * 0.03 + 0.01,
+    phase: Math.random() * Math.PI * 2,
+  });
+}
+// 星系位置（用于膨胀可视化）
+const galaxies = [];
+for (let i = 0; i < 12; i++) {
+  const angle = (i / 12) * Math.PI * 2 + Math.random() * 0.3;
+  const dist = 60 + Math.random() * 140;
+  galaxies.push({
+    x: Math.cos(angle) * dist, y: Math.sin(angle) * dist,
+    size: Math.random() * 3 + 2,
+    color: ['rgba(251,191,36,1)','rgba(245,158,11,1)','rgba(253,230,138,1)','rgba(252,211,77,1)','rgba(254,243,199,1)'][i % 5],
+  });
+}
+// CMB 噪声图
+const cmbGrid = [];
+const cmbSize = 60;
+for (let i = 0; i < cmbSize; i++) {
+  cmbGrid.push([]);
+  for (let j = 0; j < cmbSize; j++) {
+    cmbGrid[i].push(Math.random());
+  }
+}
+// 平滑 CMB 噪声
+for (let pass = 0; pass < 4; pass++) {
+  const tmp = [];
+  for (let i = 0; i < cmbSize; i++) {
+    tmp.push([]);
+    for (let j = 0; j < cmbSize; j++) {
+      let s = 0, c = 0;
+      for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+        const ni = i + di, nj = j + dj;
+        if (ni >= 0 && ni < cmbSize && nj >= 0 && nj < cmbSize) { s += cmbGrid[ni][nj]; c++; }
+      }
+      tmp[i].push(s / c);
+    }
+  }
+  for (let i = 0; i < cmbSize; i++) for (let j = 0; j < cmbSize; j++) cmbGrid[i][j] = tmp[i][j];
+}
+
+// ====== 绘制辅助函数 ======
+function fillSpaceBg(c, w, h) {
+  const grad = c.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h));
+  grad.addColorStop(0, '#150a2e');
+  grad.addColorStop(0.5, '#0d0620');
+  grad.addColorStop(1, '#05030f');
+  c.fillStyle = grad;
+  c.fillRect(0, 0, w, h);
+}
+function drawStars(c, w, h, t) {
+  for (const s of stars) {
+    const tw = Math.sin(t * s.twinkle + s.phase) * 0.3 + 0.7;
+    c.fillStyle = `rgba(255,255,255,${s.brightness * tw})`;
+    c.beginPath();
+    c.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    c.fill();
+  }
+}
+function drawGlowDot(c, x, y, r, color, glowR) {
+  const g = c.createRadialGradient(x, y, 0, x, y, glowR || r * 4);
+  g.addColorStop(0, color);
+  g.addColorStop(0.2, color.replace(/[\d.]+\)$/, '0.4)'));
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g;
+  c.beginPath();
+  c.arc(x, y, glowR || r * 4, 0, Math.PI * 2);
+  c.fill();
+  c.fillStyle = '#ffffff';
+  c.beginPath();
+  c.arc(x, y, r * 0.5, 0, Math.PI * 2);
+  c.fill();
+}
+function drawText(c, text, x, y, font, color, align) {
+  c.font = font;
+  c.fillStyle = color;
+  c.textAlign = align || 'left';
+  c.fillText(text, x, y);
+}
+
+// ====== Step 0: 宇宙膨胀 ======
+function drawStep0(c, w, h) {
+  fillSpaceBg(c, w, h);
+  drawStars(c, w, h, state.time);
+
+  const cx = w / 2, cy = h / 2;
+  const exp = 0.3 + state.expansion * 1.8;
+
+  // 绘制膨胀网格
+  c.strokeStyle = 'rgba(124,58,237,0.12)';
+  c.lineWidth = 1;
+  const gridSize = 50 * exp;
+  for (let x = cx % gridSize; x < w; x += gridSize) {
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke();
+  }
+  for (let y = cy % gridSize; y < h; y += gridSize) {
+    c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke();
+  }
+
+  // 绘制星系
+  for (const g of galaxies) {
+    const gx = cx + g.x * exp, gy = cy + g.y * exp;
+    if (gx < -20 || gx > w + 20 || gy < -20 || gy > h + 20) continue;
+    // 退行箭头
+    const dx = gx - cx, dy = gy - cy;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > 30) {
+      c.strokeStyle = `rgba(251,191,36,${0.15 + state.expansion * 0.2})`;
+      c.lineWidth = 1;
+      c.setLineDash([3, 4]);
+      c.beginPath();
+      c.moveTo(cx, cy);
+      c.lineTo(gx, gy);
+      c.stroke();
+      c.setLineDash([]);
+    }
+    drawGlowDot(c, gx, gy, g.size, g.color, g.size * 4);
+  }
+
+  // 银河系（中心）
+  drawGlowDot(c, cx, cy, 5, 'rgba(251,191,36,1)', 25);
+  drawText(c, '银河系', cx + 12, cy - 8, '11px sans-serif', 'rgba(251,191,36,0.7)', 'left');
+
+  // 公式
+  drawText(c, 'v = H₀ × d', w - 20, 30, 'bold 16px "JetBrains Mono"', 'rgba(251,191,36,0.8)', 'right');
+
+  // v-d 关系图（右上角小图）
+  const gx0 = w - 150, gy0 = 40, gw = 130, gh = 80;
+  c.fillStyle = 'rgba(10,6,18,0.7)';
+  c.fillRect(gx0, gy0, gw, gh);
+  c.strokeStyle = 'rgba(124,58,237,0.3)';
+  c.strokeRect(gx0, gy0, gw, gh);
+  // 坐标轴
+  c.strokeStyle = 'rgba(255,255,255,0.2)';
+  c.lineWidth = 1;
+  c.beginPath(); c.moveTo(gx0 + 10, gy0 + gh - 10); c.lineTo(gx0 + gw - 10, gy0 + gh - 10); c.stroke();
+  c.beginPath(); c.moveTo(gx0 + 10, gy0 + 10); c.lineTo(gx0 + 10, gy0 + gh - 10); c.stroke();
+  // 数据点 + 拟合线
+  c.strokeStyle = 'rgba(251,191,36,0.8)';
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.moveTo(gx0 + 10, gy0 + gh - 10);
+  c.lineTo(gx0 + gw - 12, gy0 + 15);
+  c.stroke();
+  for (let i = 0; i < 6; i++) {
+    const px = gx0 + 15 + i * 18;
+    const py = gy0 + gh - 10 - i * 12 + (Math.random() - 0.5) * 6;
+    c.fillStyle = 'rgba(251,191,36,0.9)';
+    c.beginPath();
+    c.arc(px, py, 2, 0, Math.PI * 2);
+    c.fill();
+  }
+  drawText(c, 'd', gx0 + gw - 14, gy0 + gh - 2, '9px sans-serif', 'rgba(255,255,255,0.4)', 'right');
+  drawText(c, 'v', gx0 + 4, gy0 + 14, '9px sans-serif', 'rgba(255,255,255,0.4)', 'left');
+
+  // 时间标签
+  const timeLabel = state.expansion < 0.35 ? '过去（宇宙更小）' : state.expansion > 0.65 ? '未来（宇宙更大）' : '现在';
+  drawText(c, timeLabel, 20, h - 20, '12px sans-serif', 'rgba(251,191,36,0.6)', 'left');
+}
+
+// ====== Step 1: 红移 ======
+function drawStep1(c, w, h) {
+  fillSpaceBg(c, w, h);
+  drawStars(c, w, h, state.time);
+
+  const v = state.velocity; // 0-0.95
+
+  // 光谱条
+  const barY = 60, barH = 50, barX = 40, barW = w - 80;
+  const grad = c.createLinearGradient(barX, 0, barX + barW, 0);
+  grad.addColorStop(0, '#6b21a8');
+  grad.addColorStop(0.15, '#4338ca');
+  grad.addColorStop(0.3, '#2563eb');
+  grad.addColorStop(0.45, '#0891b2');
+  grad.addColorStop(0.6, '#16a34a');
+  grad.addColorStop(0.75, '#eab308');
+  grad.addColorStop(0.88, '#ea580c');
+  grad.addColorStop(1, '#dc2626');
+  c.fillStyle = grad;
+  c.fillRect(barX, barY, barW, barH);
+  c.strokeStyle = 'rgba(255,255,255,0.2)';
+  c.strokeRect(barX, barY, barW, barH);
+
+  // 吸收线（原始位置 + 红移偏移）
+  const lines = [0.1, 0.22, 0.35, 0.48, 0.6, 0.72, 0.85];
+  for (const lp of lines) {
+    const shifted = lp + lp * v * 1.5; // 红移
+    const lx = barX + shifted * barW;
+    if (lx > barX + barW) continue;
+    // 原始位置（虚线）
+    const ox = barX + lp * barW;
+    c.strokeStyle = 'rgba(255,255,255,0.15)';
+    c.setLineDash([2, 3]);
+    c.beginPath(); c.moveTo(ox, barY); c.lineTo(ox, barY + barH); c.stroke();
+    c.setLineDash([]);
+    // 偏移后位置
+    c.strokeStyle = 'rgba(0,0,0,0.8)';
+    c.lineWidth = 2;
+    c.beginPath(); c.moveTo(lx, barY - 4); c.lineTo(lx, barY + barH + 4); c.stroke();
+    c.lineWidth = 1;
+  }
+
+  // 红移箭头
+  if (v > 0.05) {
+    const arrowY = barY + barH + 20;
+    c.strokeStyle = 'rgba(251,191,36,0.6)';
+    c.fillStyle = 'rgba(251,191,36,0.6)';
+    c.lineWidth = 1.5;
+    c.beginPath();
+    c.moveTo(barX + 20, arrowY);
+    c.lineTo(barX + barW - 20, arrowY);
+    c.stroke();
+    // 箭头头部
+    c.beginPath();
+    c.moveTo(barX + barW - 20, arrowY);
+    c.lineTo(barX + barW - 28, arrowY - 4);
+    c.lineTo(barX + barW - 28, arrowY + 4);
+    c.closePath();
+    c.fill();
+    drawText(c, '红移方向 →', barX + barW / 2, arrowY + 16, '11px sans-serif', 'rgba(251,191,36,0.6)', 'center');
+  }
+
+  // 光谱标签
+  drawText(c, '紫', barX - 5, barY + barH / 2 + 4, '11px sans-serif', 'rgba(167,139,250,0.6)', 'right');
+  drawText(c, '红', barX + barW + 5, barY + barH / 2 + 4, '11px sans-serif', 'rgba(220,38,38,0.6)', 'left');
+
+  // z 值显示
+  const z = v * 3; // 近似
+  drawText(c, `z = ${z.toFixed(2)}`, 40, 35, 'bold 18px "JetBrains Mono"', 'rgba(251,191,36,0.9)', 'left');
+  drawText(c, `v = ${v.toFixed(2)}c`, 40, 50, '12px sans-serif', 'rgba(255,255,255,0.5)', 'left');
+
+  // 哈勃图（下方）
+  const hx = 40, hy = 180, hw = w - 80, hh = 260;
+  c.fillStyle = 'rgba(10,6,18,0.5)';
+  c.fillRect(hx, hy, hw, hh);
+  c.strokeStyle = 'rgba(124,58,237,0.2)';
+  c.strokeRect(hx, hy, hw, hh);
+  drawText(c, '哈勃图（Hubble Diagram）', hx + 12, hy + 20, '12px sans-serif', 'rgba(255,255,255,0.5)', 'left');
+
+  // 坐标轴
+  const px0 = hx + 50, py0 = hy + hh - 40;
+  const pw = hw - 80, ph = hh - 80;
+  c.strokeStyle = 'rgba(255,255,255,0.3)';
+  c.lineWidth = 1;
+  c.beginPath(); c.moveTo(px0, py0); c.lineTo(px0 + pw, py0); c.stroke();
+  c.beginPath(); c.moveTo(px0, py0); c.lineTo(px0, py0 - ph); c.stroke();
+  drawText(c, '距离 d →', px0 + pw - 10, py0 + 20, '11px sans-serif', 'rgba(255,255,255,0.4)', 'right');
+  drawText(c, '↑ 速度 v', px0 - 10, py0 - ph + 5, '11px sans-serif', 'rgba(255,255,255,0.4)', 'right');
+
+  // 拟合线
+  c.strokeStyle = 'rgba(251,191,36,0.6)';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(px0, py0);
+  c.lineTo(px0 + pw, py0 - ph);
+  c.stroke();
+
+  // 数据点
+  for (let i = 0; i < 12; i++) {
+    const fr = i / 11;
+    const px = px0 + fr * pw;
+    const py = py0 - fr * ph + (Math.sin(i * 2.3) * 12);
+    c.fillStyle = 'rgba(251,191,36,0.9)';
+    c.beginPath();
+    c.arc(px, py, 3, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  // 哈勃常数标注
+  drawText(c, '斜率 = H₀', px0 + pw * 0.6, py0 - ph * 0.35, '11px "JetBrains Mono"', 'rgba(251,191,36,0.7)', 'left');
+}
+
+// ====== Step 2: CMB ======
+function drawStep2(c, w, h) {
+  fillSpaceBg(c, w, h);
+  drawStars(c, w, h, state.time);
+
+  // CMB 椭圆投影
+  const cx = w / 2, cy = h / 2 - 20;
+  const rx = 180, ry = 100;
+
+  // 绘制 CMB 温度涨落
+  const cellW = (rx * 2) / cmbSize;
+  const cellH = (ry * 2) / cmbSize;
+  for (let i = 0; i < cmbSize; i++) {
+    for (let j = 0; j < cmbSize; j++) {
+      const px = cx - rx + i * cellW;
+      const py = cy - ry + j * cellH;
+      // 椭圆裁剪
+      const ex = (px + cellW/2 - cx) / rx;
+      const ey = (py + cellH/2 - cy) / ry;
+      if (ex * ex + ey * ey > 1) continue;
+      const val = cmbGrid[i][j];
+      // 温度色标: 蓝(冷) → 青 → 绿 → 黄 → 红(热)，使用 HSL
+      const hue = 240 - val * 240; // 240=蓝 → 0=红
+      const lightness = 45 + val * 15;
+      c.fillStyle = `hsl(${hue}, 75%, ${lightness}%)`;
+      c.fillRect(px, py, cellW + 1, cellH + 1);
+    }
+  }
+  // 温度叠加（高温时偏暖色=可见光，低温时保持原色=微波）
+  if (state.temperature > 0.05) {
+    c.save();
+    c.beginPath();
+    c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    c.clip();
+    c.fillStyle = `rgba(251,146,60,${state.temperature * 0.25})`;
+    c.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
+    c.restore();
+  }
+  // 椭圆边框
+  c.strokeStyle = 'rgba(255,255,255,0.15)';
+  c.lineWidth = 1;
+  c.beginPath();
+  c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  c.stroke();
+
+  drawText(c, 'CMB 全天空图', cx, cy - ry - 15, '13px sans-serif', 'rgba(255,255,255,0.6)', 'center');
+
+  // 温度色标
+  const scaleX = cx - rx, scaleY = cy + ry + 20, scaleW = rx * 2, scaleH = 12;
+  const sg = c.createLinearGradient(scaleX, 0, scaleX + scaleW, 0);
+  sg.addColorStop(0, '#2563eb');
+  sg.addColorStop(0.33, '#22c55e');
+  sg.addColorStop(0.66, '#eab308');
+  sg.addColorStop(1, '#dc2626');
+  c.fillStyle = sg;
+  c.fillRect(scaleX, scaleY, scaleW, scaleH);
+  c.strokeStyle = 'rgba(255,255,255,0.2)';
+  c.strokeRect(scaleX, scaleY, scaleW, scaleH);
+  drawText(c, '冷 (2.7K)', scaleX, scaleY + scaleH + 14, '10px sans-serif', 'rgba(96,165,250,0.6)', 'left');
+  drawText(c, '热', scaleX + scaleW, scaleY + scaleH + 14, '10px sans-serif', 'rgba(239,68,68,0.6)', 'right');
+
+  // 温度显示
+  const tempK = 2.7 + state.temperature * 2997.3;
+  drawText(c, `T = ${tempK.toFixed(0)}K`, 30, 35, 'bold 18px "JetBrains Mono"', 'rgba(251,191,36,0.9)', 'left');
+
+  // 电磁波谱位置指示器
+  const specY = h - 50, specX = 30, specW = w - 60;
+  const specGrad = c.createLinearGradient(specX, 0, specX + specW, 0);
+  specGrad.addColorStop(0, '#6b21a8');
+  specGrad.addColorStop(0.15, '#4338ca');
+  specGrad.addColorStop(0.3, '#2563eb');
+  specGrad.addColorStop(0.45, '#0891b2');
+  specGrad.addColorStop(0.6, '#16a34a');
+  specGrad.addColorStop(0.72, '#eab308');
+  specGrad.addColorStop(0.82, '#ea580c');
+  specGrad.addColorStop(0.92, '#dc2626');
+  specGrad.addColorStop(1, '#7f1d1d');
+  c.fillStyle = specGrad;
+  c.globalAlpha = 0.4;
+  c.fillRect(specX, specY, specW, 8);
+  c.globalAlpha = 1;
+  // 指针位置（温度越高越靠左=可见光，越低越靠右=微波）
+  const ptrX = specX + (1 - state.temperature) * specW * 0.9 + specW * 0.05;
+  c.fillStyle = 'rgba(251,191,36,1)';
+  c.beginPath();
+  c.moveTo(ptrX, specY - 4);
+  c.lineTo(ptrX - 5, specY - 12);
+  c.lineTo(ptrX + 5, specY - 12);
+  c.closePath();
+  c.fill();
+  drawText(c, '可见光', specX + specW * 0.65, specY + 22, '9px sans-serif', 'rgba(255,255,255,0.3)', 'center');
+  drawText(c, '微波', specX + specW * 0.97, specY + 22, '9px sans-serif', 'rgba(255,255,255,0.3)', 'center');
+}
+
+// ====== Step 3: 轻元素丰度 ======
+function drawStep3(c, w, h) {
+  fillSpaceBg(c, w, h);
+  drawStars(c, w, h, state.time);
+
+  // 饼图（左侧）
+  const pcx = 170, pcy = h / 2 - 10, pr = 110;
+  const data = [
+    { label: '氢 H', value: 75, color: '#fbbf24' },
+    { label: '氦-4 He', value: 24.9, color: '#a78bfa' },
+    { label: '氘 D', value: 0.01, color: '#22d3ee' },
+    { label: '氦-3', value: 0.001, color: '#34d399' },
+    { label: '锂 Li', value: 0.0000001, color: '#f87171' },
+  ];
+  let startAngle = -Math.PI / 2;
+  for (const d of data) {
+    const angle = (d.value / 100) * Math.PI * 2;
+    c.fillStyle = d.color;
+    c.beginPath();
+    c.moveTo(pcx, pcy);
+    c.arc(pcx, pcy, pr, startAngle, startAngle + angle);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = 'rgba(10,6,18,0.5)';
+    c.lineWidth = 2;
+    c.stroke();
+    startAngle += angle;
+  }
+  // 饼图中心
+  c.fillStyle = 'rgba(10,6,18,0.8)';
+  c.beginPath();
+  c.arc(pcx, pcy, 40, 0, Math.PI * 2);
+  c.fill();
+  drawText(c, '原初丰度', pcx, pcy - 5, '12px sans-serif', 'rgba(255,255,255,0.6)', 'center');
+  drawText(c, 'Big Bang', pcx, pcy + 12, '10px "JetBrains Mono"', 'rgba(251,191,36,0.5)', 'center');
+
+  // 饼图标签
+  drawText(c, 'H 75%', pcx + pr + 15, pcy - 50, 'bold 14px sans-serif', '#fbbf24', 'left');
+  drawText(c, '⁴He 25%', pcx + pr + 15, pcy - 28, 'bold 14px sans-serif', '#a78bfa', 'left');
+  drawText(c, 'D 0.01%', pcx + pr + 15, pcy - 8, '11px sans-serif', 'rgba(255,255,255,0.5)', 'left');
+  drawText(c, '理论预言 = 观测结果', pcx + pr + 15, pcy + 15, '11px sans-serif', 'rgba(34,211,238,0.6)', 'left');
+
+  // 反应链（右侧）
+  const rx0 = 380, ry0 = 80;
+  drawText(c, '核合成反应链', rx0, ry0 - 20, '13px sans-serif', 'rgba(255,255,255,0.6)', 'left');
+
+  const reactions = [
+    { label: 'p⁺ + n', sub: '质子+中子', x: rx0, y: ry0 + 30 },
+    { label: '²H (D)', sub: '氘核', x: rx0 + 110, y: ry0 + 30 },
+    { label: '³He', sub: '氦-3', x: rx0 + 220, y: ry0 + 30 },
+    { label: '⁴He', sub: '氦-4', x: rx0 + 330, y: ry0 + 30 },
+  ];
+  for (let i = 0; i < reactions.length; i++) {
+    const r = reactions[i];
+    // 框
+    c.fillStyle = 'rgba(76,29,149,0.2)';
+    c.strokeStyle = 'rgba(167,139,250,0.4)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.roundRect(r.x - 40, r.y - 18, 80, 40, 6);
+    c.fill();
+    c.stroke();
+    drawText(c, r.label, r.x, r.y - 2, 'bold 13px "JetBrains Mono"', '#fbbf24', 'center');
+    drawText(c, r.sub, r.x, r.y + 14, '9px sans-serif', 'rgba(255,255,255,0.4)', 'center');
+    // 箭头
+    if (i < reactions.length - 1) {
+      c.strokeStyle = 'rgba(251,191,36,0.5)';
+      c.fillStyle = 'rgba(251,191,36,0.5)';
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.moveTo(r.x + 42, r.y);
+      c.lineTo(r.x + 66, r.y);
+      c.stroke();
+      c.beginPath();
+      c.moveTo(r.x + 66, r.y);
+      c.lineTo(r.x + 60, r.y - 4);
+      c.lineTo(r.x + 60, r.y + 4);
+      c.closePath();
+      c.fill();
+    }
+  }
+
+  // 时间轴
+  const tlY = ry0 + 100, tlX = rx0, tlW = 330;
+  drawText(c, '时间节点', tlX, tlY, '12px sans-serif', 'rgba(255,255,255,0.5)', 'left');
+  c.strokeStyle = 'rgba(124,58,237,0.3)';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(tlX, tlY + 20);
+  c.lineTo(tlX + tlW, tlY + 20);
+  c.stroke();
+  const nodes = [
+    { t: '1 秒', desc: '中微子退耦', pos: 0.05 },
+    { t: '3 分钟', desc: '核合成开始', pos: 0.4 },
+    { t: '20 分钟', desc: '核合成结束', pos: 0.85 },
+  ];
+  for (const n of nodes) {
+    const nx = tlX + n.pos * tlW;
+    c.fillStyle = '#fbbf24';
+    c.beginPath();
+    c.arc(nx, tlY + 20, 4, 0, Math.PI * 2);
+    c.fill();
+    drawText(c, n.t, nx, tlY + 38, '10px "JetBrains Mono"', 'rgba(251,191,36,0.7)', 'center');
+    drawText(c, n.desc, nx, tlY + 52, '9px sans-serif', 'rgba(255,255,255,0.4)', 'center');
+  }
+}
+
+// ====== Step 4: 宇宙时间线 ======
+const epochs = [
+  { t: '10⁻⁴³s', name: '普朗克时代', desc: '已知物理定律失效', color: '#fbbf24', icon: '•' },
+  { t: '10⁻³⁵s', name: '暴胀时期', desc: '宇宙指数级膨胀', color: '#f59e0b', icon: '→' },
+  { t: '10⁻⁶s', name: '夸克时代', desc: '夸克-胶子等离子体', color: '#f97316', icon: '○' },
+  { t: '1s', name: '轻子时代', desc: '正反粒子湮灭', color: '#ea580c', icon: '◇' },
+  { t: '3min', name: '核合成', desc: '轻元素形成', color: '#dc2626', icon: '★' },
+  { t: '38万年', name: '复合时代', desc: 'CMB产生，宇宙透明', color: '#b91c1c', icon: '☀' },
+  { t: '1亿年', name: '黑暗时代', desc: '没有恒星', color: '#7c3aed', icon: '○' },
+  { t: '4亿年', name: '再电离', desc: '第一代恒星点亮', color: '#6d28d9', icon: '✦' },
+  { t: '20亿年', name: '星系形成', desc: '星系大量形成', color: '#5b21b6', icon: '◈' },
+  { t: '92亿年', name: '太阳系', desc: '太阳和行星诞生', color: '#4c1d95', icon: '☉' },
+  { t: '138亿年', name: '今天', desc: '人类文明出现', color: '#fbbf24', icon: '★' },
+];
+
+function drawStep4(c, w, h) {
+  fillSpaceBg(c, w, h);
+  drawStars(c, w, h, state.time);
+
+  // 时间线
+  const tlY = h / 2 + 20, tlX = 50, tlW = w - 100;
+  drawText(c, '宇宙演化时间线（对数刻度）', w / 2, 35, '14px sans-serif', 'rgba(255,255,255,0.5)', 'center');
+
+  // 主轴线
+  const grad = c.createLinearGradient(tlX, 0, tlX + tlW, 0);
+  grad.addColorStop(0, '#fbbf24');
+  grad.addColorStop(0.5, '#7c3aed');
+  grad.addColorStop(1, '#fbbf24');
+  c.strokeStyle = grad;
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(tlX, tlY);
+  c.lineTo(tlX + tlW, tlY);
+  c.stroke();
+
+  // 大爆炸标记
+  c.fillStyle = '#fbbf24';
+  c.beginPath();
+  c.arc(tlX, tlY, 8, 0, Math.PI * 2);
+  c.fill();
+  const glow = c.createRadialGradient(tlX, tlY, 0, tlX, tlY, 20);
+  glow.addColorStop(0, 'rgba(251,191,36,0.4)');
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = glow;
+  c.beginPath();
+  c.arc(tlX, tlY, 20, 0, Math.PI * 2);
+  c.fill();
+  drawText(c, '大爆炸', tlX, tlY + 30, '10px sans-serif', 'rgba(251,191,36,0.7)', 'center');
+
+  // 时代标记
+  for (let i = 0; i < epochs.length; i++) {
+    const ep = epochs[i];
+    const pos = i / (epochs.length - 1);
+    const ex = tlX + pos * tlW;
+    const up = i % 2 === 0;
+    const ey = up ? tlY - 50 : tlY + 50;
+
+    // 连接线
+    c.strokeStyle = 'rgba(255,255,255,0.15)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(ex, tlY);
+    c.lineTo(ex, ey + (up ? 10 : -10));
+    c.stroke();
+
+    // 节点
+    const isActive = state.timelineProgress > 0 && pos <= state.timelineProgress;
+    c.fillStyle = isActive ? ep.color : 'rgba(255,255,255,0.2)';
+    c.beginPath();
+    c.arc(ex, tlY, isActive ? 6 : 4, 0, Math.PI * 2);
+    c.fill();
+
+    // 文字
+    const alpha = isActive ? 1 : 0.4;
+    drawText(c, ep.t, ex, ey, '9px "JetBrains Mono"', `rgba(255,255,255,${alpha * 0.6})`, 'center');
+    drawText(c, ep.name, ex, ey + (up ? -14 : 14), '10px sans-serif', `rgba(${isActive ? '251,191,36' : '255,255,255'},${alpha * 0.7})`, 'center');
+  }
+
+  // 播放进度高亮
+  if (state.timelineProgress > 0) {
+    const px = tlX + state.timelineProgress * tlW;
+    // 扫描线
+    c.strokeStyle = 'rgba(251,191,36,0.6)';
+    c.lineWidth = 2;
+    c.beginPath();
+    c.moveTo(px, tlY - 80);
+    c.lineTo(px, tlY + 80);
+    c.stroke();
+    // 光晕
+    const pg = c.createRadialGradient(px, tlY, 0, px, tlY, 30);
+    pg.addColorStop(0, 'rgba(251,191,36,0.3)');
+    pg.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = pg;
+    c.beginPath();
+    c.arc(px, tlY, 30, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  // 当前时代信息
+  if (state.timelineProgress > 0) {
+    const idx = Math.min(Math.floor(state.timelineProgress * (epochs.length - 1)), epochs.length - 1);
+    const ep = epochs[idx];
+    drawText(c, `${ep.t}  ${ep.name}`, w / 2, h - 40, 'bold 16px sans-serif', ep.color, 'center');
+    drawText(c, ep.desc, w / 2, h - 22, '12px sans-serif', 'rgba(255,255,255,0.5)', 'center');
+  } else {
+    drawText(c, '点击"播放宇宙历史"按钮', w / 2, h - 30, '12px sans-serif', 'rgba(255,255,255,0.3)', 'center');
+  }
+}
+
+// ====== Step 5: 宇宙未来 ======
+function drawStep5(c, w, h) {
+  fillSpaceBg(c, w, h);
+  drawStars(c, w, h, state.time);
+
+  const scenario = state.futureScenario;
+  const scenarios = [
+    { name: '大冻结', desc: '永远膨胀，越来越冷', color: '#2563eb' },
+    { name: '大撕裂', desc: '膨胀加速，撕裂一切', color: '#dc2626' },
+    { name: '大挤压', desc: '重新坍缩到奇点', color: '#a78bfa' },
+  ];
+
+  // 三场景小图（上方）
+  const panelW = (w - 80) / 3 - 10;
+  const panelH = 160;
+  const panelY = 50;
+  for (let s = 0; s < 3; s++) {
+    const px = 30 + s * (panelW + 15);
+    const sc = scenarios[s];
+    const isActive = s === scenario;
+
+    // 面板背景
+    c.fillStyle = isActive ? 'rgba(76,29,149,0.15)' : 'rgba(10,6,18,0.5)';
+    c.strokeStyle = isActive ? sc.color : 'rgba(255,255,255,0.1)';
+    c.lineWidth = isActive ? 2 : 1;
+    c.beginPath();
+    c.roundRect(px, panelY, panelW, panelH, 8);
+    c.fill();
+    c.stroke();
+
+    // 标题
+    drawText(c, sc.name, px + panelW / 2, panelY + 22, 'bold 14px sans-serif', isActive ? sc.color : 'rgba(255,255,255,0.4)', 'center');
+    drawText(c, sc.desc, px + panelW / 2, panelY + 38, '10px sans-serif', 'rgba(255,255,255,0.3)', 'center');
+
+    // 场景动画
+    const animCx = px + panelW / 2, animCy = panelY + panelH / 2 + 20;
+    const t = state.time + s * 100;
+
+    if (s === 0) {
+      // 大冻结：星系向远处飞散，变暗
+      for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2;
+        const dist = 15 + (Math.sin(t * 0.5 + i) * 0.5 + 0.5) * 35;
+        const dx = animCx + Math.cos(ang) * dist;
+        const dy = animCy + Math.sin(ang) * dist * 0.5;
+        const alpha = 1 - (dist - 15) / 35;
+        c.fillStyle = `rgba(96,165,250,${alpha * 0.6})`;
+        c.beginPath();
+        c.arc(dx, dy, 2, 0, Math.PI * 2);
+        c.fill();
+      }
+    } else if (s === 1) {
+      // 大撕裂：粒子被撕碎
+      for (let i = 0; i < 12; i++) {
+        const ang = (i / 12) * Math.PI * 2 + t * 0.3;
+        const dist = 10 + Math.abs(Math.sin(t * 2 + i)) * 40;
+        const dx = animCx + Math.cos(ang) * dist;
+        const dy = animCy + Math.sin(ang) * dist * 0.5;
+        const sz = Math.max(0.5, 3 - dist / 20);
+        c.fillStyle = `rgba(239,68,68,${0.3 + Math.sin(t + i) * 0.3})`;
+        c.beginPath();
+        c.arc(dx, dy, sz, 0, Math.PI * 2);
+        c.fill();
+      }
+    } else {
+      // 大挤压：向中心坍缩
+      for (let i = 0; i < 10; i++) {
+        const ang = (i / 10) * Math.PI * 2;
+        const maxDist = 40;
+        const phase = (Math.sin(t * 0.8 + i * 0.5) * 0.5 + 0.5);
+        const dist = maxDist * (1 - phase * 0.7);
+        const dx = animCx + Math.cos(ang) * dist;
+        const dy = animCy + Math.sin(ang) * dist * 0.5;
+        c.fillStyle = `rgba(167,139,250,${0.3 + phase * 0.5})`;
+        c.beginPath();
+        c.arc(dx, dy, 2 + phase * 2, 0, Math.PI * 2);
+        c.fill();
+      }
+      // 中心奇点
+      const sg = c.createRadialGradient(animCx, animCy, 0, animCx, animCy, 10);
+      sg.addColorStop(0, 'rgba(167,139,250,0.5)');
+      sg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = sg;
+      c.beginPath();
+      c.arc(animCx, animCy, 10, 0, Math.PI * 2);
+      c.fill();
+    }
+  }
+
+  // 宇宙成分饼图（下方）
+  const pcx = w / 2, pcy = h - 80, pr = 50;
+  const composition = [
+    { label: '暗能量', value: 68, color: '#4c1d95' },
+    { label: '暗物质', value: 27, color: '#a78bfa' },
+    { label: '普通物质', value: 5, color: '#fbbf24' },
+  ];
+  let sa = -Math.PI / 2;
+  for (const d of composition) {
+    const ang = (d.value / 100) * Math.PI * 2;
+    c.fillStyle = d.color;
+    c.beginPath();
+    c.moveTo(pcx, pcy);
+    c.arc(pcx, pcy, pr, sa, sa + ang);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = 'rgba(10,6,18,0.5)';
+    c.lineWidth = 2;
+    c.stroke();
+    sa += ang;
+  }
+  // 标签
+  drawText(c, '暗能量 68%', pcx + pr + 12, pcy - 18, '11px sans-serif', '#a78bfa', 'left');
+  drawText(c, '暗物质 27%', pcx + pr + 12, pcy - 2, '11px sans-serif', '#c4b5fd', 'left');
+  drawText(c, '普通物质 5%', pcx + pr + 12, pcy + 14, '11px sans-serif', '#fbbf24', 'left');
+
+  // 警示文字
+  drawText(c, '我们对 95% 的宇宙几乎一无所知', pcx, pcy + pr + 25, 'bold 13px sans-serif', 'rgba(220,38,38,0.7)', 'center');
+}
+
+// ====== 主绘制函数 ======
+function draw() {
+  ctx.clearRect(0, 0, CW, CH);
+  switch (state.currentStep) {
+    case 0: drawStep0(ctx, CW, CH); break;
+    case 1: drawStep1(ctx, CW, CH); break;
+    case 2: drawStep2(ctx, CW, CH); break;
+    case 3: drawStep3(ctx, CW, CH); break;
+    case 4: drawStep4(ctx, CW, CH); break;
+    case 5: drawStep5(ctx, CW, CH); break;
+  }
+}
+
+// ====== 动画循环 ======
+function animate() {
+  state.time += 0.016;
+  // 时间线播放
+  if (state.timelinePlaying) {
+    state.timelineProgress += 0.005;
+    if (state.timelineProgress >= 1) {
+      state.timelineProgress = 1;
+      state.timelinePlaying = false;
+      const btn = document.getElementById('timelinePlayBtn');
+      if (btn) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>重播';
+    }
+  }
+  // 自动播放进度
+  if (state.isAutoplay) {
+    const elapsed = Date.now() - state.autoplayStart;
+    const progress = Math.min(elapsed / AUTOPLAY_MS, 1);
+    document.getElementById('autoplayProgress').style.width = (progress * 100) + '%';
+    if (progress >= 1) {
+      if (state.currentStep < steps.length - 1) {
+        state.currentStep++;
+        updateStep();
+        state.autoplayStart = Date.now();
+      } else {
+        stopAutoplay();
+      }
+    }
+  }
+  draw();
+  requestAnimationFrame(animate);
+}
+
+// ====== 步骤导航 ======
+const stepContentEl = document.getElementById('stepContent');
+const stepLabelEl = document.getElementById('stepLabel');
+const stepDotsContainer = document.getElementById('stepDots');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const captionEl = document.getElementById('visualCaption');
+
+// 创建步骤圆点
+for (let i = 0; i < steps.length; i++) {
+  const dot = document.createElement('div');
+  dot.className = 'step-dot' + (i === 0 ? ' active' : '');
+  dot.dataset.step = i;
+  dot.addEventListener('click', () => { if (i !== state.currentStep) { state.currentStep = i; updateStep(); } });
+  stepDotsContainer.appendChild(dot);
+}
+const stepDots = document.querySelectorAll('.step-dot');
+
+function updateStep() {
+  const step = steps[state.currentStep];
+  // 内容切换
+  stepContentEl.classList.add('fade-out');
+  setTimeout(() => {
+    stepContentEl.innerHTML = `<h3>${step.title}</h3>${step.content}`;
+    stepContentEl.classList.remove('fade-out');
+    stepContentEl.classList.add('fade-in');
+    setTimeout(() => stepContentEl.classList.remove('fade-in'), 300);
+  }, 200);
+
+  // 圆点
+  stepLabelEl.textContent = `第 ${state.currentStep + 1} / ${steps.length} 步`;
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === state.currentStep) dot.classList.add('active');
+    else if (i < state.currentStep) dot.classList.add('completed');
+  });
+
+  // 按钮
+  prevBtn.disabled = state.currentStep === 0;
+  prevBtn.style.opacity = state.currentStep === 0 ? '0.5' : '1';
+  prevBtn.style.cursor = state.currentStep === 0 ? 'not-allowed' : 'pointer';
+  nextBtn.innerHTML = state.currentStep === steps.length - 1 ? '完成 ✓' : '下一步 <span>→</span>';
+
+  // 图注
+  captionEl.textContent = step.caption;
+
+  // 控制面板
+  document.querySelectorAll('.control-group[data-step]').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.step) === state.currentStep);
+  });
+
+  // 重置时间线
+  if (state.currentStep !== 4) {
+    state.timelineProgress = 0;
+    state.timelinePlaying = false;
+  }
+}
+
+prevBtn.addEventListener('click', () => { if (state.currentStep > 0) { state.currentStep--; updateStep(); } });
+nextBtn.addEventListener('click', () => { if (state.currentStep < steps.length - 1) { state.currentStep++; updateStep(); } });
+
+// ====== 自动播放 ======
+const autoplayBtn = document.getElementById('autoplayBtn');
+const autoplayProgress = document.getElementById('autoplayProgress');
+
+function startAutoplay() {
+  state.isAutoplay = true;
+  state.autoplayStart = Date.now();
+  autoplayBtn.classList.add('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+}
+function stopAutoplay() {
+  state.isAutoplay = false;
+  autoplayBtn.classList.remove('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+  autoplayProgress.style.width = '0%';
+}
+autoplayBtn.addEventListener('click', () => {
+  if (state.isAutoplay) stopAutoplay();
+  else {
+    if (state.currentStep === steps.length - 1) { state.currentStep = 0; updateStep(); }
+    startAutoplay();
+  }
+});
+
+// ====== 控制器事件 ======
+// 步骤 0: 膨胀滑块
+const expansionSlider = document.getElementById('expansionSlider');
+const expansionValue = document.getElementById('expansionValue');
+expansionSlider.addEventListener('input', () => {
+  state.expansion = expansionSlider.value / 100;
+  expansionValue.textContent = state.expansion < 0.35 ? '过去' : state.expansion > 0.65 ? '未来' : '现在';
+});
+// 步骤 1: 速度滑块
+const velocitySlider = document.getElementById('velocitySlider');
+const velocityValue = document.getElementById('velocityValue');
+velocitySlider.addEventListener('input', () => {
+  state.velocity = velocitySlider.value / 100;
+  velocityValue.textContent = state.velocity.toFixed(2) + 'c';
+});
+// 步骤 2: 温度滑块
+const tempSlider = document.getElementById('tempSlider');
+const tempValue = document.getElementById('tempValue');
+tempSlider.addEventListener('input', () => {
+  state.temperature = tempSlider.value / 100;
+  const k = 2.7 + state.temperature * 2997.3;
+  tempValue.textContent = k < 100 ? k.toFixed(1) + 'K' : Math.round(k) + 'K';
+});
+// 步骤 4: 时间线播放
+const timelinePlayBtn = document.getElementById('timelinePlayBtn');
+timelinePlayBtn.addEventListener('click', () => {
+  if (state.timelineProgress >= 1) { state.timelineProgress = 0; }
+  state.timelinePlaying = !state.timelinePlaying;
+  timelinePlayBtn.innerHTML = state.timelinePlaying
+    ? '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>暂停'
+    : (state.timelineProgress >= 1
+      ? '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>重播'
+      : '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>播放宇宙历史');
+});
+// 步骤 5: 场景按钮
+document.querySelectorAll('.scenario-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.futureScenario = parseInt(btn.dataset.scenario);
+  });
+});
+
+// ====== 导航栏滚动 ======
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY > 10));
+
+// ====== 开场动画 ======
+function playOpeningAnimation() {
+  const overlay = document.getElementById('openingOverlay');
+  const oc = document.getElementById('openingCanvas');
+  const octx = oc.getContext('2d');
+  oc.width = window.innerWidth;
+  oc.height = window.innerHeight;
+
+  const particles = [];
+  const cx = oc.width / 2, cy = oc.height / 2;
+  let startTime = Date.now();
+  let frame = 0;
+
+  function openingFrame() {
+    const elapsed = (Date.now() - startTime) / 1000;
+    const t = Math.min(elapsed / 2.5, 1);
+
+    octx.fillStyle = `rgba(5,3,15,${t < 0.8 ? 1 : 1 - (t - 0.8) * 5})`;
+    octx.fillRect(0, 0, oc.width, oc.height);
+
+    if (t > 0.1) {
+      // 爆发点
+      const burstR = t * 300;
+      const grad = octx.createRadialGradient(cx, cy, 0, cx, cy, burstR);
+      grad.addColorStop(0, `rgba(251,191,36,${(1 - t) * 0.8})`);
+      grad.addColorStop(0.3, `rgba(167,139,250,${(1 - t) * 0.4})`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      octx.fillStyle = grad;
+      octx.beginPath();
+      octx.arc(cx, cy, burstR, 0, Math.PI * 2);
+      octx.fill();
+
+      // 中心亮点
+      octx.fillStyle = `rgba(255,255,255,${(1 - t) * 0.9})`;
+      octx.beginPath();
+      octx.arc(cx, cy, 5 * (1 - t * 0.5), 0, Math.PI * 2);
+      octx.fill();
+
+      // 粒子
+      if (frame % 2 === 0 && t < 0.6) {
+        for (let i = 0; i < 8; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = 100 + Math.random() * 300;
+          particles.push({
+            x: cx, y: cy,
+            vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+            life: 1, size: Math.random() * 2 + 1,
+            color: ['#fbbf24', '#a78bfa', '#f59e0b', '#fef3c7'][Math.floor(Math.random() * 4)],
+          });
+        }
+      }
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        const dt = 0.016;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        p.life -= dt * 0.5;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+        const hex = p.color;
+        const pr = parseInt(hex.slice(1, 3), 16), pg = parseInt(hex.slice(3, 5), 16), pb = parseInt(hex.slice(5, 7), 16);
+        octx.fillStyle = `rgba(${pr},${pg},${pb},${p.life})`;
+        octx.beginPath();
+        octx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        octx.fill();
+      }
+
+      // 文字
+      if (t > 0.4) {
+        const textAlpha = Math.min((t - 0.4) * 3, 1) * (1 - Math.max(0, (t - 0.8) * 5));
+        octx.font = 'bold 28px "Noto Serif SC", serif';
+        octx.fillStyle = `rgba(251,191,36,${textAlpha})`;
+        octx.textAlign = 'center';
+        octx.fillText('宇宙大爆炸', cx, cy + 60);
+        octx.font = '14px "Noto Sans SC", sans-serif';
+        octx.fillStyle = `rgba(255,255,255,${textAlpha * 0.5})`;
+        octx.fillText('138 亿年的壮丽史诗', cx, cy + 88);
+      }
+    }
+
+    frame++;
+    if (t < 1) {
+      requestAnimationFrame(openingFrame);
+    } else {
+      overlay.classList.add('hidden');
+      setTimeout(() => overlay.style.display = 'none', 1000);
+    }
+  }
+  openingFrame();
+}
+
+// ====== 初始化 ======
+updateStep();
+playOpeningAnimation();
+animate();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>蒲丰投针与中心极限定理 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+/* ====== 本 Demo 专用配色（紫罗兰系） ====== */
+.framework-magazine {
+  --brand: #8B5CF6;
+  --brand-hover: #7C3AED;
+  --brand-soft: rgba(139, 92, 246, 0.1);
+  --brand-soft-hover: rgba(139, 92, 246, 0.15);
+}
+:root {
+  --buffon-violet: #8B5CF6;
+  --buffon-violet-deep: #7C3AED;
+  --buffon-violet-soft: rgba(139, 92, 246, 0.08);
+  --buffon-pink: #EC4899;
+  --buffon-pink-soft: rgba(236, 72, 153, 0.12);
+  --buffon-emerald: #10B981;
+  --buffon-emerald-soft: rgba(16, 185, 129, 0.1);
+  --buffon-slate: #94A3B8;
+  --buffon-slate-soft: rgba(148, 163, 184, 0.15);
+  --buffon-amber: #F59E0B;
+  --buffon-line: #CBD5E1;
+}
+
+/* ====== 可视化区容器 ====== */
+.magazine-visual-wrapper {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+#visualWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ====== 自动播放 ====== */
+.buffon-autoplay-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: var(--buffon-violet-soft);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius-full);
+  color: var(--buffon-violet);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  white-space: nowrap;
+}
+.buffon-autoplay-btn:hover { background: rgba(139, 92, 246, 0.15); }
+.buffon-autoplay-btn.playing {
+  background: var(--buffon-violet);
+  color: #fff;
+  border-color: var(--buffon-violet);
+}
+.buffon-autoplay-btn svg { width: 12px; height: 12px; }
+
+.buffon-progress-track {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; background: var(--border-soft);
+  overflow: hidden; border-radius: 1px;
+}
+.buffon-progress-fill {
+  height: 100%; background: var(--buffon-violet);
+  width: 0%; border-radius: 1px;
+}
+
+/* ====== 步骤1：投针动画画布 ====== */
+.buffon-hero-canvas {
+  width: 100%;
+  display: block;
+  border-radius: var(--radius-card);
+}
+.buffon-hero-stats {
+  display: flex;
+  gap: var(--spacer-16);
+  padding: var(--spacer-16);
+}
+.buffon-hero-stat {
+  flex: 1;
+  text-align: center;
+  padding: var(--spacer-12);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+}
+.buffon-hero-stat .num {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  display: block;
+  line-height: 1.1;
+}
+.buffon-hero-stat .desc {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.buffon-legend {
+  display: flex;
+  gap: var(--spacer-16);
+  padding: 0 var(--spacer-16) var(--spacer-12);
+  flex-wrap: wrap;
+}
+.buffon-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+}
+.buffon-legend-line {
+  width: 20px; height: 3px; border-radius: 2px;
+}
+
+/* ====== 步骤2：几何图 ====== */
+.buffon-geo-container {
+  padding: var(--spacer-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+}
+.buffon-geo-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.buffon-geo-controls {
+  padding: var(--spacer-16);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+}
+.buffon-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--spacer-12);
+}
+.buffon-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.buffon-slider-name {
+  font-size: var(--fs-small);
+  color: var(--text);
+  font-weight: 500;
+}
+.buffon-slider-val {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+}
+.buffon-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.buffon-slider.violet { background: linear-gradient(to right, var(--buffon-violet), rgba(139,92,246,0.2)); }
+.buffon-slider.pink { background: linear-gradient(to right, var(--buffon-pink), rgba(236,72,153,0.2)); }
+.buffon-slider.emerald { background: linear-gradient(to right, var(--buffon-emerald), rgba(16,185,129,0.2)); }
+.buffon-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.buffon-slider.violet::-webkit-slider-thumb { background: var(--buffon-violet); }
+.buffon-slider.pink::-webkit-slider-thumb { background: var(--buffon-pink); }
+.buffon-slider.emerald::-webkit-slider-thumb { background: var(--buffon-emerald); }
+.buffon-slider::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.buffon-slider.violet::-moz-range-thumb { background: var(--buffon-violet); }
+.buffon-slider.pink::-moz-range-thumb { background: var(--buffon-pink); }
+.buffon-slider.emerald::-moz-range-thumb { background: var(--buffon-emerald); }
+
+.buffon-cross-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-12);
+  padding: var(--spacer-12) var(--spacer-16);
+  border-radius: var(--radius);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+.buffon-cross-indicator.yes {
+  background: var(--buffon-pink-soft);
+  color: var(--buffon-pink);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+}
+.buffon-cross-indicator.no {
+  background: var(--buffon-slate-soft);
+  color: var(--buffon-slate);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+/* ====== 步骤3：概率推导 ====== */
+.buffon-deriv-container {
+  padding: var(--spacer-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+}
+.buffon-deriv-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.buffon-formula-box {
+  padding: var(--spacer-20);
+  background: linear-gradient(135deg, rgba(139,92,246,0.04), rgba(139,92,246,0.08));
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+.buffon-formula-box .formula {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--buffon-violet);
+  margin-bottom: var(--spacer-8);
+}
+.buffon-formula-box .frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 4px;
+}
+.buffon-formula-box .frac .num {
+  border-bottom: 2px solid var(--text);
+  padding: 0 8px 4px;
+}
+.buffon-formula-box .frac .den {
+  padding: 4px 8px 0;
+}
+.buffon-calc-steps {
+  padding: var(--spacer-16);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 2;
+}
+.buffon-calc-steps .calc-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.buffon-calc-steps .calc-highlight {
+  color: var(--buffon-violet);
+  font-weight: 700;
+}
+
+/* ====== 步骤4：蒙特卡洛实验 ====== */
+.buffon-sim-container {
+  padding: var(--spacer-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-12);
+}
+.buffon-sim-canvas-wrapper {
+  position: relative;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.buffon-sim-canvas {
+  display: block;
+  width: 100%;
+}
+.buffon-sim-controls {
+  display: flex;
+  gap: var(--spacer-12);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.buffon-sim-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+}
+.buffon-sim-btn:hover {
+  border-color: var(--buffon-violet);
+  color: var(--buffon-violet);
+}
+.buffon-sim-btn.primary {
+  background: var(--buffon-violet);
+  color: #fff;
+  border-color: var(--buffon-violet);
+}
+.buffon-sim-btn.primary:hover {
+  background: var(--buffon-violet-deep);
+  color: #fff;
+}
+.buffon-sim-stats {
+  display: flex;
+  gap: var(--spacer-12);
+}
+.buffon-sim-stat {
+  flex: 1;
+  text-align: center;
+  padding: var(--spacer-12);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+}
+.buffon-sim-stat .num {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  display: block;
+  line-height: 1.1;
+}
+.buffon-sim-stat .desc {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.buffon-sim-stat .num.violet { color: var(--buffon-violet); }
+.buffon-sim-stat .num.pink { color: var(--buffon-pink); }
+.buffon-sim-stat .num.emerald { color: var(--buffon-emerald); }
+.buffon-sim-histogram-wrapper {
+  padding: var(--spacer-12);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+}
+.buffon-sim-histogram-title {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.buffon-sim-histogram-canvas {
+  width: 100%;
+  display: block;
+  border-radius: var(--radius);
+}
+
+/* ====== 步骤5：CLT ====== */
+.buffon-clt-container {
+  padding: var(--spacer-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+}
+.buffon-clt-canvas-wrapper {
+  position: relative;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.buffon-clt-canvas {
+  display: block;
+  width: 100%;
+}
+.buffon-clt-info {
+  display: flex;
+  gap: var(--spacer-12);
+}
+.buffon-clt-info-card {
+  flex: 1;
+  padding: var(--spacer-12);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+.buffon-clt-info-card .num {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 700;
+  display: block;
+}
+.buffon-clt-info-card .desc {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ====== 杂志文章内嵌样式 ====== */
+.magazine-body .buffon-inline-formula {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--buffon-violet);
+  background: var(--buffon-violet-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.magazine-body .buffon-highlight {
+  color: var(--buffon-pink);
+  font-weight: 700;
+}
+.magazine-body .buffon-callout {
+  border-left: 3px solid var(--buffon-violet);
+  padding: var(--spacer-12) var(--spacer-16);
+  background: var(--buffon-violet-soft);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: var(--spacer-12) 0;
+  font-size: var(--fs-small);
+  line-height: 1.7;
+}
+.magazine-body .buffon-stat-row {
+  display: flex;
+  gap: var(--spacer-16);
+  margin: var(--spacer-12) 0;
+}
+.magazine-body .buffon-stat {
+  flex: 1;
+  text-align: center;
+  padding: var(--spacer-12);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+}
+.magazine-body .buffon-stat .num {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  display: block;
+}
+.magazine-body .buffon-stat .desc {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+}
+
+/* ====== 响应式 ====== */
+@media (max-width: 768px) {
+  .buffon-hero-stats { flex-direction: column; }
+  .buffon-sim-stats { flex-direction: column; }
+  .buffon-clt-info { flex-direction: column; }
+  .buffon-formula-box .formula { font-size: 20px; }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">蒲丰投针与中心极限定理</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-math">数学</span>
+    <a href="/skills/jingbo-edu-probability-stats-viz-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="magazine-article">
+        <div class="magazine-article-header">
+          <div class="magazine-kicker">MATHEMATICS · 概率与统计</div>
+          <h1 class="magazine-title">蒲丰投针与<br>中心极限定理</h1>
+          <p class="magazine-subtitle">一根针、一组平行线——为什么随机投针能算出圆周率？而这背后，又藏着统计学最重要的定理。</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="magazine-step-indicator" style="position:relative;">
+          <div class="buffon-progress-track" id="progressTrack" style="display:none;">
+            <div class="buffon-progress-fill" id="progressFill"></div>
+          </div>
+          <div class="magazine-step-dots" id="stepDots">
+            <div class="magazine-step-dot active" data-step="0"></div>
+            <div class="magazine-step-dot" data-step="1"></div>
+            <div class="magazine-step-dot" data-step="2"></div>
+            <div class="magazine-step-dot" data-step="3"></div>
+            <div class="magazine-step-dot" data-step="4"></div>
+          </div>
+          <span class="magazine-step-label" id="stepLabel">第 1 / 5 步</span>
+          <button class="buffon-autoplay-btn" id="autoplayBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            自动播放
+          </button>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="magazine-body">
+          <div class="magazine-step-content" id="stepContent"></div>
+        </div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="magazine-step-nav">
+          <button class="btn btn-secondary" id="prevBtn">
+            <span>←</span> 上一步
+          </button>
+          <button class="btn btn-primary" id="nextBtn">
+            下一步 <span>→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="magazine-visual">
+        <div class="magazine-visual-wrapper" id="visualWrapper">
+          <!-- JS 动态渲染 -->
+        </div>
+        <p class="magazine-visual-caption" id="visualCaption"></p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">buffon-needle-clt</span>
+    <span class="demo-tech-tag">Canvas</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">JavaScript</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-probability-stats-viz-v0.1.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   蒲丰投针与中心极限定理 · 杂志讲解型 Demo
+   5 步：引言 → 几何设置 → 概率推导 → 蒙特卡洛实验 → CLT
+   ============================================================ */
+
+// ====== 工具函数 ======
+function gaussRandom() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function normalPDF(x, mu, sigma) {
+  return (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - mu) / sigma) ** 2);
+}
+
+// ====== 步骤内容数据（左侧文章） ======
+const steps = [
+  {
+    title: '当投针遇上 π',
+    content: `
+      <p class="lead">1733 年，法国博物学家蒲丰提出了一个看似无聊的问题：把针随机扔在画了平行线的地板上，针压线的概率是多少？</p>
+      <p>答案令人吃惊——这个概率里竟然藏着 <span class="buffon-inline-formula">π</span>。也就是说，只要你扔足够多的针，数一数有多少根压住了线，就能估算出圆周率。</p>
+      <div class="buffon-callout">
+        随机性，居然能用来计算一个确定的数学常数。这是人类历史上最早的<strong>蒙特卡洛方法</strong>实例——比计算机诞生早了两百年。
+      </div>
+      <p>右侧动画正在模拟投针过程：粉色针压住了线，灰色针没有。随着针数增加，估算的 π 值会越来越接近真实值。</p>
+      <p>但这只是故事的一半。当我们反复进行这个实验时，一个更深刻的规律会浮现——<strong>中心极限定理</strong>。</p>
+    `
+  },
+  {
+    title: '问题的几何',
+    content: `
+      <p class="lead">先把问题说清楚：地板上画着间距为 <span class="buffon-inline-formula">d</span> 的平行线，针的长度为 <span class="buffon-inline-formula">l</span>（且 l ≤ d）。随机投下一根针，它压住线的概率是多少？</p>
+      <div class="buffon-stat-row">
+        <div class="buffon-stat">
+          <span class="num" style="color:var(--buffon-violet)">θ</span>
+          <span class="desc"><strong>针与线的夹角</strong><br>均匀分布于 0 到 π</span>
+        </div>
+        <div class="buffon-stat">
+          <span class="num" style="color:var(--buffon-pink)">y</span>
+          <span class="desc"><strong>针中心到最近线的距离</strong><br>均匀分布于 0 到 d/2</span>
+        </div>
+      </div>
+      <p>"随机"意味着两个变量各自均匀分布且相互独立。关键洞察是：针是否压线，完全由 θ 和 y 决定。</p>
+      <div class="buffon-callout">
+        <strong>压线条件</strong>：当针中心到线的距离 <span class="buffon-inline-formula">y ≤ (l/2)·sin θ</span> 时，针压住线。<br><br>
+        也就是说，角度越接近水平（θ → π/2），针越容易压线；越接近垂直（θ → 0），越不容易。
+      </div>
+      <p>拖动右侧滑块改变角度和位置，观察针何时压线、何时不压线。</p>
+    `
+  },
+  {
+    title: '为什么是 π？',
+    content: `
+      <p class="lead">现在来做最精彩的部分——推导压线概率，看看 π 是怎么出现的。</p>
+      <p>在 (θ, y) 平面上，所有可能的结果构成一个矩形：θ 从 0 到 π，y 从 0 到 d/2。压线的区域是曲线 <span class="buffon-inline-formula">y = (l/2)·sin θ</span> 下方的面积。</p>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">1</div>
+        <div class="magazine-proof-text">
+          <strong>压线面积</strong> = ∫₀^π (l/2)·sin θ dθ = (l/2)·[-cos θ]₀^π = (l/2)·(1+1) = <strong>l</strong>
+        </div>
+      </div>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">2</div>
+        <div class="magazine-proof-text">
+          <strong>总面积</strong> = π · (d/2) = <strong>πd/2</strong>
+        </div>
+      </div>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">3</div>
+        <div class="magazine-proof-text">
+          <strong>概率</strong> P = 压线面积 / 总面积 = l / (πd/2) = <span class="buffon-highlight">2l / (πd)</span>
+        </div>
+      </div>
+      <p>π 就这样从 sin 函数的积分中自然浮现！反过来，如果我们知道 l 和 d，通过实验统计压线频率 f，就能估算：</p>
+      <div class="buffon-callout" style="text-align:center;font-family:var(--font-serif);font-size:22px;">
+        π ≈ 2lN / (dM)<br>
+        <span style="font-size:13px;font-family:var(--font-sans);font-style:normal;color:var(--text-muted);">N = 总针数, M = 压线数</span>
+      </div>
+      <p>右侧图中，紫色曲线下方的面积就是压线概率的几何表示。</p>
+    `
+  },
+  {
+    title: '亲手估算 π',
+    content: `
+      <p class="lead">理论说完了，现在动手实验。调整参数，投下针，看 π 如何从随机中浮现。</p>
+      <div class="buffon-callout">
+        <strong>针长 l</strong>：越长越容易压线（但 l 不能超过线距 d）<br>
+        <strong>线距 d</strong>：线越密，压线概率越高<br>
+        <strong>投针数</strong>：越多，估算越准确
+      </div>
+      <p>每次投针都是一次随机实验。当针数较少时，π 的估计值跳动剧烈；随着针数增加，估计值逐渐稳定——这就是<strong>大数定律</strong>在起作用。</p>
+      <p>但仔细看下方的直方图：如果我们把每 100 根针作为一组，计算一组的 π 估计值，然后重复很多组——这些估计值的分布呈现什么形状？</p>
+      <p>答案是：正态分布。而这，正是中心极限定理的预言。</p>
+    `
+  },
+  {
+    title: '从投针到正态',
+    content: `
+      <p class="lead">中心极限定理（CLT）说：无论原始分布是什么，大量独立样本的<strong>平均值</strong>都趋近于正态分布。</p>
+      <p>在蒲丰投针中，单根针是否压线是一个伯努利分布（非 0 即 1），完全不"正态"。但如果我们取 N 根针作为一个批次，计算这个批次的 π 估计值，然后收集许多批次——</p>
+      <div class="buffon-callout">
+        <strong>批次大小越大</strong>，π 估计值的分布越窄（越精确）<br>
+        <strong>分布形状</strong>始终趋近于钟形正态曲线<br>
+        <strong>均值</strong>始终是真实 π 值
+      </div>
+      <p>这就是为什么正态分布如此重要——它不是某个特定问题的产物，而是<strong>所有</strong>足够大的随机样本均值的共同归宿。</p>
+      <div class="buffon-stat-row">
+        <div class="buffon-stat">
+          <span class="num" style="color:var(--buffon-violet)">μ = π</span>
+          <span class="desc">分布中心<br>始终是真实 π</span>
+        </div>
+        <div class="buffon-stat">
+          <span class="num" style="color:var(--buffon-pink)">σ → 0</span>
+          <span class="desc">标准差<br>随批次增大而减小</span>
+        </div>
+      </div>
+      <p>右侧实验中，拖动滑块改变批次大小，观察分布如何从"散乱"收敛为优美的钟形曲线。</p>
+    `
+  }
+];
+
+// ====== 步骤图注 ======
+const captions = [
+  '模拟投针：粉色针压住了线，π 的估计值随针数增加而收敛',
+  '蒲丰投针的几何：角度 θ 和距离 y 决定针是否压线',
+  '概率的几何意义：sin 曲线下方面积与矩形面积之比',
+  '蒙特卡洛实验：亲手投针估算 π，直方图记录每批估计值',
+  '中心极限定理：批次估计值收敛为正态分布'
+];
+
+// ====== 状态 ======
+let currentStep = 0;
+let isAutoPlaying = false;
+let autoPlayTimer = null;
+let progressAnimId = null;
+let stepCleanup = []; // 清理函数数组
+
+// ====== 导航逻辑 ======
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDots = document.querySelectorAll('.magazine-step-dot');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const visualWrapper = document.getElementById('visualWrapper');
+const visualCaption = document.getElementById('visualCaption');
+const autoplayBtn = document.getElementById('autoplayBtn');
+const progressTrack = document.getElementById('progressTrack');
+const progressFill = document.getElementById('progressFill');
+
+function cleanupStep() {
+  stepCleanup.forEach(fn => { try { fn(); } catch(e){} });
+  stepCleanup = [];
+}
+
+function updateStep() {
+  cleanupStep();
+
+  stepContent.classList.add('fade-out');
+  setTimeout(() => {
+    const step = steps[currentStep];
+    stepContent.innerHTML = `<h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:12px;color:var(--text);">${step.title}</h3>${step.content}`;
+    stepContent.classList.remove('fade-out');
+    stepContent.classList.add('fade-in');
+    setTimeout(() => stepContent.classList.remove('fade-in'), 300);
+  }, 200);
+
+  stepLabel.textContent = `第 ${currentStep + 1} / ${steps.length} 步`;
+
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === currentStep) dot.classList.add('active');
+    else if (i < currentStep) dot.classList.add('completed');
+  });
+
+  prevBtn.disabled = currentStep === 0;
+  prevBtn.style.opacity = currentStep === 0 ? '0.4' : '1';
+  prevBtn.style.cursor = currentStep === 0 ? 'not-allowed' : 'pointer';
+  nextBtn.innerHTML = currentStep === steps.length - 1
+    ? '完成 ✓'
+    : '下一步 <span>→</span>';
+
+  visualCaption.textContent = captions[currentStep];
+  renderVisual(currentStep);
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) { currentStep--; updateStep(); resetAutoPlayProgress(); }
+});
+nextBtn.addEventListener('click', () => {
+  if (currentStep < steps.length - 1) { currentStep++; updateStep(); resetAutoPlayProgress(); }
+});
+stepDots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const s = parseInt(dot.dataset.step);
+    if (s !== currentStep) { currentStep = s; updateStep(); resetAutoPlayProgress(); }
+  });
+});
+
+// ====== 自动播放 ======
+function toggleAutoPlay() {
+  if (isAutoPlaying) stopAutoPlay();
+  else startAutoPlay();
+}
+function startAutoPlay() {
+  isAutoPlaying = true;
+  autoplayBtn.classList.add('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>暂停';
+  progressTrack.style.display = 'block';
+  startProgressAnimation();
+  autoPlayTimer = setTimeout(() => {
+    if (currentStep < steps.length - 1) {
+      currentStep++; updateStep(); startAutoPlay();
+    } else { stopAutoPlay(); }
+  }, 9000);
+}
+function stopAutoPlay() {
+  isAutoPlaying = false;
+  autoplayBtn.classList.remove('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>自动播放';
+  progressTrack.style.display = 'none';
+  progressFill.style.width = '0%';
+  if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+  if (progressAnimId) { cancelAnimationFrame(progressAnimId); progressAnimId = null; }
+}
+function resetAutoPlayProgress() { if (isAutoPlaying) stopAutoPlay(); }
+function startProgressAnimation() {
+  const startTime = performance.now();
+  const duration = 9000;
+  function animate(now) {
+    if (!isAutoPlaying) return;
+    const elapsed = now - startTime;
+    progressFill.style.width = Math.min(elapsed / duration * 100, 100) + '%';
+    if (elapsed < duration) progressAnimId = requestAnimationFrame(animate);
+  }
+  progressAnimId = requestAnimationFrame(animate);
+}
+autoplayBtn.addEventListener('click', toggleAutoPlay);
+
+// ====== 导航栏滚动 ======
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 可视化渲染分发 ======
+function renderVisual(step) {
+  visualWrapper.innerHTML = '';
+  switch (step) {
+    case 0: renderStep1(); break;
+    case 1: renderStep2(); break;
+    case 2: renderStep3(); break;
+    case 3: renderStep4(); break;
+    case 4: renderStep5(); break;
+  }
+}
+
+// ============================================================
+// 步骤 1：投针动画
+// ============================================================
+function renderStep1() {
+  visualWrapper.innerHTML = `
+    <canvas class="buffon-hero-canvas" id="heroCanvas"></canvas>
+    <div class="buffon-hero-stats">
+      <div class="buffon-hero-stat">
+        <span class="num" id="heroTotal" style="color:var(--buffon-violet)">0</span>
+        <span class="desc">投针总数</span>
+      </div>
+      <div class="buffon-hero-stat">
+        <span class="num" id="heroCross" style="color:var(--buffon-pink)">0</span>
+        <span class="desc">压线数</span>
+      </div>
+      <div class="buffon-hero-stat">
+        <span class="num" id="heroPi" style="color:var(--buffon-emerald)">—</span>
+        <span class="desc">π 估计值</span>
+      </div>
+    </div>
+    <div class="buffon-legend">
+      <div class="buffon-legend-item"><span class="buffon-legend-line" style="background:var(--buffon-pink);"></span>压线</div>
+      <div class="buffon-legend-item"><span class="buffon-legend-line" style="background:var(--buffon-slate);"></span>未压线</div>
+      <div class="buffon-legend-item"><span class="buffon-legend-line" style="background:var(--buffon-line);"></span>平行线</div>
+    </div>
+  `;
+
+  const canvas = document.getElementById('heroCanvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+
+  const W = 560, H = 380;
+  canvas.style.height = H + 'px';
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  const lineSpacing = 50;
+  const needleLen = 40;
+  const lineCount = Math.floor(H / lineSpacing) + 1;
+
+  let needles = [];
+  let totalNeedles = 0;
+  let crossingCount = 0;
+  let animId = null;
+  let dropCounter = 0;
+
+  function drawBackground() {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#CBD5E1';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < lineCount; i++) {
+      const y = i * lineSpacing + 20;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+  }
+
+  function dropNeedle() {
+    const cx = Math.random() * (W - 40) + 20;
+    const cy = Math.random() * (H - 40) + 20;
+    const angle = Math.random() * Math.PI;
+    const dx = (needleLen / 2) * Math.cos(angle);
+    const dy = (needleLen / 2) * Math.sin(angle);
+
+    const distToLine = Math.abs((cy - 20) % lineSpacing);
+    const minDist = Math.min(distToLine, lineSpacing - distToLine);
+    const crosses = minDist <= Math.abs(dy);
+
+    needles.push({
+      x1: cx - dx, y1: cy - dy, x2: cx + dx, y2: cy + dy,
+      crosses, opacity: 0, age: 0
+    });
+    totalNeedles++;
+    if (crosses) crossingCount++;
+
+    const piEst = crossingCount > 0 ? (2 * needleLen * totalNeedles) / (lineSpacing * crossingCount) : 0;
+    document.getElementById('heroTotal').textContent = totalNeedles;
+    document.getElementById('heroCross').textContent = crossingCount;
+    document.getElementById('heroPi').textContent = crossingCount > 0 ? piEst.toFixed(3) : '—';
+  }
+
+  function animate() {
+    drawBackground();
+
+    // 逐渐老化旧针，最多保留 200 根
+    if (needles.length > 200) needles = needles.slice(-200);
+
+    for (let n of needles) {
+      n.age++;
+      if (n.opacity < 1) n.opacity = Math.min(1, n.opacity + 0.08);
+      ctx.globalAlpha = n.opacity * Math.max(0.3, 1 - (n.age - 200) / 100);
+      ctx.strokeStyle = n.crosses ? '#EC4899' : '#94A3B8';
+      ctx.lineWidth = n.crosses ? 2.5 : 1.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(n.x1, n.y1);
+      ctx.lineTo(n.x2, n.y2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    dropCounter++;
+    if (dropCounter % 8 === 0 && totalNeedles < 500) dropNeedle();
+
+    animId = requestAnimationFrame(animate);
+  }
+
+  drawBackground();
+  animate();
+
+  stepCleanup.push(() => { if (animId) cancelAnimationFrame(animId); });
+}
+
+// ============================================================
+// 步骤 2：几何图
+// ============================================================
+function renderStep2() {
+  visualWrapper.innerHTML = `
+    <div class="buffon-geo-container">
+      <svg class="buffon-geo-svg" id="geoSvg" viewBox="0 0 480 320"></svg>
+      <div class="buffon-geo-controls">
+        <div class="buffon-slider-row">
+          <div class="buffon-slider-header">
+            <span class="buffon-slider-name">角度 θ</span>
+            <span class="buffon-slider-val" id="geoAngleVal" style="color:var(--buffon-violet)">45°</span>
+          </div>
+          <input type="range" class="buffon-slider violet" id="geoAngle" min="0" max="180" step="1" value="45">
+        </div>
+        <div class="buffon-slider-row">
+          <div class="buffon-slider-header">
+            <span class="buffon-slider-name">针中心到线的距离 y</span>
+            <span class="buffon-slider-val" id="geoDistVal" style="color:var(--buffon-pink)">15</span>
+          </div>
+          <input type="range" class="buffon-slider pink" id="geoDist" min="0" max="40" step="1" value="15">
+        </div>
+        <div class="buffon-cross-indicator yes" id="geoIndicator">
+          针压住了线！ y ≤ (l/2)·sin θ
+        </div>
+      </div>
+    </div>
+  `;
+
+  const svg = document.getElementById('geoSvg');
+  const angleSlider = document.getElementById('geoAngle');
+  const distSlider = document.getElementById('geoDist');
+  const angleVal = document.getElementById('geoAngleVal');
+  const distVal = document.getElementById('geoDistVal');
+  const indicator = document.getElementById('geoIndicator');
+
+  const l = 60; // needle length (visual)
+  const d = 80; // line spacing (visual)
+  const offsetX = 120;
+  const baseY = 60;
+
+  function updateGeo() {
+    const angleDeg = parseInt(angleSlider.value);
+    const y = parseInt(distSlider.value);
+    const angleRad = angleDeg * Math.PI / 180;
+    const halfL = l / 2;
+    const dy = halfL * Math.sin(angleRad);
+
+    angleVal.textContent = angleDeg + '°';
+    distVal.textContent = y;
+
+    const crosses = y <= dy;
+    const needleColor = crosses ? '#EC4899' : '#94A3B8';
+
+    // Needle center position
+    const cx = offsetX + 120;
+    const cy = baseY + y;
+
+    // Needle endpoints
+    const dx = halfL * Math.cos(angleRad);
+    const dy2 = halfL * Math.sin(angleRad);
+    const x1 = cx - dx, y1 = cy - dy2;
+    const x2 = cx + dx, y2 = cy + dy2;
+
+    // Threshold curve y = (l/2)sin θ
+    let curvePath = '';
+    for (let a = 0; a <= 180; a += 2) {
+      const rad = a * Math.PI / 180;
+      const py = (l / 2) * Math.sin(rad);
+      const px = a * 2 + 20;
+      curvePath += (a === 0 ? 'M' : 'L') + px + ',' + (baseY + d/2 - py) + ' ';
+    }
+
+    svg.innerHTML = `
+      <!-- Parallel lines -->
+      <line x1="20" y1="${baseY}" x2="460" y2="${baseY}" stroke="#CBD5E1" stroke-width="2"/>
+      <line x1="20" y1="${baseY + d}" x2="460" y2="${baseY + d}" stroke="#CBD5E1" stroke-width="2"/>
+      <line x1="20" y1="${baseY + 2*d}" x2="460" y2="${baseY + 2*d}" stroke="#CBD5E1" stroke-width="2"/>
+
+      <!-- d label -->
+      <line x1="440" y1="${baseY}" x2="440" y2="${baseY + d}" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="448" y="${baseY + d/2 + 4}" font-family="JetBrains Mono" font-size="13" fill="#6b7b6b">d</text>
+
+      <!-- Threshold curve -->
+      <path d="${curvePath}" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="4,3" opacity="0.5"/>
+      <text x="180" y="${baseY + d/2 - 35}" font-family="Noto Serif SC" font-size="12" fill="#8B5CF6" font-style="italic">y = (l/2)·sin θ</text>
+
+      <!-- Current point on curve -->
+      <circle cx="${angleDeg * 2 + 20}" cy="${baseY + d/2 - dy}" r="4" fill="#8B5CF6" opacity="0.6"/>
+
+      <!-- y distance indicator -->
+      <line x1="${cx - 80}" y1="${baseY}" x2="${cx - 80}" y2="${cy}" stroke="#EC4899" stroke-width="1.5" stroke-dasharray="2,2"/>
+      <text x="${cx - 95}" y="${(baseY + cy) / 2 + 4}" font-family="JetBrains Mono" font-size="12" fill="#EC4899">y</text>
+
+      <!-- Angle arc -->
+      <path d="M ${cx + 25} ${cy} A 25 25 0 0 ${angleDeg > 180 ? 1 : 0} ${cx + 25 * Math.cos(angleRad)} ${cy + 25 * Math.sin(angleRad)}"
+            fill="none" stroke="#8B5CF6" stroke-width="1.5"/>
+      <text x="${cx + 35}" y="${cy + 8}" font-family="JetBrains Mono" font-size="12" fill="#8B5CF6">θ</text>
+
+      <!-- Needle -->
+      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${needleColor}" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="3" fill="${needleColor}"/>
+
+      <!-- l label on needle -->
+      <text x="${(x1+x2)/2 + 10}" y="${(y1+y2)/2 - 8}" font-family="JetBrains Mono" font-size="12" fill="${needleColor}">l</text>
+
+      <!-- Threshold indicator -->
+      <line x1="${cx - 80}" y1="${baseY + dy}" x2="${cx - 80}" y2="${baseY}" stroke="#8B5CF6" stroke-width="1" stroke-dasharray="1,2" opacity="0.5"/>
+      <text x="${cx - 112}" y="${baseY + dy + 4}" font-family="JetBrains Mono" font-size="10" fill="#8B5CF6">(l/2)sinθ</text>
+    `;
+
+    if (crosses) {
+      indicator.className = 'buffon-cross-indicator yes';
+      indicator.textContent = `针压住了线！ y=${y} ≤ (l/2)·sin θ=${dy.toFixed(1)}`;
+    } else {
+      indicator.className = 'buffon-cross-indicator no';
+      indicator.textContent = `针未压线。 y=${y} > (l/2)·sin θ=${dy.toFixed(1)}`;
+    }
+  }
+
+  angleSlider.addEventListener('input', updateGeo);
+  distSlider.addEventListener('input', updateGeo);
+  updateGeo();
+}
+
+// ============================================================
+// 步骤 3：概率推导图
+// ============================================================
+function renderStep3() {
+  visualWrapper.innerHTML = `
+    <div class="buffon-deriv-container">
+      <svg class="buffon-deriv-svg" id="derivSvg" viewBox="0 0 460 300"></svg>
+      <div class="buffon-formula-box">
+        <div class="formula">
+          P = <span class="frac"><span class="num">2l</span><span class="den">πd</span></span>
+          &nbsp;⟹&nbsp; π ≈ <span class="frac"><span class="num">2lN</span><span class="den">dM</span></span>
+        </div>
+        <div style="font-size:var(--fs-small);color:var(--text-muted);font-family:var(--font-serif);font-style:italic;">
+          N = 总投针数, M = 压线数
+        </div>
+      </div>
+      <div class="buffon-calc-steps">
+        <div class="calc-line"><span class="calc-highlight">∫₀^π</span> sin θ dθ = [-cos θ]₀^π = 1 - (-1) = <span class="calc-highlight">2</span></div>
+        <div class="calc-line">压线面积 = (l/2) × 2 = <span class="calc-highlight">l</span></div>
+        <div class="calc-line">总面积 = π × (d/2) = <span class="calc-highlight">πd/2</span></div>
+        <div class="calc-line" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">
+          P = l / (πd/2) = <span class="calc-highlight">2l / (πd)</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const svg = document.getElementById('derivSvg');
+  const padL = 50, padB = 40, padT = 20, padR = 20;
+  const plotW = 460 - padL - padR;
+  const plotH = 300 - padB - padT;
+  const l = 1; // normalized
+
+  // θ axis: 0 to π, y axis: 0 to 0.5 (d/2 with d=1)
+  function thetaToX(t) { return padL + (t / Math.PI) * plotW; }
+  function yToY(y) { return padT + plotH - (y / 0.5) * plotH; }
+
+  // Curve y = (l/2) sin θ, l=1 → y = 0.5 sin θ
+  let curvePath = '';
+  let areaPath = '';
+  for (let i = 0; i <= 100; i++) {
+    const t = (i / 100) * Math.PI;
+    const y = 0.5 * Math.sin(t);
+    const px = thetaToX(t);
+    const py = yToY(y);
+    curvePath += (i === 0 ? 'M' : 'L') + px + ',' + py + ' ';
+    areaPath += (i === 0 ? 'M' : 'L') + px + ',' + py + ' ';
+  }
+  areaPath += `L ${thetaToX(Math.PI)},${yToY(0)} L ${thetaToX(0)},${yToY(0)} Z`;
+
+  // π tick marks on x-axis
+  const xTicks = [
+    { val: 0, label: '0' },
+    { val: Math.PI / 4, label: 'π/4' },
+    { val: Math.PI / 2, label: 'π/2' },
+    { val: 3 * Math.PI / 4, label: '3π/4' },
+    { val: Math.PI, label: 'π' }
+  ];
+
+  let xTickEls = '';
+  for (let tick of xTicks) {
+    const x = thetaToX(tick.val);
+    xTickEls += `<line x1="${x}" y1="${padT + plotH}" x2="${x}" y2="${padT + plotH + 5}" stroke="#a3a3a3" stroke-width="1"/>`;
+    xTickEls += `<text x="${x}" y="${padT + plotH + 18}" font-family="JetBrains Mono" font-size="11" fill="#6b7b6b" text-anchor="middle">${tick.label}</text>`;
+  }
+
+  svg.innerHTML = `
+    <!-- Area under curve (压线区域) -->
+    <path d="${areaPath}" fill="rgba(139,92,246,0.12)"/>
+
+    <!-- Rectangle outline (总面积) -->
+    <rect x="${thetaToX(0)}" y="${yToY(0.5)}" width="${plotW}" height="${plotH}" fill="none" stroke="#CBD5E1" stroke-width="1.5"/>
+
+    <!-- Curve -->
+    <path d="${curvePath}" fill="none" stroke="#8B5CF6" stroke-width="2.5"/>
+
+    <!-- Axes -->
+    <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="#1a1a1a" stroke-width="1.5"/>
+
+    <!-- X ticks -->
+    ${xTickEls}
+
+    <!-- Y label -->
+    <text x="${padL - 10}" y="${yToY(0.25) + 4}" font-family="JetBrains Mono" font-size="11" fill="#6b7b6b" text-anchor="end">d/2</text>
+    <text x="${padL - 10}" y="${yToY(0) + 4}" font-family="JetBrains Mono" font-size="11" fill="#6b7b6b" text-anchor="end">0</text>
+
+    <!-- Axis labels -->
+    <text x="${padL + plotW / 2}" y="${300 - 8}" font-family="Noto Serif SC" font-size="13" fill="#1a1a1a" text-anchor="middle" font-style="italic">θ</text>
+    <text x="15" y="${padT + plotH / 2}" font-family="Noto Serif SC" font-size="13" fill="#1a1a1a" text-anchor="middle" font-style="italic" transform="rotate(-90 15 ${padT + plotH / 2})">y</text>
+
+    <!-- Area label -->
+    <text x="${thetaToX(Math.PI / 2)}" y="${yToY(0.2)}" font-family="Noto Serif SC" font-size="13" fill="#8B5CF6" text-anchor="middle" font-weight="600">压线面积 = l</text>
+
+    <!-- Rectangle label -->
+    <text x="${thetaToX(Math.PI * 0.85)}" y="${yToY(0.45)}" font-family="Noto Serif SC" font-size="11" fill="#94A3B8" text-anchor="middle">总面积 = πd/2</text>
+
+    <!-- Curve label -->
+    <text x="${thetaToX(Math.PI / 4)}" y="${yToY(0.5 * Math.sin(Math.PI/4)) - 10}" font-family="Noto Serif SC" font-size="12" fill="#8B5CF6" font-style="italic">y = (l/2)sin θ</text>
+  `;
+}
+
+// ============================================================
+// 步骤 4：蒙特卡洛实验
+// ============================================================
+function renderStep4() {
+  visualWrapper.innerHTML = `
+    <div class="buffon-sim-container">
+      <div class="buffon-sim-canvas-wrapper">
+        <canvas class="buffon-sim-canvas" id="simCanvas"></canvas>
+      </div>
+      <div class="buffon-sim-controls">
+        <div class="buffon-slider-row" style="flex:1;min-width:140px;margin:0;">
+          <div class="buffon-slider-header">
+            <span class="buffon-slider-name">针长 l</span>
+            <span class="buffon-slider-val" id="simLenVal" style="color:var(--buffon-violet)">40</span>
+          </div>
+          <input type="range" class="buffon-slider violet" id="simLen" min="10" max="45" step="1" value="40">
+        </div>
+        <button class="buffon-sim-btn primary" id="simDrop10">投 10 根</button>
+        <button class="buffon-sim-btn primary" id="simDrop100">投 100 根</button>
+        <button class="buffon-sim-btn" id="simReset">重置</button>
+      </div>
+      <div class="buffon-sim-stats">
+        <div class="buffon-sim-stat">
+          <span class="num violet" id="simTotal">0</span>
+          <span class="desc">总针数 N</span>
+        </div>
+        <div class="buffon-sim-stat">
+          <span class="num pink" id="simCross">0</span>
+          <span class="desc">压线数 M</span>
+        </div>
+        <div class="buffon-sim-stat">
+          <span class="num emerald" id="simPi">—</span>
+          <span class="desc">π 估计值</span>
+        </div>
+      </div>
+      <div class="buffon-sim-histogram-wrapper">
+        <div class="buffon-sim-histogram-title">每 100 根针一组的 π 估计值分布</div>
+        <canvas class="buffon-sim-histogram-canvas" id="simHistogram"></canvas>
+      </div>
+    </div>
+  `;
+
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = 540, H = 280;
+  canvas.style.height = H + 'px';
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  const histCanvas = document.getElementById('simHistogram');
+  const histCtx = histCanvas.getContext('2d');
+  const histW = 540, histH = 80;
+  histCanvas.style.height = histH + 'px';
+  histCanvas.width = histW * dpr;
+  histCanvas.height = histH * dpr;
+  histCtx.scale(dpr, dpr);
+
+  const lineSpacing = 50;
+  let needleLen = 40;
+  let needles = [];
+  let totalNeedles = 0;
+  let crossingCount = 0;
+  let batchEstimates = []; // π estimates per batch of 100
+  let batchNeedleCount = 0; // needles in current batch (independent of array trimming)
+  let batchCrossCount = 0;  // crossings in current batch
+
+  function drawSim() {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // Draw lines
+    ctx.strokeStyle = '#CBD5E1';
+    ctx.lineWidth = 1.5;
+    const lineCount = Math.floor(H / lineSpacing) + 1;
+    for (let i = 0; i < lineCount; i++) {
+      const y = i * lineSpacing + 20;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+
+    // Draw needles
+    for (let n of needles) {
+      ctx.strokeStyle = n.crosses ? '#EC4899' : '#94A3B8';
+      ctx.lineWidth = n.crosses ? 2 : 1.5;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(n.x1, n.y1);
+      ctx.lineTo(n.x2, n.y2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function dropNeedles(count) {
+    for (let i = 0; i < count; i++) {
+      const cx = Math.random() * (W - 40) + 20;
+      const cy = Math.random() * (H - 40) + 20;
+      const angle = Math.random() * Math.PI;
+      const dx = (needleLen / 2) * Math.cos(angle);
+      const dy = (needleLen / 2) * Math.sin(angle);
+
+      const distToLine = Math.abs((cy - 20) % lineSpacing);
+      const minDist = Math.min(distToLine, lineSpacing - distToLine);
+      const crosses = minDist <= Math.abs(dy);
+
+      needles.push({
+        x1: cx - dx, y1: cy - dy, x2: cx + dx, y2: cy + dy, crosses
+      });
+      totalNeedles++;
+      if (crosses) crossingCount++;
+
+      // Batch tracking (independent of needles array trimming)
+      batchNeedleCount++;
+      if (crosses) batchCrossCount++;
+      if (batchNeedleCount >= 100) {
+        if (batchCrossCount > 0) {
+          const piEst = (2 * needleLen * 100) / (lineSpacing * batchCrossCount);
+          batchEstimates.push(piEst);
+          if (batchEstimates.length > 200) batchEstimates.shift();
+        }
+        batchNeedleCount = 0;
+        batchCrossCount = 0;
+      }
+    }
+
+    // Keep needle array manageable
+    if (needles.length > 2000) needles = needles.slice(-2000);
+
+    updateStats();
+    drawSim();
+    drawHistogram();
+  }
+
+  function updateStats() {
+    document.getElementById('simTotal').textContent = totalNeedles;
+    document.getElementById('simCross').textContent = crossingCount;
+    const piEst = crossingCount > 0 ? (2 * needleLen * totalNeedles) / (lineSpacing * crossingCount) : 0;
+    document.getElementById('simPi').textContent = crossingCount > 0 ? piEst.toFixed(4) : '—';
+  }
+
+  function drawHistogram() {
+    histCtx.fillStyle = '#f3efe9';
+    histCtx.fillRect(0, 0, histW, histH);
+
+    if (batchEstimates.length < 2) {
+      histCtx.fillStyle = '#a3a3a3';
+      histCtx.font = '12px sans-serif';
+      histCtx.textAlign = 'center';
+      histCtx.fillText('投满 100 根针后开始记录', histW / 2, histH / 2);
+      return;
+    }
+
+    // Range: 1 to 6
+    const minVal = 1, maxVal = 6;
+    const bins = 50;
+    const binWidth = (maxVal - minVal) / bins;
+    const counts = new Array(bins).fill(0);
+    for (let v of batchEstimates) {
+      let bin = Math.floor((v - minVal) / binWidth);
+      if (bin < 0) bin = 0;
+      if (bin >= bins) bin = bins - 1;
+      counts[bin]++;
+    }
+    const maxCount = Math.max(...counts, 1);
+    const barW = histW / bins;
+
+    for (let i = 0; i < bins; i++) {
+      const x = i * barW;
+      const barH = (counts[i] / maxCount) * (histH - 10);
+      // Color gradient: far from π = red, close = green
+      const binCenter = minVal + (i + 0.5) * binWidth;
+      const dist = Math.abs(binCenter - Math.PI);
+      if (dist < 0.3) {
+        histCtx.fillStyle = '#10B981';
+      } else if (dist < 0.8) {
+        histCtx.fillStyle = '#8B5CF6';
+      } else {
+        histCtx.fillStyle = '#EC4899';
+      }
+      histCtx.fillRect(x, histH - barH, barW - 1, barH);
+    }
+
+    // π line
+    const piX = ((Math.PI - minVal) / (maxVal - minVal)) * histW;
+    histCtx.strokeStyle = '#1a1a1a';
+    histCtx.lineWidth = 1.5;
+    histCtx.setLineDash([3, 3]);
+    histCtx.beginPath();
+    histCtx.moveTo(piX, 0);
+    histCtx.lineTo(piX, histH);
+    histCtx.stroke();
+    histCtx.setLineDash([]);
+    histCtx.fillStyle = '#1a1a1a';
+    histCtx.font = 'bold 11px JetBrains Mono';
+    histCtx.textAlign = 'left';
+    histCtx.fillText('π', piX + 3, 12);
+  }
+
+  function reset() {
+    needles = [];
+    totalNeedles = 0;
+    crossingCount = 0;
+    batchEstimates = [];
+    batchNeedleCount = 0;
+    batchCrossCount = 0;
+    updateStats();
+    drawSim();
+    drawHistogram();
+  }
+
+  document.getElementById('simDrop10').addEventListener('click', () => dropNeedles(10));
+  document.getElementById('simDrop100').addEventListener('click', () => dropNeedles(100));
+  document.getElementById('simReset').addEventListener('click', reset);
+
+  const lenSlider = document.getElementById('simLen');
+  const lenVal = document.getElementById('simLenVal');
+  lenSlider.addEventListener('input', () => {
+    needleLen = parseInt(lenSlider.value);
+    lenVal.textContent = needleLen;
+  });
+
+  drawSim();
+  drawHistogram();
+
+  // Auto-drop some needles for initial display
+  setTimeout(() => dropNeedles(50), 300);
+}
+
+// ============================================================
+// 步骤 5：CLT 演示
+// ============================================================
+function renderStep5() {
+  visualWrapper.innerHTML = `
+    <div class="buffon-clt-container">
+      <div class="buffon-clt-canvas-wrapper">
+        <canvas class="buffon-clt-canvas" id="cltCanvas"></canvas>
+      </div>
+      <div class="buffon-geo-controls">
+        <div class="buffon-slider-row" style="margin:0;">
+          <div class="buffon-slider-header">
+            <span class="buffon-slider-name">批次大小（每组针数）</span>
+            <span class="buffon-slider-val" id="cltBatchVal" style="color:var(--buffon-violet)">50</span>
+          </div>
+          <input type="range" class="buffon-slider violet" id="cltBatch" min="10" max="500" step="10" value="50">
+        </div>
+        <button class="buffon-sim-btn primary" id="cltRun" style="width:100%;justify-content:center;margin-top:8px;">运行 200 次实验</button>
+      </div>
+      <div class="buffon-clt-info">
+        <div class="buffon-clt-info-card">
+          <span class="num" id="cltMean" style="color:var(--buffon-violet)">—</span>
+          <span class="desc">分布均值</span>
+        </div>
+        <div class="buffon-clt-info-card">
+          <span class="num" id="cltStd" style="color:var(--buffon-pink)">—</span>
+          <span class="desc">标准差</span>
+        </div>
+        <div class="buffon-clt-info-card">
+          <span class="num" id="cltCount" style="color:var(--buffon-emerald)">0</span>
+          <span class="desc">实验次数</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const canvas = document.getElementById('cltCanvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = 540, H = 280;
+  canvas.style.height = H + 'px';
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  const batchSlider = document.getElementById('cltBatch');
+  const batchVal = document.getElementById('cltBatchVal');
+  const runBtn = document.getElementById('cltRun');
+
+  let estimates = [];
+  let batchSize = 50;
+  const l = 0.8; // l/d ratio
+  const trueProb = 2 * l / Math.PI;
+  let animId = null;
+
+  batchSlider.addEventListener('input', () => {
+    batchSize = parseInt(batchSlider.value);
+    batchVal.textContent = batchSize;
+  });
+
+  function runOneExperiment() {
+    let crosses = 0;
+    for (let i = 0; i < batchSize; i++) {
+      const theta = Math.random() * Math.PI;
+      const y = Math.random() * 0.5; // y in [0, d/2], d=1
+      if (y <= (l / 2) * Math.sin(theta)) crosses++;
+    }
+    if (crosses > 0) {
+      return (2 * l * batchSize) / (1 * crosses);
+    }
+    return 4.0; // fallback
+  }
+
+  function drawCLT() {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    const padL = 40, padR = 20, padT = 20, padB = 40;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    // X range: 1.5 to 5
+    const xMin = 1.5, xMax = 5;
+
+    // Axes
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT + plotH);
+    ctx.stroke();
+
+    // π line
+    const piX = padL + ((Math.PI - xMin) / (xMax - xMin)) * plotW;
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(piX, padT);
+    ctx.lineTo(piX, padT + plotH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = 'bold 12px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('π', piX, padT + plotH + 18);
+
+    // X ticks
+    ctx.font = '10px JetBrains Mono';
+    ctx.fillStyle = '#6b7b6b';
+    for (let v = 2; v <= 5; v++) {
+      const x = padL + ((v - xMin) / (xMax - xMin)) * plotW;
+      ctx.fillText(v.toString(), x, padT + plotH + 18);
+    }
+
+    if (estimates.length < 2) {
+      ctx.fillStyle = '#a3a3a3';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('点击"运行 200 次实验"开始', W / 2, H / 2);
+      return;
+    }
+
+    // Histogram
+    const bins = 40;
+    const binWidth = (xMax - xMin) / bins;
+    const counts = new Array(bins).fill(0);
+    for (let v of estimates) {
+      let bin = Math.floor((v - xMin) / binWidth);
+      if (bin < 0) bin = 0;
+      if (bin >= bins) bin = bins - 1;
+      counts[bin]++;
+    }
+    const maxCount = Math.max(...counts, 1);
+
+    const barW = plotW / bins;
+    for (let i = 0; i < bins; i++) {
+      const x = padL + i * barW;
+      const barH = (counts[i] / maxCount) * (plotH - 10);
+      const binCenter = xMin + (i + 0.5) * binWidth;
+      const dist = Math.abs(binCenter - Math.PI);
+      ctx.fillStyle = dist < 0.2 ? '#10B981' : (dist < 0.5 ? '#8B5CF6' : '#EC4899');
+      ctx.fillRect(x, padT + plotH - barH, barW - 1, barH);
+    }
+
+    // Normal curve overlay
+    const mean = estimates.reduce((a, b) => a + b, 0) / estimates.length;
+    const variance = estimates.reduce((a, b) => a + (b - mean) ** 2, 0) / estimates.length;
+    const std = Math.sqrt(variance);
+
+    if (std > 0.001) {
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let i = 0; i <= 200; i++) {
+        const x = xMin + (i / 200) * (xMax - xMin);
+        const pdf = normalPDF(x, mean, std);
+        const px = padL + ((x - xMin) / (xMax - xMin)) * plotW;
+        const expectedCount = estimates.length * binWidth * pdf;
+        const py = padT + plotH - (expectedCount / maxCount) * (plotH - 10);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+
+    // Labels
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = '11px Noto Serif SC';
+    ctx.textAlign = 'left';
+    ctx.fillText('正态曲线', padL + plotW - 70, padT + 15);
+
+    // Update info
+    document.getElementById('cltMean').textContent = mean.toFixed(3);
+    document.getElementById('cltStd').textContent = std.toFixed(3);
+    document.getElementById('cltCount').textContent = estimates.length;
+  }
+
+  function runExperiments() {
+    runBtn.disabled = true;
+    runBtn.textContent = '运行中...';
+    let count = 0;
+    const target = 200;
+
+    function step() {
+      const batch = Math.min(10, target - count);
+      for (let i = 0; i < batch; i++) {
+        estimates.push(runOneExperiment());
+      }
+      count += batch;
+      drawCLT();
+
+      if (count < target) {
+        animId = requestAnimationFrame(step);
+      } else {
+        runBtn.disabled = false;
+        runBtn.textContent = '再运行 200 次';
+        animId = null;
+      }
+    }
+    step();
+  }
+
+  runBtn.addEventListener('click', runExperiments);
+
+  // Initial empty draw
+  drawCLT();
+
+  // Auto-run after a moment
+  setTimeout(() => runExperiments(), 500);
+
+  stepCleanup.push(() => { if (animId) cancelAnimationFrame(animId); });
+}
+
+// ====== 初始化 ======
+updateStep();
+
+// 键盘导航
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && currentStep > 0) { currentStep--; updateStep(); resetAutoPlayProgress(); }
+  if (e.key === 'ArrowRight' && currentStep < steps.length - 1) { currentStep++; updateStep(); resetAutoPlayProgress(); }
+});
+</script>
+
+</body>
+</html>

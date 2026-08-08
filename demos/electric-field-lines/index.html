@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>电场线与等势面可视化 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+/* ============================================================
+   电场线与等势面可视化 — 交互工具型 Demo
+   配色：暖白背景 + 赤陶色UI + 物理visualization色系
+   布局：左画布 + 右控制面板
+   ============================================================ */
+
+html, body { height: 100%; overflow: hidden; }
+
+/* ============ 主容器 ============ */
+.app-container {
+  display: flex;
+  height: 100vh;
+  height: 100svh;
+  padding-top: 64px;
+}
+body.has-info-bar .app-container {
+  padding-bottom: 52px;
+}
+
+/* ============ 画布区 ============ */
+.canvas-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #faf8f5 0%, #f0ebe3 100%);
+  min-width: 0;
+}
+
+#canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+#canvas.dragging { cursor: grabbing; }
+#canvas.hover-charge { cursor: grab; }
+
+/* ============ 浮动数据面板 ============ */
+.data-panel {
+  position: absolute;
+  top: var(--spacer-16);
+  right: var(--spacer-16);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  min-width: 175px;
+  font-size: var(--fs-tiny);
+}
+
+.dp-title {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.dp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.dp-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.dp-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.dp-value.pos { color: #ef4444; }
+.dp-value.neg { color: #3b82f6; }
+.dp-value.accent { color: var(--brand); }
+
+.dp-divider {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 3px 0;
+}
+
+/* ============ 图例 ============ */
+.legend {
+  position: absolute;
+  bottom: var(--spacer-16);
+  left: var(--spacer-16);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-line {
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legend-line.dashed {
+  background: repeating-linear-gradient(90deg, currentColor 0, currentColor 4px, transparent 4px, transparent 7px);
+}
+
+/* ============ 空状态提示 ============ */
+.empty-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 15;
+  text-align: center;
+  pointer-events: none;
+  color: var(--text-faint);
+}
+
+.empty-hint .eh-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.4;
+}
+
+.empty-hint .eh-text {
+  font-family: var(--font-serif);
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+
+/* ============ 控制面板（右侧） ============ */
+.control-panel {
+  width: 300px;
+  flex-shrink: 0;
+  background-color: var(--surface-muted);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.cp-section {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.cp-section:last-child {
+  border-bottom: none;
+}
+
+.cp-section-title {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-section-title::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  background: var(--brand);
+  border-radius: 2px;
+}
+
+/* 预设按钮 */
+.preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.preset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  white-space: nowrap;
+}
+
+.preset-btn:hover {
+  border-color: var(--text-faint);
+  background: var(--bg);
+}
+
+.preset-btn.active {
+  background: var(--brand-soft);
+  border-color: rgba(194, 65, 12, 0.3);
+  color: var(--brand);
+}
+
+/* 电荷操作按钮 */
+.charge-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.charge-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  background: var(--surface);
+}
+
+.charge-btn:hover { border-color: var(--text-faint); }
+
+.charge-btn.pos {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+}
+.charge-btn.pos:hover { background: rgba(239, 68, 68, 0.1); }
+
+.charge-btn.neg {
+  color: #3b82f6;
+  border-color: rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.05);
+}
+.charge-btn.neg:hover { background: rgba(59, 130, 246, 0.1); }
+
+.charge-btn.del {
+  color: var(--text-muted);
+}
+.charge-btn.del:hover {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.charge-btn.clear {
+  color: var(--text-muted);
+}
+.charge-btn.clear:hover {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* 滑块组 */
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.slider-group:last-child { margin-bottom: 0; }
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.slider-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.slider-value {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.slider-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+.slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: transform var(--duration-fast) var(--ease);
+}
+
+.slider-input::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+.slider-input::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* 开关芯片 */
+.toggle-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  user-select: none;
+}
+
+.toggle-chip:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.toggle-chip.active {
+  background: var(--brand-soft);
+  border-color: rgba(194, 65, 12, 0.3);
+  color: var(--brand);
+}
+
+.toggle-chip .tc-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background var(--duration-fast) var(--ease);
+}
+
+.toggle-chip.active .tc-dot {
+  background: var(--brand);
+}
+
+/* 操作按钮 */
+.action-row {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  background: var(--surface);
+}
+
+.action-btn:hover { border-color: var(--text-faint); }
+
+.action-btn.primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
+
+.action-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* 选中电荷信息 */
+.selected-info {
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selected-info .si-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.selected-info .si-text {
+  flex: 1;
+}
+
+.selected-info .si-none {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .canvas-area {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .control-panel {
+    width: 100%;
+    max-height: 240px;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .data-panel {
+    min-width: 140px;
+    padding: 8px 12px;
+  }
+
+  .legend {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .preset-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/demos.html" class="demo-back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </a>
+    <span class="demo-nav-divider"></span>
+    <a href="/" class="demo-nav-logo">景礴</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">物理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">电场线与等势面可视化</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-physics">物理</span>
+    <a href="/skills/jingbo-edu-physics-experiment-sim-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 主体：左画布 + 右控制面板 ====== -->
+<div class="app-container">
+
+  <!-- ========== 画布区 ========== -->
+  <div class="canvas-area">
+    <canvas id="canvas"></canvas>
+
+    <!-- 数据面板 -->
+    <div class="data-panel" id="dataPanel">
+      <div class="dp-title">实时数据</div>
+      <div class="dp-row">
+        <span class="dp-label">位置</span>
+        <span class="dp-value" id="dpPos">— , —</span>
+      </div>
+      <div class="dp-divider"></div>
+      <div class="dp-row">
+        <span class="dp-label">│E│ 场强</span>
+        <span class="dp-value accent" id="dpEmag">0.00</span>
+      </div>
+      <div class="dp-row">
+        <span class="dp-label">Ex</span>
+        <span class="dp-value" id="dpEx">0.00</span>
+      </div>
+      <div class="dp-row">
+        <span class="dp-label">Ey</span>
+        <span class="dp-value" id="dpEy">0.00</span>
+      </div>
+      <div class="dp-row">
+        <span class="dp-label">V 电势</span>
+        <span class="dp-value" id="dpV">0.00</span>
+      </div>
+      <div class="dp-divider"></div>
+      <div class="dp-row">
+        <span class="dp-label">电荷数</span>
+        <span class="dp-value" id="dpCount">0</span>
+      </div>
+    </div>
+
+    <!-- 图例 -->
+    <div class="legend" id="legend">
+      <div class="legend-item">
+        <span class="legend-dot" style="background:#ef4444;"></span>
+        <span>正电荷</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot" style="background:#3b82f6;"></span>
+        <span>负电荷</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-line" style="background:rgba(120,113,108,0.6);"></span>
+        <span>电场线</span>
+      </div>
+      <div class="legend-item" style="color:#0d9488;">
+        <span class="legend-line dashed"></span>
+        <span style="color:var(--text-muted);">等势面</span>
+      </div>
+    </div>
+
+    <!-- 空状态提示 -->
+    <div class="empty-hint" id="emptyHint" style="display:none;">
+      <div class="eh-icon">⚡</div>
+      <div class="eh-text">从右侧添加电荷开始探索</div>
+    </div>
+  </div>
+
+  <!-- ========== 控制面板 ========== -->
+  <aside class="control-panel">
+
+    <!-- 预设场景 -->
+    <div class="cp-section">
+      <div class="cp-section-title">预设场景</div>
+      <div class="preset-grid">
+        <button class="preset-btn active" data-preset="dipole">电偶极子</button>
+        <button class="preset-btn" data-preset="single">单个正电荷</button>
+        <button class="preset-btn" data-preset="quadrupole">四极子</button>
+        <button class="preset-btn" data-preset="plates">平行板</button>
+        <button class="preset-btn" data-preset="like">同号电荷</button>
+        <button class="preset-btn" data-preset="dipoleStrong">强偶极子</button>
+      </div>
+    </div>
+
+    <!-- 电荷操作 -->
+    <div class="cp-section">
+      <div class="cp-section-title">电荷操作</div>
+      <div class="charge-actions">
+        <button class="charge-btn pos" id="addPos">＋ 正电荷</button>
+        <button class="charge-btn neg" id="addNeg">－ 负电荷</button>
+      </div>
+      <div class="charge-actions">
+        <button class="charge-btn del" id="delCharge">删除选中</button>
+        <button class="charge-btn clear" id="clearAll">全部清除</button>
+      </div>
+      <div class="selected-info" id="selectedInfo">
+        <span class="si-none">未选中电荷 · 点击选择</span>
+      </div>
+      <div class="slider-group" style="margin-top:10px;">
+        <div class="slider-header">
+          <span class="slider-label">选中电荷电量</span>
+          <span class="slider-value" id="chargeStrVal">3.0</span>
+        </div>
+        <input type="range" class="slider-input" id="chargeStr" min="0.5" max="6" step="0.1" value="3" disabled />
+      </div>
+    </div>
+
+    <!-- 显示选项 -->
+    <div class="cp-section">
+      <div class="cp-section-title">显示选项</div>
+      <div class="toggle-grid">
+        <div class="toggle-chip active" data-toggle="fieldLines">
+          <span class="tc-dot"></span>电场线
+        </div>
+        <div class="toggle-chip active" data-toggle="equipotential">
+          <span class="tc-dot"></span>等势面
+        </div>
+        <div class="toggle-chip active" data-toggle="particles">
+          <span class="tc-dot"></span>粒子流
+        </div>
+        <div class="toggle-chip" data-toggle="vectors">
+          <span class="tc-dot"></span>矢量场
+        </div>
+        <div class="toggle-chip active" data-toggle="arrows">
+          <span class="tc-dot"></span>方向箭头
+        </div>
+        <div class="toggle-chip active" data-toggle="grid">
+          <span class="tc-dot"></span>网格
+        </div>
+      </div>
+    </div>
+
+    <!-- 参数调节 -->
+    <div class="cp-section">
+      <div class="cp-section-title">参数调节</div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">电场线密度</span>
+          <span class="slider-value" id="densityVal">16</span>
+        </div>
+        <input type="range" class="slider-input" id="density" min="6" max="32" step="1" value="16" />
+      </div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">等势面层数</span>
+          <span class="slider-value" id="levelsVal">8</span>
+        </div>
+        <input type="range" class="slider-input" id="levels" min="2" max="16" step="1" value="8" />
+      </div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">粒子流速</span>
+          <span class="slider-value" id="flowVal">1.0</span>
+        </div>
+        <input type="range" class="slider-input" id="flow" min="0" max="30" step="1" value="10" />
+      </div>
+    </div>
+
+    <!-- 操作 -->
+    <div class="cp-section">
+      <div class="cp-section-title">操作</div>
+      <div class="action-row">
+        <button class="action-btn primary" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          <span id="playLabel">暂停</span>
+        </button>
+        <button class="action-btn" id="resetBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          重置
+        </button>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">S223 · 电场线与等势面可视化</span>
+    <span class="demo-tech-tag">Canvas 2D</span>
+    <span class="demo-tech-tag">实时计算</span>
+    <span class="demo-tech-tag">Marching Squares</span>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="fpsTag">60 FPS</span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+/* ============================================================
+   配置
+   ============================================================ */
+const CONFIG = {
+  k: 6000,              // 库仑常数（缩放后适配像素坐标）
+  minDist: 14,          // 场强计算最小距离（避免奇点）
+  chargeRadius: 16,     // 电荷渲染半径
+  fieldLineSteps: 800,  // 电场线追踪最大步数
+  fieldLineStepBase: 3, // 电场线步长基数
+  gridSize: 90,         // 等势面网格分辨率
+  particleCount: 120,   // 粒子数量
+  maxParticleSpeed: 3.5,// 粒子最大速度
+  arrowInterval: 55,    // 箭头间距（像素）
+  arrowSize: 5,         // 箭头大小
+};
+
+/* ============================================================
+   状态
+   ============================================================ */
+const state = {
+  charges: [],
+  selectedIdx: -1,
+  draggingIdx: -1,
+  dragOffset: { x: 0, y: 0 },
+  mousePos: { x: -999, y: -999 },
+  isMouseOver: false,
+  isPlaying: true,
+  show: {
+    fieldLines: true,
+    equipotential: true,
+    particles: true,
+    vectors: false,
+    arrows: true,
+    grid: true,
+  },
+  fieldLineDensity: 16,
+  equipotentialLevels: 8,
+  flowSpeed: 1.0,
+  selectedChargeStr: 3.0,
+  particles: [],
+  cachedFieldLines: null,
+  cachedEquipotential: null,
+  needsRecompute: true,
+  currentPreset: 'dipole',
+};
+
+let canvasW = 0, canvasH = 0;
+let lastFrame = 0;
+let fps = 60;
+
+/* ============================================================
+   预设场景（归一化坐标 0-1）
+   ============================================================ */
+const PRESETS = {
+  dipole: {
+    charges: [
+      { x: 0.38, y: 0.5, q: 3 },
+      { x: 0.62, y: 0.5, q: -3 },
+    ]
+  },
+  single: {
+    charges: [{ x: 0.5, y: 0.5, q: 3 }]
+  },
+  quadrupole: {
+    charges: [
+      { x: 0.35, y: 0.35, q: 3 },
+      { x: 0.65, y: 0.65, q: 3 },
+      { x: 0.65, y: 0.35, q: -3 },
+      { x: 0.35, y: 0.65, q: -3 },
+    ]
+  },
+  plates: {
+    charges: [
+      { x: 0.3, y: 0.2, q: 2 }, { x: 0.3, y: 0.35, q: 2 },
+      { x: 0.3, y: 0.5, q: 2 }, { x: 0.3, y: 0.65, q: 2 },
+      { x: 0.3, y: 0.8, q: 2 },
+      { x: 0.7, y: 0.2, q: -2 }, { x: 0.7, y: 0.35, q: -2 },
+      { x: 0.7, y: 0.5, q: -2 }, { x: 0.7, y: 0.65, q: -2 },
+      { x: 0.7, y: 0.8, q: -2 },
+    ]
+  },
+  like: {
+    charges: [
+      { x: 0.35, y: 0.5, q: 3 },
+      { x: 0.65, y: 0.5, q: 3 },
+    ]
+  },
+  dipoleStrong: {
+    charges: [
+      { x: 0.35, y: 0.5, q: 5 },
+      { x: 0.65, y: 0.5, q: -5 },
+    ]
+  },
+};
+
+/* ============================================================
+   Canvas 初始化
+   ============================================================ */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvasW = rect.width;
+  canvasH = rect.height;
+  state.needsRecompute = true;
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+/* ============================================================
+   物理计算
+   ============================================================ */
+function computeField(x, y) {
+  let Ex = 0, Ey = 0;
+  for (let i = 0; i < state.charges.length; i++) {
+    const c = state.charges[i];
+    const dx = x - c.x;
+    const dy = y - c.y;
+    const r2 = dx * dx + dy * dy;
+    const r = Math.sqrt(Math.max(r2, CONFIG.minDist * CONFIG.minDist));
+    if (r2 < CONFIG.minDist * CONFIG.minDist) continue;
+    const E = CONFIG.k * c.q / (r * r);
+    Ex += E * dx / r;
+    Ey += E * dy / r;
+  }
+  return { x: Ex, y: Ey, mag: Math.sqrt(Ex * Ex + Ey * Ey) };
+}
+
+function computePotential(x, y) {
+  let V = 0;
+  for (let i = 0; i < state.charges.length; i++) {
+    const c = state.charges[i];
+    const dx = x - c.x;
+    const dy = y - c.y;
+    const r = Math.sqrt(Math.max(dx * dx + dy * dy, CONFIG.minDist * CONFIG.minDist));
+    V += CONFIG.k * c.q / r;
+  }
+  return V;
+}
+
+/* ============================================================
+   电场线追踪
+   ============================================================ */
+function traceFieldLine(startX, startY, direction) {
+  const points = [{ x: startX, y: startY }];
+  let x = startX, y = startY;
+
+  for (let step = 0; step < CONFIG.fieldLineSteps; step++) {
+    const E = computeField(x, y);
+    if (E.mag < 0.01) break;
+
+    // 自适应步长：场强越大步长越小
+    const adaptiveStep = CONFIG.fieldLineStepBase * Math.min(1.5, 25 / (E.mag + 5));
+    x += direction * (E.x / E.mag) * adaptiveStep;
+    y += direction * (E.y / E.mag) * adaptiveStep;
+
+    // 边界检测
+    if (x < -10 || x > canvasW + 10 || y < -10 || y > canvasH + 10) break;
+
+    // 接近电荷检测
+    let hitCharge = false;
+    for (let i = 0; i < state.charges.length; i++) {
+      const c = state.charges[i];
+      const dx = x - c.x;
+      const dy = y - c.y;
+      if (dx * dx + dy * dy < (CONFIG.chargeRadius + 1) * (CONFIG.chargeRadius + 1)) {
+        hitCharge = true;
+        break;
+      }
+    }
+
+    points.push({ x, y });
+    if (hitCharge) break;
+  }
+
+  return points;
+}
+
+function generateFieldLines() {
+  const lines = [];
+  const N = state.fieldLineDensity;
+
+  for (let ci = 0; ci < state.charges.length; ci++) {
+    const c = state.charges[ci];
+    const dir = c.q > 0 ? 1 : -1;
+    const lineCount = Math.max(4, Math.round(N * Math.abs(c.q) / 3));
+
+    for (let i = 0; i < lineCount; i++) {
+      const angle = (i / lineCount) * Math.PI * 2 + (ci * 0.1);
+      const sx = c.x + Math.cos(angle) * (CONFIG.chargeRadius + 3);
+      const sy = c.y + Math.sin(angle) * (CONFIG.chargeRadius + 3);
+      const points = traceFieldLine(sx, sy, dir);
+      if (points.length > 3) {
+        lines.push(points);
+      }
+    }
+  }
+
+  return lines;
+}
+
+/* ============================================================
+   等势面（Marching Squares）
+   ============================================================ */
+function computePotentialGrid() {
+  const cols = CONFIG.gridSize;
+  const rows = Math.max(10, Math.round(cols * canvasH / canvasW));
+  const cellW = canvasW / (cols - 1);
+  const cellH = canvasH / (rows - 1);
+  const values = new Float32Array(cols * rows);
+
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      values[j * cols + i] = computePotential(i * cellW, j * cellH);
+    }
+  }
+
+  return { values, cols, rows, cellW, cellH };
+}
+
+function generateEquipotentialContours() {
+  const grid = computePotentialGrid();
+
+  let maxAbs = 0;
+  for (let i = 0; i < grid.values.length; i++) {
+    const v = Math.abs(grid.values[i]);
+    if (v < 1e6 && v > maxAbs) maxAbs = v;
+  }
+
+  if (maxAbs < 1) return [];
+
+  // 生成对称的等势面层级
+  const levels = [];
+  const N = state.equipotentialLevels;
+  for (let i = 1; i <= N; i++) {
+    const v = (i / N) * maxAbs * 0.35;
+    levels.push(v);
+    levels.push(-v);
+  }
+
+  const contours = [];
+  for (let li = 0; li < levels.length; li++) {
+    const level = levels[li];
+    const segments = marchingSquares(grid, level);
+    if (segments.length > 0) {
+      contours.push({ level, segments });
+    }
+  }
+
+  return contours;
+}
+
+function marchingSquares(grid, level) {
+  const segments = [];
+  const { values, cols, rows, cellW, cellH } = grid;
+
+  for (let j = 0; j < rows - 1; j++) {
+    for (let i = 0; i < cols - 1; i++) {
+      const v0 = values[j * cols + i];
+      const v1 = values[j * cols + (i + 1)];
+      const v2 = values[(j + 1) * cols + (i + 1)];
+      const v3 = values[(j + 1) * cols + i];
+
+      let idx = 0;
+      if (v0 > level) idx |= 1;
+      if (v1 > level) idx |= 2;
+      if (v2 > level) idx |= 4;
+      if (v3 > level) idx |= 8;
+
+      if (idx === 0 || idx === 15) continue;
+
+      const x = i * cellW;
+      const y = j * cellH;
+
+      function interp(ax, ay, va, bx, by, vb) {
+        const denom = vb - va;
+        const t = Math.abs(denom) < 1e-10 ? 0.5 : (level - va) / denom;
+        return { x: ax + t * (bx - ax), y: ay + t * (by - ay) };
+      }
+
+      const e0 = () => interp(x, y, v0, x + cellW, y, v1);
+      const e1 = () => interp(x + cellW, y, v1, x + cellW, y + cellH, v2);
+      const e2 = () => interp(x, y + cellH, v3, x + cellW, y + cellH, v2);
+      const e3 = () => interp(x, y, v0, x, y + cellH, v3);
+
+      switch (idx) {
+        case 1: case 14: segments.push([e3(), e0()]); break;
+        case 2: case 13: segments.push([e0(), e1()]); break;
+        case 3: case 12: segments.push([e3(), e1()]); break;
+        case 4: case 11: segments.push([e1(), e2()]); break;
+        case 6: case 9: segments.push([e0(), e2()]); break;
+        case 7: case 8: segments.push([e3(), e2()]); break;
+        case 5: segments.push([e3(), e0()]); segments.push([e1(), e2()]); break;
+        case 10: segments.push([e3(), e1()]); segments.push([e0(), e2()]); break;
+      }
+    }
+  }
+
+  return segments;
+}
+
+/* ============================================================
+   粒子系统
+   ============================================================ */
+function initParticles() {
+  state.particles = [];
+  for (let i = 0; i < CONFIG.particleCount; i++) {
+    state.particles.push(createParticle());
+  }
+}
+
+function createParticle() {
+  return {
+    x: Math.random() * canvasW,
+    y: Math.random() * canvasH,
+    px: 0, py: 0,
+    life: 30 + Math.random() * 80,
+    speed: 0,
+  };
+}
+
+function respawnParticle(p) {
+  p.x = Math.random() * canvasW;
+  p.y = Math.random() * canvasH;
+  p.px = p.x;
+  p.py = p.y;
+  p.life = 30 + Math.random() * 80;
+  p.speed = 0;
+}
+
+function updateParticles() {
+  if (!state.isPlaying) return;
+  const flowMult = state.flowSpeed;
+
+  for (let i = 0; i < state.particles.length; i++) {
+    const p = state.particles[i];
+    p.px = p.x;
+    p.py = p.y;
+
+    const E = computeField(p.x, p.y);
+    if (E.mag < 0.5) {
+      respawnParticle(p);
+      continue;
+    }
+
+    const speed = Math.min(CONFIG.maxParticleSpeed, E.mag * 0.0015 * flowMult);
+    p.speed = speed;
+    p.x += (E.x / E.mag) * speed;
+    p.y += (E.y / E.mag) * speed;
+    p.life--;
+
+    let respawn = false;
+    if (p.x < -5 || p.x > canvasW + 5 || p.y < -5 || p.y > canvasH + 5 || p.life <= 0) {
+      respawn = true;
+    }
+    if (!respawn) {
+      for (let ci = 0; ci < state.charges.length; ci++) {
+        const c = state.charges[ci];
+        const dx = p.x - c.x;
+        const dy = p.y - c.y;
+        if (dx * dx + dy * dy < (CONFIG.chargeRadius + 2) * (CONFIG.chargeRadius + 2)) {
+          respawn = true;
+          break;
+        }
+      }
+    }
+
+    if (respawn) respawnParticle(p);
+  }
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+function render() {
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
+  // 空状态
+  if (state.charges.length === 0) {
+    document.getElementById('emptyHint').style.display = 'block';
+    document.getElementById('legend').style.display = 'none';
+    return;
+  }
+  document.getElementById('emptyHint').style.display = 'none';
+  document.getElementById('legend').style.display = '';
+
+  // 1. 网格
+  if (state.show.grid) drawGrid();
+
+  // 2. 等势面
+  if (state.show.equipotential && state.cachedEquipotential) {
+    drawEquipotential(state.cachedEquipotential);
+  }
+
+  // 3. 矢量场
+  if (state.show.vectors) drawVectorField();
+
+  // 4. 电场线
+  if (state.show.fieldLines && state.cachedFieldLines) {
+    drawFieldLines(state.cachedFieldLines);
+  }
+
+  // 5. 粒子流
+  if (state.show.particles) drawParticles();
+
+  // 6. 电荷
+  drawCharges();
+
+  // 7. 鼠标悬停信息
+  if (state.isMouseOver) drawCursorVector();
+
+  // 8. 选中高亮
+  if (state.selectedIdx >= 0 && state.selectedIdx < state.charges.length) {
+    drawSelectionRing(state.charges[state.selectedIdx]);
+  }
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(180, 170, 155, 0.12)';
+  ctx.lineWidth = 1;
+  const step = 40;
+  ctx.beginPath();
+  for (let x = step; x < canvasW; x += step) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvasH);
+  }
+  for (let y = step; y < canvasH; y += step) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvasW, y);
+  }
+  ctx.stroke();
+}
+
+function drawEquipotential(contours) {
+  ctx.lineWidth = 1.2;
+
+  for (let ci = 0; ci < contours.length; ci++) {
+    const contour = contours[ci];
+    const level = contour.level;
+
+    // 根据电势正负选择颜色
+    let color;
+    if (level > 0.5) {
+      color = `rgba(239, 68, 68, ${0.15 + 0.12 * Math.min(1, Math.abs(level) / 2000)})`;
+    } else if (level < -0.5) {
+      color = `rgba(59, 130, 246, ${0.15 + 0.12 * Math.min(1, Math.abs(level) / 2000)})`;
+    } else {
+      color = 'rgba(107, 107, 107, 0.3)';
+    }
+
+    ctx.strokeStyle = color;
+    ctx.setLineDash(level > -0.5 && level < 0.5 ? [] : [4, 4]);
+    ctx.beginPath();
+
+    for (let si = 0; si < contour.segments.length; si++) {
+      const seg = contour.segments[si];
+      ctx.moveTo(seg[0].x, seg[0].y);
+      ctx.lineTo(seg[1].x, seg[1].y);
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+function drawFieldLines(lines) {
+  ctx.strokeStyle = 'rgba(120, 113, 108, 0.5)';
+  ctx.lineWidth = 1.3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  for (let li = 0; li < lines.length; li++) {
+    const pts = lines[li];
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let pi = 1; pi < pts.length; pi++) {
+      ctx.lineTo(pts[pi].x, pts[pi].y);
+    }
+    ctx.stroke();
+  }
+
+  // 方向箭头
+  if (state.show.arrows) {
+    ctx.fillStyle = 'rgba(120, 113, 108, 0.65)';
+    for (let li = 0; li < lines.length; li++) {
+      drawLineArrows(lines[li]);
+    }
+  }
+}
+
+function drawLineArrows(points) {
+  let distAccum = 0;
+  const interval = CONFIG.arrowInterval;
+  const sz = CONFIG.arrowSize;
+
+  for (let i = 1; i < points.length; i++) {
+    const dx = points[i].x - points[i - 1].x;
+    const dy = points[i].y - points[i - 1].y;
+    const segLen = Math.sqrt(dx * dx + dy * dy);
+    distAccum += segLen;
+
+    if (distAccum >= interval) {
+      const angle = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.translate(points[i].x, points[i].y);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-sz, -sz * 0.45);
+      ctx.lineTo(-sz, sz * 0.45);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      distAccum = 0;
+    }
+  }
+}
+
+function drawVectorField() {
+  const step = 28;
+  const maxLen = step * 0.45;
+
+  for (let y = step / 2; y < canvasH; y += step) {
+    for (let x = step / 2; x < canvasW; x += step) {
+      const E = computeField(x, y);
+      if (E.mag < 0.5) continue;
+
+      const len = Math.min(maxLen, maxLen * Math.min(1, E.mag / 300));
+      const nx = E.x / E.mag;
+      const ny = E.y / E.mag;
+
+      // 颜色根据场强
+      const t = Math.min(1, E.mag / 500);
+      const r = Math.round(59 + (239 - 59) * t);
+      const g = Math.round(130 + (68 - 130) * t);
+      const b = Math.round(246 + (68 - 246) * t);
+      ctx.strokeStyle = `rgba(${r},${g},${b},0.45)`;
+      ctx.lineWidth = 1.2;
+
+      const ex = x + nx * len;
+      const ey = y + ny * len;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+
+      // 箭头
+      const angle = Math.atan2(ny, nx);
+      ctx.save();
+      ctx.translate(ex, ey);
+      ctx.rotate(angle);
+      ctx.fillStyle = `rgba(${r},${g},${b},0.55)`;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-3, -2);
+      ctx.lineTo(-3, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+function drawParticles() {
+  for (let i = 0; i < state.particles.length; i++) {
+    const p = state.particles[i];
+    const dx = p.x - p.px;
+    const dy = p.y - p.py;
+    const trailLen = Math.sqrt(dx * dx + dy * dy);
+
+    if (trailLen < 0.1) continue;
+
+    // 根据速度设置透明度和颜色
+    const alpha = Math.min(0.8, 0.2 + p.speed * 0.3);
+    ctx.strokeStyle = `rgba(194, 65, 12, ${alpha * 0.6})`;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(p.px, p.py);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+
+    // 粒子点
+    ctx.fillStyle = `rgba(194, 65, 12, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawCharges() {
+  for (let i = 0; i < state.charges.length; i++) {
+    const c = state.charges[i];
+    const isPositive = c.q > 0;
+    const r = CONFIG.chargeRadius;
+
+    // 光晕
+    ctx.save();
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = isPositive ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)';
+
+    // 渐变填充
+    const grad = ctx.createRadialGradient(c.x - r * 0.3, c.y - r * 0.3, 0, c.x, c.y, r);
+    if (isPositive) {
+      grad.addColorStop(0, '#fca5a5');
+      grad.addColorStop(0.5, '#ef4444');
+      grad.addColorStop(1, '#b91c1c');
+    } else {
+      grad.addColorStop(0, '#93c5fd');
+      grad.addColorStop(0.5, '#3b82f6');
+      grad.addColorStop(1, '#1d4ed8');
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 边框
+    ctx.strokeStyle = isPositive ? '#991b1b' : '#1e40af';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // +/- 符号
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px "Noto Sans SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(isPositive ? '+' : '−', c.x, c.y);
+
+    // 电量标签
+    ctx.fillStyle = 'rgba(26, 26, 26, 0.7)';
+    ctx.font = '600 10px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(c.q.toFixed(1), c.x, c.y + r + 12);
+  }
+}
+
+function drawSelectionRing(c) {
+  const r = CONFIG.chargeRadius + 5;
+  ctx.strokeStyle = 'rgba(194, 65, 12, 0.8)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawCursorVector() {
+  if (state.charges.length === 0) return;
+  const E = computeField(state.mousePos.x, state.mousePos.y);
+  if (E.mag < 0.5) return;
+
+  const len = Math.min(50, 15 + E.mag * 0.03);
+  const nx = E.x / E.mag;
+  const ny = E.y / E.mag;
+  const ex = state.mousePos.x + nx * len;
+  const ey = state.mousePos.y + ny * len;
+
+  // 箭头线
+  ctx.strokeStyle = 'rgba(194, 65, 12, 0.7)';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(state.mousePos.x, state.mousePos.y);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+
+  // 箭头头
+  const angle = Math.atan2(ny, nx);
+  ctx.save();
+  ctx.translate(ex, ey);
+  ctx.rotate(angle);
+  ctx.fillStyle = 'rgba(194, 65, 12, 0.8)';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-6, -3);
+  ctx.lineTo(-6, 3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // 小圆点标记位置
+  ctx.fillStyle = 'rgba(194, 65, 12, 0.5)';
+  ctx.beginPath();
+  ctx.arc(state.mousePos.x, state.mousePos.y, 2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/* ============================================================
+   交互
+   ============================================================ */
+function getChargeAt(x, y) {
+  for (let i = state.charges.length - 1; i >= 0; i--) {
+    const c = state.charges[i];
+    const dx = x - c.x;
+    const dy = y - c.y;
+    if (dx * dx + dy * dy < (CONFIG.chargeRadius + 4) * (CONFIG.chargeRadius + 4)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: clientX - rect.left,
+    y: clientY - rect.top,
+  };
+}
+
+function setupInteraction() {
+  // 鼠标移动
+  canvas.addEventListener('mousemove', (e) => {
+    const pos = getMousePos(e);
+    state.mousePos = pos;
+    state.isMouseOver = true;
+
+    if (state.draggingIdx >= 0) {
+      const c = state.charges[state.draggingIdx];
+      c.x = pos.x - state.dragOffset.x;
+      c.y = pos.y - state.dragOffset.y;
+      // 限制在画布内
+      c.x = Math.max(CONFIG.chargeRadius, Math.min(canvasW - CONFIG.chargeRadius, c.x));
+      c.y = Math.max(CONFIG.chargeRadius, Math.min(canvasH - CONFIG.chargeRadius, c.y));
+      state.needsRecompute = true;
+      canvas.classList.add('dragging');
+    } else {
+      const idx = getChargeAt(pos.x, pos.y);
+      canvas.classList.toggle('hover-charge', idx >= 0);
+    }
+
+    updateDataPanel();
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    state.isMouseOver = false;
+    state.draggingIdx = -1;
+    canvas.classList.remove('dragging');
+  });
+
+  // 鼠标按下
+  canvas.addEventListener('mousedown', (e) => {
+    const pos = getMousePos(e);
+    const idx = getChargeAt(pos.x, pos.y);
+
+    if (idx >= 0) {
+      state.selectedIdx = idx;
+      state.draggingIdx = idx;
+      state.dragOffset.x = pos.x - state.charges[idx].x;
+      state.dragOffset.y = pos.y - state.charges[idx].y;
+      updateSelectedInfo();
+    } else {
+      state.selectedIdx = -1;
+      updateSelectedInfo();
+    }
+  });
+
+  // 鼠标松开
+  window.addEventListener('mouseup', () => {
+    state.draggingIdx = -1;
+    canvas.classList.remove('dragging');
+  });
+
+  // 触摸支持
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const pos = getMousePos(e);
+    state.mousePos = pos;
+    state.isMouseOver = true;
+    const idx = getChargeAt(pos.x, pos.y);
+    if (idx >= 0) {
+      state.selectedIdx = idx;
+      state.draggingIdx = idx;
+      state.dragOffset.x = pos.x - state.charges[idx].x;
+      state.dragOffset.y = pos.y - state.charges[idx].y;
+      updateSelectedInfo();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const pos = getMousePos(e);
+    state.mousePos = pos;
+    if (state.draggingIdx >= 0) {
+      const c = state.charges[state.draggingIdx];
+      c.x = Math.max(CONFIG.chargeRadius, Math.min(canvasW - CONFIG.chargeRadius, pos.x - state.dragOffset.x));
+      c.y = Math.max(CONFIG.chargeRadius, Math.min(canvasH - CONFIG.chargeRadius, pos.y - state.dragOffset.y));
+      state.needsRecompute = true;
+    }
+    updateDataPanel();
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', () => {
+    state.draggingIdx = -1;
+    state.isMouseOver = false;
+  });
+
+  // 右键删除
+  canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    const pos = getMousePos(e);
+    const idx = getChargeAt(pos.x, pos.y);
+    if (idx >= 0) {
+      state.charges.splice(idx, 1);
+      state.selectedIdx = -1;
+      state.needsRecompute = true;
+      updateSelectedInfo();
+      updateDataPanel();
+    }
+  });
+
+  // 键盘快捷键
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      togglePlay();
+    } else if (e.key === 'r' || e.key === 'R') {
+      loadPreset(state.currentPreset);
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (state.selectedIdx >= 0) {
+        state.charges.splice(state.selectedIdx, 1);
+        state.selectedIdx = -1;
+        state.needsRecompute = true;
+        updateSelectedInfo();
+      }
+    }
+  });
+}
+
+/* ============================================================
+   数据面板更新
+   ============================================================ */
+function updateDataPanel() {
+  const dpPos = document.getElementById('dpPos');
+  const dpEmag = document.getElementById('dpEmag');
+  const dpEx = document.getElementById('dpEx');
+  const dpEy = document.getElementById('dpEy');
+  const dpV = document.getElementById('dpV');
+  const dpCount = document.getElementById('dpCount');
+
+  dpCount.textContent = state.charges.length;
+
+  if (!state.isMouseOver || state.charges.length === 0) {
+    dpPos.textContent = '— , —';
+    dpEmag.textContent = '0.00';
+    dpEx.textContent = '0.00';
+    dpEy.textContent = '0.00';
+    dpV.textContent = '0.00';
+    return;
+  }
+
+  const x = Math.round(state.mousePos.x);
+  const y = Math.round(state.mousePos.y);
+  dpPos.textContent = `${x}, ${y}`;
+
+  const E = computeField(state.mousePos.x, state.mousePos.y);
+  dpEmag.textContent = E.mag.toFixed(2);
+  dpEx.textContent = E.x.toFixed(2);
+  dpEy.textContent = E.y.toFixed(2);
+
+  const V = computePotential(state.mousePos.x, state.mousePos.y);
+  dpV.textContent = V.toFixed(2);
+
+  // 颜色提示
+  dpV.className = 'dp-value ' + (V > 0.5 ? 'pos' : V < -0.5 ? 'neg' : '');
+}
+
+function updateSelectedInfo() {
+  const el = document.getElementById('selectedInfo');
+  const slider = document.getElementById('chargeStr');
+  const sliderVal = document.getElementById('chargeStrVal');
+
+  if (state.selectedIdx < 0 || state.selectedIdx >= state.charges.length) {
+    el.innerHTML = '<span class="si-none">未选中电荷 · 点击选择</span>';
+    slider.disabled = true;
+    return;
+  }
+
+  const c = state.charges[state.selectedIdx];
+  const isPos = c.q > 0;
+  el.innerHTML = `
+    <span class="si-dot" style="background:${isPos ? '#ef4444' : '#3b82f6'};"></span>
+    <span class="si-text">电荷 #${state.selectedIdx + 1} · ${isPos ? '正' : '负'} · ${c.q.toFixed(1)}</span>
+  `;
+
+  slider.disabled = false;
+  slider.value = Math.abs(c.q);
+  sliderVal.textContent = c.q.toFixed(1);
+  state.selectedChargeStr = Math.abs(c.q);
+}
+
+/* ============================================================
+   预设加载
+   ============================================================ */
+function loadPreset(name) {
+  const preset = PRESETS[name];
+  if (!preset) return;
+
+  state.currentPreset = name;
+  state.charges = preset.charges.map(c => ({
+    x: c.x * canvasW,
+    y: c.y * canvasH,
+    q: c.q,
+  }));
+  state.selectedIdx = -1;
+  state.needsRecompute = true;
+
+  // 更新预设按钮状态
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === name);
+  });
+
+  updateSelectedInfo();
+  updateDataPanel();
+}
+
+/* ============================================================
+   控件绑定
+   ============================================================ */
+function setupControls() {
+  // 预设按钮
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => loadPreset(btn.dataset.preset));
+  });
+
+  // 添加正电荷
+  document.getElementById('addPos').addEventListener('click', () => {
+    state.charges.push({
+      x: canvasW * 0.5 + (Math.random() - 0.5) * 80,
+      y: canvasH * 0.5 + (Math.random() - 0.5) * 80,
+      q: state.selectedChargeStr,
+    });
+    state.selectedIdx = state.charges.length - 1;
+    state.needsRecompute = true;
+    updateSelectedInfo();
+    // 取消预设激活
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  });
+
+  // 添加负电荷
+  document.getElementById('addNeg').addEventListener('click', () => {
+    state.charges.push({
+      x: canvasW * 0.5 + (Math.random() - 0.5) * 80,
+      y: canvasH * 0.5 + (Math.random() - 0.5) * 80,
+      q: -state.selectedChargeStr,
+    });
+    state.selectedIdx = state.charges.length - 1;
+    state.needsRecompute = true;
+    updateSelectedInfo();
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  });
+
+  // 删除选中
+  document.getElementById('delCharge').addEventListener('click', () => {
+    if (state.selectedIdx >= 0) {
+      state.charges.splice(state.selectedIdx, 1);
+      state.selectedIdx = -1;
+      state.needsRecompute = true;
+      updateSelectedInfo();
+    }
+  });
+
+  // 全部清除
+  document.getElementById('clearAll').addEventListener('click', () => {
+    state.charges = [];
+    state.selectedIdx = -1;
+    state.needsRecompute = true;
+    updateSelectedInfo();
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  });
+
+  // 电荷强度滑块
+  const chargeStr = document.getElementById('chargeStr');
+  chargeStr.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    state.selectedChargeStr = val;
+    document.getElementById('chargeStrVal').textContent = val.toFixed(1);
+    if (state.selectedIdx >= 0) {
+      const c = state.charges[state.selectedIdx];
+      c.q = c.q > 0 ? val : -val;
+      state.needsRecompute = true;
+      updateSelectedInfo();
+    }
+  });
+
+  // 显示选项开关
+  document.querySelectorAll('.toggle-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const key = chip.dataset.toggle;
+      state.show[key] = !state.show[key];
+      chip.classList.toggle('active', state.show[key]);
+    });
+  });
+
+  // 电场线密度
+  const density = document.getElementById('density');
+  density.addEventListener('input', (e) => {
+    state.fieldLineDensity = parseInt(e.target.value);
+    document.getElementById('densityVal').textContent = state.fieldLineDensity;
+    state.needsRecompute = true;
+  });
+
+  // 等势面层数
+  const levels = document.getElementById('levels');
+  levels.addEventListener('input', (e) => {
+    state.equipotentialLevels = parseInt(e.target.value);
+    document.getElementById('levelsVal').textContent = state.equipotentialLevels;
+    state.needsRecompute = true;
+  });
+
+  // 粒子流速
+  const flow = document.getElementById('flow');
+  flow.addEventListener('input', (e) => {
+    state.flowSpeed = parseInt(e.target.value) / 10;
+    document.getElementById('flowVal').textContent = state.flowSpeed.toFixed(1);
+  });
+
+  // 播放/暂停
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // 重置
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    loadPreset(state.currentPreset);
+    if (!state.isPlaying) togglePlay();
+  });
+
+  // 导航栏滚动效果
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+}
+
+function togglePlay() {
+  state.isPlaying = !state.isPlaying;
+  const icon = document.getElementById('playIcon');
+  const label = document.getElementById('playLabel');
+  if (state.isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    label.textContent = '暂停';
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent = '播放';
+  }
+}
+
+/* ============================================================
+   动画循环
+   ============================================================ */
+function animate(now) {
+  const dt = (now - lastFrame) / 1000 || 0.016;
+  lastFrame = now;
+  fps = Math.round(1 / Math.max(dt, 0.001));
+
+  // 重新计算场线/等势面（仅在需要时）
+  if (state.needsRecompute) {
+    if (state.charges.length > 0) {
+      state.cachedFieldLines = generateFieldLines();
+      state.cachedEquipotential = generateEquipotentialContours();
+    } else {
+      state.cachedFieldLines = null;
+      state.cachedEquipotential = null;
+    }
+    state.needsRecompute = false;
+  }
+
+  // 更新粒子
+  updateParticles();
+
+  // 渲染
+  render();
+
+  // 更新 FPS
+  document.getElementById('fpsTag').textContent = `${fps} FPS`;
+
+  requestAnimationFrame(animate);
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+function init() {
+  resizeCanvas();
+  setupInteraction();
+  setupControls();
+  initParticles();
+  loadPreset('dipole');
+  updateDataPanel();
+  requestAnimationFrame(animate);
+}
+
+// 等待 DOM 就绪
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+
+</body>
+</html>

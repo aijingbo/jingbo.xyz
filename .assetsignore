@@ -1,0 +1,7 @@
+.git
+.gitignore
+docs/
+*.md
+.DS_Store
+wrangler.toml
+.assetsignore

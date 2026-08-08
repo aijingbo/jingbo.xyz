@@ -1,0 +1,1960 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>人口增长模型模拟 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+/* ====== 本 Demo 专用配色（生态绿主题） ====== */
+.framework-interactive {
+  --eco-primary: #229954;
+  --eco-primary-light: #27ae60;
+  --eco-primary-dark: #1e8449;
+  --eco-primary-soft: rgba(34, 153, 84, 0.1);
+  --eco-primary-softer: rgba(34, 153, 84, 0.05);
+  --eco-gold: #f1c40f;
+  --eco-red: #c0392b;
+  --eco-purple: #8e44ad;
+  --eco-prey: #2ecc71;
+  --eco-predator: #e67e22;
+  --eco-canvas-bg: #faf8f5;
+  --eco-grid: #ece7df;
+  --eco-axis: #999;
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+/* ====== 图表区域 ====== */
+.chart-container {
+  flex: 1;
+  display: grid;
+  grid-template-rows: 1.8fr 1fr;
+  gap: 0;
+  min-height: 0;
+}
+
+.chart-container.pp-mode {
+  grid-template-rows: 1fr;
+  grid-template-columns: 1.8fr 1fr;
+}
+
+.chart-container.hide-secondary {
+  grid-template-rows: 1fr;
+}
+
+.chart-container.hide-secondary .chart-pane:nth-child(2) {
+  display: none;
+}
+
+.chart-pane {
+  position: relative;
+  overflow: hidden;
+  background: var(--eco-canvas-bg);
+}
+
+.chart-pane:nth-child(2) {
+  border-top: 1px solid var(--border-soft);
+}
+
+.chart-container.pp-mode .chart-pane:nth-child(2) {
+  border-top: none;
+  border-left: 1px solid var(--border-soft);
+}
+
+.chart-pane canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.chart-label {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ====== 数据显示卡片 ====== */
+.eco-data-display {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  min-width: 170px;
+}
+
+.eco-data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eco-data-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.eco-data-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.eco-data-value.green { color: var(--eco-primary); }
+.eco-data-value.orange { color: var(--eco-predator); }
+.eco-data-value.red { color: var(--eco-red); }
+.eco-data-value.purple { color: var(--eco-purple); }
+
+.eco-data-divider {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 2px 0;
+}
+
+/* ====== 控制面板 ====== */
+.eco-control-panel {
+  flex-shrink: 0;
+  background-color: var(--surface-muted);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 10px 20px 12px;
+  gap: 8px;
+}
+
+.eco-control-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.eco-control-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eco-control-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+/* 模型切换按钮 */
+.eco-model-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+}
+
+.eco-model-btn:hover {
+  border-color: var(--eco-primary);
+  color: var(--eco-primary);
+}
+
+.eco-model-btn.active {
+  background: var(--eco-primary);
+  border-color: var(--eco-primary);
+  color: #fff;
+}
+
+.eco-model-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 预设按钮 */
+.eco-preset-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+}
+
+.eco-preset-btn:hover {
+  border-color: var(--eco-primary);
+  color: var(--eco-primary);
+  background: var(--eco-primary-soft);
+}
+
+/* 显示选项 */
+.eco-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+}
+
+.eco-toggle.active {
+  background: var(--eco-primary-soft);
+  border-color: rgba(34, 153, 84, 0.3);
+  color: var(--eco-primary);
+}
+
+.eco-toggle svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* 播放控制 */
+.eco-play-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: var(--eco-primary);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  flex-shrink: 0;
+}
+
+.eco-play-btn:hover {
+  background: var(--eco-primary-dark);
+  transform: scale(1.05);
+}
+
+.eco-play-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.eco-reset-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  flex-shrink: 0;
+}
+
+.eco-reset-btn:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.eco-reset-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* 速度选择 */
+.eco-speed-select {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+/* 滑块组 */
+.eco-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 120px;
+  max-width: 160px;
+  flex: 1;
+}
+
+.eco-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.eco-slider-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.eco-slider-value {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--eco-primary);
+  min-width: 36px;
+  text-align: right;
+}
+
+.eco-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+.eco-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--eco-primary);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s var(--ease);
+}
+
+.eco-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.eco-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--eco-primary);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* 分隔线 */
+.eco-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* PP 参数容器 */
+.pp-params {
+  display: none;
+}
+
+.pp-params.visible {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* 加载动画 */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--eco-canvas-bg);
+  transition: opacity 0.6s var(--ease);
+}
+
+.loading-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-cells {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loading-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--eco-primary);
+  animation: cellPulse 1.4s ease-in-out infinite;
+}
+
+.loading-cell:nth-child(2) { animation-delay: 0.2s; }
+.loading-cell:nth-child(3) { animation-delay: 0.4s; }
+.loading-cell:nth-child(4) { animation-delay: 0.6s; }
+.loading-cell:nth-child(5) { animation-delay: 0.8s; }
+
+@keyframes cellPulse {
+  0%, 100% { transform: scale(0.6); opacity: 0.3; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.loading-text {
+  position: absolute;
+  bottom: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.1em;
+}
+
+/* ====== 响应式 ====== */
+@media (max-width: 768px) {
+  .chart-container {
+    grid-template-rows: 1.5fr 1fr;
+  }
+
+  .chart-container.pp-mode {
+    grid-template-rows: 1.5fr 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  .chart-container.pp-mode .chart-pane:nth-child(2) {
+    border-left: none;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .eco-data-display {
+    top: 8px;
+    right: 8px;
+    padding: 10px 12px;
+    min-width: 130px;
+    font-size: 10px;
+  }
+
+  .eco-data-value { font-size: 11px; }
+
+  .eco-control-panel {
+    padding: 8px 12px 10px;
+    overflow-x: auto;
+  }
+
+  .eco-control-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .eco-slider-group {
+    min-width: 100px;
+  }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 加载层 ====== -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-cells">
+    <div class="loading-cell"></div>
+    <div class="loading-cell"></div>
+    <div class="loading-cell"></div>
+    <div class="loading-cell"></div>
+    <div class="loading-cell"></div>
+  </div>
+  <div class="loading-text">初始化生态模型…</div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">生物</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">人口增长模型模拟</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-bio">生物</span>
+      <a href="/skills/jingbo-edu-biochem-model-sim-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体 ====== -->
+<div class="framework-interactive">
+  <div class="interactive-main">
+
+    <!-- ========== 图表区 ========== -->
+    <div class="chart-container" id="chartContainer">
+
+      <!-- 主图表 N-t -->
+      <div class="chart-pane" id="mainPane">
+        <span class="chart-label" id="mainChartLabel">种群增长曲线 N-t</span>
+        <canvas id="mainCanvas"></canvas>
+      </div>
+
+      <!-- 次图表 增长速率/相空间 -->
+      <div class="chart-pane" id="secondaryPane">
+        <span class="chart-label" id="secondaryChartLabel">增长速率 dN/dt - N</span>
+        <canvas id="secondaryCanvas"></canvas>
+      </div>
+
+      <!-- 数据显示卡片 -->
+      <div class="eco-data-display" id="dataDisplay">
+        <div class="eco-data-row">
+          <span class="eco-data-label">年份</span>
+          <span class="eco-data-value" id="dataYear">0</span>
+        </div>
+        <div class="eco-data-row">
+          <span class="eco-data-label">种群 N</span>
+          <span class="eco-data-value green" id="dataN">100</span>
+        </div>
+        <div class="eco-data-row" id="dataPredatorRow" style="display:none;">
+          <span class="eco-data-label">捕食者 P</span>
+          <span class="eco-data-value orange" id="dataP">50</span>
+        </div>
+        <div class="eco-data-divider"></div>
+        <div class="eco-data-row">
+          <span class="eco-data-label">增长率 r</span>
+          <span class="eco-data-value" id="dataR">0.50</span>
+        </div>
+        <div class="eco-data-row">
+          <span class="eco-data-label">增长速率</span>
+          <span class="eco-data-value purple" id="dataDnDt">0.0</span>
+        </div>
+        <div class="eco-data-row" id="dataKTimeRow">
+          <span class="eco-data-label">达 K 值</span>
+          <span class="eco-data-value red" id="dataKTime">—</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========== 控制面板 ========== -->
+    <div class="eco-control-panel">
+
+      <!-- 第一行：模型 + 预设 + 显示 + 播放 -->
+      <div class="eco-control-row">
+        <div class="eco-control-group">
+          <span class="eco-control-label">模型</span>
+          <button class="eco-model-btn" data-model="exponential">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21c0-9 6-18 18-18"/></svg>
+            指数增长
+          </button>
+          <button class="eco-model-btn active" data-model="logistic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21c0-12 4-18 18-18 0 12-4 18-18 18z"/></svg>
+            逻辑斯蒂
+          </button>
+          <button class="eco-model-btn" data-model="predator-prey">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>
+            捕食者-猎物
+          </button>
+        </div>
+
+        <div class="eco-divider"></div>
+
+        <div class="eco-control-group">
+          <span class="eco-control-label">预设</span>
+          <button class="eco-preset-btn" data-preset="1">① 指数</button>
+          <button class="eco-preset-btn" data-preset="2">② 逻辑斯蒂</button>
+          <button class="eco-preset-btn" data-preset="3">③ K/2 点</button>
+          <button class="eco-preset-btn" data-preset="4">④ 捕食振荡</button>
+          <button class="eco-preset-btn" data-preset="5">⑤ r 策略</button>
+          <button class="eco-preset-btn" data-preset="6">⑥ 人口预测</button>
+        </div>
+
+        <div class="eco-divider"></div>
+
+        <div class="eco-control-group">
+          <span class="eco-control-label">显示</span>
+          <button class="eco-toggle active" data-toggle="showExp">J型对比</button>
+          <button class="eco-toggle active" data-toggle="showGR">增长速率</button>
+          <button class="eco-toggle active" data-toggle="showK">K值线</button>
+          <button class="eco-toggle" data-toggle="showEq">平衡点</button>
+        </div>
+
+        <div style="flex:1;"></div>
+
+        <div class="eco-control-group">
+          <button class="eco-play-btn" id="playBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
+          <button class="eco-reset-btn" id="resetBtn" title="重置">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
+          <select class="eco-speed-select" id="speedSelect">
+            <option value="1">1 年/秒</option>
+            <option value="5" selected>5 年/秒</option>
+            <option value="10">10 年/秒</option>
+            <option value="20">20 年/秒</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 第二行：参数滑块 -->
+      <div class="eco-control-row">
+        <div class="eco-slider-group">
+          <div class="eco-slider-header">
+            <span class="eco-slider-label">初始种群 N₀</span>
+            <span class="eco-slider-value" id="valN0">100</span>
+          </div>
+          <input type="range" class="eco-slider" id="sliderN0" min="10" max="10000" step="10" value="100" />
+        </div>
+
+        <div class="eco-slider-group">
+          <div class="eco-slider-header">
+            <span class="eco-slider-label">增长率 r</span>
+            <span class="eco-slider-value" id="valR">0.50</span>
+          </div>
+          <input type="range" class="eco-slider" id="sliderR" min="1" max="200" step="1" value="50" />
+        </div>
+
+        <div class="eco-slider-group" id="sliderKGroup">
+          <div class="eco-slider-header">
+            <span class="eco-slider-label">环境容纳量 K</span>
+            <span class="eco-slider-value" id="valK">5,000</span>
+          </div>
+          <input type="range" class="eco-slider" id="sliderK" min="100" max="100000" step="100" value="5000" />
+        </div>
+
+        <div class="eco-slider-group">
+          <div class="eco-slider-header">
+            <span class="eco-slider-label">模拟时间 (年)</span>
+            <span class="eco-slider-value" id="valT">50</span>
+          </div>
+          <input type="range" class="eco-slider" id="sliderT" min="10" max="200" step="5" value="50" />
+        </div>
+
+        <!-- 捕食者参数 -->
+        <div class="pp-params" id="ppParams">
+          <div class="eco-divider"></div>
+          <div class="eco-slider-group">
+            <div class="eco-slider-header">
+              <span class="eco-slider-label">捕食者 P₀</span>
+              <span class="eco-slider-value" id="valP0">50</span>
+            </div>
+            <input type="range" class="eco-slider" id="sliderP0" min="10" max="1000" step="10" value="50" />
+          </div>
+          <div class="eco-slider-group">
+            <div class="eco-slider-header">
+              <span class="eco-slider-label">捕食率 α</span>
+              <span class="eco-slider-value" id="valAlpha">0.010</span>
+            </div>
+            <input type="range" class="eco-slider" id="sliderAlpha" min="1" max="100" step="1" value="10" />
+          </div>
+          <div class="eco-slider-group">
+            <div class="eco-slider-header">
+              <span class="eco-slider-label">死亡率 m</span>
+              <span class="eco-slider-value" id="valM">0.50</span>
+            </div>
+            <input type="range" class="eco-slider" id="sliderM" min="10" max="100" step="1" value="50" />
+          </div>
+          <div class="eco-slider-group">
+            <div class="eco-slider-header">
+              <span class="eco-slider-label">转化率 β</span>
+              <span class="eco-slider-value" id="valBeta">0.020</span>
+            </div>
+            <input type="range" class="eco-slider" id="sliderBeta" min="1" max="100" step="1" value="20" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">S216 · 人口增长模型模拟</span>
+    <span class="demo-tech-tag">Canvas 2D</span>
+    <span class="demo-tech-tag">RK4 数值积分</span>
+    <span class="demo-tech-tag">Lotka-Volterra</span>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="fpsTag">60 FPS</span>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   人口增长模型模拟
+   数学引擎：RK4 数值积分 + 指数解析解
+   三种模型：指数增长 / 逻辑斯蒂增长 / 捕食者-猎物 (Lotka-Volterra)
+   ============================================================ */
+
+// ====== 主题色 ======
+const C = {
+  logistic: '#27ae60',
+  logisticFill: 'rgba(39, 174, 96, 0.12)',
+  logisticFillDeep: 'rgba(39, 174, 96, 0.25)',
+  exponential: '#f1c40f',
+  kLine: '#c0392b',
+  growthRate: '#8e44ad',
+  growthRateFill: 'rgba(142, 68, 173, 0.08)',
+  prey: '#2ecc71',
+  preyFill: 'rgba(46, 204, 113, 0.1)',
+  predator: '#e67e22',
+  predatorFill: 'rgba(230, 126, 34, 0.1)',
+  grid: '#ece7df',
+  gridMajor: '#ddd6c8',
+  axis: '#888',
+  textMuted: '#6b6b6b',
+  textFaint: '#a3a3a3',
+  bg: '#faf8f5',
+  marker: '#ffffff',
+  eqPoint: '#e74c3c',
+};
+
+// ====== 预设配置 ======
+const PRESETS = {
+  1: { name: '指数增长', model: 'exponential', N0: 100, r: 0.5, K: 5000, timeSpan: 50, showExp: false, showGR: true, showK: false, showEq: false },
+  2: { name: '逻辑斯蒂增长', model: 'logistic', N0: 100, r: 0.5, K: 5000, timeSpan: 50, showExp: true, showGR: true, showK: true, showEq: false },
+  3: { name: 'K/2 最大持续产量', model: 'logistic', N0: 50, r: 0.3, K: 5000, timeSpan: 80, showExp: false, showGR: true, showK: true, showEq: true },
+  4: { name: '捕食者-猎物振荡', model: 'predator-prey', N0: 80, r: 0.5, K: 5000, timeSpan: 100, P0: 30, alpha: 0.01, m: 0.4, beta: 0.02, showExp: false, showGR: false, showK: false, showEq: true },
+  5: { name: 'r-策略 vs K-策略', model: 'logistic', N0: 100, r: 0.8, K: 5000, timeSpan: 50, showExp: true, showGR: true, showK: true, showEq: false },
+  6: { name: '人口增长预测', model: 'logistic', N0: 1000, r: 0.025, K: 12000, timeSpan: 200, showExp: true, showGR: true, showK: true, showEq: false },
+};
+
+// ====== 状态 ======
+const state = {
+  model: 'logistic',
+  N0: 100,
+  r: 0.5,
+  K: 5000,
+  timeSpan: 50,
+  P0: 50,
+  alpha: 0.01,
+  m: 0.5,
+  beta: 0.02,
+  showExp: true,
+  showGR: true,
+  showK: true,
+  showEq: false,
+  isPlaying: false,
+  currentTime: 0,
+  speed: 5,
+  data: [],
+  expData: [],
+  kTime: null,
+  fps: 60,
+  lastFrame: 0,
+};
+
+const dpr = window.devicePixelRatio || 1;
+
+// ====== Canvas 引用 ======
+const mainCanvas = document.getElementById('mainCanvas');
+const mainCtx = mainCanvas.getContext('2d');
+const secCanvas = document.getElementById('secondaryCanvas');
+const secCtx = secCanvas.getContext('2d');
+
+// ====== 工具函数 ======
+function niceInterval(range, targetCount) {
+  if (range <= 0) return 1;
+  const rough = range / targetCount;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rough)));
+  const normalized = rough / magnitude;
+  let nice;
+  if (normalized < 1.5) nice = 1;
+  else if (normalized < 3) nice = 2;
+  else if (normalized < 7) nice = 5;
+  else nice = 10;
+  return nice * magnitude;
+}
+
+function formatNumber(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+  if (n >= 100) return Math.round(n).toString();
+  if (n >= 10) return n.toFixed(0);
+  return n.toFixed(1);
+}
+
+// ====== 数学引擎 ======
+
+// RK4 单步积分
+function rk4(f, t, y, h) {
+  const k1 = f(t, y);
+  const k2 = f(t + h / 2, y.map((v, i) => v + h * k1[i] / 2));
+  const k3 = f(t + h / 2, y.map((v, i) => v + h * k2[i] / 2));
+  const k4 = f(t + h, y.map((v, i) => v + h * k3[i]));
+  return y.map((v, i) => v + h * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6);
+}
+
+// 指数增长模型（解析解）
+function computeExponential(N0, r, timeSpan) {
+  const dt = 0.1;
+  const steps = Math.ceil(timeSpan / dt);
+  const data = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i * dt;
+    const N = N0 * Math.exp(r * t);
+    data.push({ t, N, dNdt: r * N });
+  }
+  return data;
+}
+
+// 逻辑斯蒂增长模型（RK4）
+function computeLogistic(N0, r, K, timeSpan) {
+  const dt = 0.1;
+  const steps = Math.ceil(timeSpan / dt);
+  const data = [];
+  let N = N0;
+  let kTime = null;
+
+  const f = (t, y) => [r * y[0] * (1 - y[0] / K)];
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i * dt;
+    const dNdt = r * N * (1 - N / K);
+    data.push({ t, N, dNdt });
+    if (kTime === null && N >= K * 0.95) {
+      kTime = t;
+    }
+    const result = rk4(f, t, [N], dt);
+    N = Math.max(0, result[0]);
+  }
+  return { data, kTime };
+}
+
+// 捕食者-猎物模型 Lotka-Volterra（RK4）
+function computePredatorPrey(N0, P0, r, alpha, m, beta, timeSpan) {
+  const dt = 0.05;
+  const steps = Math.ceil(timeSpan / dt);
+  const data = [];
+  let N = N0;
+  let P = P0;
+
+  // dN/dt = rN - αNP
+  // dP/dt = βαNP - mP
+  const f = (t, y) => [
+    r * y[0] - alpha * y[0] * y[1],
+    beta * alpha * y[0] * y[1] - m * y[1]
+  ];
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i * dt;
+    const dNdt = r * N - alpha * N * P;
+    const dPdt = beta * alpha * N * P - m * P;
+    data.push({ t, N, P, dNdt, dPdt });
+    const result = rk4(f, t, [N, P], dt);
+    N = Math.max(0, result[0]);
+    P = Math.max(0, result[1]);
+    if (N > 1e7 || P > 1e7) break; // 安全上限
+  }
+  return data;
+}
+
+// 计算所有数据
+function computeData() {
+  if (state.model === 'exponential') {
+    state.data = computeExponential(state.N0, state.r, state.timeSpan);
+    state.expData = [];
+    state.kTime = null;
+  } else if (state.model === 'logistic') {
+    const result = computeLogistic(state.N0, state.r, state.K, state.timeSpan);
+    state.data = result.data;
+    state.kTime = result.kTime;
+    if (state.showExp) {
+      state.expData = computeExponential(state.N0, state.r, state.timeSpan);
+    } else {
+      state.expData = [];
+    }
+  } else if (state.model === 'predator-prey') {
+    state.data = computePredatorPrey(state.N0, state.P0, state.r, state.alpha, state.m, state.beta, state.timeSpan);
+    state.expData = [];
+    state.kTime = null;
+  }
+}
+
+// ====== Canvas 尺寸 ======
+function resizeCanvas(canvas) {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function resizeAll() {
+  resizeCanvas(mainCanvas);
+  resizeCanvas(secCanvas);
+}
+
+// ====== 主图表绘制 ======
+function drawMainChart() {
+  const ctx = mainCtx;
+  const w = mainCanvas.width / dpr;
+  const h = mainCanvas.height / dpr;
+
+  // 背景
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  const margin = { top: 36, right: 20, bottom: 32, left: 56 };
+  const cw = w - margin.left - margin.right;
+  const ch = h - margin.top - margin.bottom;
+  if (cw <= 0 || ch <= 0) return;
+
+  // 确定 Y 轴范围
+  let maxN;
+  let expCapped = false;
+  if (state.model === 'predator-prey') {
+    maxN = state.data.reduce((mx, d) => Math.max(mx, d.N, d.P), 10) * 1.15;
+  } else if (state.model === 'exponential') {
+    const rawMax = state.data.reduce((mx, d) => Math.max(mx, d.N), 10);
+    const displayCap = Math.max(state.N0 * 100, 10000);
+    if (rawMax > displayCap) {
+      maxN = displayCap * 1.15;
+      expCapped = true;
+    } else {
+      maxN = rawMax * 1.15;
+    }
+  } else {
+    maxN = state.data.reduce((mx, d) => Math.max(mx, d.N), Math.max(state.K, 10)) * 1.15;
+  }
+
+  // 坐标变换
+  const xScale = t => margin.left + (t / state.timeSpan) * cw;
+  const yScale = n => margin.top + ch - (n / maxN) * ch;
+
+  // ---- 网格 ----
+  const xInterval = niceInterval(state.timeSpan, 8);
+  const yInterval = niceInterval(maxN, 6);
+
+  ctx.strokeStyle = C.grid;
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= state.timeSpan; x += xInterval) {
+    const px = xScale(x);
+    ctx.beginPath();
+    ctx.moveTo(px, margin.top);
+    ctx.lineTo(px, margin.top + ch);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= maxN; y += yInterval) {
+    const py = yScale(y);
+    ctx.beginPath();
+    ctx.moveTo(margin.left, py);
+    ctx.lineTo(margin.left + cw, py);
+    ctx.stroke();
+  }
+
+  // ---- 坐标轴 ----
+  ctx.strokeStyle = C.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, margin.top);
+  ctx.lineTo(margin.left, margin.top + ch);
+  ctx.lineTo(margin.left + cw, margin.top + ch);
+  ctx.stroke();
+
+  // ---- 轴标签 ----
+  ctx.fillStyle = C.textMuted;
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (let x = 0; x <= state.timeSpan; x += xInterval) {
+    ctx.fillText(x + '', xScale(x), margin.top + ch + 6);
+  }
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let y = 0; y <= maxN; y += yInterval) {
+    ctx.fillText(formatNumber(y), margin.left - 8, yScale(y));
+  }
+
+  // 轴标题
+  ctx.fillStyle = C.textFaint;
+  ctx.font = '500 10px "Noto Sans SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('时间 (年)', margin.left + cw / 2, h - 4);
+  ctx.save();
+  ctx.translate(12, margin.top + ch / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('种群数量 N', 0, 0);
+  ctx.restore();
+
+  // ---- K 值标记线 ----
+  if (state.showK && state.model === 'logistic') {
+    const kY = yScale(state.K);
+    ctx.strokeStyle = C.kLine;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(margin.left, kY);
+    ctx.lineTo(margin.left + cw, kY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = C.kLine;
+    ctx.font = '600 10px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('K = ' + formatNumber(state.K), margin.left + 6, kY - 3);
+  }
+
+  // ---- 指数增长对比曲线 ----
+  if (state.showExp && state.expData.length > 0) {
+    const drawEndIdx = Math.min(
+      state.expData.length,
+      Math.ceil((state.isPlaying ? state.currentTime : state.timeSpan) / 0.1) + 1
+    );
+    const visibleExp = state.expData.slice(0, drawEndIdx);
+
+    // 裁剪到图表区域
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(margin.left, margin.top, cw, ch);
+    ctx.clip();
+
+    ctx.strokeStyle = C.exponential;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    visibleExp.forEach((d, i) => {
+      const px = xScale(d.t);
+      const py = yScale(d.N);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // 标注（在裁剪外绘制，避免被截断）
+    ctx.fillStyle = C.exponential;
+    ctx.font = '600 9px "Noto Sans SC", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const lastExp = visibleExp[visibleExp.length - 1];
+    if (lastExp) {
+      const labelY = Math.max(margin.top + 10, Math.min(yScale(lastExp.N), margin.top + ch - 10));
+      ctx.fillText('J型', xScale(lastExp.t) + 4, labelY);
+    }
+  }
+
+  // ---- 主曲线 ----
+  const drawEndT = state.isPlaying ? state.currentTime : state.timeSpan;
+  const visibleData = state.data.filter(d => d.t <= drawEndT);
+
+  if (state.model === 'predator-prey') {
+    // 猎物曲线
+    drawCurveFill(ctx, visibleData, 'N', xScale, yScale, C.prey, C.preyFill, 2);
+    // 捕食者曲线
+    drawCurve(ctx, visibleData, 'P', xScale, yScale, C.predator, 2);
+
+    // 图例
+    ctx.font = '600 10px "Noto Sans SC", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = C.prey;
+    ctx.fillText('● 猎物 N', margin.left + 8, margin.top + 14);
+    ctx.fillStyle = C.predator;
+    ctx.fillText('● 捕食者 P', margin.left + 78, margin.top + 14);
+  } else {
+    // 逻辑斯蒂或指数增长
+    const lineColor = state.model === 'exponential' ? C.exponential : C.logistic;
+
+    // 裁剪到图表区域（处理指数增长超出范围）
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(margin.left, margin.top, cw, ch);
+    ctx.clip();
+
+    // 面积填充
+    if (visibleData.length > 1) {
+      const grad = ctx.createLinearGradient(0, margin.top, 0, margin.top + ch);
+      grad.addColorStop(0, state.model === 'exponential' ? 'rgba(241, 196, 15, 0.2)' : 'rgba(39, 174, 96, 0.25)');
+      grad.addColorStop(1, state.model === 'exponential' ? 'rgba(241, 196, 15, 0.01)' : 'rgba(39, 174, 96, 0.02)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      visibleData.forEach((d, i) => {
+        const px = xScale(d.t);
+        const py = yScale(d.N);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.lineTo(xScale(visibleData[visibleData.length - 1].t), margin.top + ch);
+      ctx.lineTo(xScale(visibleData[0].t), margin.top + ch);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 曲线
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    visibleData.forEach((d, i) => {
+      const px = xScale(d.t);
+      const py = yScale(d.N);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.restore();
+
+    // 指数增长超出范围标注
+    if (expCapped) {
+      const exitPoint = visibleData.find(d => d.N > maxN / 1.15);
+      if (exitPoint) {
+        const ex = xScale(exitPoint.t);
+        ctx.fillStyle = C.exponential;
+        ctx.font = '600 9px "Noto Sans SC", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('↑ 超出显示范围', ex + 6, margin.top + 4);
+      }
+    }
+
+    // 拐点标注 (逻辑斯蒂)
+    if (state.model === 'logistic' && state.showEq) {
+      const kHalf = state.K / 2;
+      const inflectionIdx = state.data.findIndex(d => d.N >= kHalf);
+      if (inflectionIdx > 0 && state.data[inflectionIdx].t <= drawEndT) {
+        const d = state.data[inflectionIdx];
+        const px = xScale(d.t);
+        const py = yScale(d.N);
+        ctx.fillStyle = C.kLine;
+        ctx.beginPath();
+        ctx.arc(px, py, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = C.kLine;
+        ctx.font = '600 9px "Noto Sans SC", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('拐点 K/2', px + 6, py - 6);
+      }
+    }
+  }
+
+  // ---- 动态标记点 ----
+  if (visibleData.length > 0) {
+    const lastPoint = visibleData[visibleData.length - 1];
+    const px = xScale(lastPoint.t);
+    const py = yScale(Math.min(lastPoint.N, maxN));
+
+    // 当前时间竖线
+    ctx.strokeStyle = 'rgba(34, 153, 84, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px, margin.top);
+    ctx.lineTo(px, margin.top + ch);
+    ctx.stroke();
+
+    // 发光标记
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = state.model === 'predator-prey' ? C.prey : (state.model === 'exponential' ? C.exponential : C.logistic);
+    ctx.fillStyle = C.marker;
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = state.model === 'predator-prey' ? C.prey : (state.model === 'exponential' ? C.exponential : C.logistic);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 捕食者标记
+    if (state.model === 'predator-prey' && lastPoint.P !== undefined) {
+      const py2 = yScale(lastPoint.P);
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = C.predator;
+      ctx.fillStyle = C.marker;
+      ctx.beginPath();
+      ctx.arc(px, py2, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = C.predator;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(px, py2, 5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+}
+
+// 辅助：绘制带面积填充的曲线
+function drawCurveFill(ctx, data, key, xScale, yScale, color, fillColor, lineWidth) {
+  if (data.length < 2) return;
+  ctx.fillStyle = fillColor;
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const px = xScale(d.t);
+    const py = yScale(d[key]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.lineTo(xScale(data[data.length - 1].t), yScale(0));
+  ctx.lineTo(xScale(data[0].t), yScale(0));
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const px = xScale(d.t);
+    const py = yScale(d[key]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+}
+
+// 辅助：绘制纯曲线
+function drawCurve(ctx, data, key, xScale, yScale, color, lineWidth) {
+  if (data.length < 2) return;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const px = xScale(d.t);
+    const py = yScale(d[key]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+}
+
+// ====== 次图表绘制 ======
+function drawSecondaryChart() {
+  const ctx = secCtx;
+  const w = secCanvas.width / dpr;
+  const h = secCanvas.height / dpr;
+
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  const margin = { top: 30, right: 20, bottom: 32, left: 56 };
+  const cw = w - margin.left - margin.right;
+  const ch = h - margin.top - margin.bottom;
+  if (cw <= 0 || ch <= 0) return;
+
+  if (state.model === 'predator-prey') {
+    drawPhaseSpace(ctx, margin, cw, ch);
+  } else {
+    drawGrowthRate(ctx, margin, cw, ch);
+  }
+}
+
+// 增长速率图 dN/dt vs N
+function drawGrowthRate(ctx, margin, cw, ch) {
+  // 计算范围
+  let maxN;
+  if (state.model === 'exponential') {
+    const rawMax = state.data.reduce((mx, d) => Math.max(mx, d.N), 10);
+    const displayCap = Math.max(state.N0 * 100, 10000);
+    maxN = Math.min(rawMax, displayCap) * 1.1;
+  } else {
+    maxN = Math.max(state.K, state.data.reduce((mx, d) => Math.max(mx, d.N), 0)) * 1.1;
+  }
+  let maxRate;
+  if (state.model === 'logistic') {
+    maxRate = state.r * state.K / 4 * 1.2; // 最大增长速率在 K/2
+  } else {
+    maxRate = state.data.reduce((mx, d) => Math.max(mx, Math.abs(d.dNdt)), 0) * 1.2;
+  }
+  maxRate = Math.max(maxRate, 0.1);
+
+  const xScale = n => margin.left + (n / maxN) * cw;
+  const yScale = r => margin.top + ch - (r / maxRate) * ch;
+
+  // 网格
+  const xInterval = niceInterval(maxN, 6);
+  const yInterval = niceInterval(maxRate, 5);
+
+  ctx.strokeStyle = C.grid;
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= maxN; x += xInterval) {
+    const px = xScale(x);
+    ctx.beginPath();
+    ctx.moveTo(px, margin.top);
+    ctx.lineTo(px, margin.top + ch);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= maxRate; y += yInterval) {
+    const py = yScale(y);
+    ctx.beginPath();
+    ctx.moveTo(margin.left, py);
+    ctx.lineTo(margin.left + cw, py);
+    ctx.stroke();
+  }
+
+  // 坐标轴
+  ctx.strokeStyle = C.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, margin.top);
+  ctx.lineTo(margin.left, margin.top + ch);
+  ctx.lineTo(margin.left + cw, margin.top + ch);
+  ctx.stroke();
+
+  // 轴标签
+  ctx.fillStyle = C.textMuted;
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (let x = 0; x <= maxN; x += xInterval) {
+    ctx.fillText(formatNumber(x), xScale(x), margin.top + ch + 6);
+  }
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let y = 0; y <= maxRate; y += yInterval) {
+    ctx.fillText(formatNumber(y), margin.left - 8, yScale(y));
+  }
+
+  // 轴标题
+  ctx.fillStyle = C.textFaint;
+  ctx.font = '500 10px "Noto Sans SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('种群数量 N', margin.left + cw / 2, secCanvas.height / dpr - 4);
+  ctx.save();
+  ctx.translate(12, margin.top + ch / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('增长速率 dN/dt', 0, 0);
+  ctx.restore();
+
+  // K/2 标记线
+  if (state.model === 'logistic' && state.showK) {
+    const kHalfX = xScale(state.K / 2);
+    ctx.strokeStyle = 'rgba(192, 57, 43, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(kHalfX, margin.top);
+    ctx.lineTo(kHalfX, margin.top + ch);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = C.kLine;
+    ctx.font = '600 9px "Noto Sans SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('K/2', kHalfX, margin.top + 2);
+  }
+
+  // K 标记线
+  if (state.model === 'logistic' && state.showK) {
+    const kX = xScale(state.K);
+    ctx.strokeStyle = 'rgba(192, 57, 43, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(kX, margin.top);
+    ctx.lineTo(kX, margin.top + ch);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = C.kLine;
+    ctx.font = '600 9px "Noto Sans SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('K', kX, margin.top + 2);
+  }
+
+  // 理论曲线
+  if (state.model === 'logistic') {
+    // dN/dt = rN(1-N/K), parabola
+    const points = [];
+    for (let n = 0; n <= maxN; n += maxN / 100) {
+      const rate = state.r * n * (1 - n / state.K);
+      if (rate >= 0) points.push({ n, rate });
+    }
+
+    // 填充
+    ctx.fillStyle = C.growthRateFill;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const px = xScale(p.n);
+      const py = yScale(p.rate);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.lineTo(xScale(points[points.length - 1].n), yScale(0));
+    ctx.lineTo(xScale(points[0].n), yScale(0));
+    ctx.closePath();
+    ctx.fill();
+
+    // 曲线
+    ctx.strokeStyle = C.growthRate;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const px = xScale(p.n);
+      const py = yScale(p.rate);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  } else if (state.model === 'exponential') {
+    // dN/dt = rN, linear
+    ctx.strokeStyle = C.growthRate;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(xScale(0), yScale(0));
+    ctx.lineTo(xScale(maxN), yScale(state.r * maxN));
+    ctx.stroke();
+  }
+
+  // 当前位置标记
+  const drawEndT = state.isPlaying ? state.currentTime : state.timeSpan;
+  const currentData = state.data.filter(d => d.t <= drawEndT);
+  if (currentData.length > 0) {
+    const last = currentData[currentData.length - 1];
+    const px = xScale(Math.min(last.N, maxN));
+    const py = yScale(Math.max(0, Math.min(last.dNdt, maxRate)));
+
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = C.growthRate;
+    ctx.fillStyle = C.marker;
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = C.growthRate;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+// 相空间图 N vs P
+function drawPhaseSpace(ctx, margin, cw, ch) {
+  const maxN = state.data.reduce((mx, d) => Math.max(mx, d.N), 10) * 1.15;
+  const maxP = state.data.reduce((mx, d) => Math.max(mx, d.P), 10) * 1.15;
+
+  const xScale = n => margin.left + (n / maxN) * cw;
+  const yScale = p => margin.top + ch - (p / maxP) * ch;
+
+  // 网格
+  const xInterval = niceInterval(maxN, 6);
+  const yInterval = niceInterval(maxP, 5);
+
+  ctx.strokeStyle = C.grid;
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= maxN; x += xInterval) {
+    const px = xScale(x);
+    ctx.beginPath();
+    ctx.moveTo(px, margin.top);
+    ctx.lineTo(px, margin.top + ch);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= maxP; y += yInterval) {
+    const py = yScale(y);
+    ctx.beginPath();
+    ctx.moveTo(margin.left, py);
+    ctx.lineTo(margin.left + cw, py);
+    ctx.stroke();
+  }
+
+  // 坐标轴
+  ctx.strokeStyle = C.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, margin.top);
+  ctx.lineTo(margin.left, margin.top + ch);
+  ctx.lineTo(margin.left + cw, margin.top + ch);
+  ctx.stroke();
+
+  // 轴标签
+  ctx.fillStyle = C.textMuted;
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (let x = 0; x <= maxN; x += xInterval) {
+    ctx.fillText(formatNumber(x), xScale(x), margin.top + ch + 6);
+  }
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let y = 0; y <= maxP; y += yInterval) {
+    ctx.fillText(formatNumber(y), margin.left - 8, yScale(y));
+  }
+
+  // 轴标题
+  ctx.fillStyle = C.textFaint;
+  ctx.font = '500 10px "Noto Sans SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('猎物 N', margin.left + cw / 2, secCanvas.height / dpr - 4);
+  ctx.save();
+  ctx.translate(12, margin.top + ch / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('捕食者 P', 0, 0);
+  ctx.restore();
+
+  // 平衡点
+  if (state.showEq) {
+    const eqN = state.m / (state.beta * state.alpha);
+    const eqP = state.r / state.alpha;
+    const eqX = xScale(eqN);
+    const eqY = yScale(eqP);
+
+    if (eqX > margin.left && eqX < margin.left + cw && eqY > margin.top && eqY < margin.top + ch) {
+      // 十字线
+      ctx.strokeStyle = 'rgba(231, 76, 60, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(eqX, margin.top);
+      ctx.lineTo(eqX, margin.top + ch);
+      ctx.moveTo(margin.left, eqY);
+      ctx.lineTo(margin.left + cw, eqY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 平衡点
+      ctx.fillStyle = C.eqPoint;
+      ctx.beginPath();
+      ctx.arc(eqX, eqY, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = C.eqPoint;
+      ctx.font = '600 9px "Noto Sans SC", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+      ctx.fillText('平衡点', eqX + 6, eqY - 4);
+    }
+  }
+
+  // 轨迹（渐变色）
+  const drawEndT = state.isPlaying ? state.currentTime : state.timeSpan;
+  const visibleData = state.data.filter(d => d.t <= drawEndT);
+
+  if (visibleData.length > 1) {
+    // 绘制轨迹线段，颜色从浅到深
+    for (let i = 1; i < visibleData.length; i++) {
+      const ratio = i / visibleData.length;
+      const hue = 140 - ratio * 110; // 140 green → 30 orange
+      ctx.strokeStyle = `hsla(${hue}, 70%, 50%, ${0.3 + ratio * 0.5})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(xScale(visibleData[i - 1].N), yScale(visibleData[i - 1].P));
+      ctx.lineTo(xScale(visibleData[i].N), yScale(visibleData[i].P));
+      ctx.stroke();
+    }
+
+    // 当前位置
+    const last = visibleData[visibleData.length - 1];
+    const px = xScale(last.N);
+    const py = yScale(last.P);
+
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = C.prey;
+    ctx.fillStyle = C.marker;
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = C.prey;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+// ====== 数据显示更新 ======
+function updateDataDisplay() {
+  const drawEndT = state.isPlaying ? state.currentTime : state.timeSpan;
+  const currentData = state.data.filter(d => d.t <= drawEndT);
+
+  if (currentData.length === 0) return;
+  const last = currentData[currentData.length - 1];
+
+  document.getElementById('dataYear').textContent = last.t.toFixed(1);
+  document.getElementById('dataN').textContent = formatNumber(last.N);
+  document.getElementById('dataR').textContent = state.r.toFixed(2);
+  document.getElementById('dataDnDt').textContent = formatNumber(last.dNdt || 0);
+
+  // 捕食者数据
+  const predRow = document.getElementById('dataPredatorRow');
+  if (state.model === 'predator-prey') {
+    predRow.style.display = 'flex';
+    document.getElementById('dataP').textContent = formatNumber(last.P || 0);
+  } else {
+    predRow.style.display = 'none';
+  }
+
+  // K 值时间
+  const kTimeRow = document.getElementById('dataKTimeRow');
+  if (state.model === 'logistic' && state.kTime !== null) {
+    kTimeRow.style.display = 'flex';
+    document.getElementById('dataKTime').textContent = state.kTime.toFixed(1) + '年';
+  } else {
+    kTimeRow.style.display = 'none';
+  }
+}
+
+// ====== UI 更新 ======
+function updateControlVisibility() {
+  const ppParams = document.getElementById('ppParams');
+  const sliderKGroup = document.getElementById('sliderKGroup');
+  const chartContainer = document.getElementById('chartContainer');
+  const secondaryLabel = document.getElementById('secondaryChartLabel');
+  const mainLabel = document.getElementById('mainChartLabel');
+
+  if (state.model === 'predator-prey') {
+    ppParams.classList.add('visible');
+    sliderKGroup.style.display = 'none';
+    chartContainer.classList.add('pp-mode');
+    chartContainer.classList.remove('hide-secondary');
+    secondaryLabel.textContent = '相空间轨迹 N-P';
+    mainLabel.textContent = '种群动态 N-t / P-t';
+  } else {
+    ppParams.classList.remove('visible');
+    sliderKGroup.style.display = 'flex';
+    chartContainer.classList.remove('pp-mode');
+    if (state.showGR) {
+      chartContainer.classList.remove('hide-secondary');
+    } else {
+      chartContainer.classList.add('hide-secondary');
+    }
+    secondaryLabel.textContent = '增长速率 dN/dt - N';
+    mainLabel.textContent = state.model === 'exponential' ? '指数增长曲线 N-t' : '逻辑斯蒂增长曲线 N-t';
+  }
+}
+
+function updateSliderValues() {
+  document.getElementById('valN0').textContent = state.N0.toLocaleString();
+  document.getElementById('valR').textContent = state.r.toFixed(2);
+  document.getElementById('valK').textContent = state.K.toLocaleString();
+  document.getElementById('valT').textContent = state.timeSpan;
+  document.getElementById('valP0').textContent = state.P0.toLocaleString();
+  document.getElementById('valAlpha').textContent = state.alpha.toFixed(3);
+  document.getElementById('valM').textContent = state.m.toFixed(2);
+  document.getElementById('valBeta').textContent = state.beta.toFixed(3);
+}
+
+function syncSliders() {
+  document.getElementById('sliderN0').value = state.N0;
+  document.getElementById('sliderR').value = Math.round(state.r * 100);
+  document.getElementById('sliderK').value = state.K;
+  document.getElementById('sliderT').value = state.timeSpan;
+  document.getElementById('sliderP0').value = state.P0;
+  document.getElementById('sliderAlpha').value = Math.round(state.alpha * 1000);
+  document.getElementById('sliderM').value = Math.round(state.m * 100);
+  document.getElementById('sliderBeta').value = Math.round(state.beta * 1000);
+}
+
+function updateModelButtons() {
+  document.querySelectorAll('.eco-model-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.model === state.model);
+  });
+}
+
+function updateToggleButtons() {
+  document.querySelectorAll('.eco-toggle').forEach(btn => {
+    const key = btn.dataset.toggle;
+    btn.classList.toggle('active', state[key]);
+  });
+}
+
+function applyPreset(id) {
+  const p = PRESETS[id];
+  if (!p) return;
+  state.model = p.model;
+  state.N0 = p.N0;
+  state.r = p.r;
+  state.K = p.K;
+  state.timeSpan = p.timeSpan;
+  if (p.P0 !== undefined) state.P0 = p.P0;
+  if (p.alpha !== undefined) state.alpha = p.alpha;
+  if (p.m !== undefined) state.m = p.m;
+  if (p.beta !== undefined) state.beta = p.beta;
+  state.showExp = p.showExp;
+  state.showGR = p.showGR;
+  state.showK = p.showK;
+  state.showEq = p.showEq;
+  state.currentTime = 0;
+  state.isPlaying = false;
+  updatePlayIcon();
+
+  syncSliders();
+  updateSliderValues();
+  updateModelButtons();
+  updateToggleButtons();
+  updateControlVisibility();
+  requestAnimationFrame(() => {
+    resizeAll();
+    computeData();
+    drawAll();
+    updateDataDisplay();
+  });
+}
+
+// ====== 绘制全部 ======
+function drawAll() {
+  drawMainChart();
+  drawSecondaryChart();
+}
+
+// ====== 动画循环 ======
+function animate(now) {
+  const dt = (now - state.lastFrame) / 1000 || 0.016;
+  state.lastFrame = now;
+  state.fps = Math.round(1 / Math.max(dt, 0.001));
+
+  if (state.isPlaying) {
+    state.currentTime += state.speed * dt;
+    if (state.currentTime >= state.timeSpan) {
+      state.currentTime = state.timeSpan;
+      state.isPlaying = false;
+      updatePlayIcon();
+    }
+    drawAll();
+    updateDataDisplay();
+  }
+
+  document.getElementById('fpsTag').textContent = state.fps + ' FPS';
+  requestAnimationFrame(animate);
+}
+
+// ====== 播放图标 ======
+function updatePlayIcon() {
+  const icon = document.getElementById('playIcon');
+  if (state.isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+  }
+}
+
+// ====== 重新计算并绘制 ======
+function refresh() {
+  computeData();
+  drawAll();
+  updateDataDisplay();
+}
+
+// ====== 事件绑定 ======
+function bindEvents() {
+  // 模型切换
+  document.querySelectorAll('.eco-model-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.model = btn.dataset.model;
+      state.currentTime = 0;
+      state.isPlaying = false;
+      updatePlayIcon();
+      updateModelButtons();
+      updateControlVisibility();
+      requestAnimationFrame(() => {
+        resizeAll();
+        refresh();
+      });
+    });
+  });
+
+  // 预设
+  document.querySelectorAll('.eco-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyPreset(parseInt(btn.dataset.preset));
+    });
+  });
+
+  // 显示选项
+  document.querySelectorAll('.eco-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.toggle;
+      state[key] = !state[key];
+      updateToggleButtons();
+      if (key === 'showExp') {
+        computeData();
+      }
+      if (key === 'showGR') {
+        updateControlVisibility();
+        requestAnimationFrame(() => {
+          resizeAll();
+          drawAll();
+        });
+      } else {
+        drawAll();
+      }
+    });
+  });
+
+  // 播放/暂停
+  document.getElementById('playBtn').addEventListener('click', () => {
+    if (state.currentTime >= state.timeSpan) {
+      state.currentTime = 0;
+    }
+    state.isPlaying = !state.isPlaying;
+    updatePlayIcon();
+  });
+
+  // 重置
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.currentTime = 0;
+    state.isPlaying = false;
+    updatePlayIcon();
+    drawAll();
+    updateDataDisplay();
+  });
+
+  // 速度
+  document.getElementById('speedSelect').addEventListener('change', (e) => {
+    state.speed = parseInt(e.target.value);
+  });
+
+  // 参数滑块
+  document.getElementById('sliderN0').addEventListener('input', (e) => {
+    state.N0 = parseInt(e.target.value);
+    document.getElementById('valN0').textContent = state.N0.toLocaleString();
+    state.currentTime = 0;
+    refresh();
+  });
+
+  document.getElementById('sliderR').addEventListener('input', (e) => {
+    state.r = parseInt(e.target.value) / 100;
+    document.getElementById('valR').textContent = state.r.toFixed(2);
+    state.currentTime = 0;
+    refresh();
+  });
+
+  document.getElementById('sliderK').addEventListener('input', (e) => {
+    state.K = parseInt(e.target.value);
+    document.getElementById('valK').textContent = state.K.toLocaleString();
+    state.currentTime = 0;
+    refresh();
+  });
+
+  document.getElementById('sliderT').addEventListener('input', (e) => {
+    state.timeSpan = parseInt(e.target.value);
+    document.getElementById('valT').textContent = state.timeSpan;
+    state.currentTime = 0;
+    refresh();
+  });
+
+  document.getElementById('sliderP0').addEventListener('input', (e) => {
+    state.P0 = parseInt(e.target.value);
+    document.getElementById('valP0').textContent = state.P0.toLocaleString();
+    state.currentTime = 0;
+    refresh();
+  });
+
+  document.getElementById('sliderAlpha').addEventListener('input', (e) => {
+    state.alpha = parseInt(e.target.value) / 1000;
+    document.getElementById('valAlpha').textContent = state.alpha.toFixed(3);
+    state.currentTime = 0;
+    refresh();
+  });
+
+  document.getElementById('sliderM').addEventListener('input', (e) => {
+    state.m = parseInt(e.target.value) / 100;
+    document.getElementById('valM').textContent = state.m.toFixed(2);
+    state.currentTime = 0;
+    refresh();
+  });
+
+  document.getElementById('sliderBeta').addEventListener('input', (e) => {
+    state.beta = parseInt(e.target.value) / 1000;
+    document.getElementById('valBeta').textContent = state.beta.toFixed(3);
+    state.currentTime = 0;
+    refresh();
+  });
+
+  // 窗口缩放
+  window.addEventListener('resize', () => {
+    resizeAll();
+    drawAll();
+  });
+
+  // 导航栏滚动
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+}
+
+// ====== 初始化 ======
+function init() {
+  resizeAll();
+  bindEvents();
+  updateControlVisibility();
+  computeData();
+  drawAll();
+  updateDataDisplay();
+  requestAnimationFrame(animate);
+
+  // 隐藏加载层
+  setTimeout(() => {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }, 800);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>

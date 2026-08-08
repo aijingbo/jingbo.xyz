@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>色彩理论交互式可视化 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<style>
+/* ============================================================
+   D204 · 色彩理论交互式可视化
+   "专业设计师的色彩工作台"
+   ============================================================ */
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+}
+
+/* ============ 导航栏 ============ */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacer-24);
+  height: 64px;
+  flex-shrink: 0;
+  background-color: rgba(250, 248, 245, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-16);
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  transition: color var(--duration-fast) var(--ease);
+}
+
+.back-link:hover { color: var(--text); }
+
+.back-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.nav-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+.nav-logo {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.nav-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-12);
+}
+
+.nav-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background-color: var(--brand);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--duration-base) var(--ease);
+}
+
+.nav-download:hover {
+  background-color: var(--brand-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.nav-download svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ============ 主工作区 ============ */
+.workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ---------- 左侧：色块预览 + 配色方案 ---------- */
+.left-panel {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+/* 大色块预览 */
+.color-preview {
+  height: 180px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px;
+  transition: background-color 0.15s ease;
+}
+
+.color-preview-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* 配色方案区域 */
+.scheme-section {
+  padding: 20px 16px;
+  flex: 1;
+}
+
+.section-title {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.scheme-swatches {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scheme-swatch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  border: 1px solid transparent;
+}
+
+.scheme-swatch:hover {
+  background: var(--surface-muted);
+  border-color: var(--border-soft);
+}
+
+.scheme-swatch.active {
+  background: var(--brand-soft);
+  border-color: rgba(194, 65, 12, 0.2);
+}
+
+.scheme-swatch-color {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform var(--duration-fast) var(--ease);
+}
+
+.scheme-swatch:hover .scheme-swatch-color {
+  transform: scale(1.1);
+}
+
+.scheme-swatch-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.scheme-swatch-hex {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.scheme-swatch-role {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* 色彩混合实验区 */
+.mix-section {
+  padding: 16px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.mix-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mix-color {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.mix-plus {
+  color: var(--text-faint);
+  font-size: 18px;
+  font-weight: 300;
+}
+
+.mix-result {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  border: 2px solid var(--surface);
+}
+
+/* ---------- 中央：色轮画布 ---------- */
+.center-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #faf8f5 0%, #f0ebe3 100%);
+  transition: background 0.3s ease;
+}
+
+.center-panel.bg-white { background: #ffffff; }
+.center-panel.bg-gray { background: #808080; }
+.center-panel.bg-black { background: #1a1a1a; }
+
+.wheel-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#wheelCanvas {
+  display: block;
+  cursor: crosshair;
+}
+
+/* 色轮外圈刻度 */
+.wheel-scale {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* 选中标记 */
+.selection-marker {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.3);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: box-shadow 0.2s ease;
+  z-index: 5;
+}
+
+/* 配色方案标记 */
+.scheme-marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.7);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.2);
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.scheme-marker:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+/* 色轮中心信息 */
+.wheel-center-info {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.wheel-center-hex {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+}
+
+.wheel-center-name {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ============ 右侧：信息面板 ============ */
+.right-panel {
+  width: 280px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.info-group {
+  margin-bottom: 20px;
+}
+
+.info-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.info-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.info-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 2px;
+  transition: color var(--duration-fast) var(--ease);
+}
+
+.copy-btn:hover { color: var(--brand); }
+
+.copy-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 色彩属性标签 */
+.attr-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.attr-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.attr-tag.warm {
+  background: rgba(234, 88, 12, 0.1);
+  color: #c2410c;
+}
+
+.attr-tag.cool {
+  background: rgba(8, 145, 178, 0.1);
+  color: #0891b2;
+}
+
+.attr-tag.neutral {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+/* 色彩情绪 */
+.emotion-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.emotion-tag {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  background: var(--accent-art-soft);
+  color: var(--accent-art);
+}
+
+/* 明暗渐变带 */
+.gradient-strip {
+  height: 28px;
+  border-radius: 6px;
+  margin-top: 8px;
+  border: 1px solid var(--border-soft);
+}
+
+/* ============ 底部控制面板 ============ */
+.control-bar {
+  flex-shrink: 0;
+  background: var(--surface-muted);
+  border-top: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  overflow-x: auto;
+}
+
+/* 滑块组 */
+.slider-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+}
+
+.slider-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
+  flex: 1;
+  max-width: 200px;
+}
+
+.slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.slider-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.slider-val {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* 自定义滑块 */
+.hue-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right,
+    hsl(0,100%,50%), hsl(60,100%,50%), hsl(120,100%,50%),
+    hsl(180,100%,50%), hsl(240,100%,50%), hsl(300,100%,50%), hsl(360,100%,50%));
+  outline: none;
+  cursor: pointer;
+}
+
+.sat-slider, .val-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--text);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.15s ease;
+}
+
+.slider-thumb:hover { transform: scale(1.15); }
+
+.hue-slider::-webkit-slider-thumb,
+.sat-slider::-webkit-slider-thumb,
+.val-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--text);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.15s ease;
+}
+
+.hue-slider::-webkit-slider-thumb:hover,
+.sat-slider::-webkit-slider-thumb:hover,
+.val-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.hue-slider::-moz-range-thumb,
+.sat-slider::-moz-range-thumb,
+.val-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--text);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* 控制按钮区 */
+.control-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  white-space: nowrap;
+}
+
+.ctrl-btn:hover {
+  border-color: var(--text-faint);
+  background: var(--bg);
+}
+
+.ctrl-btn.active {
+  background: var(--brand-soft);
+  border-color: rgba(194, 65, 12, 0.3);
+  color: var(--brand);
+}
+
+.ctrl-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.play-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--brand);
+  border-color: var(--brand);
+  color: white;
+}
+
+.play-btn:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
+
+.play-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 下拉选择 */
+.ctrl-select {
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease);
+}
+
+.ctrl-select:hover {
+  border-color: var(--text-faint);
+}
+
+.ctrl-select:focus {
+  border-color: var(--brand);
+}
+
+/* 预设按钮 */
+.preset-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.preset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+}
+
+.preset-btn:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.preset-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 背景切换 */
+.bg-switcher {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-full);
+}
+
+.bg-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+}
+
+.bg-btn.active {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.bg-btn[data-bg="warm"] { background: #faf8f5; }
+.bg-btn[data-bg="white"] { background: #ffffff; }
+.bg-btn[data-bg="gray"] { background: #808080; }
+.bg-btn[data-bg="black"] { background: #1a1a1a; }
+
+/* ============ 底部信息条 ============ */
+.info-bar {
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(243, 239, 233, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+}
+
+.info-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-bar-title {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tech-tag {
+  display: inline-flex;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  border: 1px solid var(--border-soft);
+}
+
+.info-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ============ 滚动条 ============ */
+.left-panel::-webkit-scrollbar,
+.right-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.left-panel::-webkit-scrollbar-track,
+.right-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.left-panel::-webkit-scrollbar-thumb,
+.right-panel::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ============ 复制提示 ============ */
+.toast {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 8px 20px;
+  background: var(--text);
+  color: white;
+  font-size: 13px;
+  border-radius: var(--radius-full);
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 1100px) {
+  .right-panel { width: 240px; }
+  .left-panel { width: 260px; }
+}
+
+@media (max-width: 900px) {
+  .workspace { flex-direction: column; }
+  .left-panel {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .color-preview { height: 80px; width: 120px; }
+  .scheme-section { padding: 12px; }
+  .right-panel {
+    width: 100%;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .center-panel { min-height: 300px; }
+  .nav-center { display: none; }
+}
+
+@media (max-width: 600px) {
+  .control-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  .slider-group { flex-wrap: wrap; }
+  .control-actions { flex-wrap: wrap; }
+  .info-bar-title { display: none; }
+  .left-panel { display: none; }
+}
+</style>
+<link rel="stylesheet" href="/assets/css/demo-framework.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ====== 导航栏 ====== -->
+  <header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">艺术</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">色彩理论交互式可视化</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-art">艺术</span>
+      <a href="/skills/jingbo-edu-art-music-creative-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ====== 主工作区 ====== -->
+  <div class="workspace">
+
+    <!-- 左侧：色块预览 + 配色方案 -->
+    <aside class="left-panel">
+      <div class="color-preview" id="colorPreview">
+        <span class="color-preview-label" id="previewLabel">HEX</span>
+      </div>
+
+      <div class="scheme-section">
+        <div class="section-title">配色方案</div>
+        <div class="scheme-swatches" id="schemeSwatches"></div>
+      </div>
+
+      <div class="mix-section">
+        <div class="section-title">色彩混合实验</div>
+        <div class="mix-display">
+          <div class="mix-color" id="mixColor1" title="原色1"></div>
+          <span class="mix-plus">+</span>
+          <div class="mix-color" id="mixColor2" title="原色2"></div>
+          <span class="mix-plus">=</span>
+          <div class="mix-result" id="mixResult" title="混合结果"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 中央：色轮 -->
+    <div class="center-panel" id="centerPanel">
+      <div class="wheel-container" id="wheelContainer">
+        <canvas id="wheelCanvas" width="420" height="420"></canvas>
+        <div class="selection-marker" id="selectionMarker"></div>
+        <div id="schemeMarkers"></div>
+        <div class="wheel-center-info" id="wheelCenterInfo">
+          <div class="wheel-center-hex" id="centerHex">#3B82F6</div>
+          <div class="wheel-center-name" id="centerName">蓝色</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：信息面板 -->
+    <aside class="right-panel">
+      <div class="info-group">
+        <div class="info-label">HEX</div>
+        <div class="info-value-row">
+          <span class="info-value" id="hexValue">#3B82F6</span>
+          <button class="copy-btn" onclick="copyToClipboard(document.getElementById('hexValue').textContent)" title="复制">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="info-group">
+        <div class="info-label">RGB</div>
+        <div class="info-value" id="rgbValue">59, 130, 246</div>
+      </div>
+
+      <div class="info-group">
+        <div class="info-label">HSV</div>
+        <div class="info-value" id="hsvValue">210°, 76%, 96%</div>
+      </div>
+
+      <div class="info-group">
+        <div class="info-label">色彩名称</div>
+        <div class="info-value" id="colorName" style="font-family: var(--font-sans); font-size: 13px;">蔚蓝</div>
+      </div>
+
+      <div class="info-group">
+        <div class="info-label">冷暖属性</div>
+        <div class="attr-tags" id="tempTags">
+          <span class="attr-tag cool">冷色</span>
+        </div>
+      </div>
+
+      <div class="info-group">
+        <div class="info-label">色彩情绪</div>
+        <div class="emotion-tags" id="emotionTags">
+          <span class="emotion-tag">深邃</span>
+          <span class="emotion-tag">专业</span>
+          <span class="emotion-tag">冷静</span>
+        </div>
+      </div>
+
+      <div class="info-group">
+        <div class="info-label">明度渐变</div>
+        <div class="gradient-strip" id="gradientStrip"></div>
+      </div>
+
+      <div class="info-group">
+        <div class="info-label">饱和度渐变</div>
+        <div class="gradient-strip" id="satGradientStrip"></div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ====== 底部控制面板 ====== -->
+  <div class="control-bar">
+
+    <!-- H/S/V 滑块 -->
+    <div class="slider-group">
+      <div class="slider-item">
+        <div class="slider-header">
+          <span class="slider-name">色相 H</span>
+          <span class="slider-val" id="hueVal">210°</span>
+        </div>
+        <input type="range" class="hue-slider" id="hueSlider" min="0" max="360" value="210" />
+      </div>
+
+      <div class="slider-item">
+        <div class="slider-header">
+          <span class="slider-name">饱和度 S</span>
+          <span class="slider-val" id="satVal">76%</span>
+        </div>
+        <input type="range" class="sat-slider" id="satSlider" min="0" max="100" value="76" />
+      </div>
+
+      <div class="slider-item">
+        <div class="slider-header">
+          <span class="slider-name">明度 V</span>
+          <span class="slider-val" id="valVal">96%</span>
+        </div>
+        <input type="range" class="val-slider" id="valSlider" min="0" max="100" value="96" />
+      </div>
+    </div>
+
+    <!-- 功能按钮 -->
+    <div class="control-actions">
+      <button class="play-btn" id="playBtn" title="播放/暂停色相循环">
+        <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+      </button>
+
+      <select class="ctrl-select" id="schemeSelect" title="配色方案">
+        <option value="complementary">互补色</option>
+        <option value="analogous">类似色</option>
+        <option value="triadic">三角色</option>
+        <option value="splitComplementary">分裂互补</option>
+        <option value="tetradic">四方色</option>
+        <option value="monochromatic">单色</option>
+      </select>
+
+      <select class="ctrl-select" id="wheelMode" title="色轮模式">
+        <option value="ryb">RYB 艺术色轮</option>
+        <option value="rgb">RGB 光色轮</option>
+        <option value="cmy">CMY 印刷色轮</option>
+      </select>
+
+      <div class="bg-switcher" title="背景颜色">
+        <button class="bg-btn active" data-bg="warm" title="暖白"></button>
+        <button class="bg-btn" data-bg="white" title="纯白"></button>
+        <button class="bg-btn" data-bg="gray" title="中灰"></button>
+        <button class="bg-btn" data-bg="black" title="纯黑"></button>
+      </div>
+    </div>
+
+    <!-- 预设 -->
+    <div class="preset-btns" id="presetBtns"></div>
+
+  </div>
+
+  <!-- ====== 底部信息条 ====== -->
+  <footer class="info-bar">
+    <div class="info-bar-left">
+      <span class="info-bar-title">色彩理论交互学习器</span>
+      <span class="tech-tag">Canvas 2D</span>
+      <span class="tech-tag">HSV 色彩空间</span>
+      <span class="tech-tag">实时计算</span>
+    </div>
+    <div class="info-bar-right">
+      <span class="tech-tag" id="wheelModeTag">RYB 艺术色轮</span>
+      <span class="tech-tag">点击色轮选色 · 拖动滑块调节</span>
+    </div>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast">已复制</div>
+
+<script>
+/* ============================================================
+   D204 · 色彩理论交互式可视化
+   核心逻辑：色彩计算 + 色轮渲染 + 交互
+   ============================================================ */
+
+// ====== 全局状态 ======
+const state = {
+  hue: 210,        // 色相 0-360
+  sat: 76,         // 饱和度 0-100
+  val: 96,         // 明度 0-100
+  scheme: 'complementary',
+  wheelMode: 'ryb',
+  isPlaying: false,
+  playSpeed: 1.0,  // 倍速
+  bgMode: 'warm',
+};
+
+// ====== 色彩转换工具 ======
+
+// HSV → RGB (h: 0-360, s: 0-1, v: 0-1)
+function hsvToRgb(h, s, v) {
+  h = ((h % 360) + 360) % 360;
+  const c = v * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = v - c;
+  let r, g, b;
+  if (h < 60)       { r = c; g = x; b = 0; }
+  else if (h < 120) { r = x; g = c; b = 0; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else              { r = c; g = 0; b = x; }
+  return {
+    r: Math.round((r + m) * 255),
+    g: Math.round((g + m) * 255),
+    b: Math.round((b + m) * 255)
+  };
+}
+
+// RGB → HSV
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === r)      h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else                h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  const s = max === 0 ? 0 : d / max;
+  const v = max;
+  return { h, s, v };
+}
+
+// RGB → HEX
+function rgbToHex(r, g, b) {
+  const toHex = n => Math.round(n).toString(16).padStart(2, '0');
+  return '#' + toHex(r) + toHex(g) + toHex(b);
+}
+
+// HEX → RGB
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  return {
+    r: parseInt(hex.slice(0, 2), 16),
+    g: parseInt(hex.slice(2, 4), 16),
+    b: parseInt(hex.slice(4, 6), 16)
+  };
+}
+
+// HSV → HEX 字符串
+function hsvToHex(h, s, v) {
+  const { r, g, b } = hsvToRgb(h, s / 100, v / 100);
+  return rgbToHex(r, g, b);
+}
+
+// HSV → RGB 字符串
+function hsvToRgbStr(h, s, v) {
+  const { r, g, b } = hsvToRgb(h, s / 100, v / 100);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// ====== 色轮模式：模式色相 → RGB 色相 ======
+
+function modeHueToRgbHue(hue, mode) {
+  if (mode === 'rgb') return hue;
+
+  if (mode === 'ryb') {
+    // RYB 色轮：红(0°) 黄(120°) 蓝(240°)
+    // RGB 色轮：红(0°) 绿(120°) 蓝(240°)
+    // 映射：RYB 黄(120°) → RGB 黄(60°), RYB 绿(180°) → RGB 绿(120°)
+    const stops = [
+      [0, 0],     // RYB红 → RGB红
+      [30, 25],   // RYB红橙 → RGB橙
+      [60, 40],   // RYB橙 → RGB橙黄
+      [90, 55],   // RYB黄橙 → RGB黄
+      [120, 60],  // RYB黄 → RGB黄
+      [150, 90],  // RYB黄绿 → RGB黄绿
+      [180, 120], // RYB绿 → RGB绿
+      [210, 160], // RYB蓝绿 → RGB青绿
+      [240, 220], // RYB蓝 → RGB蓝
+      [270, 260], // RYB蓝紫 → RGB蓝紫
+      [300, 290], // RYB紫 → RGB紫
+      [330, 320], // RYB红紫 → RGB品红
+      [360, 360]  // 回到红
+    ];
+    return piecewiseInterp(stops, hue);
+  }
+
+  if (mode === 'cmy') {
+    // CMY 色轮：青(0°) 品红(120°) 黄(240°)
+    // RGB 色轮：青(180°) 品红(300°) 黄(60°)
+    const stops = [
+      [0, 180],   // CMY青 → RGB青
+      [60, 240],  // → RGB蓝
+      [120, 300], // CMY品红 → RGB品红
+      [180, 0],   // → RGB红
+      [240, 60],  // CMY黄 → RGB黄
+      [300, 120], // → RGB绿
+      [360, 180]  // 回到青
+    ];
+    return piecewiseInterp(stops, hue);
+  }
+
+  return hue;
+}
+
+function piecewiseInterp(stops, x) {
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [x0, y0] = stops[i];
+    const [x1, y1] = stops[i + 1];
+    if (x >= x0 && x <= x1) {
+      const t = (x - x0) / (x1 - x0);
+      return y0 + t * (y1 - y0);
+    }
+  }
+  return stops[stops.length - 1][1];
+}
+
+// ====== 色彩名称 ======
+
+function getColorName(h, s, v) {
+  if (s < 8) {
+    if (v < 8) return '纯黑';
+    if (v < 25) return '墨灰';
+    if (v < 50) return '深灰';
+    if (v < 75) return '中灰';
+    if (v < 92) return '浅灰';
+    return '纯白';
+  }
+
+  const hueNames = [
+    [0, '红色'], [12, '橙红'], [25, '朱红'], [35, '橙色'],
+    [45, '橙黄'], [55, '金色'], [62, '黄色'], [75, '黄绿'],
+    [95, '草绿'], [120, '绿色'], [150, '青绿'], [170, '青色'],
+    [190, '天青'], [205, '蔚蓝'], [220, '湖蓝'], [240, '蓝色'],
+    [255, '靛蓝'], [270, '蓝紫'], [285, '紫色'], [300, '紫红'],
+    [320, '品红'], [335, '玫红'], [348, '绯红'], [360, '红色']
+  ];
+
+  let name = '红色';
+  let minDist = 360;
+  for (const [hue, n] of hueNames) {
+    let dist = Math.abs(h - hue);
+    if (dist > 180) dist = 360 - dist;
+    if (dist < minDist) { minDist = dist; name = n; }
+  }
+
+  // 饱和度修饰
+  if (s < 25) name = '淡' + name;
+  else if (s < 50) name = '柔' + name;
+
+  // 明度修饰
+  if (v < 25) name = '暗' + name;
+  else if (v < 50) name = '深' + name;
+  else if (v > 90 && s > 60) name = '亮' + name;
+
+  return name;
+}
+
+// ====== 冷暖属性 ======
+
+function getWarmCool(h) {
+  if ((h >= 0 && h < 70) || (h >= 300 && h <= 360)) return { type: 'warm', label: '暖色' };
+  if (h >= 170 && h < 260) return { type: 'cool', label: '冷色' };
+  return { type: 'neutral', label: '中性' };
+}
+
+// ====== 色彩情绪 ======
+
+function getColorEmotions(h, s, v) {
+  if (s < 8) {
+    if (v < 15) return ['庄重', '力量', '神秘'];
+    if (v > 88) return ['纯净', '简洁', '无限'];
+    return ['中性', '沉稳', '平衡'];
+  }
+  if (h < 15 || h >= 345) return ['热情', '力量', '爱情', '警示'];
+  if (h < 40) return ['活力', '温暖', '欢乐', '创意'];
+  if (h < 65) return ['阳光', '快乐', '希望', '注意'];
+  if (h < 90) return ['清新', '生机', '青春'];
+  if (h < 150) return ['自然', '和谐', '健康', '成长'];
+  if (h < 180) return ['平静', '清新', '治愈'];
+  if (h < 210) return ['冷静', '信任', '深邃'];
+  if (h < 250) return ['专业', '理性', '沉稳'];
+  if (h < 285) return ['神秘', '高贵', '创意', '梦幻'];
+  if (h < 320) return ['浪漫', '温柔', '优雅'];
+  return ['热情', '激情', '力量'];
+}
+
+// ====== 配色方案生成 ======
+
+function generateScheme(baseHue, schemeType, mode) {
+  const hues = [];
+  switch (schemeType) {
+    case 'complementary':
+      hues.push({ h: baseHue, role: '主色' });
+      hues.push({ h: (baseHue + 180) % 360, role: '互补色' });
+      break;
+    case 'analogous':
+      hues.push({ h: (baseHue - 30 + 360) % 360, role: '类似色 -30°' });
+      hues.push({ h: baseHue, role: '主色' });
+      hues.push({ h: (baseHue + 30) % 360, role: '类似色 +30°' });
+      break;
+    case 'triadic':
+      hues.push({ h: baseHue, role: '主色' });
+      hues.push({ h: (baseHue + 120) % 360, role: '三角色 +120°' });
+      hues.push({ h: (baseHue + 240) % 360, role: '三角色 +240°' });
+      break;
+    case 'splitComplementary':
+      hues.push({ h: baseHue, role: '主色' });
+      hues.push({ h: (baseHue + 150) % 360, role: '分裂色 +150°' });
+      hues.push({ h: (baseHue + 210) % 360, role: '分裂色 +210°' });
+      break;
+    case 'tetradic':
+      hues.push({ h: baseHue, role: '主色' });
+      hues.push({ h: (baseHue + 90) % 360, role: '四方色 +90°' });
+      hues.push({ h: (baseHue + 180) % 360, role: '对比色 +180°' });
+      hues.push({ h: (baseHue + 270) % 360, role: '四方色 +270°' });
+      break;
+    case 'monochromatic':
+      hues.push({ h: baseHue, role: '主色', s: state.sat, v: state.val });
+      hues.push({ h: baseHue, role: '浅调', s: state.sat * 0.5, v: Math.min(100, state.val + 15) });
+      hues.push({ h: baseHue, role: '深调', s: Math.min(100, state.sat + 10), v: state.val * 0.5 });
+      hues.push({ h: baseHue, role: '淡调', s: state.sat * 0.3, v: Math.min(100, state.val + 5) });
+      break;
+  }
+  return hues;
+}
+
+// ====== 预设 ======
+
+const presets = [
+  {
+    name: '经典三原色',
+    dot: '#ef4444',
+    apply: () => { state.hue = 0; state.sat = 90; state.val = 95; state.scheme = 'triadic'; state.wheelMode = 'ryb'; }
+  },
+  {
+    name: '自然和谐',
+    dot: '#22c55e',
+    apply: () => { state.hue = 140; state.sat = 65; state.val = 75; state.scheme = 'analogous'; state.wheelMode = 'ryb'; }
+  },
+  {
+    name: '橙蓝互补',
+    dot: '#f97316',
+    apply: () => { state.hue = 25; state.sat = 85; state.val = 95; state.scheme = 'complementary'; state.wheelMode = 'ryb'; }
+  },
+  {
+    name: '莫兰迪灰调',
+    dot: '#a8a29e',
+    apply: () => { state.hue = 30; state.sat = 20; state.val = 75; state.scheme = 'analogous'; state.wheelMode = 'ryb'; }
+  },
+  {
+    name: '暖阳似火',
+    dot: '#dc2626',
+    apply: () => { state.hue = 10; state.sat = 80; state.val = 90; state.scheme = 'analogous'; state.wheelMode = 'ryb'; }
+  }
+];
+
+// ====== Canvas 色轮渲染 ======
+
+const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+let wheelRadius = 200;
+let wheelCx = 210;
+let wheelCy = 210;
+let offscreenCanvas = null;
+let offscreenCtx = null;
+
+function resizeWheel() {
+  const container = document.getElementById('centerPanel');
+  const rect = container.getBoundingClientRect();
+  const maxSize = Math.min(rect.width - 80, rect.height - 80, 440);
+  const size = Math.max(280, maxSize);
+
+  canvas.width = size;
+  canvas.height = size;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+
+  wheelCx = size / 2;
+  wheelCy = size / 2;
+  wheelRadius = (size / 2) - 10;
+
+  // 重新预渲染色轮
+  prerenderWheel();
+  updateAll();
+}
+
+// 预渲染色轮到离屏 canvas
+function prerenderWheel() {
+  if (!offscreenCanvas) {
+    offscreenCanvas = document.createElement('canvas');
+    offscreenCtx = offscreenCanvas.getContext('2d');
+  }
+  const size = canvas.width;
+  offscreenCanvas.width = size;
+  offscreenCanvas.height = size;
+  const octx = offscreenCtx;
+  const V = state.val / 100;
+
+  // 1. 绘制圆锥渐变（色相）
+  const conic = octx.createConicGradient(-Math.PI / 2, wheelCx, wheelCy);
+  for (let h = 0; h <= 360; h += 10) {
+    const rgbHue = modeHueToRgbHue(h, state.wheelMode);
+    const { r, g, b } = hsvToRgb(rgbHue, 1, V);
+    conic.addColorStop(h / 360, `rgb(${r},${g},${b})`);
+  }
+  octx.fillStyle = conic;
+  octx.beginPath();
+  octx.arc(wheelCx, wheelCy, wheelRadius, 0, Math.PI * 2);
+  octx.fill();
+
+  // 2. 绘制径向渐变（饱和度，灰色中心叠加）
+  const grayVal = Math.round(V * 255);
+  const radial = octx.createRadialGradient(wheelCx, wheelCy, 0, wheelCx, wheelCy, wheelRadius);
+  radial.addColorStop(0, `rgba(${grayVal},${grayVal},${grayVal},1)`);
+  radial.addColorStop(1, `rgba(${grayVal},${grayVal},${grayVal},0)`);
+  octx.fillStyle = radial;
+  octx.beginPath();
+  octx.arc(wheelCx, wheelCy, wheelRadius, 0, Math.PI * 2);
+  octx.fill();
+
+  // 3. 外圈描边
+  octx.strokeStyle = 'rgba(0,0,0,0.08)';
+  octx.lineWidth = 1;
+  octx.beginPath();
+  octx.arc(wheelCx, wheelCy, wheelRadius, 0, Math.PI * 2);
+  octx.stroke();
+
+  // 4. 绘制色相刻度（每30°）
+  octx.strokeStyle = 'rgba(255,255,255,0.3)';
+  octx.lineWidth = 1;
+  for (let a = 0; a < 360; a += 30) {
+    const rad = (a - 90) * Math.PI / 180;
+    const x1 = wheelCx + Math.cos(rad) * (wheelRadius - 8);
+    const y1 = wheelCy + Math.sin(rad) * (wheelRadius - 8);
+    const x2 = wheelCx + Math.cos(rad) * wheelRadius;
+    const y2 = wheelCy + Math.sin(rad) * wheelRadius;
+    octx.beginPath();
+    octx.moveTo(x1, y1);
+    octx.lineTo(x2, y2);
+    octx.stroke();
+  }
+}
+
+// 主绘制函数
+function drawWheel() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (offscreenCanvas) {
+    ctx.drawImage(offscreenCanvas, 0, 0);
+  }
+}
+
+// 色相 → 屏幕角度位置 (0°在12点方向，顺时针)
+function hueToPos(hue, sat) {
+  const rad = (hue - 90) * Math.PI / 180; // -90° offset: 0° at top
+  const r = (sat / 100) * wheelRadius;
+  return {
+    x: wheelCx + Math.cos(rad) * r,
+    y: wheelCy + Math.sin(rad) * r
+  };
+}
+
+// 屏幕位置 → 色相和饱和度
+function posToHueSat(px, py) {
+  const dx = px - wheelCx;
+  const dy = py - wheelCy;
+  let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90; // 0° at top
+  if (angle < 0) angle += 360;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const sat = Math.min(100, (dist / wheelRadius) * 100);
+  return { hue: angle, sat };
+}
+
+// ====== UI 更新 ======
+
+function updateAll() {
+  updateColorPreview();
+  updateInfoPanel();
+  updateSliders();
+  updateSelectionMarker();
+  updateSchemeSwatches();
+  updateSchemeMarkers();
+  updateGradients();
+  updateMixDisplay();
+  drawWheel();
+}
+
+function updateColorPreview() {
+  const hex = hsvToHex(state.hue, state.sat, state.val);
+  const preview = document.getElementById('colorPreview');
+  preview.style.backgroundColor = hex;
+  const label = document.getElementById('previewLabel');
+  label.textContent = hex.toUpperCase();
+  // 自适应文字颜色
+  const { r, g, b } = hexToRgb(hex);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  label.style.color = brightness > 128 ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)';
+  label.style.background = brightness > 128 ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)';
+}
+
+function updateInfoPanel() {
+  const hex = hsvToHex(state.hue, state.sat, state.val);
+  const { r, g, b } = hexToRgb(hex);
+
+  document.getElementById('hexValue').textContent = hex.toUpperCase();
+  document.getElementById('rgbValue').textContent = `${r}, ${g}, ${b}`;
+  document.getElementById('hsvValue').textContent = `${Math.round(state.hue)}°, ${Math.round(state.sat)}%, ${Math.round(state.val)}%`;
+
+  const name = getColorName(state.hue, state.sat, state.val);
+  document.getElementById('colorName').textContent = name;
+  document.getElementById('centerHex').textContent = hex.toUpperCase();
+  document.getElementById('centerName').textContent = name;
+
+  // 冷暖
+  const temp = getWarmCool(state.hue);
+  document.getElementById('tempTags').innerHTML =
+    `<span class="attr-tag ${temp.type}">${temp.label}</span>`;
+
+  // 情绪
+  const emotions = getColorEmotions(state.hue, state.sat, state.val);
+  document.getElementById('emotionTags').innerHTML =
+    emotions.map(e => `<span class="emotion-tag">${e}</span>`).join('');
+}
+
+function updateSliders() {
+  document.getElementById('hueSlider').value = state.hue;
+  document.getElementById('satSlider').value = state.sat;
+  document.getElementById('valSlider').value = state.val;
+  document.getElementById('hueVal').textContent = Math.round(state.hue) + '°';
+  document.getElementById('satVal').textContent = Math.round(state.sat) + '%';
+  document.getElementById('valVal').textContent = Math.round(state.val) + '%';
+
+  // 更新饱和度滑块背景
+  const satColor = hsvToHex(state.hue, 100, state.val);
+  const satGray = hsvToHex(state.hue, 0, state.val);
+  document.getElementById('satSlider').style.background =
+    `linear-gradient(to right, ${satGray}, ${satColor})`;
+
+  // 更新明度滑块背景
+  const valColor = hsvToHex(state.hue, state.sat, 100);
+  const valBlack = '#000000';
+  document.getElementById('valSlider').style.background =
+    `linear-gradient(to right, ${valBlack}, ${valColor})`;
+}
+
+function updateSelectionMarker() {
+  const pos = hueToPos(state.hue, state.sat);
+  const marker = document.getElementById('selectionMarker');
+  marker.style.left = pos.x + 'px';
+  marker.style.top = pos.y + 'px';
+
+  // 标记颜色 = 当前选中色
+  const hex = hsvToHex(state.hue, state.sat, state.val);
+  marker.style.background = hex;
+}
+
+function updateSchemeSwatches() {
+  const scheme = generateScheme(state.hue, state.scheme, state.wheelMode);
+  const container = document.getElementById('schemeSwatches');
+  container.innerHTML = scheme.map((c, i) => {
+    const s = c.s !== undefined ? c.s : state.sat;
+    const v = c.v !== undefined ? c.v : state.val;
+    const hex = hsvToHex(c.h, s, v);
+    const isActive = i === 0;
+    return `
+      <div class="scheme-swatch ${isActive ? 'active' : ''}" data-hue="${c.h}" data-sat="${s}" data-val="${v}">
+        <div class="scheme-swatch-color" style="background:${hex}"></div>
+        <div class="scheme-swatch-info">
+          <div class="scheme-swatch-hex">${hex.toUpperCase()}</div>
+          <div class="scheme-swatch-role">${c.role}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 绑定点击
+  container.querySelectorAll('.scheme-swatch').forEach(el => {
+    el.addEventListener('click', () => {
+      const h = parseFloat(el.dataset.hue);
+      const s = parseFloat(el.dataset.sat);
+      const v = parseFloat(el.dataset.val);
+      const oldVal = state.val;
+      state.hue = h;
+      state.sat = s;
+      state.val = v;
+      // 如果 V 变了需要重新预渲染色轮
+      if (Math.abs(v - oldVal) > 0.1) {
+        prerenderWheel();
+      }
+      updateAll();
+    });
+  });
+}
+
+function updateSchemeMarkers() {
+  const scheme = generateScheme(state.hue, state.scheme, state.wheelMode);
+  const container = document.getElementById('schemeMarkers');
+  // 跳过第一个（主色，已经有选中标记）
+  container.innerHTML = scheme.slice(1).map((c, i) => {
+    const s = c.s !== undefined ? c.s : state.sat;
+    const v = c.v !== undefined ? c.v : state.val;
+    const pos = hueToPos(c.h, s);
+    const hex = hsvToHex(c.h, s, v);
+    return `<div class="scheme-marker" style="left:${pos.x}px;top:${pos.y}px;background:${hex}" data-hue="${c.h}" data-sat="${s}" data-val="${v}" title="${c.role}: ${hex.toUpperCase()}"></div>`;
+  }).join('');
+
+  // 绑定点击
+  container.querySelectorAll('.scheme-marker').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const h = parseFloat(el.dataset.hue);
+      const s = parseFloat(el.dataset.sat);
+      const v = parseFloat(el.dataset.val);
+      const oldVal = state.val;
+      state.hue = h;
+      state.sat = s;
+      state.val = v;
+      if (Math.abs(v - oldVal) > 0.1) prerenderWheel();
+      updateAll();
+    });
+  });
+}
+
+function updateGradients() {
+  // 明度渐变带
+  const bright = hsvToHex(state.hue, state.sat, 100);
+  const dark = hsvToHex(state.hue, state.sat, 0);
+  document.getElementById('gradientStrip').style.background =
+    `linear-gradient(to right, ${dark}, ${bright})`;
+
+  // 饱和度渐变带
+  const fullSat = hsvToHex(state.hue, 100, state.val);
+  const noSat = hsvToHex(state.hue, 0, state.val);
+  document.getElementById('satGradientStrip').style.background =
+    `linear-gradient(to right, ${noSat}, ${fullSat})`;
+}
+
+function updateMixDisplay() {
+  // 色彩混合：取当前色与互补色混合
+  const compHue = (state.hue + 180) % 360;
+  const color1 = hsvToHex(state.hue, state.sat, state.val);
+  const color2 = hsvToHex(compHue, state.sat, state.val);
+
+  document.getElementById('mixColor1').style.background = color1;
+  document.getElementById('mixColor2').style.background = color2;
+
+  // RGB 平均混合
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+  const mixed = {
+    r: Math.round((rgb1.r + rgb2.r) / 2),
+    g: Math.round((rgb1.g + rgb2.g) / 2),
+    b: Math.round((rgb1.b + rgb2.b) / 2)
+  };
+  document.getElementById('mixResult').style.background = rgbToHex(mixed.r, mixed.g, mixed.b);
+}
+
+// ====== 事件绑定 ======
+
+// 滑块
+document.getElementById('hueSlider').addEventListener('input', (e) => {
+  state.hue = parseFloat(e.target.value);
+  updateAll();
+});
+
+document.getElementById('satSlider').addEventListener('input', (e) => {
+  state.sat = parseFloat(e.target.value);
+  updateAll();
+});
+
+document.getElementById('valSlider').addEventListener('input', (e) => {
+  state.val = parseFloat(e.target.value);
+  prerenderWheel(); // V 变化需要重新渲染色轮
+  updateAll();
+});
+
+// 色轮点击选色
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left;
+  const py = e.clientY - rect.top;
+  const { hue, sat } = posToHueSat(px, py);
+  state.hue = hue;
+  state.sat = sat;
+  updateAll();
+});
+
+// 色轮拖拽选色
+let isDragging = false;
+canvas.addEventListener('mousedown', (e) => { isDragging = true; });
+canvas.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left;
+  const py = e.clientY - rect.top;
+  const { hue, sat } = posToHueSat(px, py);
+  state.hue = hue;
+  state.sat = sat;
+  updateAll();
+});
+document.addEventListener('mouseup', () => { isDragging = false; });
+
+// 触控支持
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const px = touch.clientX - rect.left;
+  const py = touch.clientY - rect.top;
+  const { hue, sat } = posToHueSat(px, py);
+  state.hue = hue;
+  state.sat = sat;
+  updateAll();
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const px = touch.clientX - rect.left;
+  const py = touch.clientY - rect.top;
+  const { hue, sat } = posToHueSat(px, py);
+  state.hue = hue;
+  state.sat = sat;
+  updateAll();
+}, { passive: false });
+
+// 配色方案选择
+document.getElementById('schemeSelect').addEventListener('change', (e) => {
+  state.scheme = e.target.value;
+  updateAll();
+});
+
+// 色轮模式切换
+document.getElementById('wheelMode').addEventListener('change', (e) => {
+  state.wheelMode = e.target.value;
+  const modeLabels = { ryb: 'RYB 艺术色轮', rgb: 'RGB 光色轮', cmy: 'CMY 印刷色轮' };
+  document.getElementById('wheelModeTag').textContent = modeLabels[state.wheelMode];
+  prerenderWheel();
+  updateAll();
+});
+
+// 播放/暂停
+const playBtn = document.getElementById('playBtn');
+const playIcon = document.getElementById('playIcon');
+playBtn.addEventListener('click', () => {
+  state.isPlaying = !state.isPlaying;
+  if (state.isPlaying) {
+    playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+  } else {
+    playIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+  }
+});
+
+// 背景切换
+document.querySelectorAll('.bg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.bg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.bgMode = btn.dataset.bg;
+    const panel = document.getElementById('centerPanel');
+    panel.className = 'center-panel bg-' + state.bgMode;
+  });
+});
+
+// 预设按钮
+function buildPresets() {
+  const container = document.getElementById('presetBtns');
+  container.innerHTML = presets.map((p, i) => `
+    <button class="preset-btn" data-idx="${i}">
+      <span class="preset-dot" style="background:${p.dot}"></span>
+      ${p.name}
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      presets[idx].apply();
+      // 同步 UI 控件
+      document.getElementById('schemeSelect').value = state.scheme;
+      document.getElementById('wheelMode').value = state.wheelMode;
+      const modeLabels = { ryb: 'RYB 艺术色轮', rgb: 'RGB 光色轮', cmy: 'CMY 印刷色轮' };
+      document.getElementById('wheelModeTag').textContent = modeLabels[state.wheelMode];
+      prerenderWheel();
+      updateAll();
+    });
+  });
+}
+
+// 复制到剪贴板
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.textContent = '已复制 ' + text;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1500);
+  });
+}
+
+// ====== 动画循环 ======
+
+let lastTime = 0;
+function animate(now) {
+  const dt = (now - lastTime) / 1000 || 0.016;
+  lastTime = now;
+
+  if (state.isPlaying) {
+    state.hue = (state.hue + dt * 30 * state.playSpeed) % 360; // 12秒一圈
+    if (state.hue < 0) state.hue += 360;
+    updateAll();
+  }
+
+  requestAnimationFrame(animate);
+}
+
+// ====== 初始化 ======
+
+window.addEventListener('resize', () => {
+  resizeWheel();
+});
+
+// 延迟初始化以确保布局完成
+requestAnimationFrame(() => {
+  buildPresets();
+  resizeWheel();
+  requestAnimationFrame(animate);
+});
+
+</script>
+
+</body>
+</html>

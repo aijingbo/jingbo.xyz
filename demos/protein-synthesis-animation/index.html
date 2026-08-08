@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>蛋白质合成动画 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  :root {
+    --bg: #0a0c12;
+    --bg-glass: rgba(14, 16, 24, 0.65);
+    --border: rgba(255, 255, 255, 0.08);
+    --text: rgba(255, 255, 255, 0.92);
+    --text-dim: rgba(255, 255, 255, 0.48);
+    --accent: #F59E0B;
+    --accent-glow: rgba(245, 158, 11, 0.25);
+    --accent-dim: #D97706;
+    --highlight: #00E5FF;
+    --highlight-glow: rgba(0, 229, 255, 0.25);
+    --radius: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: radial-gradient(ellipse at 50% 40%, #14171f 0%, #0a0c12 55%, #060709 100%);
+    color: var(--text);
+    font-family: var(--font-sans);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #canvas-container { position: fixed; inset: 0; }
+  #canvas-container canvas { display: block; }
+
+  .glass {
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px) saturate(1.3);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  /* ===== Phase Indicator (top-center) ===== */
+  #phase-indicator {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .phase-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.35;
+    transition: opacity 0.5s ease;
+  }
+  .phase-step.active { opacity: 1; }
+
+  .phase-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: all 0.4s ease;
+  }
+  .phase-step.active .phase-dot {
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow), 0 0 4px var(--accent);
+    transform: scale(1.3);
+  }
+
+  .phase-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    white-space: nowrap;
+    transition: color 0.4s ease;
+  }
+  .phase-step.active .phase-label { color: var(--text); }
+
+  .phase-arrow {
+    color: var(--text-dim);
+    font-size: 14px;
+    opacity: 0.4;
+  }
+
+  /* ===== Legend (top-left) ===== */
+  #legend {
+    position: fixed;
+    top: 80px; left: 12px;
+    padding: 14px 16px;
+    z-index: 10;
+    font-size: 12px;
+    max-width: 210px;
+  }
+
+  .legend-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    color: var(--text);
+  }
+
+  .legend-item .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 10px 0;
+  }
+
+  .legend-fact {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+    line-height: 1.5;
+  }
+
+  /* ===== Info Panel (right side, slides in) ===== */
+  #info-panel {
+    position: fixed;
+    top: 50%; right: 12px;
+    transform: translateY(-50%) translateX(calc(100% + 24px));
+    width: 300px;
+    padding: 22px;
+    z-index: 15;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #info-panel.visible { transform: translateY(-50%) translateX(0); }
+
+  .close-btn {
+    position: absolute;
+    top: 10px; right: 14px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 6px;
+    transition: color 0.2s;
+  }
+  .close-btn:hover { color: var(--text); }
+
+  .info-content h3 {
+    font-size: 17px;
+    margin-bottom: 3px;
+    line-height: 1.3;
+    color: var(--accent);
+  }
+  .info-content .en-name {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .info-row .label { color: var(--text-dim); }
+  .info-row .value { color: var(--text); font-weight: 500; }
+
+  .info-desc {
+    margin-top: 14px;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--text-dim);
+  }
+
+  /* ===== Bottom Controls ===== */
+  #bottom-controls {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+  }
+
+  .ctrl-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    padding: 5px 9px;
+    border-radius: 6px;
+    transition: all 0.25s ease;
+    font-family: var(--font-sans);
+  }
+  .ctrl-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .ctrl-btn.active { color: var(--accent); }
+  .ctrl-btn svg { width: 15px; height: 15px; fill: currentColor; }
+
+  .slider-group { display: flex; align-items: center; gap: 6px; }
+  .slider-group label { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 70px; height: 3px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 6px var(--accent-glow);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 6px var(--accent-glow);
+  }
+
+  /* ===== Scene Hint ===== */
+  #hint {
+    position: fixed;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--text-dim);
+    z-index: 5;
+    pointer-events: none;
+    letter-spacing: 1px;
+    animation: hintFade 8s ease forwards;
+  }
+  @keyframes hintFade {
+    0%, 20% { opacity: 0.7; }
+    100% { opacity: 0; }
+  }
+
+  /* ===== Status Flash ===== */
+  #status-flash {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    padding: 8px 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: var(--radius-full);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    white-space: nowrap;
+  }
+  #status-flash.show { opacity: 1; }
+
+  /* ===== Loader ===== */
+  #loader {
+    position: fixed; inset: 0;
+    background: #0a0c12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: opacity 0.8s ease;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+
+  .loader-spinner {
+    width: 36px; height: 36px;
+    border: 2px solid rgba(245, 158, 11, 0.15);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-text {
+    margin-top: 18px;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 768px) {
+    #legend { font-size: 11px; padding: 10px 12px; max-width: 170px; top: 72px; }
+    #phase-indicator { top: 72px; padding: 6px 10px; gap: 6px; }
+    .phase-label { font-size: 10px; }
+    .phase-arrow { font-size: 11px; }
+    #info-panel {
+      top: auto; bottom: 120px; right: 8px; left: 8px;
+      width: auto; max-height: 40vh; overflow-y: auto;
+      transform: translateY(calc(100% + 24px));
+    }
+    #info-panel.visible { transform: translateY(0); }
+    #bottom-controls { bottom: 56px; flex-wrap: wrap; justify-content: center; max-width: calc(100% - 16px); }
+    .ctrl-btn span { display: none; }
+    input[type="range"] { width: 50px; }
+    #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loader -->
+<div id="loader">
+  <div class="loader-spinner"></div>
+  <div class="loader-text">正在构建蛋白质合成模型</div>
+</div>
+
+<!-- 3D Canvas -->
+<div id="canvas-container"></div>
+
+<!-- Navbar -->
+<header class="demo-navbar immersive" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">生物</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">蛋白质合成动画</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-bio">生物</span>
+    <a href="/skills/jingbo-edu-3d-bio-structure-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- Phase Indicator -->
+<div id="phase-indicator" class="glass">
+  <div class="phase-step active" data-phase="0">
+    <span class="phase-dot"></span>
+    <span class="phase-label">转录</span>
+  </div>
+  <span class="phase-arrow">→</span>
+  <div class="phase-step" data-phase="1">
+    <span class="phase-dot"></span>
+    <span class="phase-label">mRNA 转运</span>
+  </div>
+  <span class="phase-arrow">→</span>
+  <div class="phase-step" data-phase="2">
+    <span class="phase-dot"></span>
+    <span class="phase-label">翻译</span>
+  </div>
+</div>
+
+<!-- Legend -->
+<div id="legend" class="glass">
+  <div class="legend-title">分子图例</div>
+  <div class="legend-item"><span class="dot" style="background:#64748B;box-shadow:0 0 6px #64748B"></span>DNA 双链</div>
+  <div class="legend-item"><span class="dot" style="background:#F59E0B;box-shadow:0 0 8px #F59E0B"></span>mRNA（信使RNA）</div>
+  <div class="legend-item"><span class="dot" style="background:#D97706;box-shadow:0 0 6px #D97706"></span>RNA 聚合酶</div>
+  <div class="legend-item"><span class="dot" style="background:#B45309;box-shadow:0 0 6px #B45309"></span>核糖体</div>
+  <div class="legend-item"><span class="dot" style="background:#FCD34D;box-shadow:0 0 6px #FCD34D"></span>tRNA（转运RNA）</div>
+  <div class="legend-item"><span class="dot" style="background:#FBBF24;box-shadow:0 0 6px #FBBF24"></span>氨基酸</div>
+  <div class="legend-divider"></div>
+  <div class="legend-title">关键参数</div>
+  <div class="legend-fact">中心法则：DNA → RNA → 蛋白质</div>
+  <div class="legend-fact">转录：DNA 模板链 → mRNA</div>
+  <div class="legend-fact">翻译：mRNA 密码子 → 氨基酸</div>
+  <div class="legend-fact">每 3 个核苷酸 = 1 个密码子</div>
+</div>
+
+<!-- Info Panel -->
+<div id="info-panel" class="glass">
+  <button class="close-btn" id="close-info">×</button>
+  <div class="info-content"></div>
+</div>
+
+<!-- Status Flash -->
+<div id="status-flash"></div>
+
+<!-- Scene Hint -->
+<div id="hint">拖拽旋转 · 滚轮缩放 · 点击分子查看详情</div>
+
+<!-- Bottom Controls -->
+<div id="bottom-controls">
+  <div class="control-group glass">
+    <button id="play-pause" class="ctrl-btn active" title="播放/暂停">
+      <svg id="icon-pause" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+      <svg id="icon-play" viewBox="0 0 24 24" style="display:none"><path d="M8 5v14l11-7z"/></svg>
+      <span>播放</span>
+    </button>
+    <div class="slider-group">
+      <label>速度</label>
+      <input type="range" id="speed-slider" min="0" max="100" value="40">
+    </div>
+  </div>
+  <div class="control-group glass">
+    <button id="phase-prev" class="ctrl-btn" title="上一阶段">
+      <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z"/></svg>
+      <span>上一阶段</span>
+    </button>
+    <button id="phase-next" class="ctrl-btn" title="下一阶段">
+      <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2V6zM6 6l8.5 6L6 18V6z"/></svg>
+      <span>下一阶段</span>
+    </button>
+    <button id="reset-btn" class="ctrl-btn" title="重置视角">
+      <svg viewBox="0 0 24 24"><path d="M12 5V2L8 6l4 4V7c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z"/></svg>
+    </button>
+    <button id="fullscreen-btn" class="ctrl-btn" title="全屏">
+      <svg viewBox="0 0 24 24"><path d="M3 3h6v2H5v4H3V3zm12 0h6v6h-2V5h-4V3zM3 15h2v4h4v2H3v-6zm16 0h2v6h-6v-2h4v-4z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Bottom Info Bar -->
+<footer class="demo-info-bar immersive">
+  <div class="demo-info-left">
+    <span class="demo-info-title">protein-synthesis-animation</span>
+    <span class="demo-tech-tag">Three.js</span>
+    <span class="demo-tech-tag">WebGL</span>
+    <span class="demo-tech-tag">中心法则</span>
+  </div>
+  <div class="demo-info-center">
+    <div class="demo-mode-switcher">
+      <button class="demo-mode-btn active" data-mode="full">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+        <span>完整流程</span>
+      </button>
+      <button class="demo-mode-btn" data-mode="transcription">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
+        <span>仅转录</span>
+      </button>
+      <button class="demo-mode-btn" data-mode="translation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6"/></svg>
+        <span>仅翻译</span>
+      </button>
+    </div>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="status-tag">就绪</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* ============================================================
+   配置 & 常量
+   ============================================================ */
+const COLORS = {
+  bg: 0x0a0c12,
+  dnaBackbone: 0x64748B,
+  dnaBaseA: 0x60A5FA,
+  dnaBaseT: 0xF87171,
+  dnaBaseG: 0x34D399,
+  dnaBaseC: 0xFBBF24,
+  mrna: 0xF59E0B,
+  mrnaGlow: 0xFCD34D,
+  polymerase: 0xD97706,
+  ribosomeLarge: 0x92400E,
+  ribosomeSmall: 0xB45309,
+  trna: 0xFCD34D,
+  aminoAcid: 0xFBBF24,
+  polypeptide: 0xF59E0B,
+  highlight: 0x00E5FF,
+  bond: 0xffffff,
+};
+
+const DNA_BASES = ['A', 'T', 'G', 'C'];
+const RNA_BASES = { A: 'U', T: 'A', G: 'C', C: 'G' };
+const AMINO_COLORS = [0xF59E0B, 0xFBBF24, 0xFCD34D, 0xFDE68A, 0xFB923C, 0xF97316];
+
+// 场景布局位置
+const POS = {
+  dnaCenter: new THREE.Vector3(-7, 4, 0),
+  ribosomeCenter: new THREE.Vector3(7, -3, 0),
+};
+
+/* ============================================================
+   全局变量
+   ============================================================ */
+let scene, camera, renderer, composer, controls, clock;
+let raycaster, mouse;
+let mainGroup;
+let dnaGroup, mrnaGroup, polymeraseMesh;
+let ribosomeGroup, trnaGroup, polypeptideGroup;
+let bgParticles;
+let entranceProgress = 0;
+const entranceDuration = 2.0;
+let isPlaying = true;
+let animSpeed = 0.4;
+let currentPhase = 0; // 0=transcription, 1=transport, 2=translation
+let phaseProgress = 0; // 0→1 within current phase
+let globalTime = 0;
+let selectedObject = null;
+let pointerDownPos = null;
+let isDragging = false;
+let displayMode = 'full';
+
+// 动画数据
+let dnaBases = []; // {mesh, base, pos, strand}
+let mrnaBases = []; // {mesh, base, pos, revealed}
+let trnaList = []; // {mesh, codonIndex, state}
+let aminoAcids = []; // {mesh, added, index}
+let polypeptideBonds = [];
+
+// DNA 序列 (模板链 3'→5')
+const DNA_SEQ_TEMPLATE = 'TACGCATTCGAT';
+const DNA_SEQ_CODING = 'ATGCGTAAGCTA';
+// mRNA 序列 (5'→3')
+const MRNA_SEQ = 'AUGCGUAAGCUA';
+// 密码子
+const CODONS = ['AUG', 'CGU', 'AAG', 'CUA'];
+
+/* ============================================================
+   分子信息数据（点击交互）
+   ============================================================ */
+const MOLECULE_INFO = {
+  dna: {
+    name: 'DNA 双螺旋',
+    en: 'Deoxyribonucleic Acid',
+    desc: 'DNA 储存着生物体的遗传信息。双螺旋结构由两条反向平行的链组成，腺嘌呤(A)与胸腺嘧啶(T)配对，鸟嘌呤(G)与胞嘧啶(C)配对。转录时，DNA 双链解开，以模板链为依据合成 mRNA。',
+  },
+  mrna: {
+    name: '信使 RNA (mRNA)',
+    en: 'Messenger RNA',
+    desc: 'mRNA 是 DNA 遗传信息的"信使"。它将基因序列从细胞核携带到核糖体。与 DNA 不同，RNA 用尿嘧啶(U)代替胸腺嘧啶(T)，且为单链结构。每三个核苷酸组成一个密码子，对应一种氨基酸。',
+  },
+  polymerase: {
+    name: 'RNA 聚合酶',
+    en: 'RNA Polymerase',
+    desc: 'RNA 聚合酶是转录的核心酶。它解开 DNA 双链，读取模板链的碱基序列，按照碱基互补配对原则（A-U, T-A, G-C, C-G）将游离的核糖核苷酸连接成 mRNA 链。',
+  },
+  ribosome: {
+    name: '核糖体',
+    en: 'Ribosome',
+    desc: '核糖体是蛋白质合成的"工厂"。由大亚基和小亚基组成。mRNA 穿过两个亚基之间的缝隙，tRNA 携带氨基酸依次进入，将氨基酸连接成多肽链。每个核糖体每秒可连接 10-20 个氨基酸。',
+  },
+  trna: {
+    name: '转运 RNA (tRNA)',
+    en: 'Transfer RNA',
+    desc: 'tRNA 是氨基酸的"搬运工"。它一端连接特定的氨基酸，另一端有反密码子（与 mRNA 密码子互补配对）。tRNA 精确地将正确的氨基酸运送到核糖体，确保蛋白质序列的正确性。',
+  },
+  aminoacid: {
+    name: '氨基酸',
+    en: 'Amino Acid',
+    desc: '氨基酸是蛋白质的基本组成单位。通过肽键相连形成多肽链。不同的氨基酸序列决定了蛋白质的三维结构和功能。生物体使用 20 种标准氨基酸合成所有蛋白质。',
+  },
+};
+
+/* ============================================================
+   场景设置
+   ============================================================ */
+function setupScene() {
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0a0c12, 25, 60);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.position.set(0, 2, 30);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.setClearColor(0x000000, 0);
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    0.6, 0.35, 0.15
+  );
+  composer.addPass(bloomPass);
+  composer.addPass(new OutputPass());
+}
+
+/* ============================================================
+   灯光
+   ============================================================ */
+function setupLighting() {
+  scene.add(new THREE.AmbientLight(0x2a2a3a, 0.5));
+
+  const keyLight = new THREE.DirectionalLight(0xfff5e0, 0.6);
+  keyLight.position.set(5, 8, 6);
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0x4a5a7a, 0.3);
+  fillLight.position.set(-6, -2, -4);
+  scene.add(fillLight);
+
+  // 暖色点光源 — DNA 区域
+  const dnaLight = new THREE.PointLight(0xF59E0B, 0.6, 25);
+  dnaLight.position.copy(POS.dnaCenter).add(new THREE.Vector3(0, 0, 3));
+  scene.add(dnaLight);
+
+  // 暖色点光源 — 核糖体区域
+  const riboLight = new THREE.PointLight(0xB45309, 0.5, 25);
+  riboLight.position.copy(POS.ribosomeCenter).add(new THREE.Vector3(0, 0, 3));
+  scene.add(riboLight);
+}
+
+/* ============================================================
+   背景粒子
+   ============================================================ */
+function createBackgroundParticles() {
+  const count = 400;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+
+  for (let i = 0; i < count; i++) {
+    const r = 28 + Math.random() * 35;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+
+    const c = new THREE.Color();
+    const hue = 0.08 + Math.random() * 0.05; // 暖色调
+    c.setHSL(hue, 0.4, 0.2 + Math.random() * 0.3);
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+    sizes[i] = Math.random() * 0.1 + 0.03;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size: 0.12,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.3,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true,
+    depthWrite: false,
+  });
+
+  bgParticles = new THREE.Points(geo, mat);
+  bgParticles.userData.isBackground = true;
+  scene.add(bgParticles);
+}
+
+/* ============================================================
+   工具：两点间创建圆柱键
+   ============================================================ */
+function createBond(start, end, radius, material, segments = 8) {
+  const dir = new THREE.Vector3().subVectors(end, start);
+  const len = dir.length();
+  if (len < 0.001) return new THREE.Mesh(new THREE.BufferGeometry(), material);
+
+  const geo = new THREE.CylinderGeometry(radius, radius, len, segments);
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.position.copy(start).add(end).multiplyScalar(0.5);
+
+  const up = new THREE.Vector3(0, 1, 0);
+  const norm = dir.clone().normalize();
+  if (norm.distanceTo(up) > 0.001) {
+    mesh.quaternion.setFromUnitVectors(up, norm);
+  }
+  return mesh;
+}
+
+/* ============================================================
+   构建 DNA 双螺旋
+   ============================================================ */
+function buildDNA() {
+  dnaGroup = new THREE.Group();
+  dnaGroup.position.copy(POS.dnaCenter);
+  dnaGroup.userData.moleculeType = 'dna';
+
+  const numBases = DNA_SEQ_TEMPLATE.length;
+  const rise = 0.7;
+  const radius = 2.2;
+  const twist = Math.PI / 6; // 30° per step
+  const strandOffset = Math.PI; // 反向平行
+
+  const backboneMat = new THREE.MeshPhongMaterial({
+    color: COLORS.dnaBackbone,
+    emissive: COLORS.dnaBackbone,
+    emissiveIntensity: 0.15,
+    shininess: 60,
+    transparent: true,
+    opacity: 0.85,
+  });
+
+  const sphereGeo = new THREE.SphereGeometry(0.28, 14, 10);
+
+  const baseColors = {
+    A: COLORS.dnaBaseA, T: COLORS.dnaBaseT,
+    G: COLORS.dnaBaseG, C: COLORS.dnaBaseC,
+  };
+
+  for (let i = 0; i < numBases; i++) {
+    const angle = i * twist;
+    const y = (i - (numBases - 1) / 2) * rise;
+
+    // 链1（编码链）
+    const pos1 = new THREE.Vector3(radius * Math.cos(angle), y, radius * Math.sin(angle));
+    // 链2（模板链）
+    const pos2 = new THREE.Vector3(
+      radius * Math.cos(angle + strandOffset), y,
+      radius * Math.sin(angle + strandOffset)
+    );
+
+    // 骨架球
+    const sph1 = new THREE.Mesh(sphereGeo, backboneMat.clone());
+    sph1.position.copy(pos1);
+    sph1.userData = { type: 'backbone', strand: 1, index: i, moleculeType: 'dna' };
+    dnaGroup.add(sph1);
+
+    const sph2 = new THREE.Mesh(sphereGeo, backboneMat.clone());
+    sph2.position.copy(pos2);
+    sph2.userData = { type: 'backbone', strand: 2, index: i, moleculeType: 'dna' };
+    dnaGroup.add(sph2);
+
+    // 骨架连接
+    if (i > 0) {
+      const prevAngle = (i - 1) * twist;
+      const prevY = (i - 1 - (numBases - 1) / 2) * rise;
+      const prevPos1 = new THREE.Vector3(radius * Math.cos(prevAngle), prevY, radius * Math.sin(prevAngle));
+      const prevPos2 = new THREE.Vector3(
+        radius * Math.cos(prevAngle + strandOffset), prevY,
+        radius * Math.sin(prevAngle + strandOffset)
+      );
+      const connMat = new THREE.MeshPhongMaterial({
+        color: COLORS.dnaBackbone, emissive: COLORS.dnaBackbone,
+        emissiveIntensity: 0.1, transparent: true, opacity: 0.6,
+      });
+      dnaGroup.add(createBond(prevPos1, pos1, 0.06, connMat.clone()));
+      dnaGroup.add(createBond(prevPos2, pos2, 0.06, connMat.clone()));
+    }
+
+    // 碱基（向中心延伸）
+    const baseChar1 = DNA_SEQ_CODING[i];
+    const baseChar2 = DNA_SEQ_TEMPLATE[i];
+    const innerR = radius * 0.3;
+    const inner1 = new THREE.Vector3(innerR * Math.cos(angle), y, innerR * Math.sin(angle));
+    const inner2 = new THREE.Vector3(innerR * Math.cos(angle + strandOffset), y, innerR * Math.sin(angle + strandOffset));
+
+    const baseGeo = new THREE.SphereGeometry(0.22, 12, 8);
+    baseGeo.scale(0.8, 0.3, 0.6);
+
+    const baseMat1 = new THREE.MeshPhongMaterial({
+      color: baseColors[baseChar1], emissive: baseColors[baseChar1],
+      emissiveIntensity: 0.3, shininess: 50, transparent: true, opacity: 0.88,
+    });
+    const bm1 = new THREE.Mesh(baseGeo, baseMat1);
+    bm1.position.copy(new THREE.Vector3().lerpVectors(pos1, inner1, 0.5));
+    bm1.userData = { type: 'base', strand: 1, index: i, base: baseChar1, moleculeType: 'dna' };
+    dnaGroup.add(bm1);
+
+    const baseMat2 = new THREE.MeshPhongMaterial({
+      color: baseColors[baseChar2], emissive: baseColors[baseChar2],
+      emissiveIntensity: 0.3, shininess: 50, transparent: true, opacity: 0.88,
+    });
+    const bm2 = new THREE.Mesh(baseGeo.clone(), baseMat2);
+    bm2.position.copy(new THREE.Vector3().lerpVectors(pos2, inner2, 0.5));
+    bm2.userData = { type: 'base', strand: 2, index: i, base: baseChar2, moleculeType: 'dna' };
+    dnaGroup.add(bm2);
+
+    // 氢键
+    const hBondMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.15,
+      blending: THREE.AdditiveBlending,
+    });
+    const hbond = createBond(inner1, inner2, 0.03, hBondMat, 4);
+    hbond.userData = { type: 'hbond', index: i, moleculeType: 'dna' };
+    dnaGroup.add(hbond);
+
+    dnaBases.push({ bm1, bm2, sph1, sph2, hbond, index: i, revealed: true });
+  }
+
+  // RNA 聚合酶 — 大型半透明球壳
+  const polGeo = new THREE.SphereGeometry(2.8, 24, 20);
+  polGeo.scale(1, 0.7, 1.2);
+  const polMat = new THREE.MeshPhongMaterial({
+    color: COLORS.polymerase,
+    emissive: COLORS.polymerase,
+    emissiveIntensity: 0.2,
+    shininess: 80,
+    transparent: true,
+    opacity: 0.25,
+    side: THREE.DoubleSide,
+  });
+  polymeraseMesh = new THREE.Mesh(polGeo, polMat);
+  polymeraseMesh.position.set(0, 0, 0);
+  polymeraseMesh.userData = { type: 'polymerase', moleculeType: 'polymerase' };
+  dnaGroup.add(polymeraseMesh);
+
+  // 聚合酶边缘光
+  const polGlowGeo = new THREE.SphereGeometry(3.1, 24, 20);
+  polGlowGeo.scale(1, 0.7, 1.2);
+  const polGlowMat = new THREE.MeshBasicMaterial({
+    color: COLORS.polymerase,
+    transparent: true,
+    opacity: 0.08,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+  });
+  const polGlow = new THREE.Mesh(polGlowGeo, polGlowMat);
+  polymeraseMesh.add(polGlow);
+
+  mainGroup.add(dnaGroup);
+}
+
+/* ============================================================
+   构建 mRNA 链
+   ============================================================ */
+function buildMRNA() {
+  mrnaGroup = new THREE.Group();
+  mrnaGroup.userData.moleculeType = 'mrna';
+
+  const numBases = MRNA_SEQ.length;
+  const rise = 0.7;
+  const radius = 1.4;
+
+  const mrnaMat = new THREE.MeshPhongMaterial({
+    color: COLORS.mrna,
+    emissive: COLORS.mrna,
+    emissiveIntensity: 0.4,
+    shininess: 70,
+    transparent: true,
+    opacity: 0.92,
+  });
+
+  const sphereGeo = new THREE.SphereGeometry(0.25, 12, 8);
+
+  for (let i = 0; i < numBases; i++) {
+    const angle = i * (Math.PI / 5);
+    const y = (i - (numBases - 1) / 2) * rise;
+    const pos = new THREE.Vector3(radius * Math.cos(angle), y, radius * Math.sin(angle));
+
+    const baseMesh = new THREE.Mesh(sphereGeo.clone(), mrnaMat.clone());
+    baseMesh.position.copy(pos);
+    baseMesh.visible = false; // 随动画逐步显示
+    baseMesh.userData = { type: 'mrna-base', index: i, base: MRNA_SEQ[i], moleculeType: 'mrna' };
+    baseMesh.scale.setScalar(0); // 入场动画
+    mrnaGroup.add(baseMesh);
+
+    mrnaBases.push({ mesh: baseMesh, index: i, revealed: false });
+
+    // 连接键
+    if (i > 0) {
+      const prevAngle = (i - 1) * (Math.PI / 5);
+      const prevY = (i - 1 - (numBases - 1) / 2) * rise;
+      const prevPos = new THREE.Vector3(radius * Math.cos(prevAngle), prevY, radius * Math.sin(prevAngle));
+      const bondMat = new THREE.MeshPhongMaterial({
+        color: COLORS.mrna, emissive: COLORS.mrna,
+        emissiveIntensity: 0.2, transparent: true, opacity: 0.5,
+      });
+      const bond = createBond(prevPos, pos, 0.05, bondMat, 6);
+      bond.visible = false;
+      bond.scale.setScalar(0);
+      mrnaGroup.add(bond);
+      mrnaBases[i].bond = bond;
+    }
+  }
+
+  mrnaGroup.position.copy(POS.dnaCenter);
+  mrnaGroup.visible = false;
+  mainGroup.add(mrnaGroup);
+}
+
+/* ============================================================
+   构建核糖体
+   ============================================================ */
+function buildRibosome() {
+  ribosomeGroup = new THREE.Group();
+  ribosomeGroup.position.copy(POS.ribosomeCenter);
+  ribosomeGroup.userData.moleculeType = 'ribosome';
+
+  // 大亚基
+  const largeGeo = new THREE.SphereGeometry(3.5, 28, 22);
+  largeGeo.scale(1.3, 0.8, 1);
+  const largeMat = new THREE.MeshPhongMaterial({
+    color: COLORS.ribosomeLarge,
+    emissive: COLORS.ribosomeLarge,
+    emissiveIntensity: 0.15,
+    shininess: 60,
+    transparent: true,
+    opacity: 0.35,
+    side: THREE.DoubleSide,
+  });
+  const largeSubunit = new THREE.Mesh(largeGeo, largeMat);
+  largeSubunit.position.y = 1.2;
+  largeSubunit.userData = { type: 'ribosome-large', moleculeType: 'ribosome' };
+  ribosomeGroup.add(largeSubunit);
+
+  // 大亚基边缘光
+  const largeGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(3.8, 20, 16),
+    new THREE.MeshBasicMaterial({
+      color: COLORS.ribosomeLarge,
+      transparent: true, opacity: 0.05,
+      blending: THREE.AdditiveBlending, side: THREE.BackSide,
+    })
+  );
+  largeGlow.scale.copy(largeSubunit.scale);
+  largeGlow.position.y = 1.2;
+  ribosomeGroup.add(largeGlow);
+
+  // 小亚基
+  const smallGeo = new THREE.SphereGeometry(2.8, 24, 18);
+  smallGeo.scale(1.2, 0.6, 0.9);
+  const smallMat = new THREE.MeshPhongMaterial({
+    color: COLORS.ribosomeSmall,
+    emissive: COLORS.ribosomeSmall,
+    emissiveIntensity: 0.15,
+    shininess: 60,
+    transparent: true,
+    opacity: 0.35,
+    side: THREE.DoubleSide,
+  });
+  const smallSubunit = new THREE.Mesh(smallGeo, smallMat);
+  smallSubunit.position.y = -1.8;
+  smallSubunit.userData = { type: 'ribosome-small', moleculeType: 'ribosome' };
+  ribosomeGroup.add(smallSubunit);
+
+  // 小亚基边缘光
+  const smallGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(3.1, 20, 16),
+    new THREE.MeshBasicMaterial({
+      color: COLORS.ribosomeSmall,
+      transparent: true, opacity: 0.05,
+      blending: THREE.AdditiveBlending, side: THREE.BackSide,
+    })
+  );
+  smallGlow.scale.copy(smallSubunit.scale);
+  smallGlow.position.y = -1.8;
+  ribosomeGroup.add(smallGlow);
+
+  mainGroup.add(ribosomeGroup);
+}
+
+/* ============================================================
+   构建 tRNA 和多肽链容器
+   ============================================================ */
+function buildTRNA() {
+  trnaGroup = new THREE.Group();
+  trnaGroup.position.copy(POS.ribosomeCenter);
+  mainGroup.add(trnaGroup);
+
+  polypeptideGroup = new THREE.Group();
+  polypeptideGroup.position.copy(POS.ribosomeCenter);
+  mainGroup.add(polypeptideGroup);
+
+  // 为每个密码子创建一个 tRNA
+  const trnaGeo = new THREE.SphereGeometry(0.8, 16, 12);
+  trnaGeo.scale(0.6, 1, 0.6);
+
+  for (let i = 0; i < CODONS.length; i++) {
+    const trnaMat = new THREE.MeshPhongMaterial({
+      color: COLORS.trna,
+      emissive: COLORS.trna,
+      emissiveIntensity: 0.3,
+      shininess: 50,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const trna = new THREE.Mesh(trnaGeo.clone(), trnaMat.clone());
+    trna.visible = false;
+    trna.scale.setScalar(0);
+    trna.userData = { type: 'trna', codonIndex: i, moleculeType: 'trna', codon: CODONS[i] };
+    trnaGroup.add(trna);
+
+    // tRNA 携带的氨基酸
+    const aaGeo = new THREE.SphereGeometry(0.35, 12, 8);
+    const aaMat = new THREE.MeshPhongMaterial({
+      color: AMINO_COLORS[i % AMINO_COLORS.length],
+      emissive: AMINO_COLORS[i % AMINO_COLORS.length],
+      emissiveIntensity: 0.4,
+      shininess: 60,
+      transparent: true,
+      opacity: 0.95,
+    });
+    const aa = new THREE.Mesh(aaGeo, aaMat);
+    aa.position.y = -0.9;
+    aa.visible = false;
+    aa.scale.setScalar(0);
+    aa.userData = { type: 'aminoacid', index: i, moleculeType: 'aminoacid' };
+    trna.add(aa);
+
+    trnaList.push({
+      mesh: trna,
+      aminoAcid: aa,
+      codonIndex: i,
+      state: 'waiting', // waiting → arriving → docked → leaving
+      progress: 0,
+    });
+
+    // 多肽链中的氨基酸（脱离 tRNA 后）
+    const chainAA = new THREE.Mesh(aaGeo.clone(), aaMat.clone());
+    chainAA.visible = false;
+    chainAA.scale.setScalar(0);
+    chainAA.userData = { type: 'chain-aa', index: i, moleculeType: 'aminoacid' };
+    polypeptideGroup.add(chainAA);
+    aminoAcids.push({ mesh: chainAA, index: i, added: false });
+  }
+}
+
+/* ============================================================
+   构建完整场景
+   ============================================================ */
+function buildScene() {
+  mainGroup = new THREE.Group();
+  scene.add(mainGroup);
+
+  buildDNA();
+  buildMRNA();
+  buildRibosome();
+  buildTRNA();
+
+  // mRNA 通道线（从 DNA 到核糖体的引导路径）
+  const curvePoints = [];
+  const segments = 30;
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const x = THREE.MathUtils.lerp(POS.dnaCenter.x, POS.ribosomeCenter.x, t);
+    const y = THREE.MathUtils.lerp(POS.dnaCenter.y, POS.ribosomeCenter.y, t) + Math.sin(t * Math.PI) * 5;
+    const z = Math.sin(t * Math.PI * 2) * 1.5;
+    curvePoints.push(new THREE.Vector3(x, y, z));
+  }
+  const curve = new THREE.CatmullRomCurve3(curvePoints);
+  const pathGeo = new THREE.TubeGeometry(curve, 40, 0.04, 6, false);
+  const pathMat = new THREE.MeshBasicMaterial({
+    color: COLORS.mrna,
+    transparent: true,
+    opacity: 0.08,
+    blending: THREE.AdditiveBlending,
+  });
+  const pathMesh = new THREE.Mesh(pathGeo, pathMat);
+  pathMesh.visible = false;
+  mainGroup.add(pathMesh);
+  mainGroup.userData.mrnaPath = curve;
+  mainGroup.userData.mrnaPathMesh = pathMesh;
+}
+
+/* ============================================================
+   Raycaster
+   ============================================================ */
+function setupRaycaster() {
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+}
+
+function getClickableMeshes() {
+  const meshes = [];
+  mainGroup.traverse(child => {
+    if (child.userData.moleculeType && child.isMesh) {
+      meshes.push(child);
+    }
+  });
+  return meshes;
+}
+
+function onPointerDown(event) {
+  pointerDownPos = { x: event.clientX, y: event.clientY };
+}
+
+function onPointerUp(event) {
+  if (!pointerDownPos) return;
+  const dx = event.clientX - pointerDownPos.x;
+  const dy = event.clientY - pointerDownPos.y;
+  pointerDownPos = null;
+  if (Math.sqrt(dx * dx + dy * dy) > 5) return;
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(getClickableMeshes());
+
+  if (intersects.length > 0) {
+    selectMolecule(intersects[0].object.userData.moleculeType, intersects[0].object);
+  } else {
+    selectMolecule(null);
+  }
+}
+
+/* ============================================================
+   选择分子
+   ============================================================ */
+function selectMolecule(type, mesh) {
+  // 重置之前的高亮
+  if (selectedObject) {
+    resetHighlight(selectedObject);
+  }
+
+  if (type === null || (selectedObject && selectedObject.userData.moleculeType === type)) {
+    selectedObject = null;
+    document.getElementById('info-panel').classList.remove('visible');
+    return;
+  }
+
+  selectedObject = mesh;
+  highlightObject(mesh);
+  showInfoPanel(type, mesh);
+}
+
+function highlightObject(mesh) {
+  if (mesh.material && mesh.material.emissive) {
+    mesh.userData._origEmissive = mesh.material.emissive.getHex();
+    mesh.userData._origEmissiveInt = mesh.material.emissiveIntensity;
+    mesh.material.emissive.setHex(COLORS.highlight);
+    mesh.material.emissiveIntensity = 0.6;
+  }
+}
+
+function resetHighlight(mesh) {
+  if (mesh.material && mesh.material.emissive && mesh.userData._origEmissive !== undefined) {
+    mesh.material.emissive.setHex(mesh.userData._origEmissive);
+    mesh.material.emissiveIntensity = mesh.userData._origEmissiveInt;
+  }
+}
+
+function showInfoPanel(type, mesh) {
+  const info = MOLECULE_INFO[type];
+  if (!info) return;
+
+  let extraRows = '';
+  if (type === 'dna' && mesh.userData.base) {
+    extraRows = `
+      <div class="info-row"><span class="label">碱基类型</span><span class="value">${mesh.userData.base}</span></div>
+      <div class="info-row"><span class="label">所在链</span><span class="value">${mesh.userData.strand === 1 ? '编码链' : '模板链'}</span></div>
+      <div class="info-row"><span class="label">位置</span><span class="value">第 ${mesh.userData.index + 1} 位</span></div>
+    `;
+  } else if (type === 'mrna' && mesh.userData.base) {
+    const codonIdx = Math.floor(mesh.userData.index / 3);
+    extraRows = `
+      <div class="info-row"><span class="label">碱基</span><span class="value">${mesh.userData.base}</span></div>
+      <div class="info-row"><span class="label">位置</span><span class="value">第 ${mesh.userData.index + 1} 位</span></div>
+      <div class="info-row"><span class="label">所属密码子</span><span class="value">${CODONS[codonIdx] || '—'} (#${codonIdx + 1})</span></div>
+    `;
+  } else if (type === 'trna' && mesh.userData.codon) {
+    extraRows = `
+      <div class="info-row"><span class="label">反密码子</span><span class="value">${getAnticodon(mesh.userData.codon)}</span></div>
+      <div class="info-row"><span class="label">对应密码子</span><span class="value">${mesh.userData.codon}</span></div>
+      <div class="info-row"><span class="label">密码子序号</span><span class="value">第 ${mesh.userData.codonIndex + 1} 个</span></div>
+    `;
+  } else if (type === 'aminoacid' && mesh.userData.index !== undefined) {
+    extraRows = `
+      <div class="info-row"><span class="label">氨基酸序号</span><span class="value">第 ${mesh.userData.index + 1} 个</span></div>
+      <div class="info-row"><span class="label">对应密码子</span><span class="value">${CODONS[mesh.userData.index] || '—'}</span></div>
+    `;
+  }
+
+  document.querySelector('.info-content').innerHTML = `
+    <h3>${info.name}</h3>
+    <div class="en-name">${info.en}</div>
+    ${extraRows}
+    <div class="info-desc">${info.desc}</div>
+  `;
+  document.getElementById('info-panel').classList.add('visible');
+}
+
+function getAnticodon(codon) {
+  const map = { A: 'U', U: 'A', G: 'C', C: 'G' };
+  return codon.split('').map(b => map[b] || b).join('');
+}
+
+/* ============================================================
+   动画系统
+   ============================================================ */
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+function easeOutBack(t) {
+  const c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function animatePhase(dt) {
+  globalTime += dt * animSpeed;
+
+  if (!isPlaying) return;
+
+  // 总循环时间：转录(8s) + 转运(3s) + 翻译(10s) = 21s
+  const phaseDurations = [8, 3, 10];
+  phaseProgress += dt * animSpeed / phaseDurations[currentPhase];
+
+  if (phaseProgress >= 1) {
+    phaseProgress = 0;
+    currentPhase = (currentPhase + 1) % 3;
+    updatePhaseIndicator();
+    showPhaseFlash();
+  }
+
+  // 根据当前阶段更新场景
+  if (displayMode === 'transcription') {
+    currentPhase = 0;
+    phaseProgress = (phaseProgress + dt * animSpeed / phaseDurations[0]) % 1;
+  } else if (displayMode === 'translation') {
+    currentPhase = 2;
+    phaseProgress = (phaseProgress + dt * animSpeed / phaseDurations[2]) % 1;
+  }
+
+  updatePhaseAnimation(phaseProgress);
+}
+
+function updatePhaseAnimation(progress) {
+  const t = globalTime;
+
+  if (currentPhase === 0) {
+    // ===== 转录阶段 =====
+    updateTranscription(progress, t);
+  } else if (currentPhase === 1) {
+    // ===== mRNA 转运阶段 =====
+    updateTransport(progress, t);
+  } else if (currentPhase === 2) {
+    // ===== 翻译阶段 =====
+    updateTranslation(progress, t);
+  }
+}
+
+/* ============================================================
+   转录动画
+   ============================================================ */
+function updateTranscription(progress, t) {
+  const totalBases = mrnaBases.length;
+
+  // DNA 旋转
+  dnaGroup.rotation.y = t * 0.15;
+
+  // RNA 聚合酶沿 DNA 移动
+  const polProgress = Math.min(progress * 1.2, 1);
+  const polY = (polProgress - 0.5) * (totalBases * 0.7);
+  polymeraseMesh.position.y = polY;
+  polymeraseMesh.position.x = Math.sin(t * 0.5) * 0.3;
+
+  // mRNA 逐个生成
+  const revealCount = Math.floor(progress * totalBases * 1.1);
+
+  mrnaGroup.visible = true;
+  mrnaGroup.position.copy(POS.dnaCenter);
+  mrnaGroup.position.x += 2.5; // 偏移到 DNA 旁边
+  mrnaGroup.rotation.y = t * 0.1;
+
+  // 聚合酶附近的 DNA 链"打开"
+  dnaBases.forEach((db, i) => {
+    const dist = Math.abs(i - revealCount);
+    const openAmount = Math.max(0, 1 - dist / 3);
+    if (db.hbond) {
+      db.hbond.material.opacity = 0.15 * (1 - openAmount);
+    }
+  });
+
+  // mRNA 碱基逐个显示
+  mrnaBases.forEach((mb, i) => {
+    if (i < revealCount) {
+      if (!mb.revealed) {
+        mb.revealed = true;
+      }
+      mb.mesh.visible = true;
+      const targetScale = 1;
+      const currentScale = mb.mesh.scale.x;
+      mb.mesh.scale.setScalar(THREE.MathUtils.lerp(currentScale, targetScale, 0.1));
+
+      if (mb.bond) {
+        mb.bond.visible = true;
+        mb.bond.scale.x = THREE.MathUtils.lerp(mb.bond.scale.x, 1, 0.1);
+        mb.bond.scale.y = THREE.MathUtils.lerp(mb.bond.scale.y, 1, 0.1);
+        mb.bond.scale.z = THREE.MathUtils.lerp(mb.bond.scale.z, 1, 0.1);
+      }
+    } else {
+      mb.mesh.scale.setScalar(THREE.MathUtils.lerp(mb.mesh.scale.x, 0, 0.15));
+      if (mb.mesh.scale.x < 0.01) mb.mesh.visible = false;
+      if (mb.bond) {
+        mb.bond.scale.setScalar(THREE.MathUtils.lerp(mb.bond.scale.x, 0, 0.15));
+      }
+    }
+  });
+
+  // 隐藏核糖体相关的元素
+  setRibosomeActive(false);
+  resetTRNA();
+  resetPolypeptide();
+}
+
+/* ============================================================
+   mRNA 转运动画
+   ============================================================ */
+function updateTransport(progress, t) {
+  // DNA 恢复合拢
+  dnaBases.forEach(db => {
+    if (db.hbond) db.hbond.material.opacity = 0.15;
+  });
+
+  // 聚合酶回到中心
+  polymeraseMesh.position.y = THREE.MathUtils.lerp(polymeraseMesh.position.y, 0, 0.05);
+
+  // mRNA 全部显示
+  mrnaBases.forEach(mb => {
+    mb.revealed = true;
+    mb.mesh.visible = true;
+    mb.mesh.scale.setScalar(THREE.MathUtils.lerp(mb.mesh.scale.x, 1, 0.1));
+    if (mb.bond) {
+      mb.bond.visible = true;
+      mb.bond.scale.setScalar(THREE.MathUtils.lerp(mb.bond.scale.x, 1, 0.1));
+    }
+  });
+
+  // mRNA 沿路径移动到核糖体
+  const path = mainGroup.userData.mrnaPath;
+  mainGroup.userData.mrnaPathMesh.visible = true;
+  mainGroup.userData.mrnaPathMesh.material.opacity = 0.08 + Math.sin(t * 2) * 0.03;
+
+  const startPos = path.getPoint(0).add(POS.dnaCenter).add(new THREE.Vector3(2.5, 0, 0));
+  const endPos = POS.ribosomeCenter.clone().add(new THREE.Vector3(0, 2, 0));
+  const pathPoint = path.getPoint(progress).add(new THREE.Vector3(2.5 * (1 - progress), 0, 0));
+
+  // 使用 lerp 沿路径移动
+  const currentPos = new THREE.Vector3().lerpVectors(startPos, endPos, easeInOutCubic(progress));
+  // 加上路径弯曲
+  currentPos.y += Math.sin(progress * Math.PI) * 3;
+  mrnaGroup.position.copy(currentPos);
+  mrnaGroup.rotation.y = t * 0.3;
+  mrnaGroup.rotation.z = progress * Math.PI;
+
+  setRibosomeActive(false);
+  resetTRNA();
+  resetPolypeptide();
+}
+
+/* ============================================================
+   翻译动画
+   ============================================================ */
+function updateTranslation(progress, t) {
+  // mRNA 在核糖体中
+  mrnaGroup.visible = true;
+  mrnaGroup.position.copy(POS.ribosomeCenter);
+  mrnaGroup.position.y += 0.5;
+  mrnaGroup.rotation.y = t * 0.2;
+
+  // mRNA 全部显示
+  mrnaBases.forEach(mb => {
+    mb.mesh.visible = true;
+    mb.mesh.scale.setScalar(THREE.MathUtils.lerp(mb.mesh.scale.x, 1, 0.08));
+    if (mb.bond) {
+      mb.bond.visible = true;
+      mb.bond.scale.setScalar(THREE.MathUtils.lerp(mb.bond.scale.x, 1, 0.08));
+    }
+  });
+
+  // 路径线隐藏
+  mainGroup.userData.mrnaPathMesh.visible = false;
+
+  // 核糖体活跃
+  setRibosomeActive(true);
+
+  // 核糖体脉动
+  const riboPulse = 1 + Math.sin(t * 2) * 0.02;
+  ribosomeGroup.scale.setScalar(riboPulse);
+
+  // tRNA 依次到达
+  const numCodons = CODONS.length;
+  const codonDuration = 1 / numCodons;
+
+  trnaList.forEach((trnaData, i) => {
+    const codonStart = i * codonDuration;
+    const codonEnd = (i + 1) * codonDuration;
+    const localProgress = (progress - codonStart) / codonDuration;
+
+    if (localProgress < 0 || localProgress > 1.5) {
+      trnaData.mesh.visible = false;
+      trnaData.aminoAcid.visible = false;
+      return;
+    }
+
+    if (localProgress < 0.3) {
+      // tRNA 从远处飞来
+      trnaData.state = 'arriving';
+      trnaData.mesh.visible = true;
+      trnaData.aminoAcid.visible = true;
+
+      const arriveT = easeOutCubic(localProgress / 0.3);
+      const startPos = new THREE.Vector3(
+        5 + i * 0.5, 4, 3
+      );
+      const dockPos = new THREE.Vector3(0, 1.5, 1.5);
+      trnaData.mesh.position.lerpVectors(startPos, dockPos, arriveT);
+      trnaData.mesh.scale.setScalar(THREE.MathUtils.lerp(trnaData.mesh.scale.x, 1, 0.12));
+      trnaData.aminoAcid.scale.setScalar(THREE.MathUtils.lerp(trnaData.aminoAcid.scale.x, 1, 0.12));
+
+    } else if (localProgress < 0.6) {
+      // tRNA 停靠在核糖体上
+      trnaData.state = 'docked';
+      trnaData.mesh.position.set(0, 1.5, 1.5);
+      trnaData.mesh.scale.setScalar(1);
+      trnaData.aminoAcid.scale.setScalar(1);
+
+      // 氨基酸转移到多肽链
+      if (!aminoAcids[i].added) {
+        aminoAcids[i].added = true;
+        aminoAcids[i].mesh.visible = true;
+      }
+
+    } else if (localProgress < 1) {
+      // tRNA 离开（不带走氨基酸）
+      trnaData.state = 'leaving';
+      const leaveT = easeOutCubic((localProgress - 0.6) / 0.4);
+      const dockPos = new THREE.Vector3(0, 1.5, 1.5);
+      const leavePos = new THREE.Vector3(-5, -2, -2);
+      trnaData.mesh.position.lerpVectors(dockPos, leavePos, leaveT);
+      trnaData.mesh.scale.setScalar(THREE.MathUtils.lerp(trnaData.mesh.scale.x, 0.5, 0.05));
+
+      // 氨基酸留在了多肽链上
+      trnaData.aminoAcid.visible = false;
+
+    } else {
+      trnaData.mesh.visible = false;
+      trnaData.aminoAcid.visible = false;
+    }
+  });
+
+  // 多肽链生长
+  const numAA = aminoAcids.length;
+  const aaDuration = 1 / numAA;
+
+  aminoAcids.forEach((aa, i) => {
+    const aaStart = i * aaDuration;
+    const localP = (progress - aaStart) / aaDuration;
+
+    if (localP > 0 && aa.added) {
+      aa.mesh.visible = true;
+      aa.mesh.scale.setScalar(THREE.MathUtils.lerp(aa.mesh.scale.x, 1, 0.1));
+
+      // 氨基酸位置：从核糖体底部向下延伸
+      const chainY = -2.5 - i * 0.9;
+      const swayX = Math.sin(t * 1.5 + i * 0.5) * 0.3;
+      const swayZ = Math.cos(t * 1.2 + i * 0.3) * 0.2;
+      aa.mesh.position.set(swayX, chainY, swayZ);
+
+      // 添加肽键
+      if (i > 0 && aminoAcids[i - 1].added) {
+        let bond = polypeptideGroup.userData[`bond_${i}`];
+        if (!bond) {
+          const bondMat = new THREE.MeshPhongMaterial({
+            color: COLORS.polypeptide,
+            emissive: COLORS.polypeptide,
+            emissiveIntensity: 0.2,
+            transparent: true,
+            opacity: 0.6,
+          });
+          bond = createBond(
+            aminoAcids[i - 1].mesh.position,
+            aa.mesh.position,
+            0.08,
+            bondMat
+          );
+          bond.userData = { type: 'peptide-bond', moleculeType: 'aminoacid' };
+          polypeptideGroup.add(bond);
+          polypeptideGroup.userData[`bond_${i}`] = bond;
+          polypeptideBonds.push(bond);
+        } else {
+          // 更新键的位置
+          const start = aminoAcids[i - 1].mesh.position;
+          const end = aa.mesh.position;
+          const dir = new THREE.Vector3().subVectors(end, start);
+          const len = dir.length();
+          bond.position.copy(start).add(end).multiplyScalar(0.5);
+          const up = new THREE.Vector3(0, 1, 0);
+          const norm = dir.clone().normalize();
+          if (norm.distanceTo(up) > 0.001) {
+            bond.quaternion.setFromUnitVectors(up, norm);
+          }
+          bond.scale.y = len;
+        }
+      }
+    }
+  });
+
+  // 完成后重置准备下一轮
+  if (progress > 0.95) {
+    // 渐隐多肽链
+    aminoAcids.forEach(aa => {
+      aa.mesh.material.opacity = THREE.MathUtils.lerp(aa.mesh.material.opacity, 0, 0.05);
+    });
+    polypeptideBonds.forEach(bond => {
+      bond.material.opacity = THREE.MathUtils.lerp(bond.material.opacity, 0, 0.05);
+    });
+  }
+}
+
+/* ============================================================
+   辅助函数
+   ============================================================ */
+function setRibosomeActive(active) {
+  ribosomeGroup.children.forEach(child => {
+    if (child.material) {
+      child.material.opacity = active ? 0.35 : 0.15;
+    }
+  });
+}
+
+function resetTRNA() {
+  trnaList.forEach(td => {
+    td.mesh.visible = false;
+    td.mesh.scale.setScalar(0);
+    td.aminoAcid.visible = false;
+    td.aminoAcid.scale.setScalar(0);
+    td.state = 'waiting';
+  });
+}
+
+function resetPolypeptide() {
+  aminoAcids.forEach(aa => {
+    aa.added = false;
+    aa.mesh.visible = false;
+    aa.mesh.scale.setScalar(0);
+    aa.mesh.material.opacity = 0.95;
+  });
+  polypeptideBonds.forEach(bond => {
+    polypeptideGroup.remove(bond);
+    if (bond.geometry) bond.geometry.dispose();
+    if (bond.material) bond.material.dispose();
+  });
+  polypeptideBonds = [];
+  // 清除 userData 中的键
+  Object.keys(polypeptideGroup.userData).forEach(key => {
+    if (key.startsWith('bond_')) delete polypeptideGroup.userData[key];
+  });
+}
+
+function updatePhaseIndicator() {
+  document.querySelectorAll('.phase-step').forEach((el, i) => {
+    el.classList.toggle('active', i === currentPhase);
+  });
+}
+
+function showPhaseFlash() {
+  const phaseNames = ['转录开始 · DNA → mRNA', 'mRNA 转运至核糖体', '翻译开始 · mRNA → 蛋白质'];
+  const flash = document.getElementById('status-flash');
+  flash.textContent = phaseNames[currentPhase];
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 1500);
+
+  // 重置场景元素
+  if (currentPhase === 0) {
+    resetTRNA();
+    resetPolypeptide();
+    mrnaBases.forEach(mb => { mb.revealed = false; });
+  }
+}
+
+/* ============================================================
+   UI 设置
+   ============================================================ */
+function setupUI() {}
+
+/* ============================================================
+   事件监听
+   ============================================================ */
+function setupEventListeners() {
+  // 播放/暂停
+  document.getElementById('play-pause').addEventListener('click', () => {
+    isPlaying = !isPlaying;
+    document.getElementById('play-pause').classList.toggle('active', isPlaying);
+    document.getElementById('icon-pause').style.display = isPlaying ? '' : 'none';
+    document.getElementById('icon-play').style.display = isPlaying ? 'none' : '';
+    showStatus(isPlaying ? '播放中' : '已暂停');
+  });
+
+  // 速度滑块
+  document.getElementById('speed-slider').addEventListener('input', (e) => {
+    animSpeed = (e.target.value / 100) * 1.5 + 0.05;
+  });
+
+  // 上一阶段
+  document.getElementById('phase-prev').addEventListener('click', () => {
+    currentPhase = (currentPhase - 1 + 3) % 3;
+    phaseProgress = 0;
+    updatePhaseIndicator();
+    showPhaseFlash();
+    resetForPhase();
+  });
+
+  // 下一阶段
+  document.getElementById('phase-next').addEventListener('click', () => {
+    currentPhase = (currentPhase + 1) % 3;
+    phaseProgress = 0;
+    updatePhaseIndicator();
+    showPhaseFlash();
+    resetForPhase();
+  });
+
+  // 重置视角
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    animateCameraTo(0, 2, 30, 0, 0, 0);
+    showStatus('视角已重置');
+  });
+
+  // 全屏
+  document.getElementById('fullscreen-btn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  // 关闭信息面板
+  document.getElementById('close-info').addEventListener('click', () => {
+    selectMolecule(null);
+  });
+
+  // 显示模式
+  document.querySelectorAll('.demo-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.demo-mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      displayMode = btn.dataset.mode;
+      showStatus(displayMode === 'full' ? '完整流程模式' : displayMode === 'transcription' ? '仅转录模式' : '仅翻译模式');
+      resetForPhase();
+    });
+  });
+
+  // 画布交互
+  const canvas = renderer.domElement;
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointerup', onPointerUp);
+
+  // 键盘快捷键
+  document.addEventListener('keydown', (e) => {
+    switch (e.key) {
+      case ' ':
+        e.preventDefault();
+        document.getElementById('play-pause').click();
+        break;
+      case 'ArrowLeft':
+        document.getElementById('phase-prev').click();
+        break;
+      case 'ArrowRight':
+        document.getElementById('phase-next').click();
+        break;
+      case 'f': case 'F':
+        document.getElementById('fullscreen-btn').click();
+        break;
+      case 'Escape':
+        if (selectedObject) selectMolecule(null);
+        break;
+    }
+  });
+
+  // 窗口大小
+  window.addEventListener('resize', onResize);
+}
+
+function resetForPhase() {
+  if (currentPhase === 0) {
+    resetTRNA();
+    resetPolypeptide();
+    mrnaBases.forEach(mb => { mb.revealed = false; });
+  } else if (currentPhase === 1) {
+    resetTRNA();
+    resetPolypeptide();
+  } else if (currentPhase === 2) {
+    mrnaBases.forEach(mb => { mb.revealed = true; });
+  }
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+}
+
+/* ============================================================
+   相机动画
+   ============================================================ */
+function animateCameraTo(x, y, z, tx, ty, tz) {
+  const startPos = camera.position.clone();
+  const endPos = new THREE.Vector3(x, y, z);
+  const startTarget = controls.target.clone();
+  const endTarget = new THREE.Vector3(tx, ty, tz);
+  const startTime = clock.getElapsedTime();
+
+  function step() {
+    const elapsed = clock.getElapsedTime() - startTime;
+    const t = Math.min(elapsed / 1.0, 1);
+    const eased = easeInOutCubic(t);
+
+    camera.position.lerpVectors(startPos, endPos, eased);
+    controls.target.lerpVectors(startTarget, endTarget, eased);
+    controls.update();
+
+    if (t < 1) requestAnimationFrame(step);
+  }
+  step();
+}
+
+/* ============================================================
+   状态提示
+   ============================================================ */
+let statusTimer = null;
+function showStatus(msg) {
+  const tag = document.getElementById('status-tag');
+  tag.textContent = msg;
+  if (statusTimer) clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => {
+    tag.textContent = '就绪';
+  }, 2500);
+}
+
+/* ============================================================
+   控件设置
+   ============================================================ */
+function setupControls() {
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 10;
+  controls.maxDistance = 55;
+  controls.target.set(0, 0, 0);
+  controls.enablePan = false;
+  controls.autoRotate = false;
+
+  controls.addEventListener('start', () => { isDragging = true; });
+  controls.addEventListener('end', () => { isDragging = false; });
+}
+
+/* ============================================================
+   主循环
+   ============================================================ */
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.getElapsedTime();
+
+  // 入场动画
+  if (entranceProgress < 1) {
+    entranceProgress = Math.min(1, entranceProgress + dt / entranceDuration);
+    const eased = easeOutCubic(entranceProgress);
+    mainGroup.scale.setScalar(THREE.MathUtils.lerp(0.01, 1, eased));
+    mainGroup.rotation.y = (1 - eased) * Math.PI;
+    camera.position.z = 40 - (40 - 30) * eased;
+  }
+
+  // 阶段动画
+  animatePhase(dt);
+
+  // 自动缓慢旋转
+  if (isPlaying && !isDragging && entranceProgress >= 0.8) {
+    mainGroup.rotation.y += dt * 0.05;
+  }
+
+  // 背景粒子
+  if (bgParticles) {
+    bgParticles.rotation.y = t * 0.008;
+    bgParticles.rotation.x = t * 0.004;
+  }
+
+  // 选中对象脉动
+  if (selectedObject && selectedObject.material) {
+    const pulse = 0.4 + 0.3 * Math.sin(t * 4);
+    selectedObject.material.emissiveIntensity = pulse;
+  }
+
+  controls.update();
+  composer.render();
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+try {
+  clock = new THREE.Clock();
+  setupScene();
+  setupLighting();
+  createBackgroundParticles();
+  buildScene();
+  setupControls();
+  setupRaycaster();
+  setupEventListeners();
+  animate();
+
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+  }, 400);
+} catch (err) {
+  console.error('Initialization error:', err);
+  document.getElementById('loader').innerHTML =
+    '<div style="color:#ff6b6b;font-size:14px;text-align:center;padding:20px">加载失败，请刷新页面重试</div>';
+}
+
+</script>
+
+</body>
+</html>

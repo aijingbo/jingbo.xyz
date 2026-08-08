@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>朝代疆域演变动画地图 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<script src="https://unpkg.com/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+/* ============================================
+   朝代疆域演变 · 主题样式
+   古地图质感 · 历史厚重 · 暖陶配色
+   ============================================ */
+
+:root {
+  --dt-parchment: #f0e8d8;
+  --dt-parchment-dark: #e0d4bc;
+  --dt-parchment-light: #f7f0e0;
+  --dt-ink: #3a2f1f;
+  --dt-ink-light: #5a4f3f;
+  --dt-ink-muted: #8a7f6f;
+  --dt-ochre: #B45309;
+  --dt-ochre-dark: #92400E;
+  --dt-ochre-light: #d97706;
+  --dt-rust: #92400E;
+  --dt-gold: #b8923c;
+  --dt-sepia: rgba(146, 64, 14, 0.12);
+  --dt-border-soft: #d4c4b0;
+}
+
+/* ---------- 加载屏 ---------- */
+.dt-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: linear-gradient(135deg, #f0e8d8 0%, #e0d4bc 50%, #d4c4b0 100%);
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+.dt-loading.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+.dt-loading-seal {
+  width: 80px;
+  height: 80px;
+  border: 3px solid var(--dt-ochre);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--dt-ochre);
+  margin-bottom: 28px;
+  animation: dt-seal-pulse 1.6s ease-in-out infinite;
+  background: rgba(180, 83, 9, 0.05);
+}
+@keyframes dt-seal-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; box-shadow: 0 0 0 0 rgba(180, 83, 9, 0.3); }
+  50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 0 12px rgba(180, 83, 9, 0); }
+}
+.dt-loading-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--dt-ink);
+  letter-spacing: 0.15em;
+  margin-bottom: 6px;
+}
+.dt-loading-sub {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  color: var(--dt-ink-muted);
+  letter-spacing: 0.3em;
+  margin-bottom: 28px;
+}
+.dt-loading-bar {
+  width: 140px;
+  height: 2px;
+  background: rgba(146, 64, 14, 0.15);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.dt-loading-bar-fill {
+  height: 100%;
+  width: 40%;
+  background: var(--dt-ochre);
+  border-radius: 1px;
+  animation: dt-bar-slide 1.2s ease-in-out infinite;
+}
+@keyframes dt-bar-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* ---------- 主体框架覆盖 ---------- */
+.framework-narrative {
+  background: var(--dt-parchment);
+}
+
+/* ---------- 导航栏覆盖 ---------- */
+.demo-navbar {
+  background-color: rgba(240, 232, 216, 0.88);
+}
+.demo-navbar.scrolled {
+  background-color: rgba(240, 232, 216, 0.95);
+}
+
+/* ---------- 地图区域 ---------- */
+.narrative-map-area {
+  background: var(--dt-parchment);
+  border-right: 1px solid var(--dt-border-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+#mapCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+#mapCanvas:active {
+  cursor: grabbing;
+}
+
+/* ---------- 地图叠加层 ---------- */
+.dt-map-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* 朝代印章（右上角） */
+.dt-dynasty-seal {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 72px;
+  height: 72px;
+  border: 2.5px solid var(--dt-ochre);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--dt-ochre);
+  background: rgba(240, 232, 216, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.4s var(--ease);
+  box-shadow: 0 4px 16px rgba(146, 64, 14, 0.12);
+}
+.dt-dynasty-seal.changing {
+  transform: scale(0.8) rotate(-5deg);
+  opacity: 0;
+}
+
+/* 比例尺（左下角） */
+.dt-scale-bar {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--dt-ink-muted);
+  letter-spacing: 0.05em;
+}
+.dt-scale-bar-line {
+  width: 80px;
+  height: 6px;
+  border: 1px solid var(--dt-ink-muted);
+  border-top: none;
+  position: relative;
+}
+.dt-scale-bar-line::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 4px;
+  background: var(--dt-ink-muted);
+}
+
+/* 罗盘（左上角） */
+.dt-compass {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 56px;
+  height: 56px;
+  opacity: 0.5;
+}
+
+/* ---------- 信息卡片覆盖 ---------- */
+.narrative-info-card {
+  background-color: rgba(247, 240, 224, 0.96);
+  border: 1px solid var(--dt-border-soft);
+  border-left: 3px solid var(--dt-ochre);
+  max-width: 380px;
+}
+
+.narrative-info-year {
+  color: var(--dt-ochre);
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+
+.dt-info-meta {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.dt-info-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--dt-ink-muted);
+}
+.dt-info-meta-item strong {
+  color: var(--dt-ink);
+  font-weight: 600;
+}
+.dt-info-meta-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.dt-info-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.dt-fact-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  background: var(--dt-sepia);
+  color: var(--dt-ochre-dark);
+  border: 1px solid rgba(180, 83, 9, 0.15);
+}
+
+/* ---------- 时间轴面板覆盖 ---------- */
+.narrative-timeline-panel {
+  background-color: var(--dt-parchment-light);
+  border-left: 1px solid var(--dt-border-soft);
+}
+
+.narrative-timeline-header {
+  border-bottom: 1px solid var(--dt-border-soft);
+  padding: 20px 24px 16px;
+}
+
+.dt-timeline-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--dt-ochre);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.narrative-timeline-title {
+  font-size: 18px;
+  color: var(--dt-ink);
+}
+
+.narrative-timeline-subtitle {
+  color: var(--dt-ink-muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* 时间轴列表覆盖 */
+.narrative-timeline-list {
+  padding: 16px 24px;
+}
+.narrative-timeline-list::before {
+  left: 33px;
+  background: var(--dt-border-soft);
+}
+
+.timeline-event {
+  padding: 10px 0;
+}
+
+.timeline-event-dot {
+  background: var(--dt-parchment-light);
+  border-color: var(--dt-border-soft);
+}
+
+.timeline-event.active .timeline-event-dot {
+  background: var(--dt-ochre);
+  border-color: var(--dt-ochre);
+  box-shadow: 0 0 0 4px rgba(180, 83, 9, 0.15);
+}
+
+.timeline-event-year {
+  color: var(--dt-ink-muted);
+}
+
+.timeline-event.active .timeline-event-year {
+  color: var(--dt-ochre);
+}
+
+.timeline-event-title {
+  color: var(--dt-ink);
+}
+
+.timeline-event.active .timeline-event-title {
+  color: var(--dt-ochre-dark);
+}
+
+.timeline-event-desc {
+  color: var(--dt-ink-muted);
+}
+
+.dt-dynasty-area {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--dt-ink-muted);
+  margin-top: 2px;
+  opacity: 0.7;
+}
+.timeline-event.active .dt-dynasty-area {
+  color: var(--dt-ochre);
+  opacity: 1;
+}
+
+/* ---------- 底部播放控件覆盖 ---------- */
+.narrative-timeline-footer {
+  border-top: 1px solid var(--dt-border-soft);
+  background: var(--dt-parchment-light);
+}
+
+.narrative-play-btn {
+  background-color: var(--dt-ochre);
+}
+.narrative-play-btn:hover {
+  background-color: var(--dt-ochre-dark);
+}
+
+.narrative-progress {
+  background: var(--dt-border-soft);
+}
+.narrative-progress-bar {
+  background: var(--dt-ochre);
+}
+
+/* ---------- 朝代切换指示器 ---------- */
+.dt-transition-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-serif);
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--dt-ochre);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  text-shadow: 0 2px 20px rgba(180, 83, 9, 0.2);
+  white-space: nowrap;
+}
+
+/* ---------- 响应式覆盖 ---------- */
+@media (max-width: 1024px) {
+  .dt-dynasty-seal {
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+  }
+  .dt-compass {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dt-dynasty-seal {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+    top: 12px;
+    right: 12px;
+  }
+  .dt-compass {
+    display: none;
+  }
+  .dt-scale-bar {
+    display: none;
+  }
+  .narrative-info-card {
+    max-width: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ====== 加载屏 ====== -->
+<div class="dt-loading" id="dtLoading">
+  <div class="dt-loading-seal">疆</div>
+  <div class="dt-loading-title">朝代疆域演变</div>
+  <div class="dt-loading-sub">DYNASTY TERRITORY EVOLUTION</div>
+  <div class="dt-loading-bar"><div class="dt-loading-bar-fill"></div></div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/demos.html" class="demo-back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </a>
+    <span class="demo-nav-divider"></span>
+    <a href="/" class="demo-nav-logo">景礴</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">历史</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">朝代疆域演变动画地图</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-history">历史</span>
+    <a href="/skills/jingbo-edu-history-map-narrative-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 主体：左右分栏 ====== -->
+<div class="framework-narrative">
+  <div class="narrative-main">
+
+    <!-- ========== 左侧：地图区域（70%） ========== -->
+    <div class="narrative-map-area">
+      <canvas id="mapCanvas"></canvas>
+
+      <!-- 地图叠加层 -->
+      <div class="dt-map-overlay">
+        <!-- 罗盘 -->
+        <svg class="dt-compass" viewBox="0 0 56 56" fill="none">
+          <circle cx="28" cy="28" r="24" stroke="#5a4f3f" stroke-width="1" fill="rgba(247,240,224,0.5)"/>
+          <circle cx="28" cy="28" r="18" stroke="#5a4f3f" stroke-width="0.5" fill="none"/>
+          <path d="M28 8 L31 28 L28 48 L25 28 Z" fill="#B45309"/>
+          <path d="M8 28 L28 25 L48 28 L28 31 Z" fill="#8a7f6f" opacity="0.5"/>
+          <text x="28" y="6" text-anchor="middle" font-size="7" fill="#3a2f1f" font-family="serif">北</text>
+          <text x="28" y="54" text-anchor="middle" font-size="7" fill="#3a2f1f" font-family="serif">南</text>
+          <text x="4" y="31" text-anchor="middle" font-size="7" fill="#3a2f1f" font-family="serif">西</text>
+          <text x="52" y="31" text-anchor="middle" font-size="7" fill="#3a2f1f" font-family="serif">东</text>
+        </svg>
+
+        <!-- 朝代印章 -->
+        <div class="dt-dynasty-seal" id="dynastySeal">秦</div>
+
+        <!-- 比例尺 -->
+        <div class="dt-scale-bar">
+          <span>0</span>
+          <div class="dt-scale-bar-line"></div>
+          <span>2000km</span>
+        </div>
+      </div>
+
+      <!-- 朝代切换指示器 -->
+      <div class="dt-transition-indicator" id="transitionIndicator"></div>
+
+      <!-- 信息卡片（左下浮动） -->
+      <div class="narrative-info-card" id="infoCard">
+        <div class="narrative-info-year" id="infoYear">前221年</div>
+        <div class="narrative-info-title" id="infoTitle">大一统的开端</div>
+        <div class="dt-info-meta">
+          <div class="dt-info-meta-item">
+            <svg class="dt-info-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>都城：<strong id="infoCapital">咸阳</strong></span>
+          </div>
+          <div class="dt-info-meta-item">
+            <svg class="dt-info-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            <span>疆域：<strong id="infoArea">约340万km²</strong></span>
+          </div>
+        </div>
+        <div class="narrative-info-desc" id="infoDesc"></div>
+        <div class="dt-info-facts" id="infoFacts"></div>
+      </div>
+    </div>
+
+    <!-- ========== 右侧：时间轴面板（30%） ========== -->
+    <div class="narrative-timeline-panel">
+
+      <!-- 时间轴标题 -->
+      <div class="narrative-timeline-header">
+        <div class="dt-timeline-kicker">SPATIAL NARRATIVE</div>
+        <div class="narrative-timeline-title">中华疆域两千年</div>
+        <div class="narrative-timeline-subtitle">从秦统一至清朝鼎盛 · 8个关键节点</div>
+      </div>
+
+      <!-- 时间轴事件列表 -->
+      <div class="narrative-timeline-list" id="timelineList"></div>
+
+      <!-- 底部播放控件 -->
+      <div class="narrative-timeline-footer">
+        <button class="narrative-play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="playLabel">播放</span>
+        </button>
+        <div class="narrative-progress">
+          <div class="narrative-progress-bar" id="progressBar" style="width:12.5%"></div>
+        </div>
+        <span class="demo-tech-tag" id="eventCounter">1 / 8</span>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   朝代疆域演变动画地图
+   Canvas地图 + 时间轴联动 + GSAP领土形变动画
+   ============================================================ */
+
+// ====== 朝代数据 ======
+// 每个朝代领土用16个极坐标点定义（中心 + 16个半径），保证形变动画平滑
+function makeTerritory(cx, cy, radii) {
+  return radii.map((r, i) => {
+    const angle = (i / 16) * Math.PI * 2 - Math.PI / 2;
+    return {
+      x: cx + Math.cos(angle) * r,
+      y: cy + Math.sin(angle) * r * 0.82
+    };
+  });
+}
+
+const dynasties = [
+  {
+    id: 'qin',
+    name: '秦',
+    sealChar: '秦',
+    yearLabel: '前221年',
+    yearRange: '前221 — 前206',
+    capital: '咸阳',
+    capitalPos: { x: 0.50, y: 0.46 },
+    area: '约340万km²',
+    color: '#B45309',
+    center: { x: 0.50, y: 0.46 },
+    radii: [0.11, 0.13, 0.15, 0.17, 0.15, 0.13, 0.11, 0.09, 0.10, 0.12, 0.14, 0.15, 0.14, 0.13, 0.11, 0.10],
+    title: '大一统的开端',
+    desc: '秦始皇嬴政横扫六国，建立中国历史上第一个统一的多民族中央集权国家。废分封、行郡县、书同文、车同轨，奠定此后两千年中华文明的政治基础。',
+    facts: ['设立36郡', '修筑长城', '统一度量衡', '车同轨书同文']
+  },
+  {
+    id: 'han',
+    name: '汉',
+    sealChar: '汉',
+    yearLabel: '前101年',
+    yearRange: '前202 — 220',
+    capital: '长安',
+    capitalPos: { x: 0.46, y: 0.44 },
+    area: '约609万km²',
+    color: '#B45309',
+    center: { x: 0.44, y: 0.42 },
+    radii: [0.17, 0.20, 0.22, 0.20, 0.17, 0.14, 0.12, 0.11, 0.13, 0.15, 0.17, 0.19, 0.21, 0.20, 0.18, 0.16],
+    title: '丝路开通与西拓',
+    desc: '汉武帝北击匈奴、张骞凿空西域，汉朝疆域大幅向西扩展。设西域都护府管辖今新疆地区，丝绸之路连通东西，中华帝国首次以开放姿态走向世界。',
+    facts: ['张骞通西域', '设西域都护府', '北逐匈奴', '开辟丝绸之路']
+  },
+  {
+    id: 'tang',
+    name: '唐',
+    sealChar: '唐',
+    yearLabel: '668年',
+    yearRange: '618 — 907',
+    capital: '长安',
+    capitalPos: { x: 0.44, y: 0.42 },
+    area: '约1076万km²',
+    color: '#B45309',
+    center: { x: 0.40, y: 0.40 },
+    radii: [0.20, 0.26, 0.28, 0.26, 0.22, 0.18, 0.15, 0.13, 0.15, 0.18, 0.22, 0.26, 0.30, 0.28, 0.24, 0.21],
+    title: '盛唐气象 万国来朝',
+    desc: '唐高宗、武则天时期疆域达到鼎盛。东至朝鲜半岛，西达咸海，南抵越南，北括贝加尔湖。安西都护府、北庭都护府镇守西域，大唐成为当时世界上最强大的帝国。',
+    facts: ['灭东西突厥', '设安西四镇', '万国来朝', '长安百万人口']
+  },
+  {
+    id: 'song-north',
+    name: '北宋',
+    sealChar: '宋',
+    yearLabel: '1111年',
+    yearRange: '960 — 1127',
+    capital: '开封',
+    capitalPos: { x: 0.58, y: 0.48 },
+    area: '约280万km²',
+    color: '#B45309',
+    center: { x: 0.58, y: 0.50 },
+    radii: [0.09, 0.11, 0.13, 0.15, 0.14, 0.12, 0.10, 0.08, 0.09, 0.11, 0.13, 0.14, 0.13, 0.11, 0.10, 0.09],
+    title: '积弱与繁荣并存',
+    desc: '北宋结束了五代十国的分裂，但疆域大幅收缩。燕云十六州未收复，西夏、辽国并立。虽军事积弱，但经济文化空前繁荣，商品经济发达，市民阶层兴起。',
+    facts: ['重文轻武', '澶渊之盟', '交子诞生', '清明上河图']
+  },
+  {
+    id: 'song-south',
+    name: '南宋',
+    sealChar: '南',
+    yearLabel: '1142年',
+    yearRange: '1127 — 1279',
+    capital: '临安',
+    capitalPos: { x: 0.64, y: 0.60 },
+    area: '约200万km²',
+    color: '#B45309',
+    center: { x: 0.62, y: 0.58 },
+    radii: [0.07, 0.09, 0.11, 0.13, 0.12, 0.10, 0.08, 0.07, 0.08, 0.10, 0.12, 0.13, 0.12, 0.10, 0.09, 0.08],
+    title: '偏安江南 经济巅峰',
+    desc: '靖康之变后，宋室南渡，偏安淮河以南。疆域为历代统一王朝最小，但江南经济高度繁荣，海外贸易空前发达，泉州成为东方第一大港，文化达到新高峰。',
+    facts: ['宋室南渡', '海上丝绸之路', '泉州第一大港', '程朱理学']
+  },
+  {
+    id: 'yuan',
+    name: '元',
+    sealChar: '元',
+    yearLabel: '1280年',
+    yearRange: '1271 — 1368',
+    capital: '大都',
+    capitalPos: { x: 0.56, y: 0.32 },
+    area: '约1372万km²',
+    color: '#B45309',
+    center: { x: 0.38, y: 0.38 },
+    radii: [0.24, 0.30, 0.35, 0.33, 0.28, 0.23, 0.19, 0.17, 0.19, 0.22, 0.26, 0.30, 0.34, 0.32, 0.28, 0.25],
+    title: '横跨欧亚的超级帝国',
+    desc: '蒙古铁骑横扫欧亚大陆，元朝统一全国后疆域空前辽阔。岭北行省北达北冰洋，宣政院辖地管理西藏，澎湖巡检司管辖台湾。行省制度深刻影响后世行政区划。',
+    facts: ['行省制度', '设宣政院辖藏', '澎湖巡检司', '马可波罗东游']
+  },
+  {
+    id: 'ming',
+    name: '明',
+    sealChar: '明',
+    yearLabel: '1428年',
+    yearRange: '1368 — 1644',
+    capital: '北京',
+    capitalPos: { x: 0.58, y: 0.33 },
+    area: '约997万km²',
+    color: '#B45309',
+    center: { x: 0.48, y: 0.42 },
+    radii: [0.15, 0.19, 0.21, 0.19, 0.16, 0.14, 0.12, 0.11, 0.13, 0.15, 0.17, 0.19, 0.21, 0.20, 0.17, 0.15],
+    title: '内敛与远航',
+    desc: '明朝初期疆域可观，永乐时期达到鼎盛。郑和七下西洋彰显国威，奴儿干都司管辖东北，交趾布政使司短期管辖越南北部。后期修建长城，疆域逐渐内缩。',
+    facts: ['郑和下西洋', '奴儿干都司', '修筑明长城', '永乐大典']
+  },
+  {
+    id: 'qing',
+    name: '清',
+    sealChar: '清',
+    yearLabel: '1760年',
+    yearRange: '1644 — 1912',
+    capital: '北京',
+    capitalPos: { x: 0.58, y: 0.33 },
+    area: '约1316万km²',
+    color: '#B45309',
+    center: { x: 0.42, y: 0.38 },
+    radii: [0.21, 0.27, 0.31, 0.29, 0.25, 0.21, 0.17, 0.15, 0.17, 0.21, 0.25, 0.29, 0.33, 0.31, 0.27, 0.23],
+    title: '疆域奠基 现代版图',
+    desc: '康乾盛世时期，清朝疆域达到鼎盛。平定准噶尔、统一台湾、设驻藏大臣、改土归流，奠定现代中国领土基础。疆域北达外兴安岭，西至巴尔喀什湖，南含南海诸岛。',
+    facts: ['平定准噶尔', '统一台湾', '设驻藏大臣', '奠定现代版图']
+  }
+];
+
+// 预计算领土多边形
+dynasties.forEach(d => {
+  d.territory = makeTerritory(d.center.x, d.center.y, d.radii);
+});
+
+// ====== 状态 ======
+let currentIdx = 0;
+let currentPoints = dynasties[0].territory.map(p => ({ x: p.x, y: p.y }));
+let currentCapital = { x: dynasties[0].capitalPos.x, y: dynasties[0].capitalPos.y };
+let isPlaying = false;
+let playTimer = null;
+let pulsePhase = 0;
+
+// ====== Canvas 初始化 ======
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+let canvasW = 0, canvasH = 0;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvasW = rect.width;
+  canvasH = rect.height;
+}
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  render();
+});
+
+// ====== 地理参考线（简化中国轮廓） ======
+// 简化的东亚海岸线和河流，用于地图背景参考
+const geoRef = {
+  // 东海岸线（从北到南）
+  coastline: [
+    [0.72, 0.18], [0.74, 0.22], [0.73, 0.28], [0.76, 0.33],
+    [0.78, 0.38], [0.80, 0.43], [0.79, 0.48], [0.82, 0.53],
+    [0.83, 0.58], [0.81, 0.63], [0.80, 0.68], [0.78, 0.72],
+    [0.76, 0.76], [0.73, 0.78]
+  ],
+  // 黄河
+  yellowRiver: [
+    [0.40, 0.30], [0.46, 0.33], [0.50, 0.31], [0.54, 0.35],
+    [0.52, 0.39], [0.56, 0.42], [0.60, 0.44], [0.64, 0.43],
+    [0.68, 0.46], [0.72, 0.48]
+  ],
+  // 长江
+  yangtze: [
+    [0.32, 0.52], [0.38, 0.53], [0.44, 0.54], [0.50, 0.56],
+    [0.56, 0.57], [0.62, 0.59], [0.68, 0.61], [0.74, 0.63],
+    [0.78, 0.65]
+  ],
+  // 北方草原线（长城参考）
+  greatWall: [
+    [0.35, 0.28], [0.42, 0.26], [0.50, 0.28], [0.58, 0.27],
+    [0.64, 0.29], [0.70, 0.28]
+  ]
+};
+
+// ====== 渲染函数 ======
+function render() {
+  if (canvasW === 0) return;
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
+  drawParchmentBg();
+  drawGrid();
+  drawGeoRef();
+  drawTerritory();
+  drawCapital();
+  drawDynastyLabel();
+}
+
+// 羊皮纸背景
+function drawParchmentBg() {
+  const grad = ctx.createRadialGradient(
+    canvasW * 0.5, canvasH * 0.4, 0,
+    canvasW * 0.5, canvasH * 0.4, Math.max(canvasW, canvasH) * 0.7
+  );
+  grad.addColorStop(0, '#f7f0e0');
+  grad.addColorStop(0.5, '#f0e8d8');
+  grad.addColorStop(1, '#e5d9c0');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  // 纹理斑点
+  ctx.save();
+  ctx.globalAlpha = 0.04;
+  for (let i = 0; i < 60; i++) {
+    const x = (i * 37.3 + 13) % canvasW;
+    const y = (i * 53.7 + 27) % canvasH;
+    const r = 2 + (i % 4);
+    ctx.fillStyle = '#8a7f6f';
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// 经纬度网格
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(138, 127, 111, 0.08)';
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([2, 4]);
+  const stepX = canvasW / 12;
+  const stepY = canvasH / 8;
+  for (let i = 1; i < 12; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * stepX, 0);
+    ctx.lineTo(i * stepX, canvasH);
+    ctx.stroke();
+  }
+  for (let i = 1; i < 8; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, i * stepY);
+    ctx.lineTo(canvasW, i * stepY);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// 地理参考线（海岸线、河流、长城）
+function drawGeoRef() {
+  ctx.save();
+
+  // 海洋区域（东海岸以东）
+  ctx.fillStyle = 'rgba(168, 192, 200, 0.12)';
+  ctx.beginPath();
+  ctx.moveTo(geoRef.coastline[0][0] * canvasW, geoRef.coastline[0][1] * canvasH);
+  geoRef.coastline.forEach(p => ctx.lineTo(p[0] * canvasW, p[1] * canvasH));
+  ctx.lineTo(canvasW, canvasH);
+  ctx.lineTo(canvasW, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  // 海岸线
+  ctx.strokeStyle = 'rgba(90, 79, 63, 0.25)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  geoRef.coastline.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p[0] * canvasW, p[1] * canvasH);
+    else ctx.lineTo(p[0] * canvasW, p[1] * canvasH);
+  });
+  ctx.stroke();
+
+  // 黄河
+  ctx.strokeStyle = 'rgba(184, 146, 60, 0.3)';
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  geoRef.yellowRiver.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p[0] * canvasW, p[1] * canvasH);
+    else {
+      const prev = geoRef.yellowRiver[i - 1];
+      const cpx = (prev[0] + p[0]) / 2 * canvasW;
+      const cpy = (prev[1] + p[1]) / 2 * canvasH;
+      ctx.quadraticCurveTo(prev[0] * canvasW, prev[1] * canvasH, cpx, cpy);
+    }
+  });
+  ctx.stroke();
+
+  // 长江
+  ctx.strokeStyle = 'rgba(120, 160, 170, 0.3)';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  geoRef.yangtze.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p[0] * canvasW, p[1] * canvasH);
+    else {
+      const prev = geoRef.yangtze[i - 1];
+      const cpx = (prev[0] + p[0]) / 2 * canvasW;
+      const cpy = (prev[1] + p[1]) / 2 * canvasH;
+      ctx.quadraticCurveTo(prev[0] * canvasW, prev[1] * canvasH, cpx, cpy);
+    }
+  });
+  ctx.stroke();
+
+  // 长城
+  ctx.strokeStyle = 'rgba(146, 64, 14, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  geoRef.greatWall.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p[0] * canvasW, p[1] * canvasH);
+    else ctx.lineTo(p[0] * canvasW, p[1] * canvasH);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.restore();
+}
+
+// 领土多边形
+function drawTerritory() {
+  const d = dynasties[currentIdx];
+  ctx.save();
+
+  // 计算多边形路径
+  const path = new Path2D();
+  currentPoints.forEach((p, i) => {
+    const x = p.x * canvasW;
+    const y = p.y * canvasH;
+    if (i === 0) path.moveTo(x, y);
+    else path.lineTo(x, y);
+  });
+  path.closePath();
+
+  // 填充（径向渐变）
+  const cx = d.center.x * canvasW;
+  const cy = d.center.y * canvasH;
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, canvasW * 0.3);
+  grad.addColorStop(0, 'rgba(180, 83, 9, 0.28)');
+  grad.addColorStop(0.6, 'rgba(180, 83, 9, 0.18)');
+  grad.addColorStop(1, 'rgba(146, 64, 14, 0.08)');
+  ctx.fillStyle = grad;
+  ctx.fill(path);
+
+  // 填充纹理（斜线）
+  ctx.save();
+  ctx.clip(path);
+  ctx.strokeStyle = 'rgba(180, 83, 9, 0.06)';
+  ctx.lineWidth = 1;
+  for (let i = -canvasH; i < canvasW + canvasH; i += 8) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i + canvasH, canvasH);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 外发光
+  ctx.shadowColor = 'rgba(180, 83, 9, 0.3)';
+  ctx.shadowBlur = 12;
+  ctx.strokeStyle = 'rgba(180, 83, 9, 0.6)';
+  ctx.lineWidth = 2;
+  ctx.stroke(path);
+  ctx.shadowBlur = 0;
+
+  // 内部细线
+  ctx.strokeStyle = 'rgba(146, 64, 14, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.stroke(path);
+  ctx.setLineDash([]);
+
+  ctx.restore();
+}
+
+// 都城标记
+function drawCapital() {
+  const x = currentCapital.x * canvasW;
+  const y = currentCapital.y * canvasH;
+  const pulse = Math.sin(pulsePhase) * 0.5 + 0.5;
+
+  ctx.save();
+
+  // 外圈脉冲光晕
+  ctx.fillStyle = `rgba(180, 83, 9, ${0.08 + pulse * 0.06})`;
+  ctx.beginPath();
+  ctx.arc(x, y, 18 + pulse * 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = `rgba(180, 83, 9, ${0.12 + pulse * 0.08})`;
+  ctx.beginPath();
+  ctx.arc(x, y, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 星形标记
+  drawStar(x, y, 7, 3, 5, '#B45309', '#92400E');
+
+  // 都城名称
+  ctx.font = '600 12px "Noto Serif SC", serif';
+  ctx.fillStyle = '#3a2f1f';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(247, 240, 224, 0.9)';
+  ctx.shadowBlur = 4;
+  ctx.fillText(dynasties[currentIdx].capital, x, y - 16);
+  ctx.shadowBlur = 0;
+
+  ctx.restore();
+}
+
+// 绘制星形
+function drawStar(cx, cy, outerR, innerR, points, fill, stroke) {
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+// 领土上的朝代名称
+function drawDynastyLabel() {
+  const d = dynasties[currentIdx];
+  const x = d.center.x * canvasW;
+  const y = d.center.y * canvasH;
+
+  ctx.save();
+  ctx.font = '700 28px "Noto Serif SC", serif';
+  ctx.fillStyle = 'rgba(58, 47, 31, 0.15)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(d.name, x, y + 20);
+  ctx.restore();
+}
+
+// ====== 动画循环（脉冲效果） ======
+function animateLoop() {
+  pulsePhase += 0.04;
+  if (pulsePhase > Math.PI * 2) pulsePhase -= Math.PI * 2;
+  render();
+  requestAnimationFrame(animateLoop);
+}
+
+// ====== 时间轴列表生成 ======
+function buildTimeline() {
+  const list = document.getElementById('timelineList');
+  list.innerHTML = dynasties.map((d, i) => `
+    <div class="timeline-event ${i === 0 ? 'active' : ''}" data-idx="${i}">
+      <div class="timeline-event-dot"></div>
+      <div class="timeline-event-content">
+        <div class="timeline-event-year">${d.yearLabel}</div>
+        <div class="timeline-event-title">${d.name} · ${d.title}</div>
+        <div class="timeline-event-desc">${d.desc.substring(0, 50)}...</div>
+        <div class="dt-dynasty-area">${d.area} · 都城 ${d.capital}</div>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.timeline-event').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      if (idx !== currentIdx) {
+        transitionTo(idx);
+      }
+    });
+  });
+}
+
+// ====== 朝代切换（核心动画） ======
+function transitionTo(idx) {
+  const target = dynasties[idx];
+  const prevIdx = currentIdx;
+  currentIdx = idx;
+
+  // 显示切换指示器
+  const indicator = document.getElementById('transitionIndicator');
+  indicator.textContent = target.name;
+  gsap.fromTo(indicator,
+    { opacity: 0, scale: 0.8 },
+    { opacity: 0.15, scale: 1, duration: 0.4, ease: 'power2.out',
+      onComplete: () => {
+        gsap.to(indicator, { opacity: 0, scale: 1.1, duration: 0.4, delay: 0.3 });
+      }
+    }
+  );
+
+  // 更新印章
+  const seal = document.getElementById('dynastySeal');
+  seal.classList.add('changing');
+  setTimeout(() => {
+    seal.textContent = target.sealChar;
+    seal.classList.remove('changing');
+  }, 200);
+
+  // GSAP 动画领土点
+  const tl = gsap.timeline();
+  currentPoints.forEach((pt, i) => {
+    tl.to(pt, {
+      x: target.territory[i].x,
+      y: target.territory[i].y,
+      duration: 1.2,
+      ease: 'power2.inOut'
+    }, 0);
+  });
+
+  // 都城位置动画
+  tl.to(currentCapital, {
+    x: target.capitalPos.x,
+    y: target.capitalPos.y,
+    duration: 1.2,
+    ease: 'power2.inOut'
+  }, 0);
+
+  // 更新信息卡片
+  updateInfoCard(target);
+
+  // 更新时间轴高亮
+  document.querySelectorAll('.timeline-event').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+
+  // 滚动到当前事件
+  const activeEl = document.querySelector('.timeline-event.active');
+  if (activeEl) {
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // 更新进度条
+  const progress = ((idx + 1) / dynasties.length) * 100;
+  document.getElementById('progressBar').style.width = `${progress}%`;
+  document.getElementById('eventCounter').textContent = `${idx + 1} / ${dynasties.length}`;
+}
+
+// ====== 更新信息卡片 ======
+function updateInfoCard(d) {
+  const card = document.getElementById('infoCard');
+  gsap.fromTo(card,
+    { opacity: 0.5, y: 10 },
+    { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }
+  );
+
+  document.getElementById('infoYear').textContent = d.yearLabel;
+  document.getElementById('infoTitle').textContent = d.title;
+  document.getElementById('infoCapital').textContent = d.capital;
+  document.getElementById('infoArea').textContent = d.area;
+  document.getElementById('infoDesc').textContent = d.desc;
+
+  const factsEl = document.getElementById('infoFacts');
+  factsEl.innerHTML = d.facts.map(f => `<span class="dt-fact-tag">${f}</span>`).join('');
+}
+
+// ====== 播放控制 ======
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+  const label = document.getElementById('playLabel');
+
+  if (isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    label.textContent = '暂停';
+    playTimer = setInterval(() => {
+      let next = currentIdx + 1;
+      if (next >= dynasties.length) next = 0;
+      transitionTo(next);
+    }, 2800);
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent = '播放';
+    clearInterval(playTimer);
+  }
+}
+
+// ====== Canvas 点击交互 ======
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) / rect.width;
+  const my = (e.clientY - rect.top) / rect.height;
+
+  // 检测点击是否在领土内
+  dynasties.forEach((d, i) => {
+    const dx = mx - d.center.x;
+    const dy = my - d.center.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const avgRadius = d.radii.reduce((a, b) => a + b, 0) / d.radii.length;
+    if (dist < avgRadius && i !== currentIdx) {
+      transitionTo(i);
+    }
+  });
+});
+
+// ====== 键盘交互 ======
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    let prev = currentIdx - 1;
+    if (prev < 0) prev = dynasties.length - 1;
+    transitionTo(prev);
+  } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    let next = currentIdx + 1;
+    if (next >= dynasties.length) next = 0;
+    transitionTo(next);
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    togglePlay();
+  }
+});
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', () => {
+  resizeCanvas();
+  buildTimeline();
+  updateInfoCard(dynasties[0]);
+  animateLoop();
+
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // 导航栏滚动效果
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  // 隐藏加载屏
+  setTimeout(() => {
+    document.getElementById('dtLoading').classList.add('hidden');
+  }, 800);
+});
+</script>
+
+</body>
+</html>

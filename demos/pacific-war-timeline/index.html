@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>二战太平洋战场时间线 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   二战太平洋战场时间线 — 专属样式
+   军事指挥室 × 海图态势图
+   ============================================================ */
+
+:root {
+  /* 军事配色 */
+  --mil-bg: #1a2332;
+  --mil-bg-deep: #141c28;
+  --mil-panel: #1E2D3D;
+  --mil-panel-light: #243447;
+  --mil-navy: #1E3A5F;
+  --mil-green: #556B2F;
+  --mil-japan: #D32F2F;
+  --mil-japan-glow: rgba(211, 47, 47, 0.4);
+  --mil-usa: #1565C0;
+  --mil-usa-glow: rgba(21, 101, 192, 0.4);
+  --mil-sand: #D4B896;
+  --mil-gold: #C5A065;
+  --mil-explosion: #FF8F00;
+  --mil-text: #E0E6ED;
+  --mil-text-bright: #F0F4F8;
+  --mil-text-muted: #7A8B9E;
+  --mil-text-dim: #4A5A6E;
+  --mil-border: rgba(255, 255, 255, 0.06);
+  --mil-border-light: rgba(255, 255, 255, 0.1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--mil-bg);
+  font-family: 'Noto Sans SC', sans-serif;
+  color: var(--mil-text);
+  overflow: hidden;
+}
+
+/* ============================================================
+   加载屏 — 雷达扫描动画
+   ============================================================ */
+#loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--mil-bg-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+#loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.radar-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+
+.radar-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(21, 101, 192, 0.2);
+  border-radius: 50%;
+}
+
+.radar-ring:nth-child(2) { inset: 25px; }
+.radar-ring:nth-child(3) { inset: 50px; }
+.radar-ring:nth-child(4) { inset: 75px; }
+
+.radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 300deg,
+    rgba(21, 101, 192, 0.05) 330deg,
+    rgba(21, 101, 192, 0.35) 360deg
+  );
+  animation: radar-rotate 2s linear infinite;
+}
+
+.radar-cross-h,
+.radar-cross-v {
+  position: absolute;
+  background: rgba(21, 101, 192, 0.12);
+}
+
+.radar-cross-h {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.radar-cross-v {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.radar-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background: var(--mil-usa);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 12px var(--mil-usa-glow);
+}
+
+@keyframes radar-rotate {
+  to { transform: rotate(360deg); }
+}
+
+.loader-text {
+  margin-top: 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--mil-text-muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.loader-text::after {
+  content: '...';
+  animation: dots 1.5s steps(4) infinite;
+}
+
+@keyframes dots {
+  0%, 25% { content: ''; }
+  50% { content: '.'; }
+  75% { content: '..'; }
+  100% { content: '...'; }
+}
+
+/* ============================================================
+   导航栏 — 军事深色风格
+   ============================================================ */
+.demo-navbar {
+  background-color: rgba(20, 28, 40, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--mil-border);
+}
+
+.demo-navbar.scrolled {
+  background-color: rgba(20, 28, 40, 0.95);
+}
+
+.demo-back-link { color: var(--mil-text-muted); }
+.demo-back-link:hover { color: var(--mil-text-bright); }
+.demo-nav-logo { color: var(--mil-text-bright); }
+.demo-nav-center { color: var(--mil-text); }
+.demo-nav-divider { background: var(--mil-border-light); }
+
+.demo-btn-download {
+  background: var(--mil-usa);
+  color: #fff;
+}
+
+.demo-btn-download:hover {
+  background: #1976D2;
+}
+
+/* 学科标签 */
+.tag-history {
+  background: rgba(197, 160, 101, 0.12);
+  color: var(--mil-gold);
+  border: 1px solid rgba(197, 160, 101, 0.25);
+}
+
+/* ============================================================
+   主体布局
+   ============================================================ */
+.framework-narrative {
+  background: var(--mil-bg);
+}
+
+.framework-narrative .narrative-main {
+  padding-top: 64px;
+}
+
+/* ============================================================
+   地图区域
+   ============================================================ */
+.narrative-map-area {
+  background: var(--mil-bg-deep);
+  border-right: 1px solid var(--mil-border);
+  position: relative;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--mil-bg-deep);
+}
+
+.leaflet-container {
+  background: var(--mil-bg-deep) !important;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+.leaflet-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(1.15) saturate(0.6);
+}
+
+/* 海图网格叠层 */
+.map-grid-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* 地图角落坐标标记 */
+.map-corner-label {
+  position: absolute;
+  z-index: 3;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: rgba(122, 139, 158, 0.4);
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+
+.map-corner-tl { top: 8px; left: 8px; }
+.map-corner-tr { top: 8px; right: 8px; }
+.map-corner-bl { bottom: 8px; left: 8px; }
+.map-corner-br { bottom: 8px; right: 8px; }
+
+/* 地图图例 */
+.map-legend {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  background: rgba(20, 28, 40, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--mil-border-light);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-family: 'Noto Sans SC', sans-serif;
+  color: var(--mil-text);
+  pointer-events: none;
+}
+
+.map-legend-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--mil-text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.map-legend-line {
+  width: 24px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.map-legend-line.japan {
+  background: var(--mil-japan);
+  border-top: 2px dashed var(--mil-japan);
+  background: transparent;
+}
+
+.map-legend-line.usa {
+  background: var(--mil-usa);
+  border-top: 2px dashed var(--mil-usa);
+  background: transparent;
+}
+
+.map-legend-line.hop {
+  background: transparent;
+  border-top: 2px dotted rgba(255,255,255,0.5);
+}
+
+.map-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.map-legend-dot.japan { background: var(--mil-japan); }
+.map-legend-dot.usa { background: var(--mil-usa); }
+.map-legend-dot.gold { background: var(--mil-gold); }
+
+/* 阶段指示器 */
+.phase-indicator {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(20, 28, 40, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--mil-border-light);
+  border-radius: 8px;
+  padding: 10px 16px;
+  transition: all 0.4s ease;
+}
+
+.phase-indicator-icon {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.4s ease;
+}
+
+.phase-indicator-icon.expansion {
+  background: var(--mil-japan);
+  box-shadow: 0 0 8px var(--mil-japan-glow);
+}
+
+.phase-indicator-icon.turning {
+  background: var(--mil-gold);
+  box-shadow: 0 0 8px rgba(197, 160, 101, 0.4);
+}
+
+.phase-indicator-icon.counterattack {
+  background: var(--mil-usa);
+  box-shadow: 0 0 8px var(--mil-usa-glow);
+}
+
+.phase-indicator-icon.end {
+  background: var(--mil-explosion);
+  box-shadow: 0 0 8px rgba(255, 143, 0, 0.4);
+}
+
+.phase-indicator-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--mil-text);
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   自定义地图标记
+   ============================================================ */
+.battle-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.battle-marker-inner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: rgba(20, 28, 40, 0.8);
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.battle-marker.japan .battle-marker-inner {
+  border-color: var(--mil-japan);
+  box-shadow: 0 0 6px var(--mil-japan-glow);
+}
+
+.battle-marker.usa .battle-marker-inner {
+  border-color: var(--mil-usa);
+  box-shadow: 0 0 6px var(--mil-usa-glow);
+}
+
+.battle-marker.turning .battle-marker-inner {
+  border-color: var(--mil-gold);
+  background: var(--mil-gold);
+  box-shadow: 0 0 10px rgba(197, 160, 101, 0.5);
+}
+
+.battle-marker.end .battle-marker-inner {
+  border-color: var(--mil-explosion);
+  background: var(--mil-explosion);
+  box-shadow: 0 0 10px rgba(255, 143, 0, 0.5);
+}
+
+/* 激活态 */
+.battle-marker.active .battle-marker-inner {
+  width: 18px;
+  height: 18px;
+  border-width: 3px;
+}
+
+.battle-marker.active.japan .battle-marker-inner {
+  background: var(--mil-japan);
+  box-shadow: 0 0 16px var(--mil-japan-glow), 0 0 32px var(--mil-japan-glow);
+}
+
+.battle-marker.active.usa .battle-marker-inner {
+  background: var(--mil-usa);
+  box-shadow: 0 0 16px var(--mil-usa-glow), 0 0 32px var(--mil-usa-glow);
+}
+
+.battle-marker.active.turning .battle-marker-inner {
+  box-shadow: 0 0 16px rgba(197, 160, 101, 0.6), 0 0 32px rgba(197, 160, 101, 0.3);
+}
+
+.battle-marker.active.end .battle-marker-inner {
+  box-shadow: 0 0 16px rgba(255, 143, 0, 0.6), 0 0 32px rgba(255, 143, 0, 0.3);
+}
+
+/* 脉冲环 */
+.battle-marker-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  opacity: 0;
+}
+
+.battle-marker.active .battle-marker-pulse {
+  animation: marker-pulse 2s ease-out infinite;
+}
+
+@keyframes marker-pulse {
+  0% {
+    width: 14px;
+    height: 14px;
+    opacity: 0.8;
+  }
+  100% {
+    width: 60px;
+    height: 60px;
+    opacity: 0;
+  }
+}
+
+.battle-marker.active.japan .battle-marker-pulse {
+  border: 2px solid var(--mil-japan);
+}
+
+.battle-marker.active.usa .battle-marker-pulse {
+  border: 2px solid var(--mil-usa);
+}
+
+.battle-marker.active.turning .battle-marker-pulse {
+  border: 2px solid var(--mil-gold);
+}
+
+.battle-marker.active.end .battle-marker-pulse {
+  border: 2px solid var(--mil-explosion);
+}
+
+/* 标记标签 */
+.battle-marker-label {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--mil-text-muted);
+  background: rgba(20, 28, 40, 0.8);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--mil-border);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.battle-marker.active .battle-marker-label,
+.battle-marker:hover .battle-marker-label {
+  opacity: 1;
+}
+
+.battle-marker.active.japan .battle-marker-label { color: var(--mil-japan); border-color: rgba(211, 47, 47, 0.3); }
+.battle-marker.active.usa .battle-marker-label { color: var(--mil-usa); border-color: rgba(21, 101, 192, 0.3); }
+.battle-marker.active.turning .battle-marker-label { color: var(--mil-gold); border-color: rgba(197, 160, 101, 0.3); }
+.battle-marker.active.end .battle-marker-label { color: var(--mil-explosion); border-color: rgba(255, 143, 0, 0.3); }
+
+/* ============================================================
+   信息卡片 — 浮动战术面板
+   ============================================================ */
+.narrative-info-card {
+  background: rgba(20, 28, 40, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--mil-border-light);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  max-width: 380px;
+  padding: 20px 24px;
+}
+
+.narrative-info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  border-radius: 10px 0 0 10px;
+  background: var(--mil-usa);
+  transition: background 0.4s ease;
+}
+
+.narrative-info-card.phase-expansion::before { background: var(--mil-japan); }
+.narrative-info-card.phase-turning::before { background: var(--mil-gold); }
+.narrative-info-card.phase-counterattack::before { background: var(--mil-usa); }
+.narrative-info-card.phase-end::before { background: var(--mil-explosion); }
+
+.info-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.info-card-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mil-gold);
+  letter-spacing: 0.05em;
+}
+
+.info-card-side {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.info-card-side.japan {
+  background: rgba(211, 47, 47, 0.15);
+  color: #EF5350;
+  border: 1px solid rgba(211, 47, 47, 0.3);
+}
+
+.info-card-side.usa {
+  background: rgba(21, 101, 192, 0.15);
+  color: #42A5F5;
+  border: 1px solid rgba(21, 101, 192, 0.3);
+}
+
+.info-card-location {
+  font-size: 11px;
+  color: var(--mil-text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.info-card-location svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+.narrative-info-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--mil-text-bright);
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+
+.narrative-info-desc {
+  font-size: 12px;
+  color: var(--mil-text-muted);
+  line-height: 1.7;
+}
+
+/* ============================================================
+   时间轴面板 — 军事档案风格
+   ============================================================ */
+.narrative-timeline-panel {
+  background: var(--mil-panel);
+  border-left: 1px solid var(--mil-border);
+}
+
+.narrative-timeline-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--mil-border);
+  background: var(--mil-bg-deep);
+}
+
+.narrative-timeline-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--mil-text-bright);
+}
+
+.narrative-timeline-subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--mil-text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* 时间轴列表 */
+.narrative-timeline-list {
+  padding: 16px 0;
+}
+
+.narrative-timeline-list::before {
+  left: 33px;
+  top: 16px;
+  bottom: 16px;
+  width: 1px;
+  background: var(--mil-border-light);
+}
+
+/* 时间轴事件项 */
+.timeline-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 10px 24px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s ease;
+  border-left: 2px solid transparent;
+}
+
+.timeline-event:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.timeline-event.active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.timeline-event.active.japan {
+  border-left-color: var(--mil-japan);
+}
+
+.timeline-event.active.usa {
+  border-left-color: var(--mil-usa);
+}
+
+.timeline-event.active.turning {
+  border-left-color: var(--mil-gold);
+}
+
+.timeline-event.active.end {
+  border-left-color: var(--mil-explosion);
+}
+
+.timeline-event-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--mil-panel);
+  border: 2px solid var(--mil-text-dim);
+  flex-shrink: 0;
+  margin-top: 5px;
+  margin-left: 10px;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.timeline-event.japan .timeline-event-dot { border-color: var(--mil-japan); }
+.timeline-event.usa .timeline-event-dot { border-color: var(--mil-usa); }
+.timeline-event.turning .timeline-event-dot { border-color: var(--mil-gold); }
+.timeline-event.end .timeline-event-dot { border-color: var(--mil-explosion); }
+
+.timeline-event.active .timeline-event-dot {
+  background: currentColor;
+}
+
+.timeline-event.active.japan .timeline-event-dot {
+  background: var(--mil-japan);
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.15), 0 0 8px var(--mil-japan-glow);
+}
+
+.timeline-event.active.usa .timeline-event-dot {
+  background: var(--mil-usa);
+  box-shadow: 0 0 0 4px rgba(21, 101, 192, 0.15), 0 0 8px var(--mil-usa-glow);
+}
+
+.timeline-event.active.turning .timeline-event-dot {
+  background: var(--mil-gold);
+  box-shadow: 0 0 0 4px rgba(197, 160, 101, 0.15), 0 0 8px rgba(197, 160, 101, 0.3);
+}
+
+.timeline-event.active.end .timeline-event-dot {
+  background: var(--mil-explosion);
+  box-shadow: 0 0 0 4px rgba(255, 143, 0, 0.15), 0 0 8px rgba(255, 143, 0, 0.3);
+}
+
+.timeline-event-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-event-year {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--mil-text-dim);
+  letter-spacing: 0.05em;
+}
+
+.timeline-event.active.japan .timeline-event-year { color: #EF5350; }
+.timeline-event.active.usa .timeline-event-year { color: #42A5F5; }
+.timeline-event.active.turning .timeline-event-year { color: var(--mil-gold); }
+.timeline-event.active.end .timeline-event-year { color: var(--mil-explosion); }
+
+.timeline-event-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mil-text);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.timeline-event.active .timeline-event-title {
+  color: var(--mil-text-bright);
+}
+
+.timeline-event-desc {
+  font-size: 11px;
+  color: var(--mil-text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.4s ease, margin-top 0.4s ease;
+}
+
+.timeline-event.active .timeline-event-desc {
+  max-height: 200px;
+}
+
+/* 阶段分隔标记 */
+.timeline-phase-divider {
+  padding: 12px 24px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--mil-text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeline-phase-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--mil-border);
+}
+
+.timeline-phase-divider.expansion { color: var(--mil-japan); opacity: 0.7; }
+.timeline-phase-divider.turning { color: var(--mil-gold); opacity: 0.7; }
+.timeline-phase-divider.counterattack { color: var(--mil-usa); opacity: 0.7; }
+.timeline-phase-divider.end { color: var(--mil-explosion); opacity: 0.7; }
+
+/* 底部播放控件 */
+.narrative-timeline-footer {
+  padding: 14px 24px;
+  border-top: 1px solid var(--mil-border);
+  background: var(--mil-bg-deep);
+}
+
+.narrative-play-btn {
+  background: var(--mil-usa);
+  color: #fff;
+  border: none;
+}
+
+.narrative-play-btn:hover {
+  background: #1976D2;
+  transform: translateY(-1px);
+}
+
+.footer-left-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-arrow-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--mil-border-light);
+  border-radius: var(--radius);
+  color: var(--mil-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.nav-arrow-btn:hover {
+  color: var(--mil-text-bright);
+  border-color: var(--mil-text-dim);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.nav-arrow-btn:active {
+  transform: scale(0.95);
+}
+
+.nav-arrow-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.narrative-progress {
+  background: var(--mil-border-light);
+}
+
+.narrative-progress-bar {
+  background: linear-gradient(90deg, var(--mil-usa), #42A5F5);
+  box-shadow: 0 0 8px var(--mil-usa-glow);
+}
+
+#eventCounter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--mil-text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* 速度控制 */
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.speed-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 3px 7px;
+  background: transparent;
+  border: 1px solid var(--mil-border-light);
+  border-radius: 3px;
+  color: var(--mil-text-dim);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.speed-btn:hover {
+  color: var(--mil-text-muted);
+  border-color: var(--mil-text-dim);
+}
+
+.speed-btn.active {
+  background: rgba(21, 101, 192, 0.15);
+  color: #42A5F5;
+  border-color: rgba(21, 101, 192, 0.4);
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
+@media (max-width: 1024px) {
+  .framework-narrative .narrative-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 55% 45%;
+  }
+
+  .narrative-map-area {
+    border-right: none;
+    border-bottom: 1px solid var(--mil-border);
+  }
+
+  .map-legend {
+    display: none;
+  }
+
+  .phase-indicator {
+    top: 8px;
+    left: 8px;
+    padding: 6px 12px;
+  }
+
+  .phase-indicator-label {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .narrative-info-card {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    bottom: 12px;
+    padding: 14px 16px;
+  }
+
+  .narrative-info-title {
+    font-size: 16px;
+  }
+
+  .narrative-info-desc {
+    font-size: 11px;
+  }
+
+  .narrative-timeline-header {
+    padding: 14px 16px;
+  }
+
+  .narrative-timeline-list {
+    padding: 12px 0;
+  }
+
+  .timeline-event {
+    padding: 8px 16px;
+  }
+
+  .narrative-timeline-list::before {
+    left: 25px;
+  }
+
+  .narrative-timeline-footer {
+    padding: 10px 16px;
+  }
+
+  .speed-control {
+    display: none;
+  }
+
+  .map-corner-label {
+    display: none;
+  }
+}
+
+/* Leaflet 弹窗军事风格 */
+.leaflet-popup-content-wrapper {
+  background: rgba(20, 28, 40, 0.95);
+  color: var(--mil-text);
+  border: 1px solid var(--mil-border-light);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.leaflet-popup-tip {
+  background: rgba(20, 28, 40, 0.95);
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.leaflet-popup-close-button {
+  color: var(--mil-text-dim) !important;
+}
+
+/* 路线绘制动画 */
+.leaflet-overlay-pane path {
+  animation: route-fade-in 0.6s ease-out;
+}
+
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: var(--route-opacity, 0.7);
+  }
+}
+
+/* 滚动条 */
+.narrative-timeline-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.narrative-timeline-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.narrative-timeline-list::-webkit-scrollbar-thumb {
+  background: var(--mil-border-light);
+  border-radius: 2px;
+}
+
+.narrative-timeline-list::-webkit-scrollbar-thumb:hover {
+  background: var(--mil-text-dim);
+}
+
+/* GSAP 初始隐藏 */
+.gsap-fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+}
+</style>
+</head>
+<body>
+
+<!-- ====== 加载屏 ====== -->
+<div id="loader">
+  <div class="radar-container">
+    <div class="radar-ring"></div>
+    <div class="radar-ring"></div>
+    <div class="radar-ring"></div>
+    <div class="radar-ring"></div>
+    <div class="radar-cross-h"></div>
+    <div class="radar-cross-v"></div>
+    <div class="radar-sweep"></div>
+    <div class="radar-dot"></div>
+  </div>
+  <div class="loader-text">INITIALIZING THEATER MAP</div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">历史</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">二战太平洋战场时间线</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-history">历史</span>
+      <a href="/skills/jingbo-edu-history-map-narrative-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体：左右分栏 ====== -->
+<div class="framework-narrative">
+  <div class="narrative-main">
+
+    <!-- ========== 左侧：地图区域 ========== -->
+    <div class="narrative-map-area">
+      <div id="map"></div>
+      <div class="map-grid-overlay"></div>
+
+      <!-- 角落坐标 -->
+      <div class="map-corner-label map-corner-tl">N 45° · 120°E</div>
+      <div class="map-corner-label map-corner-tr">N 45° · 150°W</div>
+      <div class="map-corner-label map-corner-bl">S 15° · 120°E</div>
+      <div class="map-corner-label map-corner-br">S 15° · 150°W</div>
+
+      <!-- 阶段指示器 -->
+      <div class="phase-indicator" id="phaseIndicator">
+        <div class="phase-indicator-icon expansion" id="phaseIcon"></div>
+        <span class="phase-indicator-label" id="phaseLabel">日军扩张期</span>
+      </div>
+
+      <!-- 图例 -->
+      <div class="map-legend">
+        <div class="map-legend-title">LEGEND</div>
+        <div class="map-legend-item">
+          <div class="map-legend-dot japan"></div>
+          <span>日军进攻</span>
+        </div>
+        <div class="map-legend-item">
+          <div class="map-legend-dot usa"></div>
+          <span>美军反攻</span>
+        </div>
+        <div class="map-legend-item">
+          <div class="map-legend-dot gold"></div>
+          <span>战略转折</span>
+        </div>
+        <div class="map-legend-item">
+          <div class="map-legend-line japan"></div>
+          <span>日军路线</span>
+        </div>
+        <div class="map-legend-item">
+          <div class="map-legend-line usa"></div>
+          <span>美军路线</span>
+        </div>
+        <div class="map-legend-item">
+          <div class="map-legend-line hop"></div>
+          <span>跳岛路线</span>
+        </div>
+      </div>
+
+      <!-- 信息卡片 -->
+      <div class="narrative-info-card phase-expansion" id="infoCard">
+        <div class="info-card-header">
+          <span class="info-card-date" id="infoDate">1941.12</span>
+          <span class="info-card-side japan" id="infoSide">日本</span>
+        </div>
+        <div class="info-card-location" id="infoLocation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span id="infoLocationText">夏威夷珍珠港</span>
+        </div>
+        <div class="narrative-info-title" id="infoTitle">偷袭珍珠港</div>
+        <div class="narrative-info-desc" id="infoDesc">日本联合舰队在山本五十六指挥下，出动6艘航空母舰、441架舰载机，对美国太平洋舰队基地珍珠港发动突然袭击。</div>
+      </div>
+    </div>
+
+    <!-- ========== 右侧：时间轴面板 ========== -->
+    <div class="narrative-timeline-panel">
+
+      <div class="narrative-timeline-header">
+        <div class="narrative-timeline-title">太平洋战争时间线</div>
+        <div class="narrative-timeline-subtitle">1941.12 — 1945.09 · 14 KEY OPERATIONS</div>
+      </div>
+
+      <div class="narrative-timeline-list" id="timelineList">
+        <!-- 事件项由 JS 生成 -->
+      </div>
+
+      <!-- 底部播放控件 -->
+      <div class="narrative-timeline-footer">
+        <div class="footer-left-group">
+          <button class="nav-arrow-btn" id="prevBtn" title="上一个 (←)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="narrative-play-btn" id="playBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span id="playLabel">播放</span>
+          </button>
+          <button class="nav-arrow-btn" id="nextBtn" title="下一个 (→)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="speed-control">
+          <button class="speed-btn" data-speed="3500">慢</button>
+          <button class="speed-btn active" data-speed="2500">中</button>
+          <button class="speed-btn" data-speed="1500">快</button>
+        </div>
+        <div class="narrative-progress">
+          <div class="narrative-progress-bar" id="progressBar" style="width:7%"></div>
+        </div>
+        <span id="eventCounter">1 / 14</span>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+/* ============================================================
+   二战太平洋战场时间线 — 核心脚本
+   ============================================================ */
+
+// ====== 事件数据 ======
+const events = [
+  {
+    id: 1,
+    date: '1941.12',
+    dateFull: '1941年12月7日',
+    location: '夏威夷珍珠港',
+    title: '偷袭珍珠港',
+    desc: '日本联合舰队在山本五十六指挥下，出动6艘航空母舰、441架舰载机，对美国太平洋舰队基地珍珠港发动突然袭击。美军损失战列舰8艘、其他舰艇10余艘、飞机188架，伤亡3600余人。次日美国对日宣战，太平洋战争正式爆发，二战规模达到最大。',
+    lat: 21.3649, lng: -157.9585,
+    side: 'japan',
+    phase: 'expansion',
+    phaseLabel: '日军扩张期'
+  },
+  {
+    id: 2,
+    date: '1941.12',
+    dateFull: '1941年12月8日',
+    location: '香港 · 马尼拉',
+    title: '日军南下进攻',
+    desc: '日军在偷袭珍珠港的同时，分兵多路进攻东南亚：12月8日进攻香港，12月25日香港沦陷；12月8日进攻菲律宾，美军退守巴丹半岛；同时进攻泰国、马来亚。日军以迅猛之势在半年内横扫东南亚和西太平洋，建立起"大东亚共荣圈"的庞大殖民帝国。',
+    lat: 22.3193, lng: 114.1694,
+    side: 'japan',
+    phase: 'expansion',
+    phaseLabel: '日军扩张期'
+  },
+  {
+    id: 3,
+    date: '1942.02',
+    dateFull: '1942年2月15日',
+    location: '新加坡',
+    title: '新加坡沦陷',
+    desc: '日军山下奉文部以劣势兵力进攻新加坡，采用自行车闪击战术，从马来半岛南下，迅速击败英军。8万英军向3万日军投降，这是英国军事史上最大规模的投降。新加坡沦陷后，日军控制了马六甲海峡，通往印度洋的门户洞开。',
+    lat: 1.3521, lng: 103.8198,
+    side: 'japan',
+    phase: 'expansion',
+    phaseLabel: '日军扩张期'
+  },
+  {
+    id: 4,
+    date: '1942.04',
+    dateFull: '1942年4月18日',
+    location: '东京 · 日本本土',
+    title: '杜立特空袭',
+    desc: '美军詹姆斯·杜立特中校率16架B-25轰炸机从大黄蜂号航母起飞，空袭东京、横滨等城市。虽然轰炸造成的物质损失不大，但极大鼓舞了美国士气，也迫使日本军部重新评估战略，决心扩大防御圈，间接导致了中途岛战役的发动。',
+    lat: 35.6762, lng: 139.6503,
+    side: 'usa',
+    phase: 'expansion',
+    phaseLabel: '战略试探期'
+  },
+  {
+    id: 5,
+    date: '1942.05',
+    dateFull: '1942年5月4日—8日',
+    location: '珊瑚海',
+    title: '珊瑚海海战',
+    desc: '美日舰队在澳大利亚东北方的珊瑚海交战，这是人类历史上首次航母对决。双方舰艇在视距外以舰载机互相攻击。美军损失列克星敦号航母，但成功阻止了日军攻占莫尔兹比港的计划。这是太平洋战争爆发以来日军首次受挫，也为中途岛海战埋下伏笔。',
+    lat: -15.5, lng: 150.5,
+    side: 'usa',
+    phase: 'expansion',
+    phaseLabel: '战略试探期'
+  },
+  {
+    id: 6,
+    date: '1942.06',
+    dateFull: '1942年6月4日—7日',
+    location: '中途岛',
+    title: '中途岛海战',
+    desc: '日军出动联合舰队主力，企图攻占中途岛并歼灭美国太平洋舰队。美军凭借情报优势（破译日军密码），以劣势兵力伏击日军，击沉日军4艘航空母舰（赤城、加贺、苍龙、飞龙），击毁日军飞机332架。中途岛海战是太平洋战争的转折点，日军从此丧失战略主动权。',
+    lat: 28.2096, lng: -177.3737,
+    side: 'usa',
+    phase: 'turning',
+    phaseLabel: '战略转折点'
+  },
+  {
+    id: 7,
+    date: '1942.08',
+    dateFull: '1942年8月7日',
+    location: '瓜达尔卡纳尔岛',
+    title: '瓜岛战役爆发',
+    desc: '美军海军陆战队在瓜达尔卡纳尔岛登陆，夺取日军正在修建的机场（后命名为亨德森机场）。瓜岛战役是美军在太平洋的首次反攻，双方围绕该岛展开长达半年的陆海空拉锯战。瓜岛战役标志着美军从战略防御转入战略进攻，日军开始节节败退。',
+    lat: -9.5278, lng: 160.1467,
+    side: 'usa',
+    phase: 'counterattack',
+    phaseLabel: '美军反攻期'
+  },
+  {
+    id: 8,
+    date: '1943.02',
+    dateFull: '1943年2月9日',
+    location: '瓜达尔卡纳尔岛',
+    title: '瓜岛战役结束',
+    desc: '日军因损失惨重、补给断绝，被迫从瓜岛秘密撤退。瓜岛战役历时六个月，日军损失约2.5万人、舰艇30余艘、飞机600余架；美军阵亡约1600人。美军完全控制了所罗门群岛，打开了通往菲律宾的门户，日本的"绝对国防圈"开始崩溃。',
+    lat: -9.5278, lng: 160.1467,
+    side: 'usa',
+    phase: 'counterattack',
+    phaseLabel: '美军反攻期'
+  },
+  {
+    id: 9,
+    date: '1943.11',
+    dateFull: '1943年11月20日—23日',
+    location: '塔拉瓦环礁',
+    title: '吉尔伯特群岛战役',
+    desc: '美军发动"电击行动"，进攻吉尔伯特群岛的塔拉瓦环礁。这是美军首次对日军重兵防守的珊瑚岛礁实施两栖登陆，遭遇日军顽强抵抗。美军虽仅用76小时占领全岛，但伤亡惨重（阵亡约1000人）。塔拉瓦战役为美军后来的登陆作战提供了宝贵经验教训。',
+    lat: 1.3595, lng: 172.9374,
+    side: 'usa',
+    phase: 'counterattack',
+    phaseLabel: '美军反攻期'
+  },
+  {
+    id: 10,
+    date: '1944.06',
+    dateFull: '1944年6月15日—7月9日',
+    location: '塞班岛',
+    title: '塞班岛战役',
+    desc: '美军进攻马里亚纳群岛的塞班岛，这是"跳岛战术"的关键一步。经过20天激战，美军全歼守岛日军约3万人，美军伤亡约1.6万人。塞班岛失守后，东条英机内阁倒台。更重要的是，美军获得B-29轰炸机基地，可以直接空袭日本本土，战略态势彻底逆转。',
+    lat: 15.1840, lng: 145.7236,
+    side: 'usa',
+    phase: 'counterattack',
+    phaseLabel: '美军反攻期'
+  },
+  {
+    id: 11,
+    date: '1944.10',
+    dateFull: '1944年10月23日—26日',
+    location: '莱特湾',
+    title: '莱特湾海战',
+    desc: '美军在菲律宾莱特岛登陆，日本联合舰队倾巢而出，发动"捷一号"作战。莱特湾海战是人类历史上规模最大的海战，双方参战舰艇超过280艘。日军采用诱敌战术，但最终惨败，损失4艘航母、3艘战列舰、10艘巡洋舰。日本联合舰队自此名存实亡。',
+    lat: 10.7500, lng: 124.7500,
+    side: 'usa',
+    phase: 'counterattack',
+    phaseLabel: '美军反攻期'
+  },
+  {
+    id: 12,
+    date: '1945.02',
+    dateFull: '1945年2月19日—3月26日',
+    location: '硫磺岛',
+    title: '硫磺岛战役',
+    desc: '美军进攻硫磺岛，这是距离日本本土最近的前哨阵地。日军栗林忠道中将采用纵深防御战术，美军伤亡惨重。激战36天，美军阵亡约6800人，日军2.3万人几乎全部战死。硫磺岛的折钵山插旗照片成为二战经典影像。该岛成为美军战斗机护航B-29轰炸日本本土的重要基地。',
+    lat: 24.7833, lng: 141.3167,
+    side: 'usa',
+    phase: 'counterattack',
+    phaseLabel: '美军反攻期'
+  },
+  {
+    id: 13,
+    date: '1945.04',
+    dateFull: '1945年4月1日—6月22日',
+    location: '冲绳岛',
+    title: '冲绳战役',
+    desc: '美军发动"冰山行动"，进攻冲绳岛——日本本土的最后一道门户。这是太平洋战争中规模最大、伤亡最惨重的战役。日军实施大规模"神风特攻"，美军伤亡超过5万人。冲绳战役历时82天，日军约11万人战死，平民死亡约15万人。此战使美军意识到进攻日本本土将付出巨大代价。',
+    lat: 26.3344, lng: 127.8056,
+    side: 'usa',
+    phase: 'counterattack',
+    phaseLabel: '美军反攻期'
+  },
+  {
+    id: 14,
+    date: '1945.08',
+    dateFull: '1945年8月6日—9月2日',
+    location: '广岛 · 长崎 · 东京湾',
+    title: '日本投降',
+    desc: '8月6日和9日，美军先后在广岛和长崎投下原子弹；8月8日苏联对日宣战。8月15日，日本天皇裕仁宣布接受《波茨坦公告》，无条件投降。9月2日，在东京湾密苏里号战列舰上举行投降签字仪式，太平洋战争结束，第二次世界大战落下帷幕。',
+    lat: 34.3853, lng: 132.4553,
+    side: 'usa',
+    phase: 'end',
+    phaseLabel: '战争终结'
+  }
+];
+
+// ====== 路线段定义 ======
+const routeSegments = [
+  { from: 0, to: 1, type: 'japan' },   // 珍珠港 → 香港
+  { from: 1, to: 2, type: 'japan' },   // 香港 → 新加坡
+  { from: 2, to: 3, type: 'usa' },      // 新加坡 → 东京(杜立特)
+  { from: 3, to: 4, type: 'usa' },      // 东京 → 珊瑚海
+  { from: 4, to: 5, type: 'turning' },  // 珊瑚海 → 中途岛
+  { from: 5, to: 6, type: 'hop' },      // 中途岛 → 瓜岛
+  // 6→7 同一地点，跳过
+  { from: 7, to: 8, type: 'hop' },      // 瓜岛 → 塔拉瓦
+  { from: 8, to: 9, type: 'hop' },      // 塔拉瓦 → 塞班
+  { from: 9, to: 10, type: 'hop' },     // 塞班 → 莱特湾
+  { from: 10, to: 11, type: 'hop' },    // 莱特湾 → 硫磺岛
+  { from: 11, to: 12, type: 'hop' },    // 硫磺岛 → 冲绳
+  { from: 12, to: 13, type: 'end' },    // 冲绳 → 广岛
+];
+
+// ====== 全局状态 ======
+let map;
+let markers = [];
+let routeLines = [];
+let currentEvent = 0;
+let isPlaying = false;
+let playTimer = null;
+let playSpeed = 2500;
+
+// ====== 初始化地图 ======
+function initMap() {
+  map = L.map('map', {
+    center: [15, 160],
+    zoom: 3,
+    minZoom: 2,
+    maxZoom: 7,
+    zoomControl: false,
+    attributionControl: false,
+    worldCopyJump: true,
+    maxBounds: [[-30, 100], [50, -120]],
+    maxBoundsViscosity: 0.8
+  });
+
+  // 高德地图深色底图（国产瓦片，中文标注）
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    subdomains: ['1', '2', '3', '4'],
+    maxZoom: 18,
+    attribution: '© 高德地图'
+  }).addTo(map);
+
+  // 缩放控制（右下角）
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  // 比例尺
+  L.control.scale({ position: 'bottomleft', imperial: false, maxWidth: 150 }).addTo(map);
+}
+
+// ====== 创建标记 ======
+function createMarkers() {
+  events.forEach((e, i) => {
+    const icon = L.divIcon({
+      className: '',
+      html: `
+        <div class="battle-marker ${e.side} ${e.phase} ${i === currentEvent ? 'active' : ''}" data-idx="${i}">
+          <div class="battle-marker-pulse"></div>
+          <div class="battle-marker-inner"></div>
+          <div class="battle-marker-label">${e.date} ${e.title}</div>
+        </div>
+      `,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+
+    const marker = L.marker([e.lat, e.lng], { icon }).addTo(map);
+    marker.on('click', () => selectEvent(i));
+    markers.push(marker);
+  });
+}
+
+// ====== 绘制路线 ======
+function drawRoutes(upToIndex) {
+  // 清除旧路线
+  routeLines.forEach(line => map.removeLayer(line));
+  routeLines = [];
+
+  routeSegments.forEach(seg => {
+    if (seg.from > upToIndex) return;
+    if (seg.to > upToIndex && seg.type !== 'end') {
+      // 绘制部分路线（到当前事件）
+      const fromEvent = events[seg.from];
+      const toEvent = events[Math.min(seg.to, upToIndex)];
+      if (seg.from === seg.to) return;
+      drawRouteSegment(fromEvent, toEvent, seg.type, true);
+    } else if (seg.to <= upToIndex) {
+      const fromEvent = events[seg.from];
+      const toEvent = events[seg.to];
+      if (seg.from === seg.to) return;
+      drawRouteSegment(fromEvent, toEvent, seg.type, false);
+    }
+  });
+}
+
+function drawRouteSegment(fromEvent, toEvent, type, isPartial) {
+  let color, dashArray, weight, opacity;
+
+  switch (type) {
+    case 'japan':
+      color = '#D32F2F';
+      dashArray = '8,6';
+      weight = 2;
+      opacity = isPartial ? 0.4 : 0.7;
+      break;
+    case 'usa':
+      color = '#1565C0';
+      dashArray = '8,6';
+      weight = 2;
+      opacity = isPartial ? 0.4 : 0.7;
+      break;
+    case 'turning':
+      color = '#C5A065';
+      dashArray = '8,6';
+      weight = 2.5;
+      opacity = isPartial ? 0.4 : 0.8;
+      break;
+    case 'hop':
+      color = 'rgba(255,255,255,0.35)';
+      dashArray = '2,8';
+      weight = 1.5;
+      opacity = isPartial ? 0.3 : 0.6;
+      break;
+    case 'end':
+      color = '#FF8F00';
+      dashArray = '8,6';
+      weight = 2;
+      opacity = isPartial ? 0.4 : 0.7;
+      break;
+  }
+
+  const line = L.polyline(
+    [[fromEvent.lat, fromEvent.lng], [toEvent.lat, toEvent.lng]],
+    {
+      color: color,
+      weight: weight,
+      opacity: opacity,
+      dashArray: dashArray,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }
+  ).addTo(map);
+
+  routeLines.push(line);
+}
+
+// ====== 选中事件 ======
+function selectEvent(idx) {
+  currentEvent = idx;
+  const e = events[idx];
+
+  // 更新标记激活态
+  markers.forEach((marker, i) => {
+    const el = marker.getElement();
+    if (!el) return;
+    const inner = el.querySelector('.battle-marker');
+    if (inner) {
+      inner.classList.toggle('active', i === idx);
+    }
+  });
+
+  // 地图飞行到事件位置
+  const zoomLevels = [4, 3, 3, 4, 3, 4, 4, 4, 4, 4, 3, 4, 4, 4];
+  const targetZoom = zoomLevels[idx] || 4;
+  map.flyTo([e.lat, e.lng], targetZoom, {
+    duration: 1.2,
+    easeLinearity: 0.25
+  });
+
+  // 绘制路线
+  setTimeout(() => drawRoutes(idx), 200);
+
+  // 更新信息卡片
+  updateInfoCard(e);
+
+  // 更新阶段指示器
+  updatePhaseIndicator(e);
+
+  // 更新时间轴
+  updateTimeline(idx);
+
+  // 更新进度条
+  const progress = ((idx + 1) / events.length) * 100;
+  document.getElementById('progressBar').style.width = `${progress}%`;
+  document.getElementById('eventCounter').textContent = `${idx + 1} / ${events.length}`;
+
+  // GSAP 动画
+  gsap.fromTo('#infoCard',
+    { opacity: 0.5, y: 10 },
+    { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }
+  );
+}
+
+// ====== 更新信息卡片 ======
+function updateInfoCard(e) {
+  const card = document.getElementById('infoCard');
+  card.className = `narrative-info-card phase-${e.phase}`;
+
+  document.getElementById('infoDate').textContent = e.date;
+  document.getElementById('infoSide').textContent = e.side === 'japan' ? '日本' : '美国';
+  document.getElementById('infoSide').className = `info-card-side ${e.side}`;
+  document.getElementById('infoLocationText').textContent = e.location;
+  document.getElementById('infoTitle').textContent = e.title;
+  document.getElementById('infoDesc').textContent = e.desc;
+}
+
+// ====== 更新阶段指示器 ======
+function updatePhaseIndicator(e) {
+  const icon = document.getElementById('phaseIcon');
+  const label = document.getElementById('phaseLabel');
+
+  icon.className = `phase-indicator-icon ${e.phase}`;
+  label.textContent = e.phaseLabel;
+}
+
+// ====== 构建时间轴 ======
+function buildTimeline() {
+  const list = document.getElementById('timelineList');
+  let html = '';
+  let lastPhase = '';
+
+  events.forEach((e, i) => {
+    // 阶段分隔
+    if (e.phase !== lastPhase) {
+      const phaseLabels = {
+        expansion: '— 日军扩张 —',
+        turning: '— 战略转折 —',
+        counterattack: '— 美军反攻 —',
+        end: '— 战争终结 —'
+      };
+      html += `<div class="timeline-phase-divider ${e.phase}">${phaseLabels[e.phase]}</div>`;
+      lastPhase = e.phase;
+    }
+
+    html += `
+      <div class="timeline-event ${e.side} ${e.phase} ${i === currentEvent ? 'active' : ''}" data-idx="${i}">
+        <div class="timeline-event-dot"></div>
+        <div class="timeline-event-content">
+          <div class="timeline-event-year">${e.date} · ${e.location}</div>
+          <div class="timeline-event-title">${e.title}</div>
+          <div class="timeline-event-desc">${e.desc}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+
+  // 绑定点击
+  list.querySelectorAll('.timeline-event').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      if (isPlaying) togglePlay();
+      selectEvent(idx);
+    });
+  });
+}
+
+// ====== 更新时间轴高亮 ======
+function updateTimeline(idx) {
+  document.querySelectorAll('.timeline-event').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+
+  // 滚动到当前事件
+  const activeEl = document.querySelector('.timeline-event.active');
+  if (activeEl) {
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// ====== 播放控制 ======
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+  const label = document.getElementById('playLabel');
+
+  if (isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    label.textContent = '暂停';
+
+    playTimer = setInterval(() => {
+      let next = currentEvent + 1;
+      if (next >= events.length) {
+        next = 0;
+        // 循环时清除路线
+        routeLines.forEach(line => map.removeLayer(line));
+        routeLines = [];
+      }
+      selectEvent(next);
+    }, playSpeed);
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent = '播放';
+    clearInterval(playTimer);
+  }
+}
+
+// ====== 速度控制 ======
+function initSpeedControl() {
+  document.querySelectorAll('.speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      playSpeed = parseInt(btn.dataset.speed);
+
+      // 如果正在播放，重新启动定时器
+      if (isPlaying) {
+        clearInterval(playTimer);
+        playTimer = setInterval(() => {
+          let next = currentEvent + 1;
+          if (next >= events.length) {
+            next = 0;
+            routeLines.forEach(line => map.removeLayer(line));
+            routeLines = [];
+          }
+          selectEvent(next);
+        }, playSpeed);
+      }
+    });
+  });
+}
+
+// ====== 初始化 ======
+function init() {
+  initMap();
+  createMarkers();
+  buildTimeline();
+  initSpeedControl();
+
+  // 等待地图加载后选中第一个事件
+  map.whenReady(() => {
+    setTimeout(() => {
+      selectEvent(0);
+
+      // 隐藏加载屏
+      const loader = document.getElementById('loader');
+      loader.classList.add('hidden');
+
+      // GSAP 入场动画
+      gsap.fromTo('.narrative-map-area',
+        { opacity: 0 },
+        { opacity: 1, duration: 0.8, ease: 'power2.out' }
+      );
+      gsap.fromTo('.narrative-timeline-panel',
+        { opacity: 0, x: 30 },
+        { opacity: 1, x: 0, duration: 0.8, ease: 'power2.out', delay: 0.2 }
+      );
+      gsap.fromTo('.map-legend',
+        { opacity: 0, y: -10 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', delay: 0.6 }
+      );
+      gsap.fromTo('.phase-indicator',
+        { opacity: 0, y: -10 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', delay: 0.5 }
+      );
+    }, 600);
+  });
+
+  // 播放按钮
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // 上一个/下一个按钮
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    if (isPlaying) togglePlay();
+    if (currentEvent > 0) selectEvent(currentEvent - 1);
+  });
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if (isPlaying) togglePlay();
+    if (currentEvent < events.length - 1) selectEvent(currentEvent + 1);
+  });
+
+  // 导航栏滚动效果（虽然主要是全屏，但保留）
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  // 键盘控制
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      if (currentEvent > 0) {
+        if (isPlaying) togglePlay();
+        selectEvent(currentEvent - 1);
+      }
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      if (currentEvent < events.length - 1) {
+        if (isPlaying) togglePlay();
+        selectEvent(currentEvent + 1);
+      }
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      togglePlay();
+    }
+  });
+}
+
+// 启动
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+
+</body>
+</html>

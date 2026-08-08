@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>原子结构 3D 模型 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #050810;
+    color: #e5e5e5;
+    font-family: var(--font-sans);
+  }
+
+  /* ============ 顶部导航栏 ============ */
+  .navbar-immerse {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    background-color: rgba(5, 8, 16, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .navbar-left, .navbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-16);
+  }
+  .navbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: #e5e5e5;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #a3a3a3;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color var(--duration-fast) var(--ease);
+  }
+  .back-link:hover { color: #ffffff; }
+  .back-link svg { width: 16px; height: 16px; }
+  .brand-logo {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-weight: 700;
+    color: #ffffff;
+    text-decoration: none;
+  }
+  .brand-divider {
+    width: 1px; height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background-color: var(--brand);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--duration-base) var(--ease);
+    white-space: nowrap;
+  }
+  .btn-download:hover {
+    background-color: var(--brand-hover);
+    transform: translateY(-1px);
+  }
+  .btn-download svg { width: 14px; height: 14px; }
+
+  /* ============ 3D 画布 ============ */
+  #canvas-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  #scene { display: block; width: 100%; height: 100%; }
+
+  /* ============ 加载提示 ============ */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #050810;
+    transition: opacity 0.8s ease;
+  }
+  .loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .loading-text {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: rgba(0, 229, 255, 0.5);
+    letter-spacing: 0.15em;
+    animation: pulse-fade 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-fade {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+  }
+
+  /* ============ 右侧元素选择面板 ============ */
+  .element-panel {
+    position: fixed;
+    top: 84px;
+    right: 20px;
+    z-index: 50;
+    width: 244px;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    padding: 16px 14px;
+    background-color: rgba(5, 8, 16, 0.6);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-card);
+  }
+  .element-panel::-webkit-scrollbar { width: 4px; }
+  .element-panel::-webkit-scrollbar-track { background: transparent; }
+  .element-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+  .panel-title {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5e5e5;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-subtitle {
+    font-size: 10px;
+    color: #6b6b6b;
+    font-family: var(--font-mono);
+    margin-bottom: 12px;
+  }
+  .element-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
+  .element-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .element-cell:hover {
+    background: rgba(0, 229, 255, 0.1);
+    border-color: rgba(0, 229, 255, 0.3);
+  }
+  .element-cell.active {
+    background: rgba(0, 229, 255, 0.15);
+    border-color: rgba(0, 229, 255, 0.6);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+  }
+  .element-cell .el-num {
+    font-size: 8px;
+    color: #6b6b6b;
+    font-family: var(--font-mono);
+    line-height: 1;
+  }
+  .element-cell .el-sym {
+    font-size: 14px;
+    font-weight: 700;
+    color: #e5e5e5;
+    font-family: var(--font-serif);
+    line-height: 1.2;
+  }
+  .element-cell.active .el-sym { color: #00E5FF; }
+
+  /* ============ 同位素选择 ============ */
+  .isotope-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .isotope-section.hidden { display: none; }
+  .isotope-buttons {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .isotope-btn {
+    flex: 1;
+    padding: 7px 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #a3a3a3;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    font-family: var(--font-sans);
+  }
+  .isotope-btn:hover {
+    color: #e5e5e5;
+    border-color: rgba(0, 229, 255, 0.3);
+  }
+  .isotope-btn.active {
+    color: #00E5FF;
+    background: rgba(0, 229, 255, 0.1);
+    border-color: rgba(0, 229, 255, 0.5);
+  }
+  .isotope-btn .iso-n {
+    font-size: 9px;
+    color: #6b6b6b;
+    display: block;
+    margin-top: 2px;
+  }
+  .isotope-btn.active .iso-n { color: rgba(0, 229, 255, 0.6); }
+
+  /* ============ 左侧信息面板 ============ */
+  .info-panel {
+    position: fixed;
+    top: 84px;
+    left: 20px;
+    z-index: 50;
+    width: 240px;
+    padding: 16px 18px;
+    background-color: rgba(5, 8, 16, 0.6);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-card);
+  }
+  .info-element-name {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 2px;
+  }
+  .info-element-subtitle {
+    font-size: 11px;
+    color: #6b6b6b;
+    font-family: var(--font-mono);
+    margin-bottom: 14px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label {
+    color: #6b6b6b;
+    font-weight: 500;
+  }
+  .info-value {
+    color: #e5e5e5;
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+  .info-value .num-proton { color: #E53935; }
+  .info-value .num-neutron { color: #1E88E5; }
+  .info-value .num-electron { color: #00E5FF; }
+
+  .electron-config {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(0, 229, 255, 0.05);
+    border: 1px solid rgba(0, 229, 255, 0.12);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #00E5FF;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  /* ============ 图例 ============ */
+  .legend-mini {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #a3a3a3;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ============ 浮动控件 ============ */
+  .floating-controls-left {
+    position: fixed;
+    bottom: 80px;
+    left: 24px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .floating-controls-right {
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .icon-btn {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e5e5e5;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--duration-base) var(--ease);
+    position: relative;
+  }
+  .icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+  }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .icon-btn.active {
+    background-color: rgba(0, 229, 255, 0.15);
+    border-color: rgba(0, 229, 255, 0.4);
+    color: #00E5FF;
+  }
+  .icon-btn .tooltip {
+    position: absolute;
+    left: 100%;
+    margin-left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: #e5e5e5;
+    background: rgba(5, 8, 16, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .icon-btn:hover .tooltip { opacity: 1; }
+
+  /* ============ 底部信息条 ============ */
+  .info-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    background-color: rgba(5, 8, 16, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .info-bar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-12);
+  }
+  .info-bar-title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: #e5e5e5;
+  }
+  .tech-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.5;
+    border-radius: var(--radius-full);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #a3a3a3;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  /* ============ 模式切换器 ============ */
+  .mode-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-full);
+    padding: 3px;
+  }
+  .mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b6b6b;
+    background: none;
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: var(--font-sans);
+  }
+  .mode-btn:hover { color: #a3a3a3; }
+  .mode-btn.active {
+    color: #00E5FF;
+    background: rgba(0, 229, 255, 0.12);
+  }
+  .mode-btn svg { width: 14px; height: 14px; }
+
+  .info-bar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-12);
+  }
+  .status-tag {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: #6b6b6b;
+    transition: color 0.3s ease;
+  }
+  .status-tag.active { color: #00E5FF; }
+
+  /* ============ 操作提示 ============ */
+  .scene-hint {
+    position: fixed;
+    bottom: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    pointer-events: none;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+  }
+
+  /* ============ 能级跃迁提示 ============ */
+  .transition-flash {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 60;
+    padding: 8px 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #FFFF8D;
+    background: rgba(255, 255, 141, 0.08);
+    border: 1px solid rgba(255, 255, 141, 0.2);
+    border-radius: var(--radius-full);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    white-space: nowrap;
+  }
+  .transition-flash.show {
+    opacity: 1;
+  }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 768px) {
+    .navbar-center { display: none; }
+    .element-panel {
+      width: calc(100% - 40px);
+      max-height: 180px;
+      top: auto;
+      bottom: 64px;
+      right: 20px;
+      left: 20px;
+    }
+    .element-grid {
+      grid-template-columns: repeat(10, 1fr);
+    }
+    .info-panel { display: none; }
+    .floating-controls-left { bottom: 260px; }
+    .floating-controls-right { bottom: 260px; }
+    .info-bar-title { display: none; }
+    .btn-download span { display: none; }
+    .btn-download { padding: 8px 12px; }
+    .scene-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 加载层 -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-text">INITIALIZING ATOM...</div>
+</div>
+
+<!-- 顶部导航栏 -->
+<header class="demo-navbar immersive" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">物理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">原子结构 3D 模型</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-physics">物理</span>
+      <a href="/skills/jingbo-edu-3d-micro-structure-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- 3D 画布 -->
+<div id="canvas-container">
+  <canvas id="scene"></canvas>
+</div>
+
+<!-- 左侧信息面板 -->
+<div class="info-panel" id="infoPanel">
+  <div class="info-element-name" id="elementName">碳 Carbon</div>
+  <div class="info-element-subtitle" id="elementSubtitle">Z=6 · 非金属 · 第2周期</div>
+  <div class="info-row">
+    <span class="info-label">质子数</span>
+    <span class="info-value"><span class="num-proton" id="protonCount">6</span></span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">中子数</span>
+    <span class="info-value"><span class="num-neutron" id="neutronCount">6</span></span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">电子数</span>
+    <span class="info-value"><span class="num-electron" id="electronCount">6</span></span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">相对原子质量</span>
+    <span class="info-value" id="massNumber">12.01</span>
+  </div>
+  <div class="electron-config" id="electronConfig">2 · 4</div>
+  <div class="legend-mini">
+    <div class="legend-row">
+      <span class="legend-dot" style="background:#E53935;box-shadow:0 0 6px #E53935;"></span> 质子（正电荷）
+    </div>
+    <div class="legend-row">
+      <span class="legend-dot" style="background:#1E88E5;box-shadow:0 0 6px #1E88E5;"></span> 中子（不带电）
+    </div>
+    <div class="legend-row">
+      <span class="legend-dot" style="background:#00E5FF;box-shadow:0 0 6px #00E5FF;"></span> 电子（负电荷）
+    </div>
+  </div>
+</div>
+
+<!-- 右侧元素选择面板 -->
+<div class="element-panel" id="elementPanel">
+  <div class="panel-title">选择元素</div>
+  <div class="panel-subtitle">前 20 号元素 · H → Ca</div>
+  <div class="element-grid" id="elementGrid"></div>
+  <div class="isotope-section hidden" id="isotopeSection">
+    <div class="panel-title" style="font-size:12px;">同位素选择</div>
+    <div class="isotope-buttons" id="isotopeButtons"></div>
+  </div>
+</div>
+
+<!-- 能级跃迁提示 -->
+<div class="transition-flash" id="transitionFlash">能级跃迁 · 光子释放</div>
+
+<!-- 操作提示 -->
+<div class="scene-hint">拖拽旋转 · 滚轮缩放 · 点击电子层高亮</div>
+
+<!-- 左下浮动控件 -->
+<div class="floating-controls-left">
+  <button class="icon-btn active" id="playPauseBtn">
+    <svg id="playIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    <span class="tooltip">自动旋转</span>
+  </button>
+  <button class="icon-btn" id="resetViewBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    <span class="tooltip">重置视角</span>
+  </button>
+  <button class="icon-btn" id="transitionBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    <span class="tooltip">能级跃迁</span>
+  </button>
+</div>
+
+<!-- 右下浮动控件 -->
+<div class="floating-controls-right">
+  <button class="icon-btn" id="nucleusZoomBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+    <span class="tooltip">原子核放大</span>
+  </button>
+  <button class="icon-btn" id="fullscreenBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+    <span class="tooltip">全屏</span>
+  </button>
+</div>
+
+<!-- 底部信息条 -->
+<footer class="info-bar">
+  <div class="info-bar-left">
+    <span class="info-bar-title">atomic-structure</span>
+    <span class="tech-tag">Three.js</span>
+    <span class="tech-tag">WebGL</span>
+    <span class="tech-tag">量子模型</span>
+  </div>
+  <div class="mode-switcher">
+    <button class="mode-btn" data-mode="cloud">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6M4.22 4.22l4.24 4.24m7.08 7.08l4.24 4.24M1 12h6m10 0h6M4.22 19.78l4.24-4.24m7.08-7.08l4.24-4.24"/></svg>
+      <span>电子云</span>
+    </button>
+    <button class="mode-btn active" data-mode="orbital">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="4" ry="10"/></svg>
+      <span>玻尔轨道</span>
+    </button>
+  </div>
+  <div class="info-bar-right">
+    <span class="status-tag" id="statusTag">就绪</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   元素数据（前 20 号元素）
+   ============================================================ */
+const ELEMENTS = [
+  { num: 1,  sym: 'H',  name: '氢 Hydrogen',   cn: '氢',  en: 'Hydrogen',  type: '非金属', period: 1, protons: 1,  neutrons: 0,  mass: 1.008,  config: [1],       isotopes: [{ name: '氕', n: 0, label: '¹H' }, { name: '氘', n: 1, label: '²H' }, { name: '氚', n: 2, label: '³H' }] },
+  { num: 2,  sym: 'He', name: '氦 Helium',     cn: '氦',  en: 'Helium',    type: '稀有气体', period: 1, protons: 2,  neutrons: 2,  mass: 4.003,  config: [2] },
+  { num: 3,  sym: 'Li', name: '锂 Lithium',    cn: '锂',  en: 'Lithium',   type: '碱金属',  period: 2, protons: 3,  neutrons: 4,  mass: 6.941,  config: [2, 1] },
+  { num: 4,  sym: 'Be', name: '铍 Beryllium',  cn: '铍',  en: 'Beryllium', type: '碱土金属', period: 2, protons: 4,  neutrons: 5,  mass: 9.012,  config: [2, 2] },
+  { num: 5,  sym: 'B',  name: '硼 Boron',      cn: '硼',  en: 'Boron',     type: '非金属',  period: 2, protons: 5,  neutrons: 6,  mass: 10.81,  config: [2, 3] },
+  { num: 6,  sym: 'C',  name: '碳 Carbon',     cn: '碳',  en: 'Carbon',    type: '非金属',  period: 2, protons: 6,  neutrons: 6,  mass: 12.01,  config: [2, 4] },
+  { num: 7,  sym: 'N',  name: '氮 Nitrogen',   cn: '氮',  en: 'Nitrogen',  type: '非金属',  period: 2, protons: 7,  neutrons: 7,  mass: 14.01,  config: [2, 5] },
+  { num: 8,  sym: 'O',  name: '氧 Oxygen',     cn: '氧',  en: 'Oxygen',    type: '非金属',  period: 2, protons: 8,  neutrons: 8,  mass: 16.00,  config: [2, 6] },
+  { num: 9,  sym: 'F',  name: '氟 Fluorine',   cn: '氟',  en: 'Fluorine',  type: '卤素',    period: 2, protons: 9,  neutrons: 10, mass: 19.00,  config: [2, 7] },
+  { num: 10, sym: 'Ne', name: '氖 Neon',       cn: '氖',  en: 'Neon',      type: '稀有气体', period: 2, protons: 10, neutrons: 10, mass: 20.18,  config: [2, 8] },
+  { num: 11, sym: 'Na', name: '钠 Sodium',     cn: '钠',  en: 'Sodium',    type: '碱金属',  period: 3, protons: 11, neutrons: 12, mass: 22.99,  config: [2, 8, 1] },
+  { num: 12, sym: 'Mg', name: '镁 Magnesium',  cn: '镁',  en: 'Magnesium', type: '碱土金属', period: 3, protons: 12, neutrons: 12, mass: 24.31,  config: [2, 8, 2] },
+  { num: 13, sym: 'Al', name: '铝 Aluminium',  cn: '铝',  en: 'Aluminium', type: '金属',    period: 3, protons: 13, neutrons: 14, mass: 26.98,  config: [2, 8, 3] },
+  { num: 14, sym: 'Si', name: '硅 Silicon',    cn: '硅',  en: 'Silicon',   type: '非金属',  period: 3, protons: 14, neutrons: 14, mass: 28.09,  config: [2, 8, 4] },
+  { num: 15, sym: 'P',  name: '磷 Phosphorus', cn: '磷',  en: 'Phosphorus',type: '非金属',  period: 3, protons: 15, neutrons: 16, mass: 30.97,  config: [2, 8, 5] },
+  { num: 16, sym: 'S',  name: '硫 Sulfur',     cn: '硫',  en: 'Sulfur',    type: '非金属',  period: 3, protons: 16, neutrons: 16, mass: 32.07,  config: [2, 8, 6] },
+  { num: 17, sym: 'Cl', name: '氯 Chlorine',   cn: '氯',  en: 'Chlorine',  type: '卤素',    period: 3, protons: 17, neutrons: 18, mass: 35.45,  config: [2, 8, 7] },
+  { num: 18, sym: 'Ar', name: '氩 Argon',      cn: '氩',  en: 'Argon',     type: '稀有气体', period: 3, protons: 18, neutrons: 22, mass: 39.95,  config: [2, 8, 8] },
+  { num: 19, sym: 'K',  name: '钾 Potassium',  cn: '钾',  en: 'Potassium', type: '碱金属',  period: 4, protons: 19, neutrons: 20, mass: 39.10,  config: [2, 8, 8, 1] },
+  { num: 20, sym: 'Ca', name: '钙 Calcium',    cn: '钙',  en: 'Calcium',   type: '碱土金属', period: 4, protons: 20, neutrons: 20, mass: 40.08,  config: [2, 8, 8, 2] },
+];
+
+// 电子层名称
+const SHELL_NAMES = ['K', 'L', 'M', 'N'];
+
+// 电子层半径（玻尔模型中的相对半径）
+const SHELL_RADII = [2.0, 3.6, 5.2, 6.8];
+
+/* ============================================================
+   全局状态
+   ============================================================ */
+let scene, camera, renderer, controls, clock;
+let atomGroup, nucleusGroup, electronCloudGroup, orbitalGroup;
+let raycaster, mouse;
+let currentElement = ELEMENTS[5]; // 默认碳
+let currentNeutrons = currentElement.neutrons;
+let currentMode = 'orbital'; // 'cloud' | 'orbital'
+let isPlaying = true;
+let isNucleusZoomed = false;
+let entranceProgress = 0; // 入场动画进度 0→1
+let transitionAnimating = false;
+let nucleusPulseTime = 0;
+
+// 电子云粒子
+let cloudParticles = null;
+let cloudMaterial = null;
+let cloudGeometry = null;
+
+// 轨道电子
+let orbitalElectrons = [];
+let orbitalRings = [];
+
+// 光子效果
+let photons = [];
+
+// 背景粒子
+let bgStars = null;
+
+/* ============================================================
+   场景初始化
+   ============================================================ */
+const container = document.getElementById('canvas-container');
+const canvas = document.getElementById('scene');
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050810);
+  scene.fog = new THREE.Fog(0x050810, 18, 50);
+
+  camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 200);
+  camera.position.set(0, 2, 14);
+
+  controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 2;
+  controls.maxDistance = 35;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.6;
+
+  clock = new THREE.Clock();
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  setupLights();
+  setupBackground();
+  buildAtom();
+}
+
+/* ============================================================
+   灯光系统
+   ============================================================ */
+function setupLights() {
+  scene.add(new THREE.AmbientLight(0x1a1a2e, 0.6));
+
+  // 原子核中心光源（橙红色辉光）
+  const nucleusLight = new THREE.PointLight(0xff5722, 1.5, 20);
+  nucleusLight.position.set(0, 0, 0);
+  nucleusLight.name = 'nucleusLight';
+  scene.add(nucleusLight);
+
+  // 补光（冷色调）
+  const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+  fillLight.position.set(-5, 5, 5);
+  scene.add(fillLight);
+
+  // 电子云冷光
+  const cloudLight = new THREE.PointLight(0x00e5ff, 0.5, 15);
+  cloudLight.position.set(3, 2, 3);
+  scene.add(cloudLight);
+}
+
+/* ============================================================
+   背景粒子（量子噪点星尘）
+   ============================================================ */
+function setupBackground() {
+  const starCount = 800;
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = new Float32Array(starCount * 3);
+  const starColors = new Float32Array(starCount * 3);
+  const starSizes = new Float32Array(starCount);
+
+  for (let i = 0; i < starCount; i++) {
+    const r = 25 + Math.random() * 30;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 2 - 1);
+    starPos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    starPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    starPos[i * 3 + 2] = r * Math.cos(phi);
+
+    // 紫色/蓝色/青色调
+    const hue = 0.6 + Math.random() * 0.15;
+    const c = new THREE.Color().setHSL(hue, 0.5, 0.3 + Math.random() * 0.3);
+    starColors[i * 3]     = c.r;
+    starColors[i * 3 + 1] = c.g;
+    starColors[i * 3 + 2] = c.b;
+
+    starSizes[i] = Math.random() * 0.08 + 0.02;
+  }
+
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+  const starMat = new THREE.PointsMaterial({
+    size: 0.08,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.5,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+
+  bgStars = new THREE.Points(starGeo, starMat);
+  scene.add(bgStars);
+}
+
+/* ============================================================
+   构建原子
+   ============================================================ */
+function buildAtom() {
+  // 清除旧原子
+  if (atomGroup) {
+    scene.remove(atomGroup);
+    disposeGroup(atomGroup);
+  }
+
+  atomGroup = new THREE.Group();
+  scene.add(atomGroup);
+
+  buildNucleus();
+  buildElectronCloud();
+  buildOrbitalModel();
+
+  updateModeVisibility();
+}
+
+/* ============================================================
+   原子核构建（质子+中子）
+   ============================================================ */
+function buildNucleus() {
+  nucleusGroup = new THREE.Group();
+  atomGroup.add(nucleusGroup);
+
+  const protons = currentElement.protons;
+  const neutrons = currentNeutrons;
+  const total = protons + neutrons;
+
+  // 原子核半径（根据核子数量）
+  const nucleusRadius = Math.max(0.6, Math.pow(total, 1/3) * 0.35);
+
+  // 质子材质（红色发光）
+  const protonMat = new THREE.MeshStandardMaterial({
+    color: 0xE53935,
+    emissive: 0xE53935,
+    emissiveIntensity: 0.5,
+    metalness: 0.3,
+    roughness: 0.35,
+  });
+
+  // 中子材质（蓝色发光）
+  const neutronMat = new THREE.MeshStandardMaterial({
+    color: 0x1E88E5,
+    emissive: 0x1E88E5,
+    emissiveIntensity: 0.4,
+    metalness: 0.3,
+    roughness: 0.35,
+  });
+
+  // 核子球体几何
+  const nucleonRadius = Math.max(0.12, nucleusRadius * 0.32);
+  const nucleonGeo = new THREE.SphereGeometry(nucleonRadius, 20, 20);
+
+  // 随机排列质子和中子（Fibonacci 球面分布 + 内部填充）
+  const positions = generateNucleonPositions(total, nucleusRadius);
+
+  for (let i = 0; i < total; i++) {
+    const isProton = i < protons;
+    const mat = isProton ? protonMat : neutronMat;
+    const nucleon = new THREE.Mesh(nucleonGeo, mat);
+    nucleon.position.copy(positions[i]);
+    nucleon.userData.type = isProton ? 'proton' : 'neutron';
+    nucleon.userData.basePos = positions[i].clone();
+    nucleusGroup.add(nucleon);
+  }
+
+  // 原子核外发光层（半透明球壳）
+  const glowGeo = new THREE.SphereGeometry(nucleusRadius * 1.5, 32, 32);
+  const glowMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color(0xff5722) },
+      uIntensity: { value: 0.4 },
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPosition = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uIntensity;
+      uniform float uTime;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        float fresnel = 1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0));
+        fresnel = pow(fresnel, 2.0);
+        float pulse = sin(uTime * 2.0) * 0.1 + 0.9;
+        gl_FragColor = vec4(uColor * uIntensity * fresnel * pulse, fresnel * 0.3);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    depthWrite: false,
+  });
+
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.name = 'nucleusGlow';
+  nucleusGroup.add(glow);
+}
+
+/* 生成核子位置（球面 + 内部分布） */
+function generateNucleonPositions(count, radius) {
+  const positions = [];
+
+  if (count === 1) {
+    positions.push(new THREE.Vector3(0, 0, 0));
+    return positions;
+  }
+
+  // 内部均匀分布 + 球面层
+  for (let i = 0; i < count; i++) {
+    // 球内随机点，偏向表面
+    const r = radius * Math.cbrt(Math.random()) * 0.85;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 2 - 1);
+
+    // 添加微小抖动避免完全规则
+    const jitter = 0.05;
+    positions.push(new THREE.Vector3(
+      r * Math.sin(phi) * Math.cos(theta) + (Math.random() - 0.5) * jitter,
+      r * Math.sin(phi) * Math.sin(theta) + (Math.random() - 0.5) * jitter,
+      r * Math.cos(phi) + (Math.random() - 0.5) * jitter
+    ));
+  }
+
+  return positions;
+}
+
+/* ============================================================
+   电子云粒子系统（量子力学概率分布）
+   ============================================================ */
+function buildElectronCloud() {
+  electronCloudGroup = new THREE.Group();
+  atomGroup.add(electronCloudGroup);
+
+  const config = currentElement.config;
+  const totalElectrons = config.reduce((a, b) => a + b, 0);
+
+  // 根据性能调整粒子数
+  const isMobile = window.innerWidth < 768;
+  const baseParticles = isMobile ? 1500 : 3000;
+  const particlesPerElectron = Math.max(80, Math.floor(baseParticles / Math.max(totalElectrons, 1)));
+  const particleCount = Math.min(particlesPerElectron * totalElectrons, 5000);
+
+  cloudGeometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(particleCount * 3);
+  const colors = new Float32Array(particleCount * 3);
+  const sizes = new Float32Array(particleCount);
+  const phases = new Float32Array(particleCount);
+  const shellIndices = new Float32Array(particleCount);
+
+  // 为每层电子生成概率云粒子
+  let particleIdx = 0;
+  for (let shell = 0; shell < config.length; shell++) {
+    const electronsInShell = config[shell];
+    const shellRadius = SHELL_RADII[shell] || (2.0 + shell * 1.6);
+    const particlesInShell = particlesPerElectron * electronsInShell;
+
+    // s 轨道球形分布，p 轨道哑铃形
+    const isSShell = electronsInShell <= 2;
+    const isPShell = electronsInShell >= 3 && electronsInShell <= 8;
+
+    for (let i = 0; i < particlesInShell && particleIdx < particleCount; i++) {
+      let x, y, z;
+
+      // 概率密度分布：径向概率 ~ r² * e^(-2r/n) (类氢原子)
+      // 简化为高斯分布围绕壳层半径
+      const r = shellRadius + gaussianRandom() * shellRadius * 0.25;
+
+      if (isSShell) {
+        // s 轨道：球对称
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(Math.random() * 2 - 1);
+        x = r * Math.sin(phi) * Math.cos(theta);
+        y = r * Math.sin(phi) * Math.sin(theta);
+        z = r * Math.cos(phi);
+      } else if (isPShell && shell === 1) {
+        // p 轨道：哑铃形（第二层）
+        const axis = Math.floor(Math.random() * 3); // px, py, pz
+        const theta = Math.random() * Math.PI * 2;
+        const dumbbell = Math.cos(theta);
+        const radial = Math.sin(theta);
+        const dist = r * (0.3 + 0.7 * Math.abs(dumbbell));
+
+        if (axis === 0) {
+          x = dist * dumbbell;
+          y = dist * radial * (Math.random() - 0.5) * 0.4;
+          z = dist * radial * (Math.random() - 0.5) * 0.4;
+        } else if (axis === 1) {
+          x = dist * radial * (Math.random() - 0.5) * 0.4;
+          y = dist * dumbbell;
+          z = dist * radial * (Math.random() - 0.5) * 0.4;
+        } else {
+          x = dist * radial * (Math.random() - 0.5) * 0.4;
+          y = dist * radial * (Math.random() - 0.5) * 0.4;
+          z = dist * dumbbell;
+        }
+      } else {
+        // 其他层：球对称带模糊
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(Math.random() * 2 - 1);
+        x = r * Math.sin(phi) * Math.cos(theta);
+        y = r * Math.sin(phi) * Math.sin(theta);
+        z = r * Math.cos(phi);
+      }
+
+      positions[particleIdx * 3]     = x;
+      positions[particleIdx * 3 + 1] = y;
+      positions[particleIdx * 3 + 2] = z;
+
+      // 颜色：内层更亮，外层更淡
+      const brightness = 0.6 + (1 - shell / config.length) * 0.4;
+      colors[particleIdx * 3]     = 0.0 * brightness;
+      colors[particleIdx * 3 + 1] = 0.9 * brightness;
+      colors[particleIdx * 3 + 2] = 1.0 * brightness;
+
+      sizes[particleIdx] = Math.random() * 0.06 + 0.02;
+      phases[particleIdx] = Math.random() * Math.PI * 2;
+      shellIndices[particleIdx] = shell;
+
+      particleIdx++;
+    }
+  }
+
+  // 截断到实际使用数量
+  const actualCount = particleIdx;
+  cloudGeometry.setAttribute('position', new THREE.BufferAttribute(positions.slice(0, actualCount * 3), 3));
+  cloudGeometry.setAttribute('aColor', new THREE.BufferAttribute(colors.slice(0, actualCount * 3), 3));
+  cloudGeometry.setAttribute('aSize', new THREE.BufferAttribute(sizes.slice(0, actualCount), 1));
+  cloudGeometry.setAttribute('aPhase', new THREE.BufferAttribute(phases.slice(0, actualCount), 1));
+  cloudGeometry.setAttribute('aShell', new THREE.BufferAttribute(shellIndices.slice(0, actualCount), 1));
+
+  // 自定义 Shader 实现粒子闪烁和流动
+  cloudMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      uEntrance: { value: 0 },
+    },
+    vertexShader: `
+      attribute vec3 aColor;
+      attribute float aSize;
+      attribute float aPhase;
+      attribute float aShell;
+
+      uniform float uTime;
+      uniform float uPixelRatio;
+      uniform float uEntrance;
+
+      varying vec3 vColor;
+      varying float vAlpha;
+
+      void main() {
+        vColor = aColor;
+
+        // 入场动画：从原子核向外扩散
+        vec3 pos = position * mix(0.05, 1.0, uEntrance);
+
+        // 流动效果：粒子轻微漂移
+        float drift = sin(uTime * 0.5 + aPhase) * 0.03;
+        pos.x += drift * cos(aPhase);
+        pos.y += drift * sin(aPhase * 1.3);
+        pos.z += drift * cos(aPhase * 0.7);
+
+        // 闪烁
+        float flicker = sin(uTime * 2.0 + aPhase * 3.0) * 0.3 + 0.7;
+        vAlpha = flicker * uEntrance;
+
+        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+        gl_PointSize = aSize * 300.0 * uPixelRatio / -mvPosition.z;
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      varying float vAlpha;
+
+      void main() {
+        vec2 uv = gl_PointCoord - 0.5;
+        float dist = length(uv);
+        if (dist > 0.5) discard;
+
+        // 软边缘
+        float alpha = smoothstep(0.5, 0.0, dist) * vAlpha * 0.6;
+        gl_FragColor = vec4(vColor, alpha);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+
+  cloudParticles = new THREE.Points(cloudGeometry, cloudMaterial);
+  electronCloudGroup.add(cloudParticles);
+}
+
+/* ============================================================
+   玻尔轨道模型
+   ============================================================ */
+function buildOrbitalModel() {
+  orbitalGroup = new THREE.Group();
+  atomGroup.add(orbitalGroup);
+
+  orbitalElectrons = [];
+  orbitalRings = [];
+
+  const config = currentElement.config;
+
+  for (let shell = 0; shell < config.length; shell++) {
+    const electronCount = config[shell];
+    const shellRadius = SHELL_RADII[shell] || (2.0 + shell * 1.6);
+
+    // 轨道圆环
+    const ringGeo = new THREE.TorusGeometry(shellRadius, 0.015, 8, 96);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x00E5FF,
+      transparent: true,
+      opacity: 0.3,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+
+    // 不同壳层略微倾斜
+    ring.rotation.y = shell * 0.15;
+    ring.rotation.z = shell * 0.08;
+
+    ring.userData.shell = shell;
+    ring.userData.radius = shellRadius;
+    orbitalGroup.add(ring);
+    orbitalRings.push(ring);
+
+    // 电子
+    const electronGeo = new THREE.SphereGeometry(0.1, 16, 16);
+    const electronMat = new THREE.MeshBasicMaterial({
+      color: 0x00E5FF,
+    });
+
+    for (let e = 0; e < electronCount; e++) {
+      const electron = new THREE.Mesh(electronGeo, electronMat);
+      const angle = (e / electronCount) * Math.PI * 2;
+      electron.userData.shell = shell;
+      electron.userData.angle = angle;
+      electron.userData.radius = shellRadius;
+      electron.userData.speed = 0.5 + 0.3 / (shell + 1); // 内层更快
+      electron.userData.ringRotation = { y: shell * 0.15, z: shell * 0.08 };
+
+      orbitalGroup.add(electron);
+      orbitalElectrons.push(electron);
+    }
+
+  }
+}
+
+/* ============================================================
+   模式切换可见性
+   ============================================================ */
+function updateModeVisibility() {
+  if (currentMode === 'cloud') {
+    electronCloudGroup.visible = true;
+    orbitalGroup.visible = false;
+  } else {
+    electronCloudGroup.visible = false;
+    orbitalGroup.visible = true;
+  }
+}
+
+/* ============================================================
+   能级跃迁动画
+   ============================================================ */
+function triggerEnergyTransition() {
+  if (transitionAnimating) return;
+  if (currentElement.config.length < 2) {
+    showStatus('该元素仅1层电子，无法跃迁');
+    return;
+  }
+
+  transitionAnimating = true;
+  showTransitionFlash();
+
+  // 创建光子效果
+  const startShell = currentElement.config.length - 1; // 最外层
+  const endShell = Math.max(0, startShell - 1);
+
+  const startR = SHELL_RADII[startShell] || 5;
+  const endR = SHELL_RADII[endShell] || 2;
+
+  // 第一阶段：电子从外层跃迁到内层（吸收）
+  if (currentMode === 'orbital') {
+    // 轨道模式：电子实际移动
+    const electron = orbitalElectrons.find(e => e.userData.shell === startShell);
+    if (electron) {
+      const startAngle = electron.userData.angle;
+      const startTime = clock.getElapsedTime();
+
+      const animateDown = () => {
+        const elapsed = clock.getElapsedTime() - startTime;
+        const t = Math.min(elapsed / 0.6, 1);
+
+        const r = startR + (endR - startR) * easeInOutCubic(t);
+        const angle = startAngle + t * Math.PI;
+        const ringRot = electron.userData.ringRotation;
+
+        electron.position.x = r * Math.cos(angle);
+        electron.position.y = r * Math.sin(angle) * Math.sin(ringRot.z);
+        electron.position.z = r * Math.sin(angle) * Math.cos(ringRot.y);
+
+        if (t < 1) {
+          requestAnimationFrame(animateDown);
+        } else {
+          // 释放光子，电子回到外层
+          spawnPhotonBurst(endR);
+          setTimeout(() => animateElectronBack(electron, endR, startR, startAngle), 200);
+        }
+      };
+      animateDown();
+    }
+  } else {
+    // 电子云模式：光子效果
+    spawnPhotonBurst(endR);
+    setTimeout(() => spawnPhotonBurst(startR), 300);
+  }
+
+  // 结束
+  setTimeout(() => {
+    transitionAnimating = false;
+  }, 1500);
+}
+
+function animateElectronBack(electron, fromR, toR, baseAngle) {
+  const startTime = clock.getElapsedTime();
+  const ringRot = electron.userData.ringRotation;
+
+  const animate = () => {
+    const elapsed = clock.getElapsedTime() - startTime;
+    const t = Math.min(elapsed / 0.6, 1);
+
+    const r = fromR + (toR - fromR) * easeInOutCubic(t);
+    const angle = baseAngle + Math.PI + t * Math.PI;
+
+    electron.position.x = r * Math.cos(angle);
+    electron.position.y = r * Math.sin(angle) * Math.sin(ringRot.z);
+    electron.position.z = r * Math.sin(angle) * Math.cos(ringRot.y);
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      electron.userData.angle = angle;
+    }
+  };
+  animate();
+}
+
+function spawnPhotonBurst(radius) {
+  const photonCount = 8;
+  for (let i = 0; i < photonCount; i++) {
+    const geo = new THREE.SphereGeometry(0.06, 8, 8);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xFFFF8D,
+      transparent: true,
+      opacity: 1,
+    });
+    const photon = new THREE.Mesh(geo, mat);
+
+    const angle = (i / photonCount) * Math.PI * 2;
+    const elevation = (Math.random() - 0.5) * 0.5;
+    photon.position.set(
+      radius * Math.cos(angle),
+      radius * elevation,
+      radius * Math.sin(angle)
+    );
+
+    photon.userData.velocity = new THREE.Vector3(
+      Math.cos(angle) * 0.08,
+      elevation * 0.08,
+      Math.sin(angle) * 0.08
+    );
+    photon.userData.life = 1.0;
+
+    scene.add(photon);
+    photons.push(photon);
+  }
+}
+
+function updatePhotons() {
+  for (let i = photons.length - 1; i >= 0; i--) {
+    const p = photons[i];
+    p.position.add(p.userData.velocity);
+    p.userData.life -= 0.025;
+    p.material.opacity = p.userData.life;
+    p.scale.setScalar(1 + (1 - p.userData.life) * 2);
+
+    if (p.userData.life <= 0) {
+      scene.remove(p);
+      p.geometry.dispose();
+      p.material.dispose();
+      photons.splice(i, 1);
+    }
+  }
+}
+
+/* ============================================================
+   渲染循环
+   ============================================================ */
+function animate() {
+  requestAnimationFrame(animate);
+
+  const t = clock.getElapsedTime();
+  const dt = clock.getDelta();
+
+  // 入场动画
+  if (entranceProgress < 1) {
+    entranceProgress = Math.min(1, entranceProgress + dt * 0.8);
+  }
+
+  // 原子核脉动
+  if (nucleusGroup) {
+    nucleusPulseTime += dt;
+    const pulse = 1 + Math.sin(nucleusPulseTime * 2.5) * 0.02;
+    nucleusGroup.scale.setScalar(pulse);
+
+    // 核子微振动
+    nucleusGroup.children.forEach((child, i) => {
+      if (child.userData.basePos) {
+        const offset = Math.sin(t * 3 + i * 0.5) * 0.008;
+        child.position.x = child.userData.basePos.x + offset;
+        child.position.y = child.userData.basePos.y + Math.cos(t * 2.7 + i * 0.3) * 0.008;
+        child.position.z = child.userData.basePos.z + Math.sin(t * 3.3 + i * 0.7) * 0.008;
+      }
+    });
+
+    // 发光层更新
+    const glow = nucleusGroup.getObjectByName('nucleusGlow');
+    if (glow && glow.material.uniforms) {
+      glow.material.uniforms.uTime.value = t;
+      glow.material.uniforms.uIntensity.value = 0.3 + Math.sin(t * 1.5) * 0.1;
+    }
+
+    // 中心光源脉动
+    const nLight = scene.getObjectByName('nucleusLight');
+    if (nLight) {
+      nLight.intensity = 1.2 + Math.sin(t * 2.5) * 0.3;
+    }
+  }
+
+  // 电子云 Shader 更新
+  if (cloudMaterial) {
+    cloudMaterial.uniforms.uTime.value = t;
+    cloudMaterial.uniforms.uEntrance.value = entranceProgress;
+  }
+
+  // 电子云缓慢旋转
+  if (electronCloudGroup && isPlaying) {
+    electronCloudGroup.rotation.y += dt * 0.1;
+  }
+
+  // 玻尔轨道电子运动
+  if (orbitalGroup && orbitalGroup.visible && isPlaying) {
+    orbitalElectrons.forEach(electron => {
+      electron.userData.angle += dt * electron.userData.speed;
+      const angle = electron.userData.angle;
+      const r = electron.userData.radius;
+      const ringRot = electron.userData.ringRotation;
+
+      electron.position.x = r * Math.cos(angle);
+      electron.position.y = r * Math.sin(angle) * Math.sin(ringRot.z);
+      electron.position.z = r * Math.sin(angle) * Math.cos(ringRot.y);
+    });
+
+    // 轨道环微弱呼吸
+    orbitalRings.forEach((ring, i) => {
+      ring.material.opacity = 0.2 + Math.sin(t * 1.2 + i) * 0.1;
+    });
+  }
+
+  // 背景星尘缓慢旋转
+  if (bgStars) {
+    bgStars.rotation.y = t * 0.01;
+    bgStars.rotation.x = t * 0.005;
+  }
+
+  // 光子更新
+  updatePhotons();
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   工具函数
+   ============================================================ */
+function gaussianRandom() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v) * 0.3;
+}
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function disposeGroup(group) {
+  group.traverse(obj => {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+      else obj.material.dispose();
+    }
+  });
+}
+
+/* ============================================================
+   UI 交互
+   ============================================================ */
+
+// 构建元素选择网格
+function buildElementGrid() {
+  const grid = document.getElementById('elementGrid');
+  grid.innerHTML = '';
+
+  ELEMENTS.forEach(el => {
+    const cell = document.createElement('div');
+    cell.className = 'element-cell';
+    if (el.num === currentElement.num) cell.classList.add('active');
+    cell.dataset.num = el.num;
+    cell.innerHTML = `
+      <span class="el-num">${el.num}</span>
+      <span class="el-sym">${el.sym}</span>
+    `;
+    cell.addEventListener('click', () => selectElement(el));
+    grid.appendChild(cell);
+  });
+}
+
+// 选择元素
+function selectElement(element) {
+  currentElement = element;
+  currentNeutrons = element.neutrons;
+
+  // 更新选中状态
+  document.querySelectorAll('.element-cell').forEach(c => {
+    c.classList.toggle('active', parseInt(c.dataset.num) === element.num);
+  });
+
+  // 更新信息面板
+  updateInfoPanel();
+
+  // 更新同位素
+  updateIsotopeSection();
+
+  // 重建原子（带消散动画）
+  rebuildAtomWithAnimation();
+
+  showStatus(`已切换至 ${element.cn} (${element.sym})`);
+}
+
+// 更新信息面板
+function updateInfoPanel() {
+  const el = currentElement;
+  document.getElementById('elementName').textContent = `${el.cn} ${el.en}`;
+  document.getElementById('elementSubtitle').textContent = `Z=${el.num} · ${el.type} · 第${el.period}周期`;
+  document.getElementById('protonCount').textContent = el.protons;
+  document.getElementById('neutronCount').textContent = currentNeutrons;
+  document.getElementById('electronCount').textContent = el.protons;
+  document.getElementById('massNumber').textContent = (el.protons + currentNeutrons).toFixed(2);
+  document.getElementById('electronConfig').textContent = el.config.join(' · ');
+}
+
+// 更新同位素选择
+function updateIsotopeSection() {
+  const section = document.getElementById('isotopeSection');
+  const buttons = document.getElementById('isotopeButtons');
+
+  if (currentElement.isotopes) {
+    section.classList.remove('hidden');
+    buttons.innerHTML = '';
+    currentElement.isotopes.forEach((iso, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'isotope-btn';
+      if (iso.n === currentNeutrons) btn.classList.add('active');
+      btn.innerHTML = `${iso.label}<span class="iso-n">${iso.name} · ${iso.n}n</span>`;
+      btn.addEventListener('click', () => {
+        currentNeutrons = iso.n;
+        document.querySelectorAll('.isotope-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateInfoPanel();
+        rebuildAtomWithAnimation();
+        showStatus(`同位素：${iso.name} (${iso.label})`);
+      });
+      buttons.appendChild(btn);
+    });
+  } else {
+    section.classList.add('hidden');
+  }
+}
+
+// 重建原子（带动画）
+function rebuildAtomWithAnimation() {
+  entranceProgress = 0;
+  buildAtom();
+}
+
+// 模式切换
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    updateModeVisibility();
+    showStatus(currentMode === 'cloud' ? '电子云模式（量子力学）' : '玻尔轨道模式');
+  });
+});
+
+// 播放/暂停
+const playPauseBtn = document.getElementById('playPauseBtn');
+const playIcon = document.getElementById('playIcon');
+const pauseIcon = document.getElementById('pauseIcon');
+
+playPauseBtn.addEventListener('click', () => {
+  isPlaying = !isPlaying;
+  controls.autoRotate = isPlaying;
+  playPauseBtn.classList.toggle('active', isPlaying);
+  playIcon.style.display = isPlaying ? 'none' : 'block';
+  pauseIcon.style.display = isPlaying ? 'block' : 'none';
+});
+
+// 重置视角
+document.getElementById('resetViewBtn').addEventListener('click', () => {
+  camera.position.set(0, 2, 14);
+  controls.target.set(0, 0, 0);
+  controls.update();
+  isNucleusZoomed = false;
+  document.getElementById('nucleusZoomBtn').classList.remove('active');
+});
+
+// 能级跃迁
+document.getElementById('transitionBtn').addEventListener('click', () => {
+  triggerEnergyTransition();
+});
+
+// 原子核放大
+document.getElementById('nucleusZoomBtn').addEventListener('click', (e) => {
+  isNucleusZoomed = !isNucleusZoomed;
+  e.currentTarget.classList.toggle('active', isNucleusZoomed);
+
+  if (isNucleusZoomed) {
+    // 推近到原子核
+    animateCameraTo(0, 0, 3, 0, 0, 0);
+    showStatus('原子核放大 · 原子内部绝大部分是空的');
+  } else {
+    animateCameraTo(0, 2, 14, 0, 0, 0);
+    showStatus('正常比例');
+  }
+});
+
+// 全屏
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+});
+
+// 相机动画
+function animateCameraTo(x, y, z, tx, ty, tz) {
+  const startPos = camera.position.clone();
+  const endPos = new THREE.Vector3(x, y, z);
+  const startTarget = controls.target.clone();
+  const endTarget = new THREE.Vector3(tx, ty, tz);
+  const startTime = clock.getElapsedTime();
+
+  function step() {
+    const elapsed = clock.getElapsedTime() - startTime;
+    const t = Math.min(elapsed / 1.0, 1);
+    const eased = easeInOutCubic(t);
+
+    camera.position.lerpVectors(startPos, endPos, eased);
+    controls.target.lerpVectors(startTarget, endTarget, eased);
+    controls.update();
+
+    if (t < 1) requestAnimationFrame(step);
+  }
+  step();
+}
+
+// 状态提示
+let statusTimer = null;
+function showStatus(msg) {
+  const tag = document.getElementById('statusTag');
+  tag.textContent = msg;
+  tag.classList.add('active');
+  if (statusTimer) clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => {
+    tag.classList.remove('active');
+    tag.textContent = '就绪';
+  }, 2500);
+}
+
+// 跃迁提示
+function showTransitionFlash() {
+  const flash = document.getElementById('transitionFlash');
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 1200);
+}
+
+// 点击交互（Raycaster）
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  if (currentMode === 'orbital' && orbitalRings.length > 0) {
+    const intersects = raycaster.intersectObjects(orbitalRings);
+    if (intersects.length > 0) {
+      const ring = intersects[0].object;
+      const shell = ring.userData.shell;
+      const name = SHELL_NAMES[shell] || `第${shell + 1}层`;
+      const electronCount = currentElement.config[shell] || 0;
+      showStatus(`${name}电子层 · ${electronCount}个电子 · 半径${ring.userData.radius.toFixed(1)}`);
+
+      // 高亮闪烁
+      const originalOpacity = ring.material.opacity;
+      ring.material.opacity = 1;
+      ring.material.color.setHex(0x00FFFF);
+      setTimeout(() => {
+        ring.material.opacity = originalOpacity;
+        ring.material.color.setHex(0x00E5FF);
+      }, 500);
+    }
+  }
+});
+
+// 窗口自适应
+function onResize() {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+/* ============================================================
+   启动
+   ============================================================ */
+initScene();
+buildElementGrid();
+updateInfoPanel();
+updateIsotopeSection();
+animate();
+
+// 隐藏加载层
+setTimeout(() => {
+  document.getElementById('loadingOverlay').classList.add('hidden');
+}, 600);
+
+</script>
+
+</body>
+</html>

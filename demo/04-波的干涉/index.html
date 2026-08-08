@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>波的干涉与衍射模拟 · 教育可视化</title>
+<style>
+/* ==================== 设计令牌 ==================== */
+:root {
+  --bg: #0a0a0a;
+  --panel: rgba(30, 30, 30, 0.92);
+  --panel-solid: #141414;
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #8b5cf6;
+  --cyan: #06b6d4;
+  --green: #22c55e;
+  --blue: #2563eb;
+  --red: #dc2626;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ==================== 顶部栏 ==================== */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.mode-switch {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.mode-btn {
+  padding: 6px 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  white-space: nowrap;
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.35);
+}
+
+/* === 参数控制 === */
+.controls {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctrl-label {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.ctrl-value {
+  font-family: "SF Mono", "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+  min-width: 56px;
+  text-align: right;
+}
+
+input[type="range"] {
+  width: 100px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+}
+
+/* ==================== 主区域 ==================== */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.canvas-area {
+  flex: 1;
+  position: relative;
+  background: #000;
+  overflow: hidden;
+}
+
+#waveCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+/* === 画布叠加层 === */
+.overlay-hint {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  user-select: none;
+}
+
+.color-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  user-select: none;
+}
+
+.legend-bar {
+  width: 90px;
+  height: 8px;
+  background: linear-gradient(to right, #2563eb, #ffffff, #dc2626);
+  border-radius: 4px;
+}
+
+/* ==================== 右侧面板 ==================== */
+.sidebar {
+  width: 310px;
+  flex-shrink: 0;
+  background: var(--panel-solid);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 14px;
+  gap: 12px;
+}
+
+.sidebar::-webkit-scrollbar { width: 5px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+.panel-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.panel-card h3 {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 13px;
+}
+
+.data-row .key { color: var(--muted); }
+.data-row .val {
+  font-family: "SF Mono", monospace;
+  font-weight: 600;
+  color: var(--text);
+}
+.data-row .val.highlight { color: var(--cyan); }
+
+#intensityCanvas {
+  display: block;
+  width: 100%;
+  height: 130px;
+  background: #000;
+  border-radius: 6px;
+}
+
+.intensity-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.formula-block {
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.formula-block .flabel {
+  color: var(--muted);
+  font-size: 11px;
+  display: block;
+  margin-top: 6px;
+}
+.formula-block .flabel:first-child { margin-top: 0; }
+
+.formula-block .feq {
+  font-family: "SF Mono", "Times New Roman", serif;
+  color: var(--cyan);
+  font-size: 14px;
+}
+
+/* ==================== 底部控制 ==================== */
+.bottombar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 8px 20px;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.play-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 18px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.play-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.toggle:hover { color: var(--text); }
+
+.toggle input {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.toggle.checked { color: var(--text); }
+
+/* ==================== 响应式 ==================== */
+@media (max-width: 900px) {
+  .main { flex-direction: column; }
+  .sidebar { width: 100%; max-height: 38%; border-left: none; border-top: 1px solid var(--border); }
+  .controls { gap: 8px; }
+  input[type="range"] { width: 70px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 顶部：模式切换 + 参数控制 ============ -->
+<div class="topbar">
+  <div class="mode-switch">
+    <button class="mode-btn active" data-mode="double-slit">双缝干涉</button>
+    <button class="mode-btn" data-mode="single-slit">单缝衍射</button>
+  </div>
+  <div class="controls" id="controls"></div>
+</div>
+
+<!-- ============ 主体：波纹画布 + 侧栏 ============ -->
+<div class="main">
+  <div class="canvas-area">
+    <canvas id="waveCanvas"></canvas>
+    <div class="overlay-hint" id="overlayHint">拖拽绿色波源调整间距</div>
+    <div class="color-legend">
+      <span>波谷</span>
+      <div class="legend-bar"></div>
+      <span>波峰</span>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="panel-card">
+      <h3>实时数据</h3>
+      <div id="dataPanel"></div>
+    </div>
+    <div class="panel-card" id="intensityCard">
+      <h3>光强分布曲线</h3>
+      <canvas id="intensityCanvas"></canvas>
+      <div class="intensity-labels">
+        <span>屏上端</span>
+        <span>中心</span>
+        <span>屏下端</span>
+      </div>
+    </div>
+    <div class="panel-card">
+      <h3>物理公式</h3>
+      <div id="formulaPanel" class="formula-block"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 底部：播放控制 ============ -->
+<div class="bottombar">
+  <button class="play-btn" id="playBtn">⏸ 暂停</button>
+  <label class="toggle checked"><input type="checkbox" id="showWaves" checked> 波纹</label>
+  <label class="toggle checked"><input type="checkbox" id="showFringes" checked> 条纹</label>
+  <label class="toggle checked"><input type="checkbox" id="showIntensity" checked> 光强曲线</label>
+</div>
+
+<script>
+'use strict';
+
+/* ================================================================
+   全局状态
+   ================================================================ */
+const state = {
+  mode: 'double-slit',      // 当前模式
+  playing: true,             // 播放状态
+  time: 0,                   // 模拟时间
+  frequency: 1.5,            // 频率
+  wavelength: 40,            // 波长
+  sourceSpacing: 90,         // 波源间距（双缝）
+  slitWidth: 36,             // 缝宽（单缝）
+  amplitude: 1.0,            // 振幅
+  showWaves: true,           // 显示波纹
+  showFringes: true,         // 显示条纹
+  showIntensity: true,       // 显示光强曲线
+  draggingSource: -1,        // 正在拖拽的波源索引
+};
+
+/* ================================================================
+   DOM 元素
+   ================================================================ */
+const canvas = document.getElementById('waveCanvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: false });
+const intensityCanvas = document.getElementById('intensityCanvas');
+const iCtx = intensityCanvas.getContext('2d');
+
+// 离屏画布：低分辨率渲染波场再放大
+const offCanvas = document.createElement('canvas');
+const offCtx = offCanvas.getContext('2d');
+
+/* ================================================================
+   常量
+   ================================================================ */
+const STEP = 2;                  // 降采样步长（每 2px 采样）
+const BARRIER_RATIO = 0.18;      // 障碍位置占画布宽度比
+const SCREEN_RATIO = 0.93;       // 屏幕位置占画布宽度比
+const NUM_HUYGENS = 9;           // 单缝惠更斯源数量
+
+/* ================================================================
+   参数配置（按模式切换）
+   ================================================================ */
+const paramConfig = {
+  'double-slit': [
+    { key: 'frequency',     label: '频率 f',     min: 0.5, max: 5,   step: 0.1, unit: 'Hz' },
+    { key: 'wavelength',    label: '波长 λ',     min: 20,  max: 100, step: 1,   unit: 'px' },
+    { key: 'sourceSpacing', label: '波源间距 d', min: 30,  max: 220, step: 2,   unit: 'px' },
+  ],
+  'single-slit': [
+    { key: 'frequency',  label: '频率 f',  min: 0.5, max: 5,   step: 0.1, unit: 'Hz' },
+    { key: 'wavelength', label: '波长 λ',  min: 20,  max: 100, step: 1,   unit: 'px' },
+    { key: 'slitWidth',  label: '缝宽 a',  min: 12,  max: 120, step: 1,   unit: 'px' },
+  ],
+};
+
+/* ================================================================
+   辅助：几何位置
+   ================================================================ */
+function barrierX() { return canvas.width * BARRIER_RATIO; }
+function screenX()  { return canvas.width * SCREEN_RATIO; }
+function centerY()  { return canvas.height / 2; }
+
+/* ================================================================
+   获取当前模式下的波源坐标数组
+   ================================================================ */
+function getSources() {
+  const bx = barrierX();
+  const cy = centerY();
+  const srcs = [];
+  if (state.mode === 'double-slit') {
+    const half = state.sourceSpacing / 2;
+    srcs.push({ x: bx, y: cy - half });
+    srcs.push({ x: bx, y: cy + half });
+  } else {
+    const half = state.slitWidth / 2;
+    for (let i = 0; i < NUM_HUYGENS; i++) {
+      srcs.push({
+        x: bx,
+        y: cy - half + (i / (NUM_HUYGENS - 1)) * state.slitWidth
+      });
+    }
+  }
+  return srcs;
+}
+
+/* ================================================================
+   颜色映射：振幅 → RGB
+   蓝(#2563eb) → 白(#ffffff) → 红(#dc2626)
+   ================================================================ */
+function ampToRGB(amp) {
+  // 输入 amp 已归一化到 [-1, 1]
+  const t = amp > 1 ? 1 : (amp < -1 ? -1 : amp);
+  if (t >= 0) {
+    // 白 → 红
+    const k = t;
+    return [
+      (255 + (220 - 255) * k) | 0,
+      (255 + (38  - 255) * k) | 0,
+      (255 + (38  - 255) * k) | 0,
+    ];
+  } else {
+    // 白 → 蓝
+    const k = -t;
+    return [
+      (255 + (37  - 255) * k) | 0,
+      (255 + (99  - 255) * k) | 0,
+      (255 + (235 - 255) * k) | 0,
+    ];
+  }
+}
+
+/* ================================================================
+   核心渲染：波场（ImageData 像素级操作 + 降采样）
+   ================================================================ */
+let imgDataCache = null;
+
+function renderWaveField() {
+  const w = canvas.width;
+  const h = canvas.height;
+  const cols = Math.ceil(w / STEP);
+  const rows = Math.ceil(h / STEP);
+
+  // 调整离屏画布尺寸
+  if (offCanvas.width !== cols || offCanvas.height !== rows) {
+    offCanvas.width = cols;
+    offCanvas.height = rows;
+    imgDataCache = null; // 尺寸变化时重置缓存
+  }
+
+  if (!imgDataCache || imgDataCache.width !== cols || imgDataCache.height !== rows) {
+    imgDataCache = offCtx.createImageData(cols, rows);
+  }
+  const data = imgDataCache.data;
+
+  // 物理参数
+  const k = (2 * Math.PI) / state.wavelength;    // 波数
+  const omega = 2 * Math.PI * state.frequency;    // 角频率
+  const t = state.time;
+  const bx = barrierX();
+  const cy = h / 2;
+
+  // 预提取波源坐标到平坦数组（减少循环内对象访问）
+  const srcs = getSources();
+  const n = srcs.length;
+  const sxA = new Float32Array(n);
+  const syA = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    sxA[i] = srcs[i].x;
+    syA[i] = srcs[i].y;
+  }
+
+  // 归一化系数与增益
+  const invN = 1 / n;
+  const gain = state.mode === 'double-slit' ? 1.3 : 1.6;
+
+  // 主循环：逐像素计算波幅
+  for (let row = 0; row < rows; row++) {
+    const y = row * STEP;
+    const rowBase = row * cols;
+    for (let col = 0; col < cols; col++) {
+      const x = col * STEP;
+      let amp;
+
+      if (x < bx) {
+        // 障碍左侧：平面波
+        amp = Math.sin(k * x - omega * t);
+      } else {
+        // 障碍右侧：球面波叠加
+        let sum = 0;
+        for (let i = 0; i < n; i++) {
+          const dx = x - sxA[i];
+          const dy = y - syA[i];
+          const r = Math.sqrt(dx * dx + dy * dy);
+          if (r < 1) continue;
+          // 2D 柱面波衰减：1/√r（加偏移避免奇点）
+          const att = 1 / Math.sqrt(r * 0.012 + 1);
+          sum += att * Math.sin(k * r - omega * t);
+        }
+        amp = sum * invN * gain;
+      }
+
+      // 颜色映射并写入 ImageData
+      const rgb = ampToRGB(amp);
+      const idx = (rowBase + col) * 4;
+      data[idx]     = rgb[0];
+      data[idx + 1] = rgb[1];
+      data[idx + 2] = rgb[2];
+      data[idx + 3] = 255;
+    }
+  }
+
+  // 输出到离屏画布后放大绘制到主画布
+  offCtx.putImageData(imgDataCache, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(offCanvas, 0, 0, w, h);
+}
+
+/* ================================================================
+   覆盖层：障碍、波源、屏幕、标签
+   ================================================================ */
+function drawOverlay() {
+  const w = canvas.width;
+  const h = canvas.height;
+  const bx = barrierX();
+  const sx = screenX();
+  const cy = centerY();
+  const slitH = 16; // 缝的视觉高度（双缝模式）
+
+  // --- 障碍（灰色挡板） ---
+  ctx.fillStyle = 'rgba(180, 180, 190, 0.55)';
+  ctx.fillRect(bx - 3, 0, 6, h);
+
+  // 挖出缝
+  if (state.mode === 'double-slit') {
+    const s1y = cy - state.sourceSpacing / 2;
+    const s2y = cy + state.sourceSpacing / 2;
+    ctx.clearRect(bx - 4, s1y - slitH / 2, 8, slitH);
+    ctx.clearRect(bx - 4, s2y - slitH / 2, 8, slitH);
+  } else {
+    ctx.clearRect(bx - 4, cy - state.slitWidth / 2, 8, state.slitWidth);
+  }
+
+  // --- 屏幕条纹 ---
+  if (state.showFringes) {
+    drawScreenPattern();
+  }
+
+  // --- 波源标记（绿色脉冲） ---
+  if (state.mode === 'double-slit') {
+    const pulse = 0.5 + 0.5 * Math.sin(state.time * 2 * Math.PI * state.frequency);
+    const s1y = cy - state.sourceSpacing / 2;
+    const s2y = cy + state.sourceSpacing / 2;
+    drawSourceMarker(bx, s1y, pulse);
+    drawSourceMarker(bx, s2y, pulse);
+  }
+
+  // --- 文字标签 ---
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillText('← 平面波', 8, 18);
+  ctx.fillText('缝', bx - 6, 16);
+  ctx.fillText('屏', sx + 2, 16);
+}
+
+function drawSourceMarker(x, y, pulse) {
+  // 外圈光晕
+  ctx.strokeStyle = `rgba(34, 197, 94, ${0.15 + 0.15 * pulse})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(x, y, 12, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 实心圆
+  ctx.fillStyle = `rgba(34, 197, 94, ${0.7 + 0.3 * pulse})`;
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/* ================================================================
+   屏幕条纹：计算远场光强并绘制亮纹/暗纹
+   ================================================================ */
+function computeScreenIntensity() {
+  const h = canvas.height;
+  const sx = screenX();
+  const k = (2 * Math.PI) / state.wavelength;
+  const srcs = getSources();
+  const n = srcs.length;
+
+  const intensities = new Float32Array(h);
+  let maxI = 0;
+
+  for (let y = 0; y < h; y++) {
+    let real = 0, imag = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = sx - srcs[i].x;
+      const dy = y - srcs[i].y;
+      const r = Math.sqrt(dx * dx + dy * dy);
+      const phase = k * r;
+      real += Math.cos(phase);
+      imag += Math.sin(phase);
+    }
+    const I = real * real + imag * imag;
+    intensities[y] = I;
+    if (I > maxI) maxI = I;
+  }
+
+  // 归一化
+  if (maxI > 0) {
+    for (let i = 0; i < h; i++) intensities[i] /= maxI;
+  }
+  return intensities;
+}
+
+function drawScreenPattern() {
+  const h = canvas.height;
+  const sx = screenX();
+  const intensities = computeScreenIntensity();
+  const barW = 14;
+
+  for (let y = 0; y < h; y++) {
+    const I = intensities[y];
+    // 亮纹用黄白色，暗纹用深色
+    const r = (255 * I + 12 * (1 - I)) | 0;
+    const g = (245 * I + 12 * (1 - I)) | 0;
+    const b = (170 * I + 12 * (1 - I)) | 0;
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(sx, y, barW, 1);
+  }
+
+  // 屏幕边框
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(sx, 0, barW, h);
+}
+
+/* ================================================================
+   光强分布曲线（右侧面板）
+   ================================================================ */
+function renderIntensityCurve() {
+  const w = intensityCanvas.width;
+  const h = intensityCanvas.height;
+  iCtx.clearRect(0, 0, w, h);
+
+  // 网格
+  iCtx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+  iCtx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    const gy = (h * i) / 4;
+    iCtx.beginPath();
+    iCtx.moveTo(0, gy);
+    iCtx.lineTo(w, gy);
+    iCtx.stroke();
+  }
+  // 中线
+  iCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  iCtx.beginPath();
+  iCtx.moveTo(w / 2, 0);
+  iCtx.lineTo(w / 2, h);
+  iCtx.stroke();
+
+  // 计算屏幕光强
+  const intensities = computeScreenIntensity();
+  const canvasH = canvas.height;
+
+  // 映射到曲线画布：x 轴对应屏上位置
+  const points = new Float32Array(w);
+  for (let px = 0; px < w; px++) {
+    const srcY = (px / w) * canvasH;
+    const y0 = srcY | 0;
+    const y1 = Math.min(y0 + 1, canvasH - 1);
+    const frac = srcY - y0;
+    // 线性插值
+    points[px] = intensities[y0] * (1 - frac) + intensities[y1] * frac;
+  }
+
+  // 填充区域
+  iCtx.beginPath();
+  iCtx.moveTo(0, h);
+  for (let px = 0; px < w; px++) {
+    const py = h - points[px] * (h * 0.85) - h * 0.08;
+    iCtx.lineTo(px, py);
+  }
+  iCtx.lineTo(w, h);
+  iCtx.closePath();
+  iCtx.fillStyle = 'rgba(6, 182, 212, 0.12)';
+  iCtx.fill();
+
+  // 曲线
+  iCtx.beginPath();
+  for (let px = 0; px < w; px++) {
+    const py = h - points[px] * (h * 0.85) - h * 0.08;
+    if (px === 0) iCtx.moveTo(px, py);
+    else iCtx.lineTo(px, py);
+  }
+  iCtx.strokeStyle = '#06b6d4';
+  iCtx.lineWidth = 1.5;
+  iCtx.stroke();
+}
+
+/* ================================================================
+   数据面板更新
+   ================================================================ */
+function updateDataPanel() {
+  const panel = document.getElementById('dataPanel');
+  const v = state.wavelength * state.frequency;
+  const L = screenX() - barrierX();
+
+  let html = `
+    <div class="data-row"><span class="key">波长 λ</span><span class="val">${state.wavelength.toFixed(0)} px</span></div>
+    <div class="data-row"><span class="key">频率 f</span><span class="val">${state.frequency.toFixed(1)} Hz</span></div>
+    <div class="data-row"><span class="key">波速 v = fλ</span><span class="val">${v.toFixed(1)} px/s</span></div>
+  `;
+
+  if (state.mode === 'double-slit') {
+    const d = state.sourceSpacing;
+    const fringeSpacing = (d > 0) ? (state.wavelength * L / d) : 0;
+    html += `
+      <div class="data-row"><span class="key">波源间距 d</span><span class="val">${d.toFixed(0)} px</span></div>
+      <div class="data-row"><span class="key">屏距 L</span><span class="val">${L.toFixed(0)} px</span></div>
+      <div class="data-row"><span class="key">条纹间距 Δy</span><span class="val highlight">${fringeSpacing.toFixed(1)} px</span></div>
+    `;
+  } else {
+    const a = state.slitWidth;
+    const centralWidth = (a > 0) ? (2 * state.wavelength * L / a) : 0;
+    html += `
+      <div class="data-row"><span class="key">缝宽 a</span><span class="val">${a.toFixed(0)} px</span></div>
+      <div class="data-row"><span class="key">屏距 L</span><span class="val">${L.toFixed(0)} px</span></div>
+      <div class="data-row"><span class="key">中央亮纹宽度</span><span class="val highlight">${centralWidth.toFixed(1)} px</span></div>
+    `;
+  }
+
+  panel.innerHTML = html;
+}
+
+/* ================================================================
+   公式面板
+   ================================================================ */
+function updateFormulaPanel() {
+  const panel = document.getElementById('formulaPanel');
+  if (state.mode === 'double-slit') {
+    panel.innerHTML = `
+      <span class="flabel">波动方程</span>
+      <span class="feq">y = A·sin(k·r − ω·t)</span>
+      <span class="flabel">双源叠加</span>
+      <span class="feq">y<sub>总</sub> = y₁ + y₂</span>
+      <span class="flabel">光强</span>
+      <span class="feq">I = |y<sub>总</sub>|²</span>
+      <span class="flabel">亮纹条件</span>
+      <span class="feq">d·sin(θ) = m·λ</span>
+      <span class="flabel">条纹间距</span>
+      <span class="feq">Δy = λL / d</span>
+    `;
+  } else {
+    panel.innerHTML = `
+      <span class="flabel">惠更斯原理</span>
+      <span class="feq">缝上每点均为新波源</span>
+      <span class="flabel">光强分布</span>
+      <span class="feq">I = I₀·(sin β / β)²</span>
+      <span class="flabel">参数 β</span>
+      <span class="feq">β = πa·sin(θ) / λ</span>
+      <span class="flabel">暗纹条件</span>
+      <span class="feq">a·sin(θ) = m·λ</span>
+      <span class="flabel">中央亮纹宽度</span>
+      <span class="feq">w = 2λL / a</span>
+    `;
+  }
+}
+
+/* ================================================================
+   构建参数控制滑块
+   ================================================================ */
+function buildControls() {
+  const container = document.getElementById('controls');
+  container.innerHTML = '';
+  for (const p of paramConfig[state.mode]) {
+    const group = document.createElement('div');
+    group.className = 'ctrl-group';
+    group.innerHTML = `
+      <span class="ctrl-label">${p.label}</span>
+      <input type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${state[p.key]}" data-key="${p.key}">
+      <span class="ctrl-value" id="val-${p.key}">${state[p.key].toFixed(p.step < 1 ? 1 : 0)} ${p.unit}</span>
+    `;
+    container.appendChild(group);
+    const slider = group.querySelector('input');
+    slider.addEventListener('input', (e) => {
+      state[p.key] = parseFloat(e.target.value);
+      document.getElementById(`val-${p.key}`).textContent =
+        state[p.key].toFixed(p.step < 1 ? 1 : 0) + ' ' + p.unit;
+      updateDataPanel();
+    });
+  }
+}
+
+/* ================================================================
+   同步滑块值（拖拽波源时更新 UI）
+   ================================================================ */
+function syncSlider(key, value) {
+  const slider = document.querySelector(`[data-key="${key}"]`);
+  if (slider) slider.value = value;
+  const valEl = document.getElementById(`val-${key}`);
+  if (valEl) {
+    const p = paramConfig[state.mode].find(p => p.key === key);
+    if (p) valEl.textContent = value.toFixed(p.step < 1 ? 1 : 0) + ' ' + p.unit;
+  }
+}
+
+/* ================================================================
+   动画主循环
+   ================================================================ */
+let lastTime = performance.now();
+
+function animate(now) {
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+
+  if (state.playing) {
+    state.time += Math.min(dt, 0.05);
+  }
+
+  // 清屏
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 渲染波场
+  if (state.showWaves) {
+    renderWaveField();
+  }
+
+  // 覆盖层
+  drawOverlay();
+
+  // 光强曲线
+  if (state.showIntensity) {
+    renderIntensityCurve();
+  }
+
+  requestAnimationFrame(animate);
+}
+
+/* ================================================================
+   交互：拖拽波源（仅双缝模式）
+   ================================================================ */
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) * (canvas.width / rect.width),
+    y: (e.clientY - rect.top) * (canvas.height / rect.height),
+  };
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  if (state.mode !== 'double-slit') return;
+  const { x: mx, y: my } = getMousePos(e);
+  const bx = barrierX();
+  const cy = centerY();
+  const s1y = cy - state.sourceSpacing / 2;
+  const s2y = cy + state.sourceSpacing / 2;
+
+  if (Math.hypot(mx - bx, my - s1y) < 18) {
+    state.draggingSource = 0;
+    canvas.style.cursor = 'grabbing';
+  } else if (Math.hypot(mx - bx, my - s2y) < 18) {
+    state.draggingSource = 1;
+    canvas.style.cursor = 'grabbing';
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const { x: mx, y: my } = getMousePos(e);
+
+  // 悬停检测：改变光标
+  if (state.draggingSource < 0 && state.mode === 'double-slit') {
+    const bx = barrierX();
+    const cy = centerY();
+    const s1y = cy - state.sourceSpacing / 2;
+    const s2y = cy + state.sourceSpacing / 2;
+    const near = Math.hypot(mx - bx, my - s1y) < 18 ||
+                 Math.hypot(mx - bx, my - s2y) < 18;
+    canvas.style.cursor = near ? 'grab' : 'crosshair';
+    return;
+  }
+
+  if (state.draggingSource < 0) return;
+
+  // 拖拽：根据鼠标位置更新波源间距
+  const cy = centerY();
+  const halfDist = Math.abs(my - cy);
+  const newSpacing = Math.max(30, Math.min(220, halfDist * 2));
+  state.sourceSpacing = newSpacing;
+  syncSlider('sourceSpacing', newSpacing);
+  updateDataPanel();
+});
+
+canvas.addEventListener('mouseup', () => {
+  state.draggingSource = -1;
+  canvas.style.cursor = 'crosshair';
+});
+
+canvas.addEventListener('mouseleave', () => {
+  state.draggingSource = -1;
+  canvas.style.cursor = 'crosshair';
+});
+
+// 触摸支持
+canvas.addEventListener('touchstart', (e) => {
+  if (state.mode !== 'double-slit') return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const mx = (touch.clientX - rect.left) * (canvas.width / rect.width);
+  const my = (touch.clientY - rect.top) * (canvas.height / rect.height);
+  const bx = barrierX();
+  const cy = centerY();
+  const s1y = cy - state.sourceSpacing / 2;
+  const s2y = cy + state.sourceSpacing / 2;
+  if (Math.hypot(mx - bx, my - s1y) < 25) state.draggingSource = 0;
+  else if (Math.hypot(mx - bx, my - s2y) < 25) state.draggingSource = 1;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  if (state.draggingSource < 0) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const my = (touch.clientY - rect.top) * (canvas.height / rect.height);
+  const cy = centerY();
+  const halfDist = Math.abs(my - cy);
+  const newSpacing = Math.max(30, Math.min(220, halfDist * 2));
+  state.sourceSpacing = newSpacing;
+  syncSlider('sourceSpacing', newSpacing);
+  updateDataPanel();
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => { state.draggingSource = -1; });
+
+/* ================================================================
+   事件绑定
+   ================================================================ */
+// 模式切换
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.mode;
+    // 更新提示文字
+    document.getElementById('overlayHint').style.display =
+      state.mode === 'double-slit' ? '' : 'none';
+    buildControls();
+    updateDataPanel();
+    updateFormulaPanel();
+  });
+});
+
+// 播放/暂停
+document.getElementById('playBtn').addEventListener('click', () => {
+  state.playing = !state.playing;
+  document.getElementById('playBtn').textContent =
+    state.playing ? '⏸ 暂停' : '▶ 播放';
+});
+
+// 显示/隐藏切换
+function bindToggle(id, key, target) {
+  const el = document.getElementById(id);
+  const label = el.closest('.toggle');
+  el.addEventListener('change', () => {
+    state[key] = el.checked;
+    label.classList.toggle('checked', el.checked);
+    if (target) target.style.display = el.checked ? '' : 'none';
+  });
+}
+
+bindToggle('showWaves', 'showWaves');
+bindToggle('showFringes', 'showFringes');
+bindToggle('showIntensity', 'showIntensity', document.getElementById('intensityCard'));
+
+/* ================================================================
+   尺寸调整
+   ================================================================ */
+function resize() {
+  const area = canvas.parentElement;
+  canvas.width = area.clientWidth;
+  canvas.height = area.clientHeight;
+  intensityCanvas.width = intensityCanvas.parentElement.clientWidth - 28;
+  intensityCanvas.height = 130;
+  imgDataCache = null; // 尺寸变化时重建
+  updateDataPanel();
+}
+
+window.addEventListener('resize', resize);
+
+/* ================================================================
+   初始化
+   ================================================================ */
+resize();
+buildControls();
+updateDataPanel();
+updateFormulaPanel();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

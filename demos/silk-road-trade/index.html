@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>丝绸之路贸易路线 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+/* ============================================
+   丝绸之路 · 主题样式
+   ============================================ */
+
+:root {
+  --sr-parchment: #F0E6D3;
+  --sr-parchment-dark: #E5D9C0;
+  --sr-parchment-light: #F7F0E0;
+  --sr-gold: #D4A574;
+  --sr-brown: #8B6914;
+  --sr-brown-light: #A67C2A;
+  --sr-red: #B8332B;
+  --sr-red-soft: rgba(184, 51, 43, 0.12);
+  --sr-blue: #2A52BE;
+  --sr-green: #2E8B57;
+  --sr-text: #3a2f1f;
+  --sr-text-muted: #7a6f5f;
+}
+
+/* ---------- 加载屏 ---------- */
+.sr-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: linear-gradient(135deg, #F0E6D3 0%, #E5D9C0 50%, #DBCDB0 100%);
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+.sr-loading.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+.sr-loading-inner {
+  text-align: center;
+}
+.sr-loading-caravan {
+  width: 180px;
+  height: 60px;
+  margin: 0 auto 24px;
+  position: relative;
+}
+.sr-loading-caravan svg {
+  width: 100%;
+  height: 100%;
+}
+.sr-camel {
+  animation: sr-camel-walk 0.8s ease-in-out infinite alternate;
+}
+.sr-camel:nth-child(2) { animation-delay: 0.15s; }
+.sr-camel:nth-child(3) { animation-delay: 0.3s; }
+@keyframes sr-camel-walk {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-2px); }
+}
+.sr-loading-title {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--sr-brown);
+  letter-spacing: 0.15em;
+  margin-bottom: 8px;
+}
+.sr-loading-sub {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: var(--sr-text-muted);
+  letter-spacing: 0.3em;
+  margin-bottom: 32px;
+}
+.sr-loading-bar {
+  width: 160px;
+  height: 2px;
+  background: rgba(139, 105, 20, 0.15);
+  border-radius: 1px;
+  overflow: hidden;
+  margin: 0 auto;
+}
+.sr-loading-bar-fill {
+  height: 100%;
+  width: 40%;
+  background: var(--sr-brown);
+  border-radius: 1px;
+  animation: sr-bar-slide 1.2s ease-in-out infinite;
+}
+@keyframes sr-bar-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* ---------- 主体框架覆盖 ---------- */
+.framework-narrative {
+  background: var(--sr-parchment);
+}
+
+/* ---------- 导航栏覆盖 ---------- */
+.demo-navbar {
+  background-color: rgba(240, 230, 211, 0.88);
+}
+.demo-navbar.scrolled {
+  background-color: rgba(240, 230, 211, 0.95);
+}
+
+/* ---------- 地图区域 ---------- */
+.narrative-map-area {
+  background: var(--sr-parchment);
+  border-right: 1px solid var(--sr-parchment-dark);
+  position: relative;
+}
+
+/* 地图容器 */
+#map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* 瓦片滤镜：羊皮纸暖调 */
+.leaflet-tile-pane {
+  filter: sepia(0.28) saturate(0.55) brightness(1.12) hue-rotate(-8deg) contrast(0.92);
+}
+.leaflet-container {
+  background: var(--sr-parchment);
+  font-family: var(--font-sans);
+}
+
+/* 地图控件 */
+.leaflet-control-attribution {
+  background: rgba(240, 230, 211, 0.7) !important;
+  color: var(--sr-text-muted) !important;
+  font-size: 9px !important;
+  padding: 2px 6px !important;
+  border-radius: 3px;
+}
+.leaflet-control-attribution a {
+  color: var(--sr-brown) !important;
+}
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 12px rgba(58, 47, 31, 0.12) !important;
+}
+.leaflet-control-zoom a {
+  background: rgba(247, 240, 224, 0.95) !important;
+  color: var(--sr-brown) !important;
+  border-color: var(--sr-parchment-dark) !important;
+  font-weight: 600;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--sr-parchment-light) !important;
+}
+
+/* ---------- 羊皮纸纹理叠加 ---------- */
+.narrative-map-area::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(212, 165, 116, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(139, 105, 20, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 400;
+  mix-blend-mode: multiply;
+}
+
+/* ---------- 路线样式 ---------- */
+.silk-route {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity 0.4s ease;
+}
+.silk-route-north {
+  stroke: var(--sr-green);
+  stroke-width: 2.5;
+  stroke-dasharray: 10 7;
+  animation: sr-dash-flow 1.5s linear infinite;
+  opacity: 0.7;
+}
+.silk-route-south {
+  stroke: var(--sr-blue);
+  stroke-width: 2.5;
+  stroke-dasharray: 10 7;
+  animation: sr-dash-flow 1.5s linear infinite;
+  opacity: 0.7;
+}
+.silk-route-central {
+  stroke: var(--sr-gold);
+  stroke-width: 2.5;
+  stroke-dasharray: 10 7;
+  animation: sr-dash-flow 1.5s linear infinite;
+  opacity: 0.7;
+}
+.silk-route.dimmed {
+  opacity: 0.15;
+}
+@keyframes sr-dash-flow {
+  to { stroke-dashoffset: -17; }
+}
+
+/* 路线辉光底层 */
+.silk-route-glow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.15;
+  filter: blur(4px);
+}
+.silk-route-glow-north { stroke: var(--sr-green); stroke-width: 6; }
+.silk-route-glow-south { stroke: var(--sr-blue); stroke-width: 6; }
+.silk-route-glow-central { stroke: var(--sr-gold); stroke-width: 6; }
+
+/* ---------- 城市标记 ---------- */
+.sr-city-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.sr-city-icon {
+  width: 14px;
+  height: 14px;
+  filter: drop-shadow(0 1px 2px rgba(58, 47, 31, 0.3));
+}
+.sr-city-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.sr-city-label {
+  font-family: var(--font-serif);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--sr-text);
+  background: rgba(247, 240, 224, 0.85);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-top: 2px;
+  white-space: nowrap;
+  border: 1px solid rgba(212, 165, 116, 0.3);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- 事件标记 ---------- */
+.sr-event-marker {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.sr-event-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--sr-red);
+  border: 2px solid #fff;
+  box-shadow: 0 0 8px rgba(184, 51, 43, 0.5);
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+.sr-event-marker.passed .sr-event-core {
+  background: var(--sr-brown);
+  box-shadow: 0 0 4px rgba(139, 105, 20, 0.3);
+  width: 8px;
+  height: 8px;
+}
+.sr-event-marker.future .sr-event-core {
+  background: var(--sr-parchment-dark);
+  border-color: var(--sr-gold);
+  width: 8px;
+  height: 8px;
+  box-shadow: none;
+}
+.sr-event-marker.active .sr-event-core {
+  width: 14px;
+  height: 14px;
+  background: var(--sr-red);
+  box-shadow: 0 0 16px rgba(184, 51, 43, 0.7);
+}
+.sr-event-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(184, 51, 43, 0.3);
+  z-index: 1;
+}
+.sr-event-marker.active .sr-event-pulse {
+  animation: sr-pulse 2s ease-out infinite;
+}
+@keyframes sr-pulse {
+  0% { width: 14px; height: 14px; opacity: 0.5; }
+  100% { width: 48px; height: 48px; opacity: 0; }
+}
+.sr-event-label {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--sr-red);
+  background: rgba(247, 240, 224, 0.9);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid rgba(184, 51, 43, 0.2);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sr-event-marker.active .sr-event-label {
+  opacity: 1;
+}
+
+/* ---------- 罗盘装饰 ---------- */
+.sr-compass {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  width: 70px;
+  height: 70px;
+  z-index: 500;
+  pointer-events: none;
+  opacity: 0.5;
+}
+.sr-compass svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- 路线切换按钮 ---------- */
+.sr-route-toggles {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(247, 240, 224, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--sr-parchment-dark);
+  border-radius: var(--radius-card);
+  padding: 10px 12px;
+  box-shadow: var(--shadow-soft);
+}
+.sr-route-toggle-title {
+  font-family: var(--font-serif);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sr-text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.sr-route-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-family: var(--font-sans);
+  color: var(--sr-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.sr-route-btn:hover {
+  background: rgba(212, 165, 116, 0.1);
+}
+.sr-route-btn.active {
+  background: rgba(212, 165, 116, 0.15);
+  border-color: rgba(212, 165, 116, 0.3);
+  color: var(--sr-text);
+  font-weight: 600;
+}
+.sr-route-btn.inactive {
+  opacity: 0.4;
+}
+.sr-route-dot {
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.sr-route-dot-north { background: var(--sr-green); }
+.sr-route-dot-south { background: var(--sr-blue); }
+.sr-route-dot-central { background: var(--sr-gold); }
+
+/* ---------- 信息卡片覆盖 ---------- */
+.narrative-info-card {
+  background-color: rgba(247, 240, 224, 0.96);
+  border-color: var(--sr-gold);
+  border-left: 3px solid var(--sr-red);
+}
+.narrative-info-year {
+  color: var(--sr-red);
+  font-size: 24px;
+}
+.sr-info-era {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--sr-brown);
+  background: rgba(212, 165, 116, 0.15);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.narrative-info-desc {
+  color: var(--sr-text);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* ---------- 时间轴面板覆盖 ---------- */
+.narrative-timeline-panel {
+  background-color: rgba(247, 240, 224, 0.6);
+}
+
+.narrative-timeline-header {
+  border-bottom-color: var(--sr-parchment-dark);
+  background: rgba(240, 230, 211, 0.5);
+}
+.narrative-timeline-title {
+  color: var(--sr-text);
+  font-size: 18px;
+}
+.narrative-timeline-subtitle {
+  color: var(--sr-text-muted);
+}
+
+/* 时间轴竖线 */
+.narrative-timeline-list::before {
+  background: var(--sr-parchment-dark);
+}
+
+/* 时代标签 */
+.sr-era-label {
+  font-family: var(--font-serif);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sr-brown);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 10px 0 4px;
+  position: relative;
+  margin-left: 32px;
+}
+.sr-era-label::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 16px;
+  width: 8px;
+  height: 1px;
+  background: var(--sr-gold);
+}
+.sr-era-label::after {
+  content: '';
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, var(--sr-gold) 0%, transparent 100%);
+  margin-top: 4px;
+  opacity: 0.4;
+}
+
+/* 事件项 */
+.timeline-event-dot {
+  border-color: var(--sr-parchment-dark);
+}
+.timeline-event:hover .timeline-event-dot {
+  border-color: var(--sr-gold);
+}
+.timeline-event.active .timeline-event-dot {
+  background: var(--sr-red);
+  border-color: var(--sr-red);
+  box-shadow: 0 0 0 4px rgba(184, 51, 43, 0.15);
+}
+.timeline-event.passed .timeline-event-dot {
+  background: var(--sr-brown);
+  border-color: var(--sr-brown);
+  opacity: 0.5;
+}
+.timeline-event.active .timeline-event-year {
+  color: var(--sr-red);
+}
+.timeline-event.active .timeline-event-title {
+  color: var(--sr-red);
+}
+.timeline-event-year {
+  color: var(--sr-text-muted);
+}
+.timeline-event-title {
+  color: var(--sr-text);
+}
+.timeline-event-desc {
+  color: var(--sr-text-muted);
+  line-height: 1.6;
+}
+
+/* 播放控件 */
+.narrative-play-btn {
+  background-color: var(--sr-red);
+}
+.narrative-play-btn:hover {
+  background-color: #9e2b24;
+}
+.narrative-progress-bar {
+  background: var(--sr-red);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1024px) {
+  .framework-narrative .narrative-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 58% 42%;
+  }
+  .narrative-map-area {
+    border-right: none;
+    border-bottom: 1px solid var(--sr-parchment-dark);
+  }
+  .sr-route-toggles {
+    top: 10px;
+    right: 10px;
+    padding: 6px 8px;
+  }
+  .sr-route-btn {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  .sr-compass {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .narrative-info-card {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    bottom: 12px;
+    padding: 14px 16px;
+  }
+  .narrative-info-year {
+    font-size: 20px;
+  }
+  .narrative-info-title {
+    font-size: 16px;
+  }
+  .narrative-info-desc {
+    font-size: 11px;
+  }
+  .sr-route-toggles {
+    flex-direction: row;
+    padding: 6px 8px;
+  }
+  .sr-route-toggle-title {
+    display: none;
+  }
+}
+
+/* ---------- 滚动条 ---------- */
+.narrative-timeline-list::-webkit-scrollbar {
+  width: 4px;
+}
+.narrative-timeline-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.narrative-timeline-list::-webkit-scrollbar-thumb {
+  background: var(--sr-parchment-dark);
+  border-radius: 2px;
+}
+</style>
+</head>
+<body>
+
+<!-- ====== 加载屏 ====== -->
+<div class="sr-loading" id="srLoading">
+  <div class="sr-loading-inner">
+    <div class="sr-loading-caravan">
+      <svg viewBox="0 0 180 60">
+        <!-- 沙丘 -->
+        <path d="M0,48 Q45,38 90,45 T180,42 L180,60 L0,60 Z" fill="#D4A574" opacity="0.25"/>
+        <path d="M0,52 Q30,45 60,50 T120,49 T180,50 L180,60 L0,60 Z" fill="#D4A574" opacity="0.4"/>
+        <!-- 骆驼1 -->
+        <g class="sr-camel">
+          <path d="M30,42 Q32,36 34,39 L36,35 L38,39 Q40,36 42,41 L44,43 L42,46 L40,45 L38,47 L36,45 L34,47 L32,45 L30,43 Z M33,46 L33,50 M39,46 L39,50" fill="none" stroke="#8B6914" stroke-width="1.5" stroke-linecap="round"/>
+        </g>
+        <!-- 骆驼2 -->
+        <g class="sr-camel">
+          <path d="M70,44 Q72,38 74,41 L76,37 L78,41 Q80,38 82,43 L84,45 L82,48 L80,47 L78,49 L76,47 L74,49 L72,47 L70,45 Z M73,48 L73,52 M79,48 L79,52" fill="none" stroke="#8B6914" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+        </g>
+        <!-- 骆驼3 -->
+        <g class="sr-camel">
+          <path d="M110,43 Q112,37 114,40 L116,36 L118,40 Q120,37 122,42 L124,44 L122,47 L120,46 L118,48 L116,46 L114,48 L112,46 L110,44 Z M113,47 L113,51 M119,47 L119,51" fill="none" stroke="#8B6914" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+        </g>
+      </svg>
+    </div>
+    <div class="sr-loading-title">丝绸之路</div>
+    <div class="sr-loading-sub">千年商道 · 文明纽带</div>
+    <div class="sr-loading-bar">
+      <div class="sr-loading-bar-fill"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">历史</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">丝绸之路贸易路线</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-history">历史</span>
+      <a href="/skills/jingbo-edu-history-map-narrative-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体：左右分栏 ====== -->
+<div class="framework-narrative">
+  <div class="narrative-main">
+
+    <!-- ========== 左侧：地图区域 ========== -->
+    <div class="narrative-map-area">
+      <div id="map"></div>
+
+      <!-- 罗盘装饰 -->
+      <div class="sr-compass">
+        <svg viewBox="0 0 70 70">
+          <circle cx="35" cy="35" r="32" fill="none" stroke="#8B6914" stroke-width="0.8" opacity="0.5"/>
+          <circle cx="35" cy="35" r="26" fill="none" stroke="#8B6914" stroke-width="0.5" opacity="0.3"/>
+          <path d="M35,8 L38,35 L35,32 L32,35 Z" fill="#B8332B" opacity="0.6"/>
+          <path d="M35,62 L32,35 L35,38 L38,35 Z" fill="#8B6914" opacity="0.4"/>
+          <path d="M8,35 L35,32 L32,35 L35,38 Z" fill="#8B6914" opacity="0.3"/>
+          <path d="M62,35 L35,38 L38,35 L35,32 Z" fill="#8B6914" opacity="0.3"/>
+          <text x="35" y="7" text-anchor="middle" font-family="serif" font-size="7" fill="#8B6914" opacity="0.6">北</text>
+          <text x="35" y="69" text-anchor="middle" font-family="serif" font-size="6" fill="#8B6914" opacity="0.4">南</text>
+          <text x="5" y="38" text-anchor="middle" font-family="serif" font-size="6" fill="#8B6914" opacity="0.4">西</text>
+          <text x="66" y="38" text-anchor="middle" font-family="serif" font-size="6" fill="#8B6914" opacity="0.4">东</text>
+        </svg>
+      </div>
+
+      <!-- 路线切换 -->
+      <div class="sr-route-toggles">
+        <div class="sr-route-toggle-title">商路</div>
+        <button class="sr-route-btn active" data-route="north">
+          <span class="sr-route-dot sr-route-dot-north"></span>
+          <span>北道</span>
+        </button>
+        <button class="sr-route-btn active" data-route="south">
+          <span class="sr-route-dot sr-route-dot-south"></span>
+          <span>南道</span>
+        </button>
+        <button class="sr-route-btn active" data-route="central">
+          <span class="sr-route-dot sr-route-dot-central"></span>
+          <span>中道</span>
+        </button>
+      </div>
+
+      <!-- 信息卡片 -->
+      <div class="narrative-info-card" id="infoCard">
+        <div class="sr-info-era" id="infoEra">两汉</div>
+        <div class="narrative-info-year" id="infoYear">前138年</div>
+        <div class="narrative-info-title" id="infoTitle">张骞首使西域</div>
+        <div class="narrative-info-desc" id="infoDesc">事件描述</div>
+      </div>
+    </div>
+
+    <!-- ========== 右侧：时间轴面板 ========== -->
+    <div class="narrative-timeline-panel">
+
+      <!-- 时间轴标题 -->
+      <div class="narrative-timeline-header">
+        <div class="narrative-timeline-title">千年商道</div>
+        <div class="narrative-timeline-subtitle">前138年 — 公元1405年 · 13个关键节点</div>
+      </div>
+
+      <!-- 时间轴事件列表 -->
+      <div class="narrative-timeline-list" id="timelineList">
+        <!-- 事件项由 JS 生成 -->
+      </div>
+
+      <!-- 底部播放控件 -->
+      <div class="narrative-timeline-footer">
+        <button class="narrative-play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="playLabel">播放</span>
+        </button>
+        <div class="narrative-progress">
+          <div class="narrative-progress-bar" id="progressBar" style="width:0%"></div>
+        </div>
+        <span class="demo-tech-tag" id="eventCounter">1 / 13</span>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ============================================================
+   丝绸之路贸易路线 — 交互逻辑
+   ============================================================ */
+
+// ====== 事件数据 ======
+const events = [
+  {
+    year: '前138年', yearSort: -138, era: '两汉',
+    title: '张骞首使西域',
+    location: '长安 → 西域',
+    lat: 38.5, lng: 88.0, zoom: 4,
+    desc: '汉武帝为联合大月氏夹击匈奴，派张骞率百余人从长安出发出使西域。张骞穿越河西走廊时被匈奴扣留十年，后逃脱西行至大宛、康居、大月氏、大夏等地。此次出使虽未达成军事目的，却"凿空"西域，开辟了东西交通的新纪元，史称"张骞凿空"。'
+  },
+  {
+    year: '前126年', yearSort: -126, era: '两汉',
+    title: '张骞归汉',
+    location: '长安',
+    lat: 34.27, lng: 108.95, zoom: 5,
+    desc: '张骞在外十三年后回到长安，出发时百余人，归来仅二人。他带回了西域各国的地理、物产、风俗等详细情报，使汉朝对西域有了全新认识。司马迁《史记》记载其"于是西北国始通于汉矣"，丝绸之路由此进入官方开拓阶段。'
+  },
+  {
+    year: '前119年', yearSort: -119, era: '两汉',
+    title: '张骞再使西域',
+    location: '乌孙（伊犁河流域）',
+    lat: 43.25, lng: 81.30, zoom: 5,
+    desc: '张骞率三百人使团第二次出使西域，携带大量金帛牛羊，目的是联络乌孙"断匈奴右臂"。此次出使规模更大，使团副使还到达了大宛、康居、大月氏、大夏、安息、身毒等国。西域各国纷纷遣使报聘汉朝，东西官方贸易通道正式确立。'
+  },
+  {
+    year: '前60年', yearSort: -60, era: '两汉',
+    title: '西域都护府设立',
+    location: '乌垒城（今新疆轮台）',
+    lat: 42.29, lng: 84.26, zoom: 5,
+    desc: '西汉在乌垒城设立西域都护府，郑吉为首任都护，统辖西域三十六国。西域都护府的设立标志着丝绸之路进入有官方军事保障的时代，汉朝对西域行使主权，商路安全得到保障，丝路贸易日益繁荣，"汉之号令班西域矣"。'
+  },
+  {
+    year: '公元73年', yearSort: 73, era: '两汉',
+    title: '班超投笔从戎',
+    location: '鄯善（今新疆若羌）',
+    lat: 39.03, lng: 88.17, zoom: 5,
+    desc: '班超随窦固出击匈奴，随后率三十六人出使西域。在鄯善，他以"不入虎穴，焉得虎子"的胆识夜袭匈奴使者，震慑鄯善王归附汉朝。班超在西域经营三十一年，平定内乱，抵御外敌，使丝绸之路在东汉时期保持畅通，被封为定远侯。'
+  },
+  {
+    year: '公元97年', yearSort: 97, era: '两汉',
+    title: '甘英使大秦',
+    location: '条支（今波斯湾沿岸）',
+    lat: 29.50, lng: 50.00, zoom: 5,
+    desc: '班超派甘英出使大秦（罗马帝国），甘英西抵条支，临大海（波斯湾）欲渡，被安息人以海路艰险劝阻而还。甘英虽未到达大秦，但他是中国官方使节到达波斯湾的第一人，增进了汉朝对中亚、西亚的了解，为后来的中西交流奠定基础。'
+  },
+  {
+    year: '公元166年', yearSort: 166, era: '两汉',
+    title: '大秦使者东来',
+    location: '洛阳',
+    lat: 34.62, lng: 112.45, zoom: 5,
+    desc: '大秦（罗马帝国）王安敦派遣使者从海路抵达洛阳，朝见汉桓帝，赠送象牙、犀角、玳瑁等礼物。这是中国与罗马帝国首次官方直接往来，标志着丝绸之路两端的两大帝国建立了正式联系。《后汉书》记载"其王常欲通使于汉，而安息欲以汉缯彩与之交市，故遮阂不得自达"。'
+  },
+  {
+    year: '公元399年', yearSort: 399, era: '魏晋',
+    title: '法显西行求法',
+    location: '长安 → 天竺',
+    lat: 28.0, lng: 77.0, zoom: 4,
+    desc: '东晋僧人法显从长安出发，经西域至天竺（印度）求取经律。他穿越塔克拉玛干沙漠，翻越帕米尔高原，游历三十余国，历时十四年，从海路归国。法显著有《佛国记》，是研究5世纪中亚、南亚历史地理的珍贵文献，也见证了丝路不仅是商路，也是文化宗教交流之路。'
+  },
+  {
+    year: '公元629年', yearSort: 629, era: '盛唐',
+    title: '玄奘西行取经',
+    location: '长安 → 那烂陀寺',
+    lat: 25.0, lng: 85.0, zoom: 4,
+    desc: '玄奘从长安出发，沿丝绸之路西行，经姑臧、敦煌、高昌、龟兹、碎叶，翻越葱岭，历经艰险到达印度。他在那烂陀寺研习佛法十余年，带回佛经六百五十七部。玄奘著《大唐西域记》，记载了沿途138个国家和地区的风土人情，是研究丝路历史的珍贵史料。'
+  },
+  {
+    year: '公元640年', yearSort: 640, era: '盛唐',
+    title: '安西都护府设立',
+    location: '高昌（今新疆吐鲁番）',
+    lat: 42.95, lng: 89.19, zoom: 5,
+    desc: '唐太宗在交河城设安西都护府，后移至龟兹，统辖安西四镇（龟兹、焉耆、于阗、疏勒）。唐代国力强盛，丝路贸易达到鼎盛，长安成为国际大都会，胡商云集，市舶繁盛。中亚的粟特人成为丝路贸易的主要中间商，东西方商品、艺术、宗教大规模交流融合。'
+  },
+  {
+    year: '公元751年', yearSort: 751, era: '盛唐',
+    title: '怛罗斯之战',
+    location: '怛罗斯（今哈萨克斯坦江布尔）',
+    lat: 42.89, lng: 71.37, zoom: 5,
+    desc: '唐朝大将高仙芝与阿拉伯帝国阿拔斯王朝军队在怛罗斯激战，唐军战败。此战虽规模不大，但影响深远：被俘的唐军工匠将造纸术传入中亚，后经阿拉伯人传入欧洲，推动了世界文明的发展。此战也标志着唐朝在中亚势力的衰退。'
+  },
+  {
+    year: '公元1275年', yearSort: 1275, era: '元明',
+    title: '马可波罗来华',
+    location: '大都（今北京）',
+    lat: 39.90, lng: 116.40, zoom: 5,
+    desc: '意大利威尼斯商人马可波罗沿丝绸之路来到东方，抵达元大都，受到元世祖忽必烈的接见和重用。他在中国游历十七年，遍访各地，回国后口述《马可波罗游记》，向欧洲人描绘了东方的富庶与文明，激发了欧洲人对东方的向往，间接推动了后来的大航海时代。'
+  },
+  {
+    year: '公元1405年', yearSort: 1405, era: '元明',
+    title: '郑和下西洋',
+    location: '刘家港 → 西洋',
+    lat: 31.51, lng: 121.10, zoom: 5,
+    desc: '明成祖派郑和率船队从刘家港出发，七下西洋，远航至东南亚、印度洋、阿拉伯半岛及东非海岸。这标志着海上丝绸之路达到鼎盛，也预示着陆上丝绸之路的逐渐衰落。此后随着新航路的开辟与世界格局的变化，陆上丝路的历史角色逐渐被海上贸易通道所取代。'
+  },
+];
+
+// ====== 路线数据 [lat, lng] ======
+const routes = {
+  north: [
+    [34.27, 108.95], // 长安
+    [36.06, 103.83], // 兰州
+    [40.14, 94.66],  // 敦煌
+    [42.83, 93.51],  // 哈密
+    [42.95, 89.19],  // 吐鲁番/高昌
+    [41.72, 82.95],  // 龟兹
+    [41.17, 80.26],  // 阿克苏
+    [39.47, 75.99],  // 喀什
+    [40.53, 72.80],  // 奥什
+    [39.65, 66.97],  // 撒马尔罕
+    [39.77, 64.42],  // 布哈拉
+    [37.66, 62.19],  // 木鹿/谋夫
+    [35.69, 51.39],  // 德黑兰
+    [33.09, 44.58],  // 泰西封
+    [33.51, 36.29],  // 大马士革
+    [36.20, 36.16],  // 安条克
+    [41.01, 28.98],  // 君士坦丁堡
+    [41.90, 12.50],  // 罗马
+  ],
+  south: [
+    [34.27, 108.95], // 长安
+    [36.06, 103.83], // 兰州
+    [40.14, 94.66],  // 敦煌
+    [39.27, 88.52],  // 米兰
+    [38.13, 85.47],  // 且末
+    [37.04, 82.80],  // 尼雅
+    [37.11, 79.92],  // 于阗
+    [37.88, 77.24],  // 莎车
+    [39.47, 75.99],  // 喀什
+    [37.77, 75.23],  // 塔什库尔干
+    [36.76, 66.90],  // 巴尔赫
+    [34.82, 67.83],  // 巴米扬
+    [34.55, 69.20],  // 喀布尔
+    [34.01, 71.57],  // 键陀罗
+    [33.74, 72.79],  // 键陀罗
+    [29.94, 52.89],  // 波斯波里斯
+    [32.19, 48.26],  // 苏萨
+    [31.20, 29.92],  // 亚历山大
+  ],
+  central: [
+    [34.27, 108.95], // 长安
+    [40.14, 94.66],  // 敦煌
+    [42.95, 89.19],  // 吐鲁番
+    [42.40, 86.18],  // 焉耆
+    [41.72, 82.95],  // 龟兹
+    [41.17, 80.26],  // 阿克苏
+    [39.47, 75.99],  // 喀什
+    [42.89, 71.37],  // 怛罗斯
+    [39.65, 66.97],  // 撒马尔罕
+    [39.77, 64.42],  // 布哈拉
+    [41.55, 60.63],  // 花剌子模
+    [42.06, 48.29],  // 德尔本特
+    [41.69, 44.83],  // 第比利斯
+    [41.00, 39.73],  // 特拉布宗
+    [41.01, 28.98],  // 君士坦丁堡
+  ],
+};
+
+// ====== 主要城市标记 ======
+const cities = [
+  { name: '长安', lat: 34.27, lng: 108.95, major: true },
+  { name: '洛阳', lat: 34.62, lng: 112.45, major: true },
+  { name: '敦煌', lat: 40.14, lng: 94.66, major: true },
+  { name: '龟兹', lat: 41.72, lng: 82.95, major: false },
+  { name: '于阗', lat: 37.11, lng: 79.92, major: false },
+  { name: '喀什', lat: 39.47, lng: 75.99, major: true },
+  { name: '撒马尔罕', lat: 39.65, lng: 66.97, major: true },
+  { name: '木鹿', lat: 37.66, lng: 62.19, major: false },
+  { name: '泰西封', lat: 33.09, lng: 44.58, major: false },
+  { name: '大马士革', lat: 33.51, lng: 36.29, major: false },
+  { name: '君士坦丁堡', lat: 41.01, lng: 28.98, major: true },
+  { name: '罗马', lat: 41.90, lng: 12.50, major: true },
+  { name: '巴尔赫', lat: 36.76, lng: 66.90, major: false },
+  { name: '亚历山大', lat: 31.20, lng: 29.92, major: false },
+  { name: '大都', lat: 39.90, lng: 116.40, major: true },
+  { name: '刘家港', lat: 31.51, lng: 121.10, major: false },
+];
+
+// ====== 时代分组 ======
+const eraGroups = [
+  { name: '两汉开拓', startIdx: 0, endIdx: 6 },
+  { name: '魏晋南北朝', startIdx: 7, endIdx: 7 },
+  { name: '盛唐鼎盛', startIdx: 8, endIdx: 10 },
+  { name: '元明转型', startIdx: 11, endIdx: 12 },
+];
+
+// ====== 全局状态 ======
+let currentEvent = 0;
+let isPlaying = false;
+let playTimer = null;
+let map = null;
+let routeLayers = { north: [], south: [], central: [] };
+let routeGlowLayers = { north: [], south: [], central: [] };
+let cityMarkers = [];
+let eventMarkers = [];
+let activeMarker = null;
+let routeVisibility = { north: true, south: true, central: true };
+
+// ====== 城市图标 SVG ======
+const cityIconSVG = `
+<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+  <path d="M3,12 L3,8 L5,8 L5,6 L7,6 L7,4 L9,4 L9,6 L11,6 L11,4 L13,4 L13,6 L15,6 L15,8 L17,8 L17,12 Z" 
+    fill="#8B6914" stroke="#5a4410" stroke-width="0.5" opacity="0.85"/>
+  <rect x="8" y="9" width="4" height="3" fill="#F0E6D3" rx="0.3"/>
+</svg>`;
+
+const cityIconMajorSVG = `
+<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+  <path d="M2,13 L2,7 L4,7 L4,5 L6,5 L6,3 L8,3 L8,5 L10,5 L10,3 L12,3 L12,5 L14,5 L14,7 L16,7 L16,5 L18,5 L18,13 Z" 
+    fill="#B8332B" stroke="#7a1f1a" stroke-width="0.5" opacity="0.9"/>
+  <rect x="4" y="9" width="3" height="4" fill="#F0E6D3" rx="0.3"/>
+  <rect x="9" y="8" width="3" height="5" fill="#F0E6D3" rx="0.3"/>
+  <rect x="13" y="9" width="3" height="4" fill="#F0E6D3" rx="0.3"/>
+</svg>`;
+
+// ====== 初始化地图 ======
+function initMap() {
+  map = L.map('map', {
+    center: [37, 65],
+    zoom: 3,
+    minZoom: 2,
+    maxZoom: 8,
+    zoomControl: true,
+    attributionControl: true,
+    worldCopyJump: false,
+    maxBounds: [[10, -10], [60, 130]],
+    maxBoundsViscosity: 0.8,
+  });
+
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    attribution: '© 高德地图',
+    subdomains: ['1', '2', '3', '4'],
+    maxZoom: 18,
+  }).addTo(map);
+
+  // 瓦片加载完成后隐藏加载屏
+  map.whenReady(() => {
+    setTimeout(hideLoading, 600);
+  });
+}
+
+// ====== 绘制路线 ======
+function drawRoutes() {
+  const routeConfig = [
+    { key: 'north', className: 'silk-route-north', glowClass: 'silk-route-glow-north' },
+    { key: 'south', className: 'silk-route-south', glowClass: 'silk-route-glow-south' },
+    { key: 'central', className: 'silk-route-central', glowClass: 'silk-route-glow-central' },
+  ];
+
+  routeConfig.forEach(cfg => {
+    const coords = routes[cfg.key];
+
+    // 辉光底层
+    const glow = L.polyline(coords, {
+      className: 'silk-route-glow ' + cfg.glowClass,
+      interactive: false,
+    }).addTo(map);
+    routeGlowLayers[cfg.key].push(glow);
+
+    // 主路线
+    const route = L.polyline(coords, {
+      className: 'silk-route ' + cfg.className,
+      interactive: false,
+    }).addTo(map);
+    routeLayers[cfg.key].push(route);
+  });
+}
+
+// ====== 添加城市标记 ======
+function addCityMarkers() {
+  cities.forEach(city => {
+    const icon = L.divIcon({
+      className: 'sr-city-marker',
+      html: `
+        <div class="sr-city-icon">${city.major ? cityIconMajorSVG : cityIconSVG}</div>
+        <div class="sr-city-label">${city.name}</div>
+      `,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+
+    const marker = L.marker([city.lat, city.lng], { icon, interactive: false, keyboard: false });
+    marker.addTo(map);
+    cityMarkers.push(marker);
+  });
+}
+
+// ====== 添加事件标记 ======
+function addEventMarkers() {
+  events.forEach((evt, i) => {
+    const icon = L.divIcon({
+      className: '',
+      html: `
+        <div class="sr-event-marker future" data-idx="${i}">
+          <div class="sr-event-pulse"></div>
+          <div class="sr-event-core"></div>
+          <div class="sr-event-label">${evt.year}</div>
+        </div>
+      `,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+
+    const marker = L.marker([evt.lat, evt.lng], {
+      icon,
+      zIndexOffset: 1000,
+    });
+
+    marker.on('click', () => selectEvent(i));
+    marker.addTo(map);
+    eventMarkers.push(marker);
+  });
+}
+
+// ====== 更新事件标记状态 ======
+function updateEventMarkers() {
+  eventMarkers.forEach((marker, i) => {
+    const el = marker.getElement();
+    if (!el) return;
+    const inner = el.querySelector('.sr-event-marker');
+    if (!inner) return;
+
+    inner.classList.remove('active', 'passed', 'future');
+    if (i === currentEvent) {
+      inner.classList.add('active');
+    } else if (i < currentEvent) {
+      inner.classList.add('passed');
+    } else {
+      inner.classList.add('future');
+    }
+  });
+}
+
+// ====== 构建时间轴 ======
+function buildTimeline() {
+  const list = document.getElementById('timelineList');
+  let html = '';
+
+  eraGroups.forEach((era) => {
+    html += `<div class="sr-era-label">${era.name}</div>`;
+    for (let i = era.startIdx; i <= era.endIdx; i++) {
+      const e = events[i];
+      html += `
+        <div class="timeline-event ${i === currentEvent ? 'active' : ''}" data-idx="${i}">
+          <div class="timeline-event-dot"></div>
+          <div class="timeline-event-content">
+            <div class="timeline-event-year">${e.year}</div>
+            <div class="timeline-event-title">${e.title}</div>
+            <div class="timeline-event-desc">${e.desc.length > 80 ? e.desc.substring(0, 78) + '…' : e.desc}</div>
+          </div>
+        </div>
+      `;
+    }
+  });
+
+  list.innerHTML = html;
+
+  // 绑定点击
+  list.querySelectorAll('.timeline-event').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      selectEvent(idx);
+    });
+  });
+}
+
+// ====== 选中事件 ======
+function selectEvent(idx) {
+  currentEvent = idx;
+  const e = events[idx];
+
+  // 地图飞行
+  map.flyTo([e.lat, e.lng], e.zoom, {
+    duration: 1.2,
+    easeLinearity: 0.25,
+  });
+
+  // 更新信息卡片（带动画）
+  const card = document.getElementById('infoCard');
+  if (typeof gsap !== 'undefined') {
+    gsap.to(card, {
+      opacity: 0,
+      y: 10,
+      duration: 0.2,
+      onComplete: () => {
+        document.getElementById('infoEra').textContent = e.era;
+        document.getElementById('infoYear').textContent = e.year;
+        document.getElementById('infoTitle').textContent = e.title;
+        document.getElementById('infoDesc').textContent = e.desc;
+        gsap.to(card, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+      }
+    });
+  } else {
+    document.getElementById('infoEra').textContent = e.era;
+    document.getElementById('infoYear').textContent = e.year;
+    document.getElementById('infoTitle').textContent = e.title;
+    document.getElementById('infoDesc').textContent = e.desc;
+  }
+
+  // 更新时间轴高亮
+  document.querySelectorAll('.timeline-event').forEach((el, i) => {
+    el.classList.remove('active', 'passed');
+    if (i === idx) {
+      el.classList.add('active');
+    } else if (i < idx) {
+      el.classList.add('passed');
+    }
+  });
+
+  // 滚动到当前事件
+  const activeEl = document.querySelector('.timeline-event.active');
+  if (activeEl) {
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // 更新进度条
+  const progress = ((idx + 1) / events.length) * 100;
+  document.getElementById('progressBar').style.width = `${progress}%`;
+  document.getElementById('eventCounter').textContent = `${idx + 1} / ${events.length}`;
+
+  // 更新事件标记
+  updateEventMarkers();
+}
+
+// ====== 播放控制 ======
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+  const label = document.getElementById('playLabel');
+
+  if (isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    label.textContent = '暂停';
+
+    playTimer = setInterval(() => {
+      let next = currentEvent + 1;
+      if (next >= events.length) {
+        next = 0;
+      }
+      selectEvent(next);
+    }, 4500);
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent = '播放';
+    clearInterval(playTimer);
+  }
+}
+
+// ====== 路线切换 ======
+function setupRouteToggles() {
+  document.querySelectorAll('.sr-route-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const routeKey = btn.dataset.route;
+      routeVisibility[routeKey] = !routeVisibility[routeKey];
+
+      btn.classList.toggle('active', routeVisibility[routeKey]);
+      btn.classList.toggle('inactive', !routeVisibility[routeKey]);
+
+      // 显示/隐藏路线
+      [...routeLayers[routeKey], ...routeGlowLayers[routeKey]].forEach(layer => {
+        if (routeVisibility[routeKey]) {
+          layer.addTo(map);
+        } else {
+          map.removeLayer(layer);
+        }
+      });
+    });
+  });
+}
+
+// ====== 隐藏加载屏 ======
+function hideLoading() {
+  const loading = document.getElementById('srLoading');
+  if (loading && !loading.classList.contains('hidden')) {
+    loading.classList.add('hidden');
+    setTimeout(() => {
+      if (map) map.invalidateSize();
+    }, 400);
+  }
+}
+
+// ====== 导航栏滚动效果 ======
+function setupNavbar() {
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+}
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  drawRoutes();
+  addCityMarkers();
+  addEventMarkers();
+  buildTimeline();
+  setupRouteToggles();
+  setupNavbar();
+
+  // 初始选中第一个事件
+  setTimeout(() => {
+    selectEvent(0);
+    updateEventMarkers();
+  }, 200);
+
+  // 播放按钮
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // 窗口大小变化时刷新地图
+  window.addEventListener('resize', () => {
+    if (map) map.invalidateSize();
+  });
+
+  // 安全兜底：5秒后强制隐藏加载屏
+  setTimeout(hideLoading, 5000);
+});
+</script>
+
+</body>
+</html>

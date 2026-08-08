@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>密码学：凯撒密码与替换密码 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+/* ====== 本 Demo 专用配色（密码破译主题） ====== */
+:root {
+  --cipher-indigo: #2c3e50;
+  --cipher-indigo-deep: #1a252f;
+  --cipher-indigo-soft: rgba(44, 62, 80, 0.1);
+  --cipher-plain: #2980b9;
+  --cipher-plain-soft: rgba(41, 128, 185, 0.12);
+  --cipher-cipher: #c0392b;
+  --cipher-cipher-soft: rgba(192, 57, 43, 0.12);
+  --cipher-gold: #f1c40f;
+  --cipher-gold-glow: rgba(241, 196, 15, 0.4);
+  --cipher-teal: #1abc9c;
+  --cipher-teal-soft: rgba(26, 188, 156, 0.12);
+  --cipher-green: #27ae60;
+  --cipher-green-soft: rgba(39, 174, 96, 0.12);
+  --cipher-wheel-bg: #1a252f;
+  --cipher-wheel-letter: #ecf0f1;
+  --cipher-wheel-dim: #5a6a7a;
+}
+
+/* ====== 画布区覆盖 ====== */
+.cipher-demo .interactive-canvas-area {
+  background: linear-gradient(180deg, #faf8f5 0%, #f0ebe3 100%);
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+/* ====== 三栏布局 ====== */
+.cipher-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+/* --- 左栏：字母轮 --- */
+.cipher-wheel-column {
+  flex: 0 0 42%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  position: relative;
+  border-right: 1px solid var(--border);
+  min-width: 0;
+}
+
+.cipher-wheel-container {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 1;
+}
+
+.cipher-wheel-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 字母轮标签 */
+.wheel-label {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 2;
+}
+.wheel-label-plain {
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--cipher-plain);
+}
+.wheel-label-cipher {
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--cipher-cipher);
+}
+
+/* 字母轮 SVG 元素样式 */
+.wheel-outer-bg { fill: var(--cipher-wheel-bg); }
+.wheel-inner-bg { fill: #243440; }
+.wheel-outer-letter {
+  fill: var(--cipher-wheel-letter);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  cursor: default;
+  transition: fill 0.3s, font-size 0.3s;
+}
+.wheel-inner-letter {
+  fill: var(--cipher-wheel-letter);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  transition: fill 0.3s, font-size 0.3s;
+}
+.wheel-inner-group {
+  transform-origin: 200px 200px;
+  transition: transform 0.6s cubic-bezier(0.34, 1.26, 0.64, 1);
+}
+.wheel-connection {
+  stroke: rgba(41, 128, 185, 0.15);
+  stroke-width: 1;
+  fill: none;
+  transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
+}
+.wheel-connection.active {
+  stroke: var(--cipher-gold);
+  stroke-width: 2.5;
+  opacity: 1;
+  filter: drop-shadow(0 0 6px var(--cipher-gold-glow));
+}
+.wheel-outer-letter.active {
+  fill: var(--cipher-gold);
+  font-size: 17px;
+}
+.wheel-inner-letter.active {
+  fill: var(--cipher-gold);
+  font-size: 16px;
+}
+.wheel-center-text {
+  fill: var(--cipher-wheel-letter);
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  opacity: 0.15;
+}
+.wheel-shift-display {
+  fill: var(--cipher-green);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* --- 中栏：文本输入输出 --- */
+.cipher-text-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  gap: 16px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cipher-text-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cipher-text-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cipher-text-label .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-plain { background: var(--cipher-plain); }
+.dot-cipher { background: var(--cipher-cipher); }
+
+.cipher-char-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.cipher-text-input {
+  width: 100%;
+  flex: 0 0 auto;
+  min-height: 60px;
+  max-height: 100px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--cipher-plain);
+  border-radius: 8px;
+  background: var(--cipher-plain-soft);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--cipher-plain);
+  letter-spacing: 0.08em;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  line-height: 1.8;
+}
+.cipher-text-input::placeholder {
+  color: var(--text-faint);
+  opacity: 0.5;
+}
+.cipher-text-input:focus {
+  border-color: var(--cipher-plain);
+  box-shadow: 0 0 0 3px var(--cipher-plain-soft);
+}
+
+.cipher-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+}
+.cipher-arrow svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cipher-text-output {
+  flex: 1;
+  min-height: 60px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--cipher-cipher);
+  border-radius: 8px;
+  background: var(--cipher-cipher-soft);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--cipher-cipher);
+  letter-spacing: 0.08em;
+  line-height: 1.8;
+  overflow-y: auto;
+  word-break: break-all;
+  position: relative;
+}
+
+/* 逐字符高亮 */
+.cipher-char {
+  display: inline-block;
+  transition: all 0.3s;
+  padding: 0 1px;
+  border-radius: 3px;
+}
+.cipher-char.encrypting {
+  background: var(--cipher-gold);
+  color: var(--cipher-indigo-deep);
+  box-shadow: 0 0 12px var(--cipher-gold-glow);
+  transform: scale(1.15);
+}
+.cipher-char.encrypted {
+  opacity: 0.5;
+}
+.cipher-char.non-alpha {
+  color: var(--text-faint);
+  opacity: 0.4;
+}
+
+/* 公式显示 */
+.cipher-formula {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--surface-muted);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.cipher-formula .key-val {
+  color: var(--cipher-green);
+  font-weight: 700;
+}
+.cipher-formula .formula-text {
+  color: var(--text);
+}
+
+/* --- 右栏：频率分析 --- */
+.cipher-freq-column {
+  flex: 0 0 28%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 20px 16px;
+  gap: 12px;
+  border-left: 1px solid var(--border);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cipher-freq-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.cipher-freq-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.cipher-freq-legend {
+  display: flex;
+  gap: 10px;
+  font-size: 10px;
+}
+.cipher-freq-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+}
+.cipher-freq-legend .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.cipher-freq-chart {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1px;
+  padding-bottom: 20px;
+  position: relative;
+  min-height: 0;
+}
+
+/* 频率图底部字母标签 */
+.cipher-freq-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 1px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.cipher-freq-label {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-faint);
+}
+
+.freq-bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  position: relative;
+  gap: 0;
+}
+.freq-bars {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+}
+.freq-bar {
+  width: 4px;
+  min-height: 1px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.5s cubic-bezier(0.34, 1.26, 0.64, 1);
+  position: relative;
+}
+.freq-bar-plain {
+  background: var(--cipher-plain);
+  opacity: 0.7;
+}
+.freq-bar-cipher {
+  background: var(--cipher-cipher);
+  opacity: 0.85;
+}
+.freq-bar-group.active .freq-bar {
+  opacity: 1;
+  box-shadow: 0 0 6px var(--cipher-gold-glow);
+}
+.freq-letter {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+/* 破解结果面板 */
+.cipher-crack-panel {
+  flex-shrink: 0;
+  padding: 10px 12px;
+  background: var(--surface-muted);
+  border-radius: 8px;
+  font-size: 11px;
+  display: none;
+}
+.cipher-crack-panel.show { display: block; }
+.cipher-crack-panel .crack-title {
+  font-weight: 600;
+  color: var(--cipher-cipher);
+  margin-bottom: 4px;
+}
+.cipher-crack-panel .crack-result {
+  font-family: var(--font-mono);
+  color: var(--text);
+  line-height: 1.6;
+}
+.cipher-crack-panel .crack-best {
+  color: var(--cipher-green);
+  font-weight: 700;
+}
+
+/* ====== 控制面板覆盖 ====== */
+.cipher-demo .interactive-control-panel {
+  height: auto;
+  min-height: 140px;
+  max-height: 180px;
+  flex-wrap: wrap;
+  padding: 16px 24px;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* 密码类型选择 */
+.cipher-type-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cipher-type-tab {
+  padding: 8px 14px;
+  background: var(--surface);
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+.cipher-type-tab:last-child { border-right: none; }
+.cipher-type-tab:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.cipher-type-tab.active {
+  background: var(--cipher-indigo);
+  color: white;
+}
+
+/* 模式切换 */
+.cipher-mode-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cipher-mode-btn {
+  padding: 8px 14px;
+  background: var(--surface);
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+.cipher-mode-btn:last-child { border-right: none; }
+.cipher-mode-btn:hover { color: var(--text); }
+.cipher-mode-btn.active.encrypt {
+  background: var(--cipher-plain);
+  color: white;
+}
+.cipher-mode-btn.active.decrypt {
+  background: var(--cipher-cipher);
+  color: white;
+}
+
+/* 移位滑块组 */
+.cipher-shift-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+.cipher-shift-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cipher-shift-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+.cipher-shift-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cipher-green);
+  min-width: 30px;
+  text-align: right;
+}
+
+/* 密钥词输入 */
+.cipher-keyword-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cipher-keyword-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+.cipher-keyword-input {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cipher-green);
+  text-transform: uppercase;
+  outline: none;
+  width: 120px;
+  letter-spacing: 0.1em;
+}
+.cipher-keyword-input:focus {
+  border-color: var(--cipher-green);
+  box-shadow: 0 0 0 2px var(--cipher-green-soft);
+}
+
+/* 速度选择 */
+.cipher-speed-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cipher-speed-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+.cipher-speed-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+  cursor: pointer;
+  outline: none;
+}
+
+/* 动画按钮组 */
+.cipher-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.cipher-step-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-muted);
+}
+.cipher-step-btn:hover {
+  border-color: var(--cipher-indigo);
+  color: var(--cipher-indigo);
+}
+.cipher-step-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 预设按钮 */
+.cipher-presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.cipher-preset-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+.cipher-preset-btn {
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.cipher-preset-btn:hover {
+  border-color: var(--cipher-indigo);
+  color: var(--cipher-indigo);
+  background: var(--cipher-plain-soft);
+}
+.cipher-preset-btn.active {
+  background: var(--cipher-indigo);
+  color: white;
+  border-color: var(--cipher-indigo);
+}
+
+/* 显示选项 */
+.cipher-display-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.cipher-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.cipher-checkbox input {
+  accent-color: var(--cipher-indigo);
+  cursor: pointer;
+}
+
+/* 隐藏控制 */
+.cipher-control-hidden {
+  display: none !important;
+}
+
+/* ====== 加载动画 ====== */
+.cipher-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  transition: opacity 0.5s;
+}
+.cipher-loading-overlay.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+.cipher-lock-loader {
+  width: 64px;
+  height: 64px;
+  position: relative;
+}
+.cipher-lock-loader svg {
+  width: 100%;
+  height: 100%;
+  animation: lockShake 1.5s ease-in-out infinite;
+}
+.cipher-lock-loader .shackle {
+  animation: shackleMove 1.5s ease-in-out infinite;
+  transform-origin: center;
+}
+.cipher-loading-text {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 0.15em;
+}
+@keyframes lockShake {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-5deg); }
+  40% { transform: rotate(5deg); }
+  60% { transform: rotate(-3deg); }
+  80% { transform: rotate(3deg); }
+}
+@keyframes shackleMove {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* ====== 响应式 ====== */
+@media (max-width: 1024px) {
+  .cipher-layout {
+    flex-direction: column;
+  }
+  .cipher-wheel-column {
+    flex: 0 0 auto;
+    max-height: 300px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .cipher-wheel-container {
+    max-width: 260px;
+  }
+  .cipher-freq-column {
+    flex: 0 0 auto;
+    max-height: 200px;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .cipher-text-column {
+    flex: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .cipher-demo .interactive-control-panel {
+    height: auto;
+    max-height: none;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .cipher-type-tabs,
+  .cipher-mode-toggle {
+    width: 100%;
+  }
+  .cipher-type-tab,
+  .cipher-mode-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 8px;
+    font-size: 11px;
+  }
+  .cipher-presets {
+    flex-wrap: wrap;
+  }
+  .cipher-text-column {
+    padding: 12px 16px;
+  }
+  .cipher-freq-column {
+    display: none;
+  }
+  .cipher-wheel-column {
+    max-height: 240px;
+  }
+  .cipher-wheel-container {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 375px) {
+  .cipher-wheel-container {
+    max-width: 160px;
+  }
+  .wheel-outer-letter { font-size: 11px; }
+  .wheel-inner-letter { font-size: 10px; }
+}
+
+/* 替换表网格 */
+.cipher-subst-table {
+  display: none;
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  z-index: 5;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.cipher-subst-table.show { display: block; }
+.cipher-subst-row {
+  display: flex;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+.cipher-subst-cell {
+  flex: 1;
+  text-align: center;
+  padding: 2px 0;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.cipher-subst-cell:hover {
+  background: var(--cipher-gold);
+  color: var(--cipher-indigo-deep);
+}
+.cipher-subst-cell .from { color: var(--cipher-plain); }
+.cipher-subst-cell .arrow { color: var(--text-faint); margin: 0 2px; }
+.cipher-subst-cell .to { color: var(--cipher-cipher); }
+</style>
+</head>
+<body class="has-info-bar cipher-demo">
+
+<!-- ====== 加载动画 ====== -->
+<div class="cipher-loading-overlay" id="loadingOverlay">
+  <div class="cipher-lock-loader">
+    <svg viewBox="0 0 64 64" fill="none" stroke="var(--cipher-indigo)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="14" y="30" width="36" height="28" rx="4" fill="var(--cipher-indigo-soft, rgba(44,62,80,0.1))"/>
+      <path class="shackle" d="M20 30 V20 a12 12 0 0 1 24 0 V30"/>
+      <circle cx="32" cy="42" r="4" fill="var(--cipher-gold)" stroke="none"/>
+      <line x1="32" y1="46" x2="32" y2="52"/>
+    </svg>
+  </div>
+  <div class="cipher-loading-text">DECRYPTING SYSTEM...</div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">计算机</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">密码学：凯撒密码与替换密码</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-cs">计算机</span>
+      <a href="/skills/jingbo-edu-cs-algorithm-viz-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体 ====== -->
+<div class="framework-interactive">
+  <div class="interactive-main">
+
+    <!-- ========== 画布区 ========== -->
+    <div class="interactive-canvas-area">
+      <div class="cipher-layout">
+
+        <!-- 左栏：字母轮 -->
+        <div class="cipher-wheel-column">
+          <div class="wheel-label wheel-label-plain">明文 PLAINTEXT</div>
+          <div class="cipher-wheel-container" id="wheelContainer">
+            <svg class="cipher-wheel-svg" viewBox="0 0 400 400" id="cipherWheel">
+              <!-- 外环背景 -->
+              <circle cx="200" cy="200" r="190" class="wheel-outer-bg" />
+              <!-- 内环背景 -->
+              <circle cx="200" cy="200" r="130" class="wheel-inner-bg" />
+              <!-- 中心装饰 -->
+              <text x="200" y="200" class="wheel-center-text">k</text>
+              <text x="200" y="225" class="wheel-shift-display" id="wheelShiftDisplay">k = 3</text>
+              <!-- 连线层 -->
+              <g id="connectionLayer"></g>
+              <!-- 外环字母（明文） -->
+              <g id="outerLetters"></g>
+              <!-- 内环字母（密文） -->
+              <g class="wheel-inner-group" id="innerLetters"></g>
+              <!-- 指针标记 -->
+              <line x1="200" y1="10" x2="200" y2="30" stroke="var(--cipher-gold)" stroke-width="2.5" stroke-linecap="round" />
+              <polygon points="195,28 205,28 200,36" fill="var(--cipher-gold)" />
+            </svg>
+          </div>
+          <div class="wheel-label wheel-label-cipher">密文 CIPHERTEXT</div>
+          <!-- 替换密码模式下的映射表 -->
+          <div class="cipher-subst-table" id="substTable">
+            <div class="cipher-subst-row" id="substRowFrom"></div>
+            <div class="cipher-subst-row" id="substRowTo"></div>
+          </div>
+        </div>
+
+        <!-- 中栏：文本输入输出 -->
+        <div class="cipher-text-column">
+          <div class="cipher-text-header">
+            <span class="cipher-text-label">
+              <span class="dot dot-plain"></span>
+              明文输入
+            </span>
+            <span class="cipher-char-count" id="charCount">0 / 500</span>
+          </div>
+          <textarea
+            class="cipher-text-input"
+            id="plainInput"
+            placeholder="输入英文文本..."
+            maxlength="500"
+            rows="2"
+          >HELLO WORLD</textarea>
+
+          <div class="cipher-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <polyline points="19 12 12 19 5 12"/>
+            </svg>
+          </div>
+
+          <div class="cipher-text-header">
+            <span class="cipher-text-label">
+              <span class="dot dot-cipher"></span>
+              密文输出
+            </span>
+            <span class="cipher-char-count" id="cipherCount">0</span>
+          </div>
+          <div class="cipher-text-output" id="cipherOutput">KHOOR ZRUOG</div>
+
+          <!-- 公式显示 -->
+          <div class="cipher-formula" id="formulaDisplay">
+            <span class="formula-text" id="formulaText">C = (P + k) mod 26</span>
+            <span>|</span>
+            <span>密钥 <span class="key-val" id="keyDisplay">k = 3</span></span>
+          </div>
+        </div>
+
+        <!-- 右栏：频率分析 -->
+        <div class="cipher-freq-column">
+          <div class="cipher-freq-header">
+            <span class="cipher-freq-title">频率分析</span>
+            <div class="cipher-freq-legend">
+              <span><span class="dot" style="background:var(--cipher-plain)"></span>明文</span>
+              <span><span class="dot" style="background:var(--cipher-cipher)"></span>密文</span>
+            </div>
+          </div>
+          <div class="cipher-freq-chart" id="freqChart"></div>
+          <div class="cipher-freq-labels" id="freqLabels"></div>
+          <!-- 破解结果 -->
+          <div class="cipher-crack-panel" id="crackPanel">
+            <div class="crack-title">频率破解分析</div>
+            <div class="crack-result" id="crackResult"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========== 控制面板 ========== -->
+    <div class="interactive-control-panel">
+
+      <!-- 密码类型 -->
+      <div class="cipher-type-tabs">
+        <button class="cipher-type-tab active" data-type="caesar">凯撒密码</button>
+        <button class="cipher-type-tab" data-type="substitution">替换密码</button>
+        <button class="cipher-type-tab" data-type="vigenere">维吉尼亚</button>
+      </div>
+
+      <!-- 移位密钥（凯撒模式） -->
+      <div class="cipher-shift-control" id="shiftControl">
+        <div class="cipher-shift-header">
+          <span class="cipher-shift-label">移位密钥 k</span>
+          <span class="cipher-shift-value" id="shiftValue">3</span>
+        </div>
+        <input type="range" class="control-slider" id="shiftSlider" min="0" max="25" value="3" />
+      </div>
+
+      <!-- 密钥词（维吉尼亚模式） -->
+      <div class="cipher-keyword-control cipher-control-hidden" id="keywordControl">
+        <span class="cipher-keyword-label">密钥词</span>
+        <input type="text" class="cipher-keyword-input" id="keywordInput" value="KEY" maxlength="20" placeholder="KEY" />
+      </div>
+
+      <!-- 操作模式 -->
+      <div class="cipher-mode-toggle">
+        <button class="cipher-mode-btn active encrypt" data-mode="encrypt">加密</button>
+        <button class="cipher-mode-btn" data-mode="decrypt">解密</button>
+      </div>
+
+      <!-- 速度 -->
+      <div class="cipher-speed-control">
+        <span class="cipher-speed-label">动画速度</span>
+        <select class="cipher-speed-select" id="speedSelect">
+          <option value="slow">慢速</option>
+          <option value="normal" selected>正常</option>
+          <option value="fast">快速</option>
+        </select>
+      </div>
+
+      <!-- 动画按钮 -->
+      <div class="cipher-action-buttons">
+        <button class="control-btn control-btn-play" id="playBtn" title="播放/暂停">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </button>
+        <button class="cipher-step-btn" id="stepBtn" title="单步前进">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 4 15 12 5 20 5 4"/>
+            <line x1="19" y1="5" x2="19" y2="19"/>
+          </svg>
+        </button>
+        <button class="control-btn" id="resetBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          重置
+        </button>
+      </div>
+
+      <!-- 预设 -->
+      <div class="cipher-presets">
+        <span class="cipher-preset-label">预设</span>
+        <button class="cipher-preset-btn active" data-preset="0">经典示例</button>
+        <button class="cipher-preset-btn" data-preset="1">频率破解</button>
+        <button class="cipher-preset-btn" data-preset="2">随机替换</button>
+        <button class="cipher-preset-btn" data-preset="3">维吉尼亚</button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">S215 · 凯撒密码与替换密码</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">纯 JS 加密算法</span>
+    <span class="demo-tech-tag">频率分析</span>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="statusTag">就绪</span>
+  </div>
+</footer>
+
+<script>
+(function() {
+  'use strict';
+
+  // ====== 常量 ======
+  var ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  var ALPHABET_LEN = 26;
+  var ENGLISH_FREQ = {
+    'A': 8.167, 'B': 1.492, 'C': 2.782, 'D': 4.253, 'E': 12.702,
+    'F': 2.228, 'G': 2.015, 'H': 6.094, 'I': 6.966, 'J': 0.153,
+    'K': 0.772, 'L': 4.025, 'M': 2.406, 'N': 6.749, 'O': 7.507,
+    'P': 1.929, 'Q': 0.095, 'R': 5.987, 'S': 6.327, 'T': 9.056,
+    'U': 2.758, 'V': 0.978, 'W': 2.360, 'X': 0.150, 'Y': 1.974,
+    'Z': 0.074
+  };
+
+  // ====== 状态 ======
+  var state = {
+    cipherType: 'caesar',       // caesar | substitution | vigenere
+    shift: 3,
+    keyword: 'KEY',
+    mode: 'encrypt',            // encrypt | decrypt
+    plainText: 'HELLO WORLD',
+    cipherText: '',
+    substMap: null,             // 替换映射表 {A: 'X', B: 'Q', ...}
+    isPlaying: false,
+    animIndex: -1,
+    animTimer: null,
+    speed: 'normal',
+    showFreq: true,
+    isCracking: false
+  };
+
+  // 速度映射（ms per char）
+  var SPEED_MAP = { slow: 600, normal: 300, fast: 100 };
+
+  // ====== DOM 引用 ======
+  var dom = {};
+
+  function initDOM() {
+    dom.loadingOverlay = document.getElementById('loadingOverlay');
+    dom.wheel = document.getElementById('cipherWheel');
+    dom.outerLetters = document.getElementById('outerLetters');
+    dom.innerLetters = document.getElementById('innerLetters');
+    dom.connectionLayer = document.getElementById('connectionLayer');
+    dom.wheelShiftDisplay = document.getElementById('wheelShiftDisplay');
+    dom.plainInput = document.getElementById('plainInput');
+    dom.cipherOutput = document.getElementById('cipherOutput');
+    dom.charCount = document.getElementById('charCount');
+    dom.cipherCount = document.getElementById('cipherCount');
+    dom.formulaText = document.getElementById('formulaText');
+    dom.keyDisplay = document.getElementById('keyDisplay');
+    dom.shiftControl = document.getElementById('shiftControl');
+    dom.shiftSlider = document.getElementById('shiftSlider');
+    dom.shiftValue = document.getElementById('shiftValue');
+    dom.keywordControl = document.getElementById('keywordControl');
+    dom.keywordInput = document.getElementById('keywordInput');
+    dom.freqChart = document.getElementById('freqChart');
+    dom.freqLabels = document.getElementById('freqLabels');
+    dom.crackPanel = document.getElementById('crackPanel');
+    dom.crackResult = document.getElementById('crackResult');
+    dom.playBtn = document.getElementById('playBtn');
+    dom.playIcon = document.getElementById('playIcon');
+    dom.stepBtn = document.getElementById('stepBtn');
+    dom.resetBtn = document.getElementById('resetBtn');
+    dom.speedSelect = document.getElementById('speedSelect');
+    dom.substTable = document.getElementById('substTable');
+    dom.substRowFrom = document.getElementById('substRowFrom');
+    dom.substRowTo = document.getElementById('substRowTo');
+    dom.statusTag = document.getElementById('statusTag');
+  }
+
+  // ====== 加密算法 ======
+
+  // 凯撒加密/解密单个字符
+  function caesarChar(ch, key, decrypt) {
+    var upper = ch.toUpperCase();
+    var code = upper.charCodeAt(0);
+    if (code < 65 || code > 90) return ch;
+    if (decrypt) key = -key;
+    var shifted = ((code - 65 + key) % ALPHABET_LEN + ALPHABET_LEN) % ALPHABET_LEN;
+    return ALPHABET[shifted];
+  }
+
+  // 凯撒加密/解密整段文本
+  function caesarProcess(text, key, decrypt) {
+    var result = '';
+    for (var i = 0; i < text.length; i++) {
+      result += caesarChar(text[i], key, decrypt);
+    }
+    return result;
+  }
+
+  // 单表替换加密/解密
+  function substitutionProcess(text, map, decrypt) {
+    var result = '';
+    var reverseMap = null;
+    if (decrypt) {
+      reverseMap = {};
+      for (var k in map) {
+        reverseMap[map[k]] = k;
+      }
+    }
+    for (var i = 0; i < text.length; i++) {
+      var upper = text[i].toUpperCase();
+      var code = upper.charCodeAt(0);
+      if (code < 65 || code > 90) {
+        result += text[i];
+        continue;
+      }
+      if (decrypt) {
+        result += reverseMap[upper] || upper;
+      } else {
+        result += map[upper] || upper;
+      }
+    }
+    return result;
+  }
+
+  // 维吉尼亚加密/解密
+  function vigenereProcess(text, keyword, decrypt) {
+    var result = '';
+    var keyIndex = 0;
+    var cleanKey = keyword.toUpperCase().replace(/[^A-Z]/g, '');
+    if (cleanKey.length === 0) return text;
+    for (var i = 0; i < text.length; i++) {
+      var upper = text[i].toUpperCase();
+      var code = upper.charCodeAt(0);
+      if (code < 65 || code > 90) {
+        result += text[i];
+        continue;
+      }
+      var keyChar = cleanKey[keyIndex % cleanKey.length];
+      var keyShift = keyChar.charCodeAt(0) - 65;
+      if (decrypt) keyShift = -keyShift;
+      var shifted = ((code - 65 + keyShift) % ALPHABET_LEN + ALPHABET_LEN) % ALPHABET_LEN;
+      result += ALPHABET[shifted];
+      keyIndex++;
+    }
+    return result;
+  }
+
+  // 生成随机替换表
+  function generateRandomSubstMap() {
+    var shuffled = ALPHABET.split('');
+    // Fisher-Yates shuffle
+    for (var i = shuffled.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = temp;
+    }
+    // 确保没有字母映射到自身
+    var map = {};
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      map[ALPHABET[i]] = shuffled[i];
+    }
+    // 检查并修复自映射
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      if (map[ALPHABET[i]] === ALPHABET[i]) {
+        var swapWith = (i + 1) % ALPHABET_LEN;
+        var temp = map[ALPHABET[i]];
+        map[ALPHABET[i]] = map[ALPHABET[swapWith]];
+        map[ALPHABET[swapWith]] = temp;
+      }
+    }
+    return map;
+  }
+
+  // 生成标准凯撒替换表（用于替换模式可视化）
+  function generateCaesarSubstMap(shift) {
+    var map = {};
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      map[ALPHABET[i]] = ALPHABET[(i + shift) % ALPHABET_LEN];
+    }
+    return map;
+  }
+
+  // 频率分析
+  function analyzeFrequency(text) {
+    var freq = {};
+    var total = 0;
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      freq[ALPHABET[i]] = 0;
+    }
+    for (var i = 0; i < text.length; i++) {
+      var upper = text[i].toUpperCase();
+      if (freq.hasOwnProperty(upper)) {
+        freq[upper]++;
+        total++;
+      }
+    }
+    var result = {};
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      result[ALPHABET[i]] = total > 0 ? (freq[ALPHABET[i]] / total * 100) : 0;
+    }
+    return result;
+  }
+
+  // 频率破解凯撒密码
+  function crackCaesar(cipherText) {
+    var bestShift = 0;
+    var bestScore = Infinity;
+    var scores = [];
+    for (var k = 0; k < ALPHABET_LEN; k++) {
+      var decrypted = caesarProcess(cipherText, k, true);
+      var freq = analyzeFrequency(decrypted);
+      var score = 0;
+      for (var i = 0; i < ALPHABET_LEN; i++) {
+        var diff = freq[ALPHABET[i]] - (ENGLISH_FREQ[ALPHABET[i]] || 0);
+        score += diff * diff;
+      }
+      scores.push({ shift: k, score: score, text: decrypted });
+      if (score < bestScore) {
+        bestScore = score;
+        bestShift = k;
+      }
+    }
+    // 取前3个最可能的
+    scores.sort(function(a, b) { return a.score - b.score; });
+    return {
+      bestShift: bestShift,
+      bestText: caesarProcess(cipherText, bestShift, true),
+      top3: scores.slice(0, 3)
+    };
+  }
+
+  // ====== 字母轮绘制 ======
+
+  var WHEEL_CX = 200, WHEEL_CY = 200;
+  var OUTER_R = 175, INNER_R = 115;
+  var OUTER_TEXT_R = 158, INNER_TEXT_R = 100;
+
+  function buildLetterWheel() {
+    // 清空
+    dom.outerLetters.innerHTML = '';
+    dom.innerLetters.innerHTML = '';
+
+    var angleStep = 360 / ALPHABET_LEN;
+
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      var angle = (i * angleStep - 90) * Math.PI / 180;
+
+      // 外环字母（明文）
+      var ox = WHEEL_CX + OUTER_TEXT_R * Math.cos(angle);
+      var oy = WHEEL_CY + OUTER_TEXT_R * Math.sin(angle);
+      var outerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      outerText.setAttribute('x', ox);
+      outerText.setAttribute('y', oy);
+      outerText.setAttribute('class', 'wheel-outer-letter');
+      outerText.setAttribute('data-letter', ALPHABET[i]);
+      outerText.setAttribute('data-index', i);
+      outerText.textContent = ALPHABET[i];
+      dom.outerLetters.appendChild(outerText);
+
+      // 内环字母（密文）— 初始位置与外环一致，通过旋转实现移位
+      var ix = WHEEL_CX + INNER_TEXT_R * Math.cos(angle);
+      var iy = WHEEL_CY + INNER_TEXT_R * Math.sin(angle);
+      var innerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      innerText.setAttribute('x', ix);
+      innerText.setAttribute('y', iy);
+      innerText.setAttribute('class', 'wheel-inner-letter');
+      innerText.setAttribute('data-letter', ALPHABET[i]);
+      innerText.setAttribute('data-index', i);
+      innerText.textContent = ALPHABET[i];
+      dom.innerLetters.appendChild(innerText);
+    }
+
+    drawConnections();
+  }
+
+  function drawConnections() {
+    dom.connectionLayer.innerHTML = '';
+    var angleStep = 360 / ALPHABET_LEN;
+
+    // 绘制连线：由于内环旋转/重排后，密文字母在视觉上与明文字母对齐
+    // 所以连线为径向线（从外环到内环同一角度位置）
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      var angle = (i * angleStep - 90) * Math.PI / 180;
+      var ox = WHEEL_CX + OUTER_TEXT_R * Math.cos(angle);
+      var oy = WHEEL_CY + OUTER_TEXT_R * Math.sin(angle);
+      var ix = WHEEL_CX + INNER_TEXT_R * Math.cos(angle);
+      var iy = WHEEL_CY + INNER_TEXT_R * Math.sin(angle);
+
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M ' + ox + ' ' + oy + ' L ' + ix + ' ' + iy);
+      path.setAttribute('class', 'wheel-connection');
+      path.setAttribute('data-plain', ALPHABET[i]);
+      path.setAttribute('data-cipher', getCipherLetter(ALPHABET[i]));
+      dom.connectionLayer.appendChild(path);
+    }
+  }
+
+  // 获取内环字母索引（考虑当前密钥）
+  function getInnerIndex(outerIdx) {
+    if (state.cipherType === 'caesar') {
+      return (outerIdx + state.shift) % ALPHABET_LEN;
+    } else if (state.cipherType === 'vigenere') {
+      // 维吉尼亚模式下，使用第一个字符的移位
+      var cleanKey = state.keyword.toUpperCase().replace(/[^A-Z]/g, '');
+      if (cleanKey.length === 0) return outerIdx;
+      var keyShift = cleanKey[0].charCodeAt(0) - 65;
+      return (outerIdx + keyShift) % ALPHABET_LEN;
+    } else if (state.cipherType === 'substitution' && state.substMap) {
+      var cipherLetter = state.substMap[ALPHABET[outerIdx]];
+      return ALPHABET.indexOf(cipherLetter);
+    }
+    return outerIdx;
+  }
+
+  // 获取密文字母
+  function getCipherLetter(plainLetter) {
+    if (state.cipherType === 'caesar') {
+      return caesarChar(plainLetter, state.shift, false);
+    } else if (state.cipherType === 'vigenere') {
+      var cleanKey = state.keyword.toUpperCase().replace(/[^A-Z]/g, '');
+      if (cleanKey.length === 0) return plainLetter;
+      var keyShift = cleanKey[0].charCodeAt(0) - 65;
+      return caesarChar(plainLetter, keyShift, false);
+    } else if (state.cipherType === 'substitution' && state.substMap) {
+      return state.substMap[plainLetter] || plainLetter;
+    }
+    return plainLetter;
+  }
+
+  // 更新字母轮旋转
+  function updateWheelRotation() {
+    if (state.cipherType === 'caesar') {
+      // 逆时针旋转 shift 位，使密文字母对齐明文字母
+      var angle = -state.shift * (360 / ALPHABET_LEN);
+      dom.innerLetters.style.transform = 'rotate(' + angle + 'deg)';
+      dom.wheelShiftDisplay.textContent = 'k = ' + state.shift;
+    } else if (state.cipherType === 'vigenere') {
+      var cleanKey = state.keyword.toUpperCase().replace(/[^A-Z]/g, '');
+      if (cleanKey.length > 0) {
+        var keyShift = cleanKey[0].charCodeAt(0) - 65;
+        var angle = -keyShift * (360 / ALPHABET_LEN);
+        dom.innerLetters.style.transform = 'rotate(' + angle + 'deg)';
+        dom.wheelShiftDisplay.textContent = 'key = ' + cleanKey;
+      }
+    } else if (state.cipherType === 'substitution') {
+      // 替换模式下不旋转，而是直接重新排列内环字母
+      dom.innerLetters.style.transform = 'rotate(0deg)';
+      dom.wheelShiftDisplay.textContent = '替换表';
+      rebuildInnerLettersForSubst();
+    }
+    drawConnections();
+  }
+
+  // 替换模式下重建内环字母位置
+  function rebuildInnerLettersForSubst() {
+    if (!state.substMap) return;
+    var angleStep = 360 / ALPHABET_LEN;
+    var letters = dom.innerLetters.querySelectorAll('.wheel-inner-letter');
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      var cipherLetter = state.substMap[ALPHABET[i]] || ALPHABET[i];
+      // 内环字母位置保持不变（按原字母索引），但显示密文字母
+      // 不对，应该是内环每个位置显示该位置对应的密文字母
+      // 即：内环位置 i 显示 substMap[ALPHABET[i]]
+      if (letters[i]) {
+        letters[i].textContent = cipherLetter;
+        letters[i].setAttribute('data-letter', cipherLetter);
+      }
+    }
+  }
+
+  // 恢复内环字母为标准顺序
+  function restoreInnerLetters() {
+    var letters = dom.innerLetters.querySelectorAll('.wheel-inner-letter');
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      if (letters[i]) {
+        letters[i].textContent = ALPHABET[i];
+        letters[i].setAttribute('data-letter', ALPHABET[i]);
+      }
+    }
+  }
+
+  // ====== 高亮当前加密字符 ======
+  function highlightChar(plainChar, cipherChar) {
+    // 清除之前的高亮
+    var prevActive = dom.wheel.querySelectorAll('.active');
+    prevActive.forEach(function(el) { el.classList.remove('active'); });
+
+    if (!plainChar || !/[A-Za-z]/.test(plainChar)) return;
+
+    var upper = plainChar.toUpperCase();
+    var cipherUpper = cipherChar ? cipherChar.toUpperCase() : '';
+
+    // 高亮外环字母
+    var outerEl = dom.outerLetters.querySelector('[data-letter="' + upper + '"]');
+    if (outerEl) outerEl.classList.add('active');
+
+    // 高亮内环字母
+    var innerEl = dom.innerLetters.querySelector('[data-letter="' + cipherUpper + '"]');
+    if (innerEl) innerEl.classList.add('active');
+
+    // 高亮连线
+    var conn = dom.connectionLayer.querySelector('[data-plain="' + upper + '"]');
+    if (conn) conn.classList.add('active');
+
+    // 高亮频率图
+    var freqGroup = dom.freqChart.querySelector('[data-letter="' + upper + '"]');
+    if (freqGroup) freqGroup.classList.add('active');
+  }
+
+  function clearHighlight() {
+    var active = dom.wheel.querySelectorAll('.active');
+    active.forEach(function(el) { el.classList.remove('active'); });
+    var freqActive = dom.freqChart.querySelectorAll('.active');
+    freqActive.forEach(function(el) { el.classList.remove('active'); });
+  }
+
+  // ====== 文本处理与显示 ======
+
+  function processText() {
+    var text = dom.plainInput.value;
+    state.plainText = text;
+
+    if (state.mode === 'encrypt') {
+      state.cipherText = encryptText(text);
+    } else {
+      state.cipherText = decryptText(text);
+    }
+
+    renderOutput();
+    updateCharCount();
+    updateFrequency();
+    updateFormula();
+
+    if (!state.isPlaying) {
+      clearHighlight();
+    }
+  }
+
+  function encryptText(text) {
+    if (state.cipherType === 'caesar') {
+      return caesarProcess(text, state.shift, false);
+    } else if (state.cipherType === 'substitution') {
+      return substitutionProcess(text, state.substMap || generateCaesarSubstMap(state.shift), false);
+    } else if (state.cipherType === 'vigenere') {
+      return vigenereProcess(text, state.keyword, false);
+    }
+    return text;
+  }
+
+  function decryptText(text) {
+    if (state.cipherType === 'caesar') {
+      return caesarProcess(text, state.shift, true);
+    } else if (state.cipherType === 'substitution') {
+      return substitutionProcess(text, state.substMap || generateCaesarSubstMap(state.shift), true);
+    } else if (state.cipherType === 'vigenere') {
+      return vigenereProcess(text, state.keyword, true);
+    }
+    return text;
+  }
+
+  function renderOutput() {
+    var html = '';
+    var plain = state.plainText;
+    var cipher = state.cipherText;
+
+    for (var i = 0; i < plain.length; i++) {
+      var pCh = plain[i];
+      var cCh = cipher[i] || pCh;
+
+      if (/[A-Za-z]/.test(pCh)) {
+        var cls = 'cipher-char';
+        if (state.animIndex === i) {
+          cls += ' encrypting';
+        } else if (state.animIndex >= 0 && i < state.animIndex) {
+          cls += ' encrypted';
+        }
+        html += '<span class="' + cls + '" data-index="' + i + '">' + escapeHtml(cCh) + '</span>';
+      } else {
+        // 非字母字符直接显示
+        html += '<span class="cipher-char non-alpha">' + escapeHtml(pCh) + '</span>';
+      }
+    }
+
+    dom.cipherOutput.innerHTML = html;
+    dom.cipherCount.textContent = state.cipherText.length + ' chars';
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function updateCharCount() {
+    var len = dom.plainInput.value.length;
+    dom.charCount.textContent = len + ' / 500';
+  }
+
+  function updateFormula() {
+    if (state.cipherType === 'caesar') {
+      if (state.mode === 'encrypt') {
+        dom.formulaText.textContent = 'C = (P + k) mod 26';
+      } else {
+        dom.formulaText.textContent = 'P = (C − k) mod 26';
+      }
+      dom.keyDisplay.textContent = 'k = ' + state.shift;
+    } else if (state.cipherType === 'vigenere') {
+      if (state.mode === 'encrypt') {
+        dom.formulaText.textContent = 'Cᵢ = (Pᵢ + Kᵢ) mod 26';
+      } else {
+        dom.formulaText.textContent = 'Pᵢ = (Cᵢ − Kᵢ) mod 26';
+      }
+      var cleanKey = state.keyword.toUpperCase().replace(/[^A-Z]/g, '') || '—';
+      dom.keyDisplay.textContent = 'key = ' + cleanKey;
+    } else if (state.cipherType === 'substitution') {
+      dom.formulaText.textContent = 'C = Subst(P), 26! 种可能映射';
+      dom.keyDisplay.textContent = '随机替换表';
+    }
+  }
+
+  // ====== 频率分析图 ======
+
+  function buildFreqChart() {
+    dom.freqChart.innerHTML = '';
+    dom.freqLabels.innerHTML = '';
+
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      var group = document.createElement('div');
+      group.className = 'freq-bar-group';
+      group.setAttribute('data-letter', ALPHABET[i]);
+
+      var bars = document.createElement('div');
+      bars.className = 'freq-bars';
+
+      var plainBar = document.createElement('div');
+      plainBar.className = 'freq-bar freq-bar-plain';
+      plainBar.style.height = '0%';
+
+      var cipherBar = document.createElement('div');
+      cipherBar.className = 'freq-bar freq-bar-cipher';
+      cipherBar.style.height = '0%';
+
+      bars.appendChild(plainBar);
+      bars.appendChild(cipherBar);
+      group.appendChild(bars);
+
+      var letter = document.createElement('div');
+      letter.className = 'freq-letter';
+      letter.textContent = ALPHABET[i];
+      group.appendChild(letter);
+
+      dom.freqChart.appendChild(group);
+    }
+  }
+
+  function updateFrequency() {
+    var plainFreq = analyzeFrequency(state.plainText);
+    var cipherFreq = analyzeFrequency(state.cipherText);
+    var maxFreq = 0;
+
+    // 找最大值用于归一化
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      maxFreq = Math.max(maxFreq, plainFreq[ALPHABET[i]], cipherFreq[ALPHABET[i]]);
+    }
+    // 至少有一些基准
+    maxFreq = Math.max(maxFreq, 5);
+
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      var group = dom.freqChart.querySelector('[data-letter="' + ALPHABET[i] + '"]');
+      if (!group) continue;
+      var plainBar = group.querySelector('.freq-bar-plain');
+      var cipherBar = group.querySelector('.freq-bar-cipher');
+
+      var plainH = (plainFreq[ALPHABET[i]] / maxFreq * 100);
+      var cipherH = (cipherFreq[ALPHABET[i]] / maxFreq * 100);
+
+      plainBar.style.height = plainH + '%';
+      cipherBar.style.height = cipherH + '%';
+    }
+  }
+
+  // ====== 替换表显示 ======
+  function buildSubstTable() {
+    if (!state.substMap) return;
+    dom.substRowFrom.innerHTML = '';
+    dom.substRowTo.innerHTML = '';
+
+    for (var i = 0; i < ALPHABET_LEN; i++) {
+      var fromCell = document.createElement('div');
+      fromCell.className = 'cipher-subst-cell';
+      fromCell.innerHTML = '<span class="from">' + ALPHABET[i] + '</span>';
+      dom.substRowFrom.appendChild(fromCell);
+
+      var toCell = document.createElement('div');
+      toCell.className = 'cipher-subst-cell';
+      toCell.innerHTML = '<span class="to">' + (state.substMap[ALPHABET[i]] || ALPHABET[i]) + '</span>';
+      toCell.setAttribute('data-from', ALPHABET[i]);
+      dom.substRowTo.appendChild(toCell);
+    }
+  }
+
+  // ====== 动画 ======
+
+  function play() {
+    if (state.isPlaying) {
+      pause();
+      return;
+    }
+
+    var text = state.plainText;
+    if (!text || text.length === 0) return;
+
+    state.isPlaying = true;
+    dom.playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    dom.statusTag.textContent = '加密中...';
+
+    // 如果已完成或未开始，从头开始
+    if (state.animIndex >= text.length - 1) {
+      state.animIndex = -1;
+    }
+
+    state.animIndex++;
+    animateStep();
+  }
+
+  function pause() {
+    state.isPlaying = false;
+    if (state.animTimer) {
+      clearTimeout(state.animTimer);
+      state.animTimer = null;
+    }
+    dom.playIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    dom.statusTag.textContent = '已暂停';
+  }
+
+  function animateStep() {
+    if (!state.isPlaying) return;
+
+    var text = state.plainText;
+    if (state.animIndex >= text.length) {
+      // 动画结束
+      state.isPlaying = false;
+      dom.playIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+      dom.statusTag.textContent = '完成';
+      clearHighlight();
+      return;
+    }
+
+    var pCh = text[state.animIndex];
+    var cCh = state.cipherText[state.animIndex] || '';
+
+    // 维吉尼亚模式下，根据当前字符的密钥移位旋转字母轮
+    if (state.cipherType === 'vigenere' && /[A-Za-z]/.test(pCh)) {
+      var cleanKey = state.keyword.toUpperCase().replace(/[^A-Z]/g, '');
+      if (cleanKey.length > 0) {
+        // 计算当前字母的密钥索引（跳过非字母字符）
+        var keyIdx = 0;
+        for (var j = 0; j < state.animIndex; j++) {
+          if (/[A-Za-z]/.test(text[j])) keyIdx++;
+        }
+        var keyChar = cleanKey[keyIdx % cleanKey.length];
+        var keyShift = keyChar.charCodeAt(0) - 65;
+        var angle = -keyShift * (360 / ALPHABET_LEN);
+        dom.innerLetters.style.transform = 'rotate(' + angle + 'deg)';
+        dom.wheelShiftDisplay.textContent = 'k' + keyIdx + ' = ' + keyShift + ' (' + keyChar + ')';
+      }
+    }
+
+    // 高亮当前字符
+    highlightChar(pCh, cCh);
+
+    // 更新输出显示
+    renderOutput();
+
+    // 前进到下一个字符
+    state.animIndex++;
+
+    var delay = SPEED_MAP[state.speed] || 300;
+    // 非字母字符更快
+    if (!/[A-Za-z]/.test(pCh)) {
+      delay = delay / 3;
+    }
+
+    state.animTimer = setTimeout(animateStep, delay);
+  }
+
+  function step() {
+    pause();
+    var text = state.plainText;
+    if (!text || text.length === 0) return;
+
+    state.animIndex++;
+    if (state.animIndex >= text.length) {
+      state.animIndex = text.length - 1;
+      return;
+    }
+
+    var pCh = text[state.animIndex];
+    var cCh = state.cipherText[state.animIndex] || '';
+    highlightChar(pCh, cCh);
+    renderOutput();
+    dom.statusTag.textContent = '步进 → ' + (state.animIndex + 1) + '/' + text.length;
+  }
+
+  function reset() {
+    pause();
+    state.animIndex = -1;
+    clearHighlight();
+    renderOutput();
+    dom.statusTag.textContent = '就绪';
+  }
+
+  // ====== 预设 ======
+  var PRESETS = [
+    {
+      // 预设1：凯撒经典
+      type: 'caesar',
+      shift: 3,
+      mode: 'encrypt',
+      text: 'HELLO WORLD',
+      keyword: 'KEY'
+    },
+    {
+      // 预设2：频率破解
+      type: 'caesar',
+      shift: 7,
+      mode: 'decrypt',
+      text: 'OLSSV DVYSK',  // "HELLO WORLD" 加密 k=7
+      keyword: 'KEY',
+      crack: true
+    },
+    {
+      // 预设3：随机替换
+      type: 'substitution',
+      shift: 3,
+      mode: 'encrypt',
+      text: 'THE QUICK BROWN FOX',
+      keyword: 'KEY',
+      randomSubst: true
+    },
+    {
+      // 预设4：维吉尼亚
+      type: 'vigenere',
+      shift: 3,
+      mode: 'encrypt',
+      text: 'ATTACK AT DAWN',
+      keyword: 'LEMON'
+    }
+  ];
+
+  function applyPreset(idx) {
+    var p = PRESETS[idx];
+    if (!p) return;
+
+    // 更新状态
+    state.cipherType = p.type;
+    state.shift = p.shift;
+    state.mode = p.mode;
+    state.keyword = p.keyword;
+
+    // 替换密码模式
+    if (p.type === 'substitution') {
+      if (p.randomSubst) {
+        state.substMap = generateRandomSubstMap();
+      } else {
+        state.substMap = generateCaesarSubstMap(p.shift);
+      }
+    }
+
+    // 更新UI
+    // 密码类型
+    document.querySelectorAll('.cipher-type-tab').forEach(function(tab) {
+      tab.classList.toggle('active', tab.dataset.type === p.type);
+    });
+
+    // 移位
+    dom.shiftSlider.value = p.shift;
+    dom.shiftValue.textContent = p.shift;
+    state.shift = p.shift;
+
+    // 显示/隐藏控制
+    toggleCipherControls();
+
+    // 密钥词
+    dom.keywordInput.value = p.keyword;
+    state.keyword = p.keyword;
+
+    // 模式
+    document.querySelectorAll('.cipher-mode-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.mode === p.mode);
+    });
+
+    // 输入文本
+    dom.plainInput.value = p.text;
+
+    // 预设按钮高亮
+    document.querySelectorAll('.cipher-preset-btn').forEach(function(btn) {
+      btn.classList.toggle('active', parseInt(btn.dataset.preset) === idx);
+    });
+
+    // 破解模式
+    if (p.crack) {
+      state.isCracking = true;
+      dom.crackPanel.classList.add('show');
+      var crackResult = crackCaesar(p.text);
+      var html = '最可能密钥: <span class="crack-best">k = ' + crackResult.bestShift + '</span><br>';
+      html += '解密结果: <span class="crack-best">' + escapeHtml(crackResult.bestText) + '</span><br>';
+      html += '其他可能: ';
+      for (var i = 1; i < crackResult.top3.length; i++) {
+        html += 'k=' + crackResult.top3[i].shift + ' ';
+      }
+      dom.crackResult.innerHTML = html;
+    } else {
+      state.isCracking = false;
+      dom.crackPanel.classList.remove('show');
+    }
+
+    // 重新渲染
+    reset();
+    updateWheelRotation();
+    processText();
+  }
+
+  // ====== 控制切换 ======
+
+  function toggleCipherControls() {
+    var isCaesar = state.cipherType === 'caesar';
+    var isVigenere = state.cipherType === 'vigenere';
+    var isSubst = state.cipherType === 'substitution';
+
+    dom.shiftControl.classList.toggle('cipher-control-hidden', !isCaesar);
+    dom.keywordControl.classList.toggle('cipher-control-hidden', !isVigenere);
+    dom.substTable.classList.toggle('show', isSubst);
+
+    if (isSubst) {
+      if (!state.substMap) {
+        state.substMap = generateRandomSubstMap();
+      }
+      buildSubstTable();
+    }
+
+    if (!isSubst) {
+      restoreInnerLetters();
+    }
+  }
+
+  // ====== 事件绑定 ======
+
+  function bindEvents() {
+    // 明文输入
+    dom.plainInput.addEventListener('input', function() {
+      if (state.animIndex >= 0) {
+        state.animIndex = -1;
+        clearHighlight();
+      }
+      processText();
+    });
+
+    // 移位滑块
+    dom.shiftSlider.addEventListener('input', function() {
+      state.shift = parseInt(this.value);
+      dom.shiftValue.textContent = state.shift;
+      updateWheelRotation();
+      processText();
+    });
+
+    // 密钥词输入
+    dom.keywordInput.addEventListener('input', function() {
+      state.keyword = this.value.toUpperCase().replace(/[^A-Z]/g, '');
+      this.value = state.keyword;
+      updateWheelRotation();
+      processText();
+    });
+
+    // 密码类型切换
+    document.querySelectorAll('.cipher-type-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.cipher-type-tab').forEach(function(t) { t.classList.remove('active'); });
+        this.classList.add('active');
+        state.cipherType = this.dataset.type;
+
+        if (state.cipherType === 'substitution' && !state.substMap) {
+          state.substMap = generateRandomSubstMap();
+        }
+
+        toggleCipherControls();
+        updateWheelRotation();
+        reset();
+        processText();
+      });
+    });
+
+    // 模式切换
+    document.querySelectorAll('.cipher-mode-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.cipher-mode-btn').forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+        state.mode = this.dataset.mode;
+        reset();
+        processText();
+      });
+    });
+
+    // 速度选择
+    dom.speedSelect.addEventListener('change', function() {
+      state.speed = this.value;
+    });
+
+    // 播放/暂停
+    dom.playBtn.addEventListener('click', play);
+
+    // 单步
+    dom.stepBtn.addEventListener('click', step);
+
+    // 重置
+    dom.resetBtn.addEventListener('click', reset);
+
+    // 预设
+    document.querySelectorAll('.cipher-preset-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        applyPreset(parseInt(this.dataset.preset));
+      });
+    });
+
+    // 替换表点击修改
+    dom.substRowTo.addEventListener('click', function(e) {
+      var cell = e.target.closest('.cipher-subst-cell');
+      if (!cell || !state.substMap) return;
+      var fromLetter = cell.dataset.from;
+      if (!fromLetter) return;
+      // 循环切换到下一个字母
+      var currentTo = state.substMap[fromLetter];
+      var currentIdx = ALPHABET.indexOf(currentTo);
+      var nextIdx = (currentIdx + 1) % ALPHABET_LEN;
+      state.substMap[fromLetter] = ALPHABET[nextIdx];
+      buildSubstTable();
+      rebuildInnerLettersForSubst();
+      drawConnections();
+      processText();
+    });
+
+    // 导航栏滚动效果
+    window.addEventListener('scroll', function() {
+      var navbar = document.getElementById('demoNavbar');
+      if (window.scrollY > 10) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+  }
+
+  // ====== 初始化 ======
+
+  function init() {
+    initDOM();
+    buildLetterWheel();
+    buildFreqChart();
+    bindEvents();
+    processText();
+    updateWheelRotation();
+
+    // 隐藏加载动画
+    setTimeout(function() {
+      dom.loadingOverlay.classList.add('hide');
+    }, 800);
+  }
+
+  // DOM Ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>

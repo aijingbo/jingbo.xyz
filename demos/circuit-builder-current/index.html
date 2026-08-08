@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>电路构建与电流可视化 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<style>
+  html, body { height: 100%; overflow: hidden; }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100svh;
+  }
+
+  /* ============ 导航栏 ============ */
+  .demo-navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    height: 56px;
+    flex-shrink: 0;
+    background: rgba(250, 248, 245, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+  }
+  .nav-left { display: flex; align-items: center; gap: var(--spacer-16); }
+  .nav-logo {
+    font-family: var(--font-serif); font-size: 18px; font-weight: 700;
+    color: var(--text); text-decoration: none;
+  }
+  .nav-divider { width: 1px; height: 20px; background: var(--border); }
+  .nav-subject {
+    font-size: 14px; font-weight: 500; color: var(--text-muted);
+    text-decoration: none; transition: color var(--duration-fast) var(--ease);
+  }
+  .nav-subject:hover { color: var(--brand); }
+  .nav-center {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-serif); font-size: 15px; font-weight: 600;
+    color: var(--text);
+  }
+  .nav-right { display: flex; align-items: center; gap: var(--spacer-12); }
+  .download-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; font-size: var(--fs-small); font-weight: 500;
+    color: #fff; background: var(--brand); border: none;
+    border-radius: var(--radius); cursor: pointer; text-decoration: none;
+    transition: all var(--duration-base) var(--ease);
+  }
+  .download-btn:hover { background: var(--brand-hover); transform: translateY(-1px); }
+  .download-btn svg { width: 14px; height: 14px; }
+
+  /* ============ 电路舞台 ============ */
+  .circuit-stage {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    background-image: radial-gradient(circle, #e5ded4 1px, transparent 1px);
+    background-size: 24px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .svg-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 1100px;
+  }
+  #circuitSvg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  #particleCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* ============ 数据面板 ============ */
+  .data-panel {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 250px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-soft);
+    font-size: var(--fs-small);
+    z-index: 10;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .data-panel.hidden {
+    opacity: 0;
+    transform: translateX(20px);
+    pointer-events: none;
+  }
+  .data-panel-title {
+    font-size: var(--fs-tiny);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 3px 0;
+  }
+  .data-label {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .data-value {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .data-value.current { color: #2563eb; }
+  .data-value.voltage { color: #c2410c; }
+  .data-value.power { color: #d97706; }
+  .data-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 8px;
+    margin-bottom: 2px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .data-section-title:first-of-type { border-top: none; padding-top: 0; }
+  .data-section-title .ctype {
+    font-weight: 400; color: var(--text-muted); font-size: 10px;
+  }
+  .data-row.disabled { opacity: 0.35; }
+
+  /* ============ 短路/警告 ============ */
+  .warning-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 20;
+  }
+  .warning-overlay.active {
+    opacity: 1;
+    animation: warningFlash 0.6s ease-in-out infinite;
+  }
+  @keyframes warningFlash {
+    0%, 100% { background: rgba(239, 68, 68, 0); }
+    50% { background: rgba(239, 68, 68, 0.1); }
+  }
+  .warning-box {
+    background: rgba(220, 38, 38, 0.92);
+    color: #fff;
+    padding: 16px 32px;
+    border-radius: var(--radius-card);
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(220, 38, 38, 0.4);
+  }
+  .warning-box h3 {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .warning-box p { font-size: 13px; opacity: 0.9; }
+
+  /* ============ 控制面板 ============ */
+  .control-panel {
+    flex-shrink: 0;
+    background: var(--surface-muted);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-20);
+    flex-wrap: wrap;
+  }
+  .ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ctrl-label {
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* 拓扑切换 */
+  .type-tabs {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3px;
+    gap: 2px;
+  }
+  .type-tab {
+    padding: 6px 14px;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    white-space: nowrap;
+  }
+  .type-tab:hover { color: var(--text); }
+  .type-tab.active {
+    background: var(--brand);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(194, 65, 12, 0.25);
+  }
+
+  /* 元件调色板 */
+  .palette {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3px;
+    gap: 2px;
+  }
+  .palette-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    white-space: nowrap;
+  }
+  .palette-item:hover { color: var(--text); background: var(--surface-muted); }
+  .palette-item.active {
+    color: #fff;
+  }
+  .palette-item.active[data-type="resistor"] { background: #6b7280; }
+  .palette-item.active[data-type="bulb"] { background: #d97706; }
+  .palette-item.active[data-type="motor"] { background: #2563eb; }
+  .palette-item.active[data-type="none"] { background: #9ca3af; }
+  .palette-icon {
+    width: 14px; height: 14px; flex-shrink: 0;
+  }
+
+  /* 滑块 */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 120px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    background: var(--brand);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(194, 65, 12, 0.3);
+    transition: transform var(--duration-fast) var(--ease);
+  }
+  .slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .slider::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: var(--brand);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(194, 65, 12, 0.3);
+  }
+  .slider:disabled { opacity: 0.35; cursor: not-allowed; }
+  .slider-value {
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--text);
+    min-width: 44px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .slider-value.disabled { color: var(--text-faint); }
+
+  /* 按钮 */
+  .ctrl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .ctrl-btn:hover {
+    border-color: var(--text-muted);
+    background: var(--surface-muted);
+  }
+  .ctrl-btn.primary {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+  }
+  .ctrl-btn.primary:hover {
+    background: var(--brand-hover);
+    box-shadow: 0 4px 12px rgba(194, 65, 12, 0.3);
+  }
+  .ctrl-btn.switch-on {
+    background: #059669;
+    color: #fff;
+    border-color: #059669;
+  }
+  .ctrl-btn.switch-off {
+    background: var(--surface);
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .ctrl-btn.preset-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .ctrl-btn.preset-btn.active {
+    background: var(--brand-soft);
+    color: var(--brand);
+    border-color: rgba(194, 65, 12, 0.3);
+  }
+
+  .divider {
+    width: 1px;
+    height: 28px;
+    background: var(--border);
+  }
+
+  /* 显示选项 */
+  .option-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    user-select: none;
+  }
+  .option-toggle.active {
+    background: var(--brand-soft);
+    color: var(--brand);
+    border-color: rgba(194, 65, 12, 0.3);
+  }
+  .option-toggle .check {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1.5px solid currentColor;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    line-height: 1;
+  }
+  .option-toggle.active .check::after { content: '✓'; }
+
+  /* 提示文字 */
+  .build-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(26, 26, 26, 0.82);
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 15;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .build-hint.visible { opacity: 1; }
+
+  /* 响应式 */
+  @media (max-width: 900px) {
+    .nav-center { display: none; }
+    .data-panel { width: 200px; font-size: 11px; padding: 10px 12px; }
+    .data-panel .data-value { font-size: 12px; }
+    .control-panel { padding: 10px 12px; }
+    .control-row { gap: 10px; }
+    .slider { width: 90px; }
+    .ctrl-btn.preset-btn { padding: 5px 8px; font-size: 11px; }
+    .palette-item { padding: 5px 8px; font-size: 11px; }
+  }
+  @media (max-width: 600px) {
+    .data-panel { display: none; }
+    .ctrl-group .ctrl-label { display: none; }
+    .control-row { gap: 8px; }
+    .build-hint { font-size: 11px; padding: 6px 12px; }
+  }
+</style>
+<link rel="stylesheet" href="/assets/css/demo-framework.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ====== 导航栏 ====== -->
+  <header class="demo-navbar" id="demoNavbar">
+    <div class="nav-left">
+      <a href="/" class="nav-logo">景礴学院</a>
+      <span class="nav-divider"></span>
+      <a href="/demos.html" class="nav-subject">物理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="nav-center">电路构建与电流可视化</div>
+    <div class="nav-right">
+      <span class="tag tag-physics">物理</span>
+      <a href="/skills/jingbo-edu-physics-experiment-sim-v0.1.html" class="download-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ====== 电路舞台 ====== -->
+  <div class="circuit-stage">
+    <div class="svg-wrap" id="svgWrap">
+      <svg id="circuitSvg" viewBox="0 0 900 480" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <radialGradient id="bulbGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fef3c7" stop-opacity="1"/>
+            <stop offset="30%" stop-color="#fbbf24" stop-opacity="0.7"/>
+            <stop offset="70%" stop-color="#f59e0b" stop-opacity="0.2"/>
+            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="heatGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ef4444" stop-opacity="0.3"/>
+            <stop offset="60%" stop-color="#ef4444" stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <g id="wireLayer"></g>
+        <g id="componentLayer"></g>
+        <g id="labelLayer"></g>
+        <g id="clickLayer"></g>
+      </svg>
+      <canvas id="particleCanvas"></canvas>
+    </div>
+
+    <!-- 数据面板 -->
+    <div class="data-panel" id="dataPanel">
+      <div class="data-panel-title">实时数据</div>
+      <div class="data-section-title">总电路</div>
+      <div class="data-row">
+        <span class="data-label">总电压 U</span>
+        <span class="data-value voltage" id="dTotalU">6.00 V</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">总电流 I</span>
+        <span class="data-value current" id="dTotalI">0.200 A</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">总电阻 R</span>
+        <span class="data-value" id="dTotalR">30.0 Ω</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">总功率 P</span>
+        <span class="data-value power" id="dTotalP">1.20 W</span>
+      </div>
+      <div id="dC1Section">
+        <div class="data-section-title">C₁ <span class="ctype" id="dC1Type">(灯泡)</span></div>
+        <div class="data-row" id="dC1Row1">
+          <span class="data-label">电压</span>
+          <span class="data-value voltage" id="dC1U">2.00 V</span>
+        </div>
+        <div class="data-row" id="dC1Row2">
+          <span class="data-label">电流</span>
+          <span class="data-value current" id="dC1I">0.200 A</span>
+        </div>
+        <div class="data-row" id="dC1Row3">
+          <span class="data-label">功率</span>
+          <span class="data-value power" id="dC1P">0.40 W</span>
+        </div>
+      </div>
+      <div id="dC2Section">
+        <div class="data-section-title">C₂ <span class="ctype" id="dC2Type">(电阻)</span></div>
+        <div class="data-row" id="dC2Row1">
+          <span class="data-label">电压</span>
+          <span class="data-value voltage" id="dC2U">4.00 V</span>
+        </div>
+        <div class="data-row" id="dC2Row2">
+          <span class="data-label">电流</span>
+          <span class="data-value current" id="dC2I">0.200 A</span>
+        </div>
+        <div class="data-row" id="dC2Row3">
+          <span class="data-label">功率</span>
+          <span class="data-value power" id="dC2P">0.80 W</span>
+        </div>
+      </div>
+      <div id="dC3Section">
+        <div class="data-section-title">C₃ <span class="ctype" id="dC3Type">(电阻)</span></div>
+        <div class="data-row" id="dC3Row1">
+          <span class="data-label">电压</span>
+          <span class="data-value voltage" id="dC3U">0.00 V</span>
+        </div>
+        <div class="data-row" id="dC3Row2">
+          <span class="data-label">电流</span>
+          <span class="data-value current" id="dC3I">0.000 A</span>
+        </div>
+        <div class="data-row" id="dC3Row3">
+          <span class="data-label">功率</span>
+          <span class="data-value power" id="dC3P">0.00 W</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 警告 -->
+    <div class="warning-overlay" id="warningOverlay">
+      <div class="warning-box">
+        <h3>⚠ 电路断开</h3>
+        <p id="warningText">当前回路不完整，无电流通过</p>
+      </div>
+    </div>
+
+    <!-- 构建提示 -->
+    <div class="build-hint" id="buildHint">从下方选择元件类型，点击电路图中的元件位置进行替换</div>
+  </div>
+
+  <!-- ====== 控制面板 ====== -->
+  <div class="control-panel">
+    <!-- 第一行：拓扑 + 元件调色板 + 开关 + 播放 -->
+    <div class="control-row">
+      <div class="ctrl-group">
+        <div class="type-tabs" id="typeTabs">
+          <button class="type-tab" data-type="single">单回路</button>
+          <button class="type-tab active" data-type="series">串联</button>
+          <button class="type-tab" data-type="parallel">并联</button>
+          <button class="type-tab" data-type="mixed">混联</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">元件</span>
+        <div class="palette" id="palette">
+          <button class="palette-item active" data-type="resistor">
+            <svg class="palette-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 12 5 12 7 8 11 16 15 8 19 16 22 12"/></svg>
+            电阻
+          </button>
+          <button class="palette-item" data-type="bulb">
+            <svg class="palette-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+            灯泡
+          </button>
+          <button class="palette-item" data-type="motor">
+            <svg class="palette-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><text x="12" y="16" text-anchor="middle" font-size="10" fill="currentColor" stroke="none">M</text></svg>
+            电动机
+          </button>
+          <button class="palette-item" data-type="none">
+            <svg class="palette-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3,2"><line x1="2" y1="12" x2="22" y2="12"/></svg>
+            断开
+          </button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="ctrl-group">
+        <button class="ctrl-btn switch-on" id="switchBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3v18"/><path d="M6 7l12 10"/></svg>
+          开关: 闭合
+        </button>
+        <button class="ctrl-btn primary" id="playBtn">
+          <span id="playIcon">❚❚</span>
+          <span id="playText">暂停</span>
+        </button>
+        <button class="ctrl-btn" id="resetBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          重置
+        </button>
+      </div>
+    </div>
+    <!-- 第二行：滑块 + 预设 + 显示选项 -->
+    <div class="control-row">
+      <div class="ctrl-group">
+        <span class="ctrl-label">电压</span>
+        <input type="range" class="slider" id="sliderVoltage" min="0" max="24" step="0.5" value="6">
+        <span class="slider-value" id="valVoltage">6.0V</span>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">C₁</span>
+        <input type="range" class="slider" id="sliderC1" min="1" max="100" step="1" value="10">
+        <span class="slider-value" id="valC1">10Ω</span>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">C₂</span>
+        <input type="range" class="slider" id="sliderC2" min="1" max="100" step="1" value="20">
+        <span class="slider-value" id="valC2">20Ω</span>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">C₃</span>
+        <input type="range" class="slider" id="sliderC3" min="1" max="100" step="1" value="30">
+        <span class="slider-value" id="valC3">30Ω</span>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">速度</span>
+        <input type="range" class="slider" id="sliderSpeed" min="0.5" max="3" step="0.5" value="1">
+        <span class="slider-value" id="valSpeed">1.0x</span>
+      </div>
+      <div class="divider"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">预设</span>
+        <button class="ctrl-btn preset-btn" data-preset="0">欧姆定律</button>
+        <button class="ctrl-btn preset-btn" data-preset="1">串联分压</button>
+        <button class="ctrl-btn preset-btn" data-preset="2">并联分流</button>
+        <button class="ctrl-btn preset-btn" data-preset="3">亮度对比</button>
+        <button class="ctrl-btn preset-btn" data-preset="4">混联电路</button>
+      </div>
+      <div class="divider"></div>
+      <div class="ctrl-group">
+        <div class="option-toggle active" id="optCurrentDir">
+          <span class="check"></span><span>正电荷方向</span>
+        </div>
+        <div class="option-toggle active" id="optResistance">
+          <span class="check"></span>阻值标注
+        </div>
+        <div class="option-toggle" id="optVoltage">
+          <span class="check"></span>电压标注
+        </div>
+        <div class="option-toggle active" id="optDataPanel">
+          <span class="check"></span>数据面板
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   电路构建与电流可视化 — 交互式电路搭建工具
+   SVG 绘制电路元件 + Canvas 电流粒子动画
+   支持元件类型切换（电阻/灯泡/电动机/断开）与多种拓扑
+   ============================================================ */
+(() => {
+  'use strict';
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const VB_W = 900, VB_H = 480;
+
+  // ========== 颜色 ==========
+  const C = {
+    wire: '#374151',
+    wireDim: '#9ca3af',
+    posRed: '#dc2626',
+    negBlue: '#2563eb',
+    particle: '#3b82f6',
+    particleGlow: 'rgba(59, 130, 246, 0.3)',
+    bulb: '#fbbf24',
+    resistor: '#6b7280',
+    motor: '#3b82f6',
+    motorSpin: '#1d4ed8',
+    label: '#475569',
+    labelBg: 'rgba(255,255,255,0.85)',
+    junction: '#374151',
+    openGap: '#9ca3af'
+  };
+
+  // ========== 元件类型 ==========
+  const COMP_TYPES = {
+    resistor: { name: '电阻', short: '电阻' },
+    bulb:     { name: '灯泡', short: '灯泡' },
+    motor:    { name: '电动机', short: '电机' },
+    none:     { name: '断开', short: '断开' }
+  };
+
+  // ========== 电路拓扑布局 ==========
+  // 每种拓扑定义：导线段、元件位置、粒子路径、节点
+  const LAYOUTS = {
+    // 单回路：2个元件水平排列在顶部
+    single: {
+      slots: 2,
+      wires: [
+        { x1:150,y1:100, x2:150,y2:220 },
+        { x1:150,y1:260, x2:150,y2:400 },
+        { x1:150,y1:100, x2:750,y2:100 },
+        { x1:750,y1:100, x2:750,y2:400 },
+        { x1:150,y1:400, x2:750,y2:400 }
+      ],
+      battery: { x:150, y:240 },
+      switch: { x:340, y:100, horizontal:true },
+      components: [
+        { x:520, y:100, horizontal:true },
+        { x:700, y:100, horizontal:true }
+      ],
+      paths: [
+        [[150,220],[150,100],[750,100],[750,400],[150,400],[150,260]]
+      ],
+      // 电流分配：单路径
+      pathCurrents: (calc) => [calc.totalI]
+    },
+    // 串联：3个元件水平排列在顶部
+    series: {
+      slots: 3,
+      wires: [
+        { x1:150,y1:100, x2:150,y2:220 },
+        { x1:150,y1:260, x2:150,y2:400 },
+        { x1:150,y1:100, x2:820,y2:100 },
+        { x1:820,y1:100, x2:820,y2:400 },
+        { x1:150,y1:400, x2:820,y2:400 }
+      ],
+      battery: { x:150, y:240 },
+      switch: { x:320, y:100, horizontal:true },
+      components: [
+        { x:470, y:100, horizontal:true },
+        { x:620, y:100, horizontal:true },
+        { x:770, y:100, horizontal:true }
+      ],
+      paths: [
+        [[150,220],[150,100],[820,100],[820,400],[150,400],[150,260]]
+      ],
+      pathCurrents: (calc) => [calc.totalI]
+    },
+    // 并联：3个元件垂直排列
+    parallel: {
+      slots: 3,
+      wires: [
+        { x1:150,y1:100, x2:150,y2:220 },
+        { x1:150,y1:260, x2:150,y2:400 },
+        { x1:150,y1:100, x2:790,y2:100 },
+        { x1:150,y1:400, x2:790,y2:400 },
+        { x1:440,y1:100, x2:440,y2:400 },
+        { x1:590,y1:100, x2:590,y2:400 },
+        { x1:740,y1:100, x2:740,y2:400 }
+      ],
+      junctions: [
+        {x:440,y:100},{x:590,y:100},{x:740,y:100},
+        {x:440,y:400},{x:590,y:400},{x:740,y:400}
+      ],
+      battery: { x:150, y:240 },
+      switch: { x:340, y:100, horizontal:true },
+      components: [
+        { x:440, y:240, horizontal:false },
+        { x:590, y:240, horizontal:false },
+        { x:740, y:240, horizontal:false }
+      ],
+      paths: [
+        [[150,220],[150,100],[440,100],[440,400],[150,400],[150,260]],
+        [[150,220],[150,100],[590,100],[590,400],[150,400],[150,260]],
+        [[150,220],[150,100],[740,100],[740,400],[150,400],[150,260]]
+      ],
+      pathCurrents: (calc) => [calc.c1.I, calc.c2.I, calc.c3.I]
+    },
+    // 混联：C1串联，C2//C3并联
+    mixed: {
+      slots: 3,
+      wires: [
+        { x1:150,y1:100, x2:150,y2:220 },
+        { x1:150,y1:260, x2:150,y2:400 },
+        { x1:150,y1:100, x2:790,y2:100 },
+        { x1:150,y1:400, x2:790,y2:400 },
+        { x1:620,y1:100, x2:620,y2:400 },
+        { x1:740,y1:100, x2:740,y2:400 },
+        { x1:790,y1:100, x2:790,y2:400 }
+      ],
+      junctions: [
+        {x:620,y:100},{x:740,y:100},
+        {x:620,y:400},{x:740,y:400}
+      ],
+      battery: { x:150, y:240 },
+      switch: { x:320, y:100, horizontal:true },
+      components: [
+        { x:470, y:100, horizontal:true },
+        { x:620, y:240, horizontal:false },
+        { x:740, y:240, horizontal:false }
+      ],
+      paths: [
+        [[150,220],[150,100],[620,100],[620,400],[150,400],[150,260]],
+        [[150,220],[150,100],[740,100],[740,400],[150,400],[150,260]]
+      ],
+      // 路径0经过C2，路径1经过C3，C1电流=总电流
+      pathCurrents: (calc) => [calc.c2.I, calc.c3.I]
+    }
+  };
+
+  // ========== 预设 ==========
+  const PRESETS = [
+    { name:'欧姆定律', topology:'single', U:6,  types:['resistor','resistor','none'], values:[10,20,30], speed:1 },
+    { name:'串联分压', topology:'series',  U:12, types:['resistor','resistor','resistor'], values:[20,20,20], speed:1 },
+    { name:'并联分流', topology:'parallel',U:6,  types:['resistor','resistor','resistor'], values:[10,20,30], speed:1 },
+    { name:'亮度对比', topology:'parallel',U:6,  types:['bulb','bulb','bulb'], values:[5,20,50], speed:1 },
+    { name:'混联电路', topology:'mixed',   U:12, types:['resistor','bulb','bulb'], values:[10,20,30], speed:1 }
+  ];
+
+  // ========== 状态 ==========
+  const state = {
+    type: 'series',
+    types: ['resistor', 'resistor', 'resistor'],  // 每个槽位的元件类型
+    values: [10, 20, 30],                          // 每个槽位的阻值
+    voltage: 6,
+    speed: 1.0,
+    switchClosed: true,
+    isPlaying: true,
+    electronFlow: false,
+    showResistance: true,
+    showVoltage: false,
+    showDataPanel: true,
+    selectedPalette: 'resistor',
+    motorRotation: 0
+  };
+
+  // ========== DOM ==========
+  const svg = document.getElementById('circuitSvg');
+  const wireLayer = document.getElementById('wireLayer');
+  const compLayer = document.getElementById('componentLayer');
+  const labelLayer = document.getElementById('labelLayer');
+  const clickLayer = document.getElementById('clickLayer');
+  const canvas = document.getElementById('particleCanvas');
+  const ctx = canvas.getContext('2d');
+  const dataPanel = document.getElementById('dataPanel');
+  const warningOverlay = document.getElementById('warningOverlay');
+  const buildHint = document.getElementById('buildHint');
+
+  // ========== SVG 辅助 ==========
+  function el(tag, attrs) {
+    const e = document.createElementNS(SVG_NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function clearLayer(layer) { while (layer.firstChild) layer.removeChild(layer.firstChild); }
+
+  // ========== 电路计算 ==========
+  function solve() {
+    const U = state.voltage;
+    const layout = LAYOUTS[state.type];
+    const n = layout.slots;
+    const types = state.types.slice(0, n);
+    const vals = state.values.slice(0, n);
+    const open = !state.switchClosed;
+
+    // 获取有效电阻（none = 断开 = 无穷大电阻）
+    function R(i) {
+      return types[i] === 'none' ? Infinity : vals[i];
+    }
+
+    const result = {
+      totalU: U, totalI: 0, totalR: 0, totalP: 0,
+      c1: { U:0, I:0, R:vals[0], P:0, type:types[0] },
+      c2: { U:0, I:0, R:vals[1], P:0, type:types[1] },
+      c3: { U:0, I:0, R:vals[2], P:0, type:types[2] },
+      brightness: [0, 0, 0],
+      circuitOpen: open,
+      partialOpen: false
+    };
+
+    if (open) return result;
+
+    if (state.type === 'single') {
+      // 两个元件串联
+      const r1 = R(0), r2 = R(1);
+      if (r1 === Infinity || r2 === Infinity) {
+        result.circuitOpen = true;
+        return result;
+      }
+      const Rtot = r1 + r2;
+      const I = U / Rtot;
+      result.totalR = Rtot;
+      result.totalI = I;
+      result.totalP = U * I;
+      result.c1 = { U: I*r1, I, R:r1, P: I*I*r1, type:types[0] };
+      result.c2 = { U: I*r2, I, R:r2, P: I*I*r2, type:types[1] };
+      result.brightness[0] = types[0]==='bulb' ? Math.min(1, Math.sqrt(result.c1.P/8)) : 0;
+      result.brightness[1] = types[1]==='bulb' ? Math.min(1, Math.sqrt(result.c2.P/8)) : 0;
+    }
+    else if (state.type === 'series') {
+      // 三个元件串联
+      const r1 = R(0), r2 = R(1), r3 = R(2);
+      if (r1 === Infinity || r2 === Infinity || r3 === Infinity) {
+        result.circuitOpen = true;
+        return result;
+      }
+      const Rtot = r1 + r2 + r3;
+      const I = U / Rtot;
+      result.totalR = Rtot;
+      result.totalI = I;
+      result.totalP = U * I;
+      result.c1 = { U: I*r1, I, R:r1, P: I*I*r1, type:types[0] };
+      result.c2 = { U: I*r2, I, R:r2, P: I*I*r2, type:types[1] };
+      result.c3 = { U: I*r3, I, R:r3, P: I*I*r3, type:types[2] };
+      for (let i=0;i<3;i++) {
+        const ci = [result.c1,result.c2,result.c3][i];
+        result.brightness[i] = types[i]==='bulb' ? Math.min(1, Math.sqrt(ci.P/8)) : 0;
+      }
+    }
+    else if (state.type === 'parallel') {
+      // 三个并联支路
+      const r1 = R(0), r2 = R(1), r3 = R(2);
+      const branches = [r1, r2, r3].filter(r => r !== Infinity);
+      if (branches.length === 0) {
+        result.circuitOpen = true;
+        return result;
+      }
+      const Rtot = 1 / branches.reduce((s, r) => s + 1/r, 0);
+      const I1 = r1===Infinity ? 0 : U/r1;
+      const I2 = r2===Infinity ? 0 : U/r2;
+      const I3 = r3===Infinity ? 0 : U/r3;
+      const Itot = I1 + I2 + I3;
+      result.totalR = Rtot;
+      result.totalI = Itot;
+      result.totalP = U * Itot;
+      result.c1 = { U, I:I1, R:r1===Infinity?0:r1, P: U*I1, type:types[0] };
+      result.c2 = { U, I:I2, R:r2===Infinity?0:r2, P: U*I2, type:types[1] };
+      result.c3 = { U, I:I3, R:r3===Infinity?0:r3, P: U*I3, type:types[2] };
+      if (r1===Infinity || r2===Infinity || r3===Infinity) result.partialOpen = true;
+      for (let i=0;i<3;i++) {
+        const ci = [result.c1,result.c2,result.c3][i];
+        result.brightness[i] = types[i]==='bulb' ? Math.min(1, Math.sqrt(ci.P/8)) : 0;
+      }
+    }
+    else if (state.type === 'mixed') {
+      // C1串联，C2//C3并联
+      const r1 = R(0), r2 = R(1), r3 = R(2);
+      if (r1 === Infinity) {
+        result.circuitOpen = true;
+        return result;
+      }
+      // 计算并联部分
+      const r2Valid = r2 !== Infinity;
+      const r3Valid = r3 !== Infinity;
+      if (!r2Valid && !r3Valid) {
+        result.circuitOpen = true;
+        return result;
+      }
+      let Rpar;
+      if (r2Valid && r3Valid) Rpar = 1 / (1/r2 + 1/r3);
+      else Rpar = r2Valid ? r2 : r3;
+
+      const Rtot = r1 + Rpar;
+      const I = U / Rtot;
+      const V1 = I * r1;
+      const Vpar = U - V1; // 并联部分电压
+      const I2 = r2Valid ? Vpar/r2 : 0;
+      const I3 = r3Valid ? Vpar/r3 : 0;
+
+      result.totalR = Rtot;
+      result.totalI = I;
+      result.totalP = U * I;
+      result.c1 = { U:V1, I, R:r1, P: I*I*r1, type:types[0] };
+      result.c2 = { U:Vpar, I:I2, R:r2Valid?r2:0, P: Vpar*I2, type:types[1] };
+      result.c3 = { U:Vpar, I:I3, R:r3Valid?r3:0, P: Vpar*I3, type:types[2] };
+      if (!r2Valid || !r3Valid) result.partialOpen = true;
+      for (let i=0;i<3;i++) {
+        const ci = [result.c1,result.c2,result.c3][i];
+        result.brightness[i] = types[i]==='bulb' ? Math.min(1, Math.sqrt(ci.P/8)) : 0;
+      }
+    }
+
+    return result;
+  }
+
+  // ========== SVG 电路绘制 ==========
+  function renderCircuit(calc) {
+    clearLayer(wireLayer);
+    clearLayer(compLayer);
+    clearLayer(labelLayer);
+    clearLayer(clickLayer);
+    const layout = LAYOUTS[state.type];
+
+    // --- 绘制导线 ---
+    for (const w of layout.wires) {
+      wireLayer.appendChild(el('line', {
+        x1:w.x1, y1:w.y1, x2:w.x2, y2:w.y2,
+        stroke: C.wire, 'stroke-width': 2.5, 'stroke-linecap': 'round'
+      }));
+    }
+
+    // --- 绘制节点 ---
+    if (layout.junctions) {
+      for (const j of layout.junctions) {
+        wireLayer.appendChild(el('circle', {
+          cx:j.x, cy:j.y, r:4, fill:C.junction
+        }));
+      }
+    }
+
+    // --- 绘制电池 ---
+    drawBattery(layout.battery.x, layout.battery.y, state.voltage);
+
+    // --- 绘制开关 ---
+    drawSwitch(layout.switch.x, layout.switch.y, state.switchClosed);
+
+    // --- 绘制元件 ---
+    const n = layout.slots;
+    for (let i = 0; i < n; i++) {
+      const pos = layout.components[i];
+      const type = state.types[i];
+      const val = state.values[i];
+      const ci = [calc.c1, calc.c2, calc.c3][i];
+      const brightness = calc.brightness[i];
+      const label = 'C' + ['₁','₂','₃'][i];
+
+      if (type === 'resistor') {
+        drawResistor(pos.x, pos.y, pos.horizontal, val, ci.U, ci.I, ci.P, label);
+      } else if (type === 'bulb') {
+        drawBulb(pos.x, pos.y, pos.horizontal, val, ci.U, ci.I, brightness, label);
+      } else if (type === 'motor') {
+        drawMotor(pos.x, pos.y, pos.horizontal, val, ci.U, ci.I, state.motorRotation, label);
+      } else {
+        drawEmpty(pos.x, pos.y, pos.horizontal, label);
+      }
+
+      // 点击区域
+      drawClickArea(pos.x, pos.y, pos.horizontal, i);
+    }
+  }
+
+  function drawBattery(x, y, voltage) {
+    compLayer.appendChild(el('line', {
+      x1:x-20, y1:y-10, x2:x+20, y2:y-10,
+      stroke:C.posRed, 'stroke-width':3, 'stroke-linecap':'round'
+    }));
+    compLayer.appendChild(el('line', {
+      x1:x-12, y1:y+10, x2:x+12, y2:y+10,
+      stroke:C.negBlue, 'stroke-width':3, 'stroke-linecap':'round'
+    }));
+    compLayer.appendChild(el('text', {
+      x:x+28, y:y-6, fill:C.posRed, 'font-size':14, 'font-weight':700,
+      'font-family':'sans-serif'
+    })).textContent = '+';
+    compLayer.appendChild(el('text', {
+      x:x+28, y:y+18, fill:C.negBlue, 'font-size':14, 'font-weight':700,
+      'font-family':'sans-serif'
+    })).textContent = '−';
+    const lbl = el('text', {
+      x:x-28, y:y+5, fill:C.label, 'font-size':13, 'font-weight':600,
+      'text-anchor':'end', 'font-family':'monospace'
+    });
+    lbl.textContent = voltage.toFixed(1) + 'V';
+    compLayer.appendChild(lbl);
+  }
+
+  function drawSwitch(x, y, closed) {
+    const color = closed ? C.wire : C.wireDim;
+    compLayer.appendChild(el('circle', { cx:x-20, cy:y, r:3.5, fill:C.wire }));
+    compLayer.appendChild(el('circle', { cx:x+20, cy:y, r:3.5, fill:C.wire }));
+    compLayer.appendChild(el('line', {
+      x1:x-20, y1:y, x2:x-8, y2:y,
+      stroke:C.wire, 'stroke-width':2.5, 'stroke-linecap':'round'
+    }));
+    if (closed) {
+      compLayer.appendChild(el('line', {
+        x1:x-8, y1:y, x2:x+20, y2:y,
+        stroke:color, 'stroke-width':2.5, 'stroke-linecap':'round'
+      }));
+    } else {
+      compLayer.appendChild(el('line', {
+        x1:x-8, y1:y, x2:x+14, y2:y-20,
+        stroke:color, 'stroke-width':2.5, 'stroke-linecap':'round'
+      }));
+    }
+  }
+
+  function drawResistor(x, y, horizontal, resistance, volt, curr, power, label) {
+    // 热效应光晕
+    if (power > 1) {
+      const intensity = Math.min(1, power / 20);
+      compLayer.appendChild(el('circle', {
+        cx:x, cy:y, r:30, fill:'url(#heatGlow)', opacity: intensity * 0.7
+      }));
+    }
+
+    if (horizontal) {
+      // 水平锯齿
+      const pts = [
+        [x-30,y],[x-22,y-7],[x-14,y+7],[x-6,y-7],
+        [x+2,y+7],[x+10,y-7],[x+18,y+7],[x+26,y-7],[x+30,y]
+      ];
+      compLayer.appendChild(el('polyline', {
+        points: pts.map(p=>p.join(',')).join(' '),
+        stroke:C.resistor, 'stroke-width':2.5, fill:'none',
+        'stroke-linecap':'round', 'stroke-linejoin':'round'
+      }));
+    } else {
+      // 垂直锯齿
+      const pts = [
+        [x,y-30],[x-7,y-22],[x+7,y-14],[x-7,y-6],
+        [x+7,y+2],[x-7,y+10],[x+7,y+18],[x-7,y+26],[x,y+30]
+      ];
+      compLayer.appendChild(el('polyline', {
+        points: pts.map(p=>p.join(',')).join(' '),
+        stroke:C.resistor, 'stroke-width':2.5, fill:'none',
+        'stroke-linecap':'round', 'stroke-linejoin':'round'
+      }));
+    }
+
+    drawComponentLabel(x, y, horizontal, label, resistance, volt, curr);
+  }
+
+  function drawBulb(x, y, horizontal, resistance, volt, curr, brightness, label) {
+    // 光晕
+    if (brightness > 0.02) {
+      const glowR = 25 + brightness * 40;
+      compLayer.appendChild(el('circle', {
+        cx:x, cy:y, r:glowR, fill:'url(#bulbGlow)', opacity: brightness * 0.9
+      }));
+    }
+    // 灯泡外圈
+    compLayer.appendChild(el('circle', {
+      cx:x, cy:y, r:20, stroke:C.wire, 'stroke-width':2.5, fill:'rgba(255,255,255,0.6)'
+    }));
+    // X 交叉线
+    compLayer.appendChild(el('line', {
+      x1:x-14, y1:y-14, x2:x+14, y2:y+14,
+      stroke:brightness>0.02 ? C.bulb : C.wire, 'stroke-width':1.8, 'stroke-linecap':'round'
+    }));
+    compLayer.appendChild(el('line', {
+      x1:x-14, y1:y+14, x2:x+14, y2:y-14,
+      stroke:brightness>0.02 ? C.bulb : C.wire, 'stroke-width':1.8, 'stroke-linecap':'round'
+    }));
+
+    drawComponentLabel(x, y, horizontal, label, resistance, volt, curr);
+  }
+
+  function drawMotor(x, y, horizontal, resistance, volt, curr, rotation, label) {
+    // 电动机外圈
+    compLayer.appendChild(el('circle', {
+      cx:x, cy:y, r:20, stroke:C.motor, 'stroke-width':2.5, fill:'rgba(255,255,255,0.7)'
+    }));
+    // 旋转的叶片
+    const r1 = rotation * Math.PI / 180;
+    for (let i = 0; i < 3; i++) {
+      const a = r1 + (i * 2 * Math.PI / 3);
+      compLayer.appendChild(el('line', {
+        x1:x, y1:y, x2:x+Math.cos(a)*14, y2:y+Math.sin(a)*14,
+        stroke:C.motorSpin, 'stroke-width':2.5, 'stroke-linecap':'round'
+      }));
+    }
+    // M 字母
+    compLayer.appendChild(el('text', {
+      x:x, y:y+5, 'text-anchor':'middle', fill:C.motor,
+      'font-size':11, 'font-weight':700, 'font-family':'sans-serif'
+    })).textContent = 'M';
+
+    drawComponentLabel(x, y, horizontal, label, resistance, volt, curr);
+  }
+
+  function drawEmpty(x, y, horizontal, label) {
+    // 断开：虚线 + 空隙
+    const gap = 24;
+    if (horizontal) {
+      compLayer.appendChild(el('line', {
+        x1:x-gap, y1:y, x2:x-gap+8, y2:y,
+        stroke:C.openGap, 'stroke-width':2, 'stroke-dasharray':'3,3', 'stroke-linecap':'round'
+      }));
+      compLayer.appendChild(el('line', {
+        x1:x+gap-8, y1:y, x2:x+gap, y2:y,
+        stroke:C.openGap, 'stroke-width':2, 'stroke-dasharray':'3,3', 'stroke-linecap':'round'
+      }));
+    } else {
+      compLayer.appendChild(el('line', {
+        x1:x, y1:y-gap, x2:x, y2:y-gap+8,
+        stroke:C.openGap, 'stroke-width':2, 'stroke-dasharray':'3,3', 'stroke-linecap':'round'
+      }));
+      compLayer.appendChild(el('line', {
+        x1:x, y1:y+gap-8, x2:x, y2:y+gap,
+        stroke:C.openGap, 'stroke-width':2, 'stroke-dasharray':'3,3', 'stroke-linecap':'round'
+      }));
+    }
+    // 断开标签
+    const lbl = el('text', {
+      x: horizontal ? x : x + 30,
+      y: horizontal ? y - 18 : y + 4,
+      'text-anchor': horizontal ? 'middle' : 'start',
+      fill:C.openGap, 'font-size':10, 'font-weight':500,
+      'font-family':'sans-serif'
+    });
+    lbl.textContent = '○ 断开';
+    labelLayer.appendChild(lbl);
+  }
+
+  function drawComponentLabel(x, y, horizontal, label, resistance, volt, curr) {
+    const offsetX = horizontal ? 0 : 36;
+    const offsetY = horizontal ? -32 : 0;
+
+    if (state.showResistance) {
+      const lbl = el('text', {
+        x:x+offsetX, y:y+offsetY, fill:C.label, 'font-size':12, 'font-weight':600,
+        'font-family':'monospace',
+        'text-anchor': horizontal ? 'middle' : 'start'
+      });
+      lbl.textContent = label + '=' + resistance + 'Ω';
+      labelLayer.appendChild(lbl);
+    }
+    if (state.showVoltage && volt > 0.001) {
+      const lbl = el('text', {
+        x:x+offsetX, y:y+offsetY+14, fill:'#c2410c', 'font-size':12, 'font-weight':600,
+        'font-family':'monospace',
+        'text-anchor': horizontal ? 'middle' : 'start'
+      });
+      lbl.textContent = volt.toFixed(2) + 'V';
+      labelLayer.appendChild(lbl);
+    }
+  }
+
+  function drawClickArea(x, y, horizontal, slotIdx) {
+    const w = horizontal ? 70 : 44;
+    const h = horizontal ? 44 : 70;
+    const rect = el('rect', {
+      x: x - w/2, y: y - h/2,
+      width: w, height: h,
+      fill: 'transparent',
+      stroke: 'rgba(59,130,246,0)',
+      'stroke-width': 2,
+      'stroke-dasharray': '4,3',
+      rx: 6,
+      cursor: 'pointer',
+      'data-slot': slotIdx
+    });
+    rect.style.transition = 'stroke 0.2s';
+
+    rect.addEventListener('mouseenter', () => {
+      rect.setAttribute('stroke', 'rgba(59,130,246,0.5)');
+      showBuildHint();
+    });
+    rect.addEventListener('mouseleave', () => {
+      rect.setAttribute('stroke', 'rgba(59,130,246,0)');
+      hideBuildHint();
+    });
+    rect.addEventListener('click', () => {
+      state.types[slotIdx] = state.selectedPalette;
+      update();
+    });
+
+    clickLayer.appendChild(rect);
+  }
+
+  // ========== 粒子系统 ==========
+  let particles = [];
+  const PARTICLES_PER_PATH = 16;
+
+  function getPathLength(pts) {
+    let total = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      total += Math.hypot(pts[i+1][0]-pts[i][0], pts[i+1][1]-pts[i][1]);
+    }
+    return total;
+  }
+
+  function getPointAtDist(pts, dist) {
+    let accum = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const segLen = Math.hypot(pts[i+1][0]-pts[i][0], pts[i+1][1]-pts[i][1]);
+      if (accum + segLen >= dist) {
+        const t = (dist - accum) / segLen;
+        return {
+          x: pts[i][0] + (pts[i+1][0]-pts[i][0]) * t,
+          y: pts[i][1] + (pts[i+1][1]-pts[i][1]) * t
+        };
+      }
+      accum += segLen;
+    }
+    return { x: pts[pts.length-1][0], y: pts[pts.length-1][1] };
+  }
+
+  function initParticles() {
+    particles = [];
+    const layout = LAYOUTS[state.type];
+    for (let pi = 0; pi < layout.paths.length; pi++) {
+      const pts = layout.paths[pi];
+      const len = getPathLength(pts);
+      for (let i = 0; i < PARTICLES_PER_PATH; i++) {
+        particles.push({
+          pathIdx: pi,
+          dist: (i / PARTICLES_PER_PATH) * len,
+          len: len
+        });
+      }
+    }
+  }
+
+  function updateParticles(dt, calc) {
+    const layout = LAYOUTS[state.type];
+    const direction = state.electronFlow ? -1 : 1;
+    const currents = layout.pathCurrents(calc);
+
+    for (let pi = 0; pi < layout.paths.length; pi++) {
+      const current = currents[pi] || 0;
+      const baseSpeed = 600;
+      let speed = Math.max(10, current * state.speed * baseSpeed);
+
+      if (calc.circuitOpen || !state.isPlaying) speed = 0;
+
+      for (const p of particles) {
+        if (p.pathIdx !== pi) continue;
+        p.dist += direction * speed * dt;
+        while (p.dist < 0) p.dist += p.len;
+        while (p.dist >= p.len) p.dist -= p.len;
+      }
+    }
+  }
+
+  function renderParticles(calc) {
+    const layout = LAYOUTS[state.type];
+    const flowing = !calc.circuitOpen && state.isPlaying;
+
+    ctx.clearRect(0, 0, VB_W, VB_H);
+
+    for (const p of particles) {
+      const pts = layout.paths[p.pathIdx];
+      const pos = getPointAtDist(pts, p.dist);
+
+      const radius = 3;
+      const glowRadius = 8;
+
+      if (flowing) {
+        const grad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, glowRadius);
+        grad.addColorStop(0, C.particle);
+        grad.addColorStop(0.3, C.particleGlow);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = C.particle;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = 'rgba(59,130,246,0.12)';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // 电流方向箭头
+    if (flowing && !state.electronFlow) {
+      drawDirectionArrows(layout, calc);
+    }
+  }
+
+  function drawDirectionArrows(layout, calc) {
+    const currents = layout.pathCurrents(calc);
+    for (let pi = 0; pi < layout.paths.length; pi++) {
+      if ((currents[pi] || 0) < 0.001) continue;
+      const pts = layout.paths[pi];
+      const len = getPathLength(pts);
+      // 在路径 25% 和 75% 处画箭头
+      for (const frac of [0.25, 0.75]) {
+        const dist = len * frac;
+        const pos = getPointAtDist(pts, dist);
+        const next = getPointAtDist(pts, dist + 5);
+        const angle = Math.atan2(next.y - pos.y, next.x - pos.x);
+
+        ctx.save();
+        ctx.translate(pos.x, pos.y);
+        ctx.rotate(angle);
+        ctx.fillStyle = 'rgba(59,130,246,0.5)';
+        ctx.beginPath();
+        ctx.moveTo(7, 0);
+        ctx.lineTo(-4, -4);
+        ctx.lineTo(-4, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+
+  // ========== Canvas 同步 ==========
+  function syncCanvas() {
+    const wrap = document.getElementById('svgWrap');
+    const rect = wrap.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    const scaleX = rect.width / VB_W;
+    const scaleY = rect.height / VB_H;
+    ctx.setTransform(dpr * scaleX, 0, 0, dpr * scaleY, 0, 0);
+  }
+
+  // ========== 数据面板更新 ==========
+  function updateDataPanel(calc) {
+    const fmt = (v, u) => {
+      if (Math.abs(v) < 0.001) return '0.00 ' + u;
+      if (Math.abs(v) < 10) return v.toFixed(3) + ' ' + u;
+      if (Math.abs(v) < 1000) return v.toFixed(2) + ' ' + u;
+      return v.toFixed(0) + ' ' + u;
+    };
+    const fmtR = (v) => {
+      if (v === 0 || v === Infinity) return '— Ω';
+      if (v < 10) return v.toFixed(2) + ' Ω';
+      return v.toFixed(1) + ' Ω';
+    };
+
+    document.getElementById('dTotalU').textContent = fmt(calc.totalU, 'V');
+    document.getElementById('dTotalI').textContent = fmt(calc.totalI, 'A');
+    document.getElementById('dTotalR').textContent = calc.circuitOpen ? '∞' : fmtR(calc.totalR);
+    document.getElementById('dTotalP').textContent = fmt(calc.totalP, 'W');
+
+    const comps = [calc.c1, calc.c2, calc.c3];
+    const layout = LAYOUTS[state.type];
+    const n = layout.slots;
+
+    for (let i = 0; i < 3; i++) {
+      const idx = i + 1;
+      const section = document.getElementById('dC' + idx + 'Section');
+      const ci = comps[i];
+
+      if (i >= n) {
+        section.style.display = 'none';
+        continue;
+      }
+      section.style.display = 'block';
+
+      document.getElementById('dC' + idx + 'Type').textContent = '(' + COMP_TYPES[ci.type].short + ')';
+      document.getElementById('dC' + idx + 'U').textContent = ci.type === 'none' ? '—' : fmt(ci.U, 'V');
+      document.getElementById('dC' + idx + 'I').textContent = ci.type === 'none' ? '—' : fmt(ci.I, 'A');
+      document.getElementById('dC' + idx + 'P').textContent = ci.type === 'none' ? '—' : fmt(ci.P, 'W');
+
+      // 断开元件灰显
+      const rows = [1,2,3].map(r => document.getElementById('dC'+idx+'Row'+r));
+      rows.forEach(r => r.classList.toggle('disabled', ci.type === 'none'));
+    }
+
+    // 警告
+    if (calc.circuitOpen) {
+      warningOverlay.classList.add('active');
+      const wt = document.getElementById('warningText');
+      if (!state.switchClosed) {
+        wt.textContent = '开关已断开，电路中无电流';
+      } else {
+        wt.textContent = '回路中有断开元件，电流无法通过';
+      }
+    } else {
+      warningOverlay.classList.remove('active');
+    }
+  }
+
+  // ========== 提示 ==========
+  let hintTimer = null;
+  function showBuildHint() {
+    buildHint.classList.add('visible');
+    if (hintTimer) clearTimeout(hintTimer);
+  }
+  function hideBuildHint() {
+    if (hintTimer) clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => buildHint.classList.remove('visible'), 500);
+  }
+
+  // ========== 滑块状态更新 ==========
+  function updateSliderStates() {
+    const layout = LAYOUTS[state.type];
+    const n = layout.slots;
+    for (let i = 0; i < 3; i++) {
+      const slider = document.getElementById('sliderC' + (i+1));
+      const valSpan = document.getElementById('valC' + (i+1));
+      const disabled = i >= n || state.types[i] === 'none';
+      slider.disabled = disabled;
+      valSpan.classList.toggle('disabled', disabled);
+    }
+  }
+
+  // ========== 全局更新 ==========
+  let prevType = null;
+  function update() {
+    const calc = solve();
+    renderCircuit(calc);
+    updateDataPanel(calc);
+    updateSliderStates();
+
+    if (prevType !== state.type) {
+      initParticles();
+      prevType = state.type;
+    }
+  }
+
+  // ========== 动画循环 ==========
+  let lastTime = performance.now();
+  function animate(now) {
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+
+    const calc = solve();
+
+    // 电动机旋转
+    if (!calc.circuitOpen && state.isPlaying) {
+      const layout = LAYOUTS[state.type];
+      const n = layout.slots;
+      for (let i = 0; i < n; i++) {
+        if (state.types[i] === 'motor') {
+          const ci = [calc.c1, calc.c2, calc.c3][i];
+          state.motorRotation += ci.I * state.speed * dt * 200;
+        }
+      }
+    }
+
+    updateParticles(dt, calc);
+    renderParticles(calc);
+
+    // 电动机旋转时重新渲染元件
+    let hasMotor = false;
+    const layout = LAYOUTS[state.type];
+    for (let i = 0; i < layout.slots; i++) {
+      if (state.types[i] === 'motor' && !calc.circuitOpen && state.isPlaying) {
+        hasMotor = true; break;
+      }
+    }
+    if (hasMotor) {
+      renderCircuit(calc);
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  // ========== UI 交互 ==========
+  function updateSwitchButton() {
+    const btn = document.getElementById('switchBtn');
+    if (state.switchClosed) {
+      btn.className = 'ctrl-btn switch-on';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3v18"/><path d="M6 7l12 10"/></svg>开关: 闭合';
+    } else {
+      btn.className = 'ctrl-btn switch-off';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3v18"/><path d="M6 7l6 0"/></svg>开关: 断开';
+    }
+  }
+
+  function updatePlayButton() {
+    const icon = document.getElementById('playIcon');
+    const text = document.getElementById('playText');
+    if (state.isPlaying) {
+      icon.textContent = '❚❚';
+      text.textContent = '暂停';
+    } else {
+      icon.textContent = '▶';
+      text.textContent = '播放';
+    }
+  }
+
+  function syncSlidersToState() {
+    document.getElementById('sliderVoltage').value = state.voltage;
+    document.getElementById('sliderC1').value = state.values[0];
+    document.getElementById('sliderC2').value = state.values[1];
+    document.getElementById('sliderC3').value = state.values[2];
+    document.getElementById('sliderSpeed').value = state.speed;
+    document.getElementById('valVoltage').textContent = state.voltage.toFixed(1) + 'V';
+    document.getElementById('valC1').textContent = state.values[0] + 'Ω';
+    document.getElementById('valC2').textContent = state.values[1] + 'Ω';
+    document.getElementById('valC3').textContent = state.values[2] + 'Ω';
+    document.getElementById('valSpeed').textContent = state.speed.toFixed(1) + 'x';
+  }
+
+  function syncPaletteToState() {
+    document.querySelectorAll('.palette-item').forEach(p => {
+      p.classList.toggle('active', p.dataset.type === state.selectedPalette);
+    });
+  }
+
+  function syncTypeTabsToState() {
+    document.querySelectorAll('.type-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.type === state.type);
+    });
+  }
+
+  function bindEvents() {
+    // 拓扑切换
+    document.querySelectorAll('.type-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        state.type = tab.dataset.type;
+        syncTypeTabsToState();
+        update();
+      });
+    });
+
+    // 元件调色板
+    document.querySelectorAll('.palette-item').forEach(item => {
+      item.addEventListener('click', () => {
+        state.selectedPalette = item.dataset.type;
+        syncPaletteToState();
+      });
+    });
+
+    // 滑块
+    document.getElementById('sliderVoltage').addEventListener('input', e => {
+      state.voltage = parseFloat(e.target.value);
+      document.getElementById('valVoltage').textContent = state.voltage.toFixed(1) + 'V';
+      update();
+    });
+    for (let i = 0; i < 3; i++) {
+      const idx = i + 1;
+      document.getElementById('sliderC' + idx).addEventListener('input', e => {
+        state.values[i] = parseInt(e.target.value);
+        document.getElementById('valC' + idx).textContent = state.values[i] + 'Ω';
+        update();
+      });
+    }
+    document.getElementById('sliderSpeed').addEventListener('input', e => {
+      state.speed = parseFloat(e.target.value);
+      document.getElementById('valSpeed').textContent = state.speed.toFixed(1) + 'x';
+    });
+
+    // 开关
+    document.getElementById('switchBtn').addEventListener('click', () => {
+      state.switchClosed = !state.switchClosed;
+      updateSwitchButton();
+      update();
+    });
+
+    // 播放/暂停
+    document.getElementById('playBtn').addEventListener('click', () => {
+      state.isPlaying = !state.isPlaying;
+      updatePlayButton();
+    });
+
+    // 重置
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      state.type = 'series';
+      state.types = ['resistor', 'resistor', 'resistor'];
+      state.values = [10, 20, 30];
+      state.voltage = 6;
+      state.speed = 1.0;
+      state.switchClosed = true;
+      state.isPlaying = true;
+      state.electronFlow = false;
+      state.showResistance = true;
+      state.showVoltage = false;
+      state.showDataPanel = true;
+      state.selectedPalette = 'resistor';
+      state.motorRotation = 0;
+
+      syncSlidersToState();
+      syncTypeTabsToState();
+      syncPaletteToState();
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('optCurrentDir').classList.add('active');
+      document.querySelector('#optCurrentDir span:last-child').textContent = '正电荷方向';
+      document.getElementById('optResistance').classList.add('active');
+      document.getElementById('optVoltage').classList.remove('active');
+      document.getElementById('optDataPanel').classList.add('active');
+      dataPanel.classList.remove('hidden');
+
+      updateSwitchButton();
+      updatePlayButton();
+      prevType = null;
+      update();
+    });
+
+    // 预设
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.preset);
+        const preset = PRESETS[idx];
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        state.type = preset.topology;
+        state.types = preset.types.slice();
+        state.values = preset.values.slice();
+        state.voltage = preset.U;
+        state.speed = preset.speed;
+        state.switchClosed = true;
+
+        syncSlidersToState();
+        syncTypeTabsToState();
+        updateSwitchButton();
+        update();
+      });
+    });
+
+    // 显示选项
+    document.getElementById('optCurrentDir').addEventListener('click', () => {
+      state.electronFlow = !state.electronFlow;
+      const toggle = document.getElementById('optCurrentDir');
+      toggle.classList.toggle('active', !state.electronFlow);
+      toggle.querySelector('span:last-child').textContent = state.electronFlow ? '电子方向' : '正电荷方向';
+    });
+    document.getElementById('optResistance').addEventListener('click', () => {
+      state.showResistance = !state.showResistance;
+      document.getElementById('optResistance').classList.toggle('active', state.showResistance);
+      update();
+    });
+    document.getElementById('optVoltage').addEventListener('click', () => {
+      state.showVoltage = !state.showVoltage;
+      document.getElementById('optVoltage').classList.toggle('active', state.showVoltage);
+      update();
+    });
+    document.getElementById('optDataPanel').addEventListener('click', () => {
+      state.showDataPanel = !state.showDataPanel;
+      document.getElementById('optDataPanel').classList.toggle('active', state.showDataPanel);
+      dataPanel.classList.toggle('hidden', !state.showDataPanel);
+    });
+
+    // 窗口大小变化
+    window.addEventListener('resize', syncCanvas);
+
+    // 空格键播放/暂停
+    window.addEventListener('keydown', e => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        state.isPlaying = !state.isPlaying;
+        updatePlayButton();
+      }
+    });
+  }
+
+  // ========== 初始化 ==========
+  function init() {
+    bindEvents();
+    syncCanvas();
+    update();
+    requestAnimationFrame(animate);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

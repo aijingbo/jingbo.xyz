@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>大航海时代与地理大发现 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   大航海时代与地理大发现 — 专属样式
+   古航海图 × 时空叙事
+   ============================================================ */
+
+:root {
+  /* 古航海图配色 */
+  --nm-deep: #1B4F72;
+  --nm-deep-dark: #15435F;
+  --nm-deep-light: #2E6DA4;
+  --nm-parchment: #EDE0C8;
+  --nm-parchment-light: #F4ECD8;
+  --nm-parchment-dark: #D4C4A0;
+  --nm-brown: #A0826D;
+  --nm-brown-dark: #7D6553;
+  --nm-red: #C0392B;
+  --nm-red-dark: #962D22;
+  --nm-gold: #B8860B;
+  --nm-gold-soft: rgba(184, 134, 11, 0.2);
+  --nm-text: #3E2723;
+  --nm-text-muted: #7D6553;
+  --nm-border: #C4B49A;
+  --nm-paper: #F4ECD8;
+
+  /* 国家航线色 */
+  --pt-color: #1E8449;
+  --pt-light: rgba(30, 132, 73, 0.15);
+  --es-color: #B7950B;
+  --es-light: rgba(183, 149, 11, 0.15);
+  --nl-color: #CA6F1E;
+  --nl-light: rgba(202, 111, 30, 0.15);
+  --uk-color: #2471A3;
+  --uk-light: rgba(36, 113, 163, 0.15);
+
+  /* 字体 */
+  --nm-font-serif: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  --nm-font-cn-serif: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+  --nm-font-sans: 'Noto Sans SC', -apple-system, sans-serif;
+  --nm-font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--nm-font-sans);
+  background: var(--nm-parchment);
+  color: var(--nm-text);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ---------- 羊皮纸纹理 ---------- */
+.parchment-texture {
+  background-color: var(--nm-parchment);
+  background-image:
+    radial-gradient(ellipse at 20% 40%, rgba(160, 130, 109, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 60%, rgba(160, 130, 109, 0.04) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* ---------- 入场罗盘动画 ---------- */
+.nm-entry {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nm-parchment);
+  transition: opacity 1.2s ease;
+}
+.nm-entry.hidden { opacity: 0; pointer-events: none; }
+
+.nm-entry-compass {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  opacity: 0;
+  animation: nm-compass-appear 0.6s ease forwards;
+}
+@keyframes nm-compass-appear {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.nm-compass-needle {
+  transform-origin: 100px 100px;
+  animation: nm-needle-spin 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes nm-needle-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(720deg); }
+}
+
+.nm-entry-text {
+  position: absolute;
+  bottom: 28%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  opacity: 0;
+  animation: nm-text-fade 1.2s ease 1.4s forwards;
+  white-space: nowrap;
+}
+@keyframes nm-text-fade {
+  from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.nm-entry-title {
+  font-family: var(--nm-font-cn-serif);
+  font-size: clamp(24px, 3.5vw, 36px);
+  font-weight: 700;
+  color: var(--nm-deep);
+  letter-spacing: 0.12em;
+}
+.nm-entry-sub {
+  font-family: var(--nm-font-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--nm-brown);
+  margin-top: 8px;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- 导航栏覆盖 ---------- */
+.demo-navbar {
+  background-color: rgba(237, 224, 200, 0.90) !important;
+  border-bottom: 1px solid var(--nm-border) !important;
+}
+.demo-navbar.scrolled {
+  background-color: rgba(237, 224, 200, 0.96) !important;
+}
+.demo-nav-logo { font-family: var(--nm-font-cn-serif); }
+.demo-back-link, .demo-nav-center { font-family: var(--nm-font-sans); }
+.demo-nav-center { font-weight: 600; letter-spacing: 0.02em; }
+
+/* ---------- 主体布局 ---------- */
+.framework-narrative {
+  background: var(--nm-parchment) !important;
+  background-image:
+    radial-gradient(ellipse at 20% 40%, rgba(160, 130, 109, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 60%, rgba(160, 130, 109, 0.04) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E") !important;
+}
+
+.framework-narrative .narrative-main {
+  grid-template-columns: 66% 34% !important;
+}
+
+/* ---------- 地图区域 ---------- */
+.narrative-map-area {
+  background: var(--nm-parchment-dark) !important;
+  border-right: 1px solid var(--nm-border) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  background: var(--nm-parchment);
+  z-index: 1;
+}
+
+/* Leaflet 底图古航海图色调 */
+.leaflet-tile-pane {
+  filter: sepia(0.55) brightness(1.05) contrast(0.85) saturate(0.45) hue-rotate(-5deg);
+}
+
+.leaflet-container {
+  background: var(--nm-parchment) !important;
+  font-family: var(--nm-font-sans) !important;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid var(--nm-border) !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(27, 79, 114, 0.1) !important;
+}
+.leaflet-control-zoom a {
+  background: rgba(244, 236, 216, 0.92) !important;
+  color: var(--nm-deep) !important;
+  border-bottom: 1px solid var(--nm-border) !important;
+  font-family: var(--nm-font-serif) !important;
+  font-weight: 600;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--nm-parchment-dark) !important;
+  color: var(--nm-red) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(237, 224, 200, 0.7) !important;
+  color: var(--nm-brown) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a {
+  color: var(--nm-deep) !important;
+}
+
+/* ---------- 地图装饰：罗盘玫瑰 ---------- */
+.nm-map-compass {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.22;
+}
+.nm-map-compass svg { display: block; }
+.nm-compass-tl { top: 16px; left: 16px; }
+.nm-compass-br { bottom: 24px; right: 24px; transform: scale(0.8); }
+
+/* ---------- 自定义标记点 ---------- */
+.nm-marker {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nm-marker-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--nm-paper);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+}
+.nm-marker.future .nm-marker-dot {
+  background: var(--nm-border);
+  opacity: 0.4;
+}
+.nm-marker.past .nm-marker-dot {
+  opacity: 0.6;
+}
+.nm-marker.active .nm-marker-dot {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--nm-paper);
+  box-shadow: 0 0 0 5px rgba(192, 57, 43, 0.18), 0 2px 10px rgba(192, 57, 43, 0.3);
+}
+.nm-marker.active::before {
+  content: '';
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--nm-red);
+  opacity: 0;
+  animation: nm-marker-pulse 2s ease-out infinite;
+}
+@keyframes nm-marker-pulse {
+  0% { opacity: 0.5; transform: scale(0.5); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+.nm-marker-label {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--nm-font-serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nm-text);
+  background: rgba(244, 236, 216, 0.94);
+  padding: 2px 9px;
+  border-radius: 4px;
+  border: 1px solid var(--nm-border);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.nm-marker.active .nm-marker-label,
+.nm-marker.past .nm-marker-label {
+  opacity: 1;
+}
+.nm-marker.active .nm-marker-label {
+  color: var(--nm-red);
+  border-color: var(--nm-red);
+  background: rgba(244, 236, 216, 0.97);
+  font-size: 13px;
+}
+
+/* ---------- 航线流动动画 ---------- */
+.leaflet-overlay-pane path.nm-route-active {
+  animation: nm-dash-flow 1.8s linear infinite;
+}
+@keyframes nm-dash-flow {
+  to { stroke-dashoffset: -20; }
+}
+
+/* ---------- 教皇子午线 ---------- */
+.nm-meridian-line {
+  stroke: var(--nm-red);
+  stroke-width: 2;
+  stroke-dasharray: 8 6;
+  opacity: 0.4;
+}
+
+/* ---------- 信息卡片 ---------- */
+.narrative-info-card {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  z-index: 20;
+  max-width: 400px;
+  padding: 0;
+  background: rgba(244, 236, 216, 0.97) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--nm-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(27, 79, 114, 0.12) !important;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nm-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--nm-border);
+  background: linear-gradient(180deg, rgba(237, 224, 200, 0.5), transparent);
+}
+
+.nm-card-year-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.narrative-info-year {
+  font-family: var(--nm-font-serif) !important;
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  color: var(--nm-red) !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+.nm-card-country {
+  font-family: var(--nm-font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.nm-card-seal {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.nm-card-seal svg { width: 20px; height: 20px; }
+
+.nm-card-body {
+  padding: 14px 22px 18px;
+}
+
+.nm-card-place {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--nm-font-sans);
+  font-size: 12px;
+  color: var(--nm-text-muted);
+  margin-bottom: 6px;
+}
+.nm-card-place svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+.narrative-info-title {
+  font-family: var(--nm-font-cn-serif) !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--nm-deep) !important;
+  margin-bottom: 8px !important;
+  line-height: 1.3;
+}
+
+.narrative-info-desc {
+  font-size: 13px !important;
+  line-height: 1.75 !important;
+  color: var(--nm-text-muted) !important;
+}
+
+.nm-card-explorer {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--nm-font-serif);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--nm-brown);
+  padding-top: 8px;
+  border-top: 1px dashed var(--nm-border);
+}
+.nm-card-explorer svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+/* ---------- 国家筛选栏 ---------- */
+.nm-country-filter {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.nm-country-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--nm-font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--nm-border);
+  background: rgba(244, 236, 216, 0.6);
+  color: var(--nm-text-muted);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+.nm-country-chip:hover {
+  background: rgba(244, 236, 216, 0.9);
+}
+.nm-country-chip[data-country="all"] { color: var(--nm-deep); }
+.nm-country-chip[data-country="portugal"] { color: var(--pt-color); }
+.nm-country-chip[data-country="spain"] { color: var(--es-color); }
+.nm-country-chip[data-country="netherlands"] { color: var(--nl-color); }
+.nm-country-chip[data-country="england"] { color: var(--uk-color); }
+
+.nm-country-chip.active {
+  border-color: transparent;
+  color: #fff !important;
+}
+.nm-country-chip[data-country="all"].active { background: var(--nm-deep); }
+.nm-country-chip[data-country="portugal"].active { background: var(--pt-color); }
+.nm-country-chip[data-country="spain"].active { background: var(--es-color); }
+.nm-country-chip[data-country="netherlands"].active { background: var(--nl-color); }
+.nm-country-chip[data-country="england"].active { background: var(--uk-color); }
+.nm-country-chip .nm-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------- 阶段进度条 ---------- */
+.nm-phase-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+.nm-phase-segment {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--nm-border);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.nm-phase-segment.active {
+  background: var(--nm-red);
+}
+.nm-phase-segment.past {
+  background: var(--nm-brown);
+  opacity: 0.4;
+}
+
+/* ---------- 时间轴面板 ---------- */
+.narrative-timeline-panel {
+  background: rgba(244, 236, 216, 0.55) !important;
+}
+
+.narrative-timeline-header {
+  padding: 20px 24px 16px !important;
+  border-bottom: 1px solid var(--nm-border) !important;
+  background: linear-gradient(180deg, rgba(237, 224, 200, 0.4), transparent);
+}
+
+.narrative-timeline-title {
+  font-family: var(--nm-font-cn-serif) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--nm-deep) !important;
+}
+
+.narrative-timeline-subtitle {
+  font-family: var(--nm-font-serif) !important;
+  font-style: italic;
+  font-size: 12px !important;
+  color: var(--nm-brown) !important;
+  margin-top: 4px !important;
+}
+
+/* ---------- 时间轴列表 ---------- */
+.narrative-timeline-list {
+  padding: 16px 20px !important;
+}
+
+.narrative-timeline-list::before {
+  left: 29px !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 2px !important;
+  background: var(--nm-border) !important;
+}
+
+.timeline-event {
+  padding: 8px 0 !important;
+  gap: 14px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timeline-event-dot {
+  width: 12px !important;
+  height: 12px !important;
+  margin-left: 14px !important;
+  margin-top: 4px !important;
+  border: 2px solid var(--nm-border) !important;
+  background: var(--nm-paper) !important;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.timeline-event.active .timeline-event-dot {
+  background: var(--nm-red) !important;
+  border-color: var(--nm-red) !important;
+  box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.15) !important;
+}
+
+.timeline-event.past .timeline-event-dot {
+  opacity: 0.5;
+}
+
+.timeline-event-year {
+  font-family: var(--nm-font-mono) !important;
+  font-size: 11px !important;
+  color: var(--nm-brown) !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-event.active .timeline-event-year {
+  color: var(--nm-red) !important;
+}
+
+.nm-event-country-tag {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.timeline-event-title {
+  font-family: var(--nm-font-cn-serif) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--nm-deep) !important;
+}
+
+.timeline-event.active .timeline-event-title {
+  color: var(--nm-red) !important;
+}
+
+.timeline-event-desc {
+  font-size: 11px !important;
+  color: var(--nm-text-muted) !important;
+  line-height: 1.5 !important;
+}
+
+.timeline-event.active .timeline-event-desc {
+  max-height: 80px !important;
+}
+
+.nm-event-place {
+  font-family: var(--nm-font-sans);
+  font-size: 10px;
+  color: var(--nm-brown);
+  margin-top: 2px;
+}
+
+/* ---------- 底部播放控件 ---------- */
+.narrative-timeline-footer {
+  padding: 14px 20px !important;
+  border-top: 1px solid var(--nm-border) !important;
+  background: rgba(237, 224, 200, 0.4);
+}
+
+.narrative-play-btn {
+  background: var(--nm-deep) !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  color: var(--nm-parchment) !important;
+  transition: all 0.2s ease;
+}
+.narrative-play-btn:hover {
+  background: var(--nm-deep-dark) !important;
+}
+
+.narrative-progress {
+  background: var(--nm-parchment-dark) !important;
+}
+
+.narrative-progress-bar {
+  background: var(--nm-red) !important;
+  transition: width 0.5s ease;
+}
+
+.demo-tech-tag {
+  background: rgba(27, 79, 114, 0.08) !important;
+  color: var(--nm-deep) !important;
+  border-color: var(--nm-border) !important;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1024px) {
+  .framework-narrative .narrative-main {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 56% 44% !important;
+  }
+  .narrative-map-area {
+    border-right: none !important;
+    border-bottom: 1px solid var(--nm-border) !important;
+  }
+  .narrative-info-card {
+    max-width: 320px;
+    bottom: 16px;
+    left: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .narrative-info-card {
+    left: 12px !important;
+    right: 12px !important;
+    max-width: none !important;
+    bottom: 12px !important;
+  }
+  .nm-card-body { padding: 12px 16px 14px; }
+  .nm-card-header { padding: 14px 16px 10px; }
+  .narrative-info-year { font-size: 22px !important; }
+  .narrative-info-title { font-size: 16px !important; }
+  .narrative-info-desc { font-size: 12px !important; }
+  .nm-map-compass { display: none; }
+  .narrative-timeline-list { padding: 12px 16px !important; }
+  .narrative-timeline-list::before { left: 25px !important; }
+  .timeline-event-dot { margin-left: 9px !important; }
+  .nm-country-filter { gap: 4px; }
+  .nm-country-chip { font-size: 10px; padding: 3px 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ====== 入场罗盘动画 ====== -->
+<div class="nm-entry" id="entryOverlay">
+  <div class="nm-entry-compass">
+    <svg viewBox="0 0 200 200" width="220" height="220">
+      <!-- 外环 -->
+      <circle cx="100" cy="100" r="92" fill="none" stroke="#A0826D" stroke-width="1.5" opacity="0.35"/>
+      <circle cx="100" cy="100" r="82" fill="none" stroke="#A0826D" stroke-width="1" opacity="0.25"/>
+      <!-- 刻度 -->
+      <g stroke="#A0826D" stroke-width="1" opacity="0.3">
+        <line x1="100" y1="8" x2="100" y2="18"/>
+        <line x1="100" y1="182" x2="100" y2="192"/>
+        <line x1="8" y1="100" x2="18" y2="100"/>
+        <line x1="182" y1="100" x2="192" y2="100"/>
+        <line x1="34.6" y1="34.6" x2="41.7" y2="41.7"/>
+        <line x1="158.3" y1="158.3" x2="165.4" y2="165.4"/>
+        <line x1="34.6" y1="165.4" x2="41.7" y2="158.3"/>
+        <line x1="158.3" y1="41.7" x2="165.4" y2="34.6"/>
+      </g>
+      <!-- 方位字母 -->
+      <text x="100" y="28" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="16" font-weight="700" fill="#C0392B">N</text>
+      <text x="100" y="180" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="13" fill="#7D6553">S</text>
+      <text x="24" y="106" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="13" fill="#7D6553">W</text>
+      <text x="176" y="106" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="13" fill="#7D6553">E</text>
+      <!-- 指针 -->
+      <g class="nm-compass-needle">
+        <path d="M100 30 L110 100 L100 100 Z" fill="#C0392B"/>
+        <path d="M100 30 L90 100 L100 100 Z" fill="#1B4F72"/>
+        <path d="M100 170 L110 100 L100 100 Z" fill="#A0826D"/>
+        <path d="M100 170 L90 100 L100 100 Z" fill="#7D6553"/>
+        <circle cx="100" cy="100" r="6" fill="#1B4F72"/>
+        <circle cx="100" cy="100" r="2.5" fill="#EDE0C8"/>
+      </g>
+    </svg>
+  </div>
+  <div class="nm-entry-text">
+    <div class="nm-entry-title">大航海时代</div>
+    <div class="nm-entry-sub">Age of Exploration · 1487—1779</div>
+  </div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">历史</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">大航海时代与地理大发现</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-history">历史</span>
+      <a href="/skills/jingbo-edu-history-map-narrative-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体：左右分栏 ====== -->
+<div class="framework-narrative">
+  <div class="narrative-main">
+
+    <!-- ========== 左侧：地图区域 ========== -->
+    <div class="narrative-map-area">
+
+      <!-- 地图容器 -->
+      <div id="map"></div>
+
+      <!-- 罗盘装饰 -->
+      <div class="nm-map-compass nm-compass-tl">
+        <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
+          <circle cx="35" cy="35" r="32" stroke="#1B4F72" stroke-width="1" opacity="0.5"/>
+          <circle cx="35" cy="35" r="26" stroke="#1B4F72" stroke-width="0.5" opacity="0.3"/>
+          <path d="M35 8 L39 35 L35 62 L31 35 Z" fill="#1B4F72" opacity="0.3"/>
+          <path d="M8 35 L35 31 L62 35 L35 39 Z" fill="#1B4F72" opacity="0.2"/>
+          <text x="35" y="14" text-anchor="middle" font-size="8" fill="#1B4F72" opacity="0.6">N</text>
+          <circle cx="35" cy="35" r="3" fill="#C0392B" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="nm-map-compass nm-compass-br">
+        <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+          <circle cx="45" cy="45" r="42" stroke="#1B4F72" stroke-width="1" opacity="0.4"/>
+          <circle cx="45" cy="45" r="36" stroke="#1B4F72" stroke-width="0.5" opacity="0.3"/>
+          <circle cx="45" cy="45" r="28" stroke="#1B4F72" stroke-width="0.5" opacity="0.2"/>
+          <g stroke="#1B4F72" stroke-width="0.5" opacity="0.25">
+            <line x1="45" y1="3" x2="45" y2="9"/>
+            <line x1="45" y1="81" x2="45" y2="87"/>
+            <line x1="3" y1="45" x2="9" y2="45"/>
+            <line x1="81" y1="45" x2="87" y2="45"/>
+          </g>
+          <path d="M45 12 L50 45 L45 78 L40 45 Z" fill="#1B4F72" opacity="0.2"/>
+          <path d="M12 45 L45 40 L78 45 L45 50 Z" fill="#1B4F72" opacity="0.15"/>
+          <text x="45" y="18" text-anchor="middle" font-size="9" fill="#1B4F72" opacity="0.5">N</text>
+          <circle cx="45" cy="45" r="4" fill="#C0392B" opacity="0.4"/>
+          <circle cx="45" cy="45" r="1.5" fill="#EDE0C8"/>
+        </svg>
+      </div>
+
+      <!-- 信息卡片 -->
+      <div class="narrative-info-card" id="infoCard">
+        <div class="nm-card-header">
+          <div>
+            <div class="nm-card-year-row">
+              <div class="narrative-info-year" id="infoYear">1487</div>
+              <span class="nm-card-country" id="infoCountry"></span>
+            </div>
+          </div>
+          <div class="nm-card-seal" id="infoSeal"></div>
+        </div>
+        <div class="nm-card-body">
+          <div class="nm-card-place">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span id="infoPlace">好望角</span>
+          </div>
+          <div class="narrative-info-title" id="infoTitle">迪亚士抵达好望角</div>
+          <div class="narrative-info-desc" id="infoDesc"></div>
+          <div class="nm-card-explorer" id="infoExplorer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            <span id="infoExplorerName"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========== 右侧：时间轴面板 ========== -->
+    <div class="narrative-timeline-panel">
+
+      <!-- 时间轴标题 -->
+      <div class="narrative-timeline-header">
+        <div class="narrative-timeline-title">航海日志</div>
+        <div class="narrative-timeline-subtitle">公元 1487 — 1779 年 · 十三次关键远航</div>
+        <div class="nm-phase-bar" id="phaseBar"></div>
+        <div class="nm-country-filter" id="countryFilter">
+          <div class="nm-country-chip active" data-country="all">
+            <span class="nm-chip-dot"></span>全部
+          </div>
+          <div class="nm-country-chip active" data-country="portugal">
+            <span class="nm-chip-dot"></span>葡萄牙
+          </div>
+          <div class="nm-country-chip active" data-country="spain">
+            <span class="nm-chip-dot"></span>西班牙
+          </div>
+          <div class="nm-country-chip active" data-country="netherlands">
+            <span class="nm-chip-dot"></span>荷兰
+          </div>
+          <div class="nm-country-chip active" data-country="england">
+            <span class="nm-chip-dot"></span>英国
+          </div>
+        </div>
+      </div>
+
+      <!-- 时间轴事件列表 -->
+      <div class="narrative-timeline-list" id="timelineList"></div>
+
+      <!-- 底部播放控件 -->
+      <div class="narrative-timeline-footer">
+        <button class="narrative-play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="playLabel">播放</span>
+        </button>
+        <div class="narrative-progress">
+          <div class="narrative-progress-bar" id="progressBar" style="width:0%"></div>
+        </div>
+        <span class="demo-tech-tag" id="eventCounter">1 / 13</span>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 脚本 ====== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+/* ============================================================
+   大航海时代与地理大发现 — 主脚本
+   ============================================================ */
+
+// ====== 国家配色 ======
+const countries = {
+  portugal:   { name: '葡萄牙', color: '#1E8449', light: 'rgba(30, 132, 73, 0.15)' },
+  spain:      { name: '西班牙', color: '#B7950B', light: 'rgba(183, 149, 11, 0.15)' },
+  netherlands:{ name: '荷兰',   color: '#CA6F1E', light: 'rgba(202, 111, 30, 0.15)' },
+  england:    { name: '英国',   color: '#2471A3', light: 'rgba(36, 113, 163, 0.15)' }
+};
+
+// ====== 阶段 ======
+const phases = [
+  { name: '启航', color: '#1E8449' },
+  { name: '大发现', color: '#B7950B' },
+  { name: '列强', color: '#CA6F1E' },
+  { name: '远航', color: '#2471A3' }
+];
+
+// ====== 事件数据 ======
+const events = [
+  {
+    year: 1487, yearLabel: '1487年', title: '迪亚士抵达好望角',
+    place: '好望角（非洲南端）', country: 'portugal',
+    explorer: '巴尔托洛梅乌·迪亚士', phase: 0,
+    desc: '葡萄牙航海家巴尔托洛梅乌·迪亚士率三艘船沿非洲西海岸南下，探索通往印度的航路。在遭遇风暴后，船队意外绕过非洲大陆最南端，到达非洲东海岸。迪亚士将其命名为"风暴角"，后葡萄牙国王约翰二世改名为"好望角"，寓意通往东方的希望。此次航行证明大西洋与印度洋是相通的。',
+    lat: -34.36, lng: 18.47,
+    route: [[38.72,-9.14],[16.0,-22.0],[-5.0,8.0],[-15.0,12.0],[-25.0,14.0],[-34.36,18.47],[-33.7,26.3]]
+  },
+  {
+    year: 1492, yearLabel: '1492年', title: '哥伦布发现新大陆',
+    place: '巴哈马群岛（美洲）', country: 'spain',
+    explorer: '克里斯托弗·哥伦布', phase: 0,
+    desc: '意大利航海家哥伦布在西班牙王室资助下，率三艘船向西航行，试图找到通往亚洲的新航路。经过70天航行，船队抵达巴哈马群岛中的圣萨尔瓦多岛。哥伦布误以为到达了印度，将当地居民称为"印第安人"。此次航行开启了欧洲对美洲的探索与殖民。',
+    lat: 24.06, lng: -74.5,
+    route: [[37.23,-6.89],[28.1,-15.4],[24.06,-74.5],[21.5,-78.0],[19.0,-70.0]]
+  },
+  {
+    year: 1494, yearLabel: '1494年', title: '教皇子午线',
+    place: '大西洋中部', country: 'spain',
+    explorer: '教皇亚历山大六世调停', phase: 0,
+    desc: '西班牙与葡萄牙在教皇亚历山大六世调解下，签订《托尔德西里亚斯条约》，规定在佛得角群岛以西370里格处划一条经线，线西归西班牙，线东归葡萄牙。这条"教皇子午线"首次在全球范围内划分了殖民势力范围，也解释了为何巴西成为葡萄牙殖民地，而美洲其他地区大多为西班牙殖民地。',
+    lat: 0, lng: -46,
+    route: null, isMeridian: true
+  },
+  {
+    year: 1498, yearLabel: '1498年', title: '达伽马开辟印度航路',
+    place: '卡利卡特（印度）', country: 'portugal',
+    explorer: '瓦斯科·达伽马', phase: 0,
+    desc: '葡萄牙航海家达伽马率船队绕过好望角，穿越印度洋，抵达印度西南海岸的卡利卡特（中国古籍称"古里"）。这是欧洲人首次通过海路到达印度，开辟了欧亚之间的海上新航路。达伽马的航行打破了阿拉伯人和威尼斯人对东西方贸易的垄断，葡萄牙开始建立海上殖民帝国。',
+    lat: 11.25, lng: 75.78,
+    route: [[38.72,-9.14],[16.0,-22.0],[-34.36,18.47],[-15.0,40.5],[3.2,40.1],[11.25,75.78]]
+  },
+  {
+    year: 1502, yearLabel: '1502年', title: '亚美利哥确认新大陆',
+    place: '美洲海岸', country: 'portugal',
+    explorer: '亚美利哥·韦斯普奇', phase: 1,
+    desc: '意大利航海家亚美利哥·韦斯普奇多次航行至南美洲海岸，经过考察后提出：哥伦布发现的不是亚洲，而是一块欧洲人此前未知的"新大陆"。1507年，德国地图学家马丁·瓦尔德泽米勒绘制的世界地图首次将这块大陆以亚美利哥的名字命名为"亚美利加"（America），这便是美洲名称的由来。',
+    lat: -15, lng: -40,
+    route: [[38.72,-9.14],[-5.0,-35.0],[-15.0,-40.0],[-23.0,-43.0],[-33.0,-50.0]]
+  },
+  {
+    year: 1519, yearLabel: '1519年', title: '麦哲伦环球航行出发',
+    place: '塞维利亚→麦哲伦海峡', country: 'spain',
+    explorer: '费尔南多·麦哲伦', phase: 1,
+    desc: '葡萄牙航海家麦哲伦在西班牙国王支持下，率五艘船、265名船员从塞维利亚出发，开始人类历史上首次环球航行。船队横渡大西洋，沿南美洲东海岸南下，穿过后来以他名字命名的麦哲伦海峡，进入太平洋。麦哲伦的航行证明了地球是圆的，世界大洋是连为一体的。',
+    lat: -52.5, lng: -69.6,
+    route: [[37.39,-5.98],[28.3,-16.5],[-10.0,-30.0],[-22.9,-43.2],[-35.0,-55.0],[-45.0,-62.0],[-52.5,-69.6]]
+  },
+  {
+    year: 1522, yearLabel: '1522年', title: '环球航行完成',
+    place: '塞维利亚（西班牙）', country: 'spain',
+    explorer: '胡安·塞巴斯蒂安·埃尔卡诺', phase: 1,
+    desc: '麦哲伦在菲律宾被杀后，剩余船员在埃尔卡诺率领下继续航行，穿越印度洋，绕过好望角，最终只有维多利亚号一艘船、18名船员回到西班牙塞维利亚。历时三年的环球航行是人类航海史上的壮举，无可辩驳地证明了地圆学说，也使人类对世界地理的认识产生了质的飞跃。',
+    lat: 37.39, lng: -5.98,
+    route: [[10.0,124.0],[-0.5,127.0],[-20.0,80.0],[-34.36,18.47],[0.3,6.6],[37.39,-5.98]]
+  },
+  {
+    year: 1588, yearLabel: '1588年', title: '无敌舰队战败',
+    place: '英吉利海峡', country: 'spain',
+    explorer: '西班牙无敌舰队 vs 英国海军', phase: 2,
+    desc: '西班牙"无敌舰队"（约130艘战舰、3万人）远征英国，在英吉利海峡遭到英国海军（约200艘船）的顽强阻击。英军采用火攻战术大败西班牙舰队，无敌舰队在撤退途中又遭遇风暴，最终仅剩43艘船返回西班牙。此战标志着西班牙海上霸权的衰落与英国海上力量的崛起，是世界海权转移的标志性事件。',
+    lat: 50.5, lng: -1.0,
+    route: [[38.72,-9.14],[43.5,-5.0],[48.0,-3.0],[50.5,-1.0],[53.0,2.0],[57.0,2.0],[59.0,-4.0],[54.0,-10.0]]
+  },
+  {
+    year: 1600, yearLabel: '1600年', title: '英国东印度公司成立',
+    place: '伦敦→印度', country: 'england',
+    explorer: '英国东印度公司', phase: 2,
+    desc: '英国东印度公司获得伊丽莎白一世颁发的皇家特许状，垄断英国与东方的贸易。公司最初以贸易为主，后来逐渐建立武装、占领殖民地，成为英国在印度和东南亚扩张的工具。东印度公司的崛起反映了大航海时代从探索到殖民、从王室资助到商业资本主导的转变，也推动了全球贸易体系的形成。',
+    lat: 51.5, lng: -0.1,
+    route: [[51.5,-0.1],[30.0,-15.0],[-10.0,-5.0],[-34.36,18.47],[-10.0,60.0],[11.25,75.78]]
+  },
+  {
+    year: 1602, yearLabel: '1602年', title: '荷兰东印度公司成立',
+    place: '阿姆斯特丹→亚洲', country: 'netherlands',
+    explorer: '荷兰东印度公司（VOC）', phase: 2,
+    desc: '荷兰东印度公司（VOC）成立，这是世界上第一家股份制公司，也是第一家可以发行股票、组建军队、签订条约的准国家组织。荷兰人凭借先进的造船技术和商业制度，迅速取代葡萄牙成为印度洋和太平洋贸易的霸主，在东南亚建立起庞大的殖民商业帝国，17世纪被称为荷兰的"黄金时代"。',
+    lat: 52.4, lng: 4.9,
+    route: [[52.4,4.9],[35.0,-10.0],[10.0,0.0],[-34.36,18.47],[-15.0,70.0],[-6.0,105.0],[-6.2,106.8]]
+  },
+  {
+    year: 1620, yearLabel: '1620年', title: '五月花号到达北美',
+    place: '普利茅斯（北美）', country: 'england',
+    explorer: '五月花号清教徒', phase: 2,
+    desc: '载有102名清教徒的五月花号帆船从英国普利茅斯出发，横渡大西洋，抵达北美马萨诸塞的科德角。登陆前，船上41名成年男子签署了《五月花号公约》，约定建立自治政府、遵守共同制定的法律。这份公约被视为美国民主制度的起源之一，也标志着欧洲人开始大规模移民北美，新大陆的历史翻开新的一页。',
+    lat: 41.96, lng: -70.23,
+    route: [[50.37,-4.14],[45.0,-15.0],[40.0,-30.0],[38.0,-50.0],[41.7,-70.0],[41.96,-70.23]]
+  },
+  {
+    year: 1642, yearLabel: '1642年', title: '塔斯曼发现新西兰',
+    place: '塔斯马尼亚·新西兰', country: 'netherlands',
+    explorer: '阿贝尔·塔斯曼', phase: 3,
+    desc: '荷兰东印度公司的航海家阿贝尔·塔斯曼从巴达维亚（今雅加达）出发，向南探索"未知的南方大陆"。他发现了塔斯马尼亚岛（后以他命名）和新西兰南岛，成为有记录以来第一个到达这些地区的欧洲人。塔斯曼的航行进一步填补了世界地图的空白，但荷兰人并未在这些地区建立殖民地。',
+    lat: -41.3, lng: 174.0,
+    route: [[-6.2,106.8],[-15.0,90.0],[-20.3,57.6],[-35.0,80.0],[-42.0,147.0],[-41.3,174.0],[-21.0,-175.0]]
+  },
+  {
+    year: 1768, yearLabel: '1768年', title: '库克船长首次航行',
+    place: '太平洋全域', country: 'england',
+    explorer: '詹姆斯·库克', phase: 3,
+    desc: '英国航海家詹姆斯·库克率奋进号从英国出发，开始第一次太平洋探险航行。他观测了金星凌日，随后向南探索，环绕新西兰南北岛，到达澳大利亚东海岸，升起英国国旗。库克的三次太平洋航行兼具科学考察与地理发现的双重意义，他绘制的海图精确度极高，还验证了坏血病防治方法，是大航海时代的科学巅峰。',
+    lat: -17.7, lng: -149.3,
+    route: [[50.37,-4.14],[32.7,-16.9],[-22.9,-43.2],[-56.0,-67.0],[-40.0,-110.0],[-17.7,-149.3],[-41.0,174.0],[-34.0,151.2],[-6.2,106.8],[-34.36,18.47],[-16.0,-5.7],[50.37,-4.14]]
+  }
+];
+
+// ====== 状态 ======
+let currentEvent = 0;
+let isPlaying = false;
+let playTimer = null;
+let map, markers = [], routeLines = [], activeRouteLine, shipMarker, meridianLine;
+let activeCountries = new Set(['portugal','spain','netherlands','england']);
+let isFlying = false;
+let routeAnimObj = { progress: 0 };
+let routeAnimTween = null;
+
+// ====== 工具：线性插值沿路线取点 ======
+function getRoutePoint(coords, progress) {
+  if (!coords || coords.length === 0) return [0, 0];
+  if (coords.length === 1) return coords[0];
+  const totalSeg = coords.length - 1;
+  const idx = Math.min(Math.floor(progress * totalSeg), totalSeg - 1);
+  const frac = progress * totalSeg - idx;
+  const a = coords[idx], b = coords[idx + 1];
+  return [a[0] + (b[0]-a[0])*frac, a[1] + (b[1]-a[1])*frac];
+}
+
+function getPartialRoute(coords, progress) {
+  if (!coords || coords.length <= 1) return coords || [];
+  const result = [];
+  const totalSeg = coords.length - 1;
+  for (let i = 0; i <= idx_conv(progress, totalSeg); i++) {
+    result.push(coords[i]);
+  }
+  const frac = progress * totalSeg - Math.floor(progress * totalSeg);
+  const lastIdx = Math.min(Math.floor(progress * totalSeg), totalSeg - 1);
+  const a = coords[lastIdx], b = coords[lastIdx + 1];
+  if (frac > 0.001) {
+    result.push([a[0] + (b[0]-a[0])*frac, a[1] + (b[1]-a[1])*frac]);
+  }
+  return result;
+}
+function idx_conv(p, total) { return Math.min(Math.floor(p * total), total); }
+
+// ====== 初始化地图 ======
+function initMap() {
+  map = L.map('map', {
+    zoomControl: true,
+    attributionControl: true,
+    minZoom: 2,
+    maxZoom: 8,
+    zoomSnap: 0.5,
+    fadeAnimation: true,
+    zoomAnimation: true,
+    scrollWheelZoom: true,
+    worldCopyJump: true
+  });
+
+  // 高德地图底图（国产瓦片，中文标注）
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    attribution: '© 高德地图',
+    subdomains: ['1', '2', '3', '4'],
+    maxZoom: 18
+  }).addTo(map);
+
+  // 初始视图：世界
+  map.setView([15, 0], 2);
+
+  // 绘制所有航线（初始为低透明度）
+  events.forEach((e, i) => {
+    if (e.route) {
+      const c = countries[e.country];
+      const line = L.polyline(e.route, {
+        color: c.color,
+        weight: 2,
+        opacity: 0.18,
+        dashArray: '6 5',
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(map);
+      routeLines[i] = line;
+    } else {
+      routeLines[i] = null;
+    }
+  });
+
+  // 教皇子午线
+  drawMeridian();
+
+  // 创建标记点
+  events.forEach((e, i) => {
+    const c = countries[e.country];
+    const icon = L.divIcon({
+      className: 'nm-marker-wrapper',
+      html: `<div class="nm-marker future" data-idx="${i}" style="color:${c.color}">
+              <div class="nm-marker-dot" style="background:${c.color}"></div>
+              <div class="nm-marker-label">${e.place.split('（')[0]}</div>
+            </div>`,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
+    });
+    const marker = L.marker([e.lat, e.lng], { icon }).addTo(map);
+    marker.on('click', () => selectEvent(i));
+    markers.push(marker);
+  });
+
+  // 船舶标记（用于航线动画）
+  const shipIcon = L.divIcon({
+    className: 'nm-ship-wrapper',
+    html: `<div style="font-size:20px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">⛵</div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+  shipMarker = L.marker([0, 0], { icon: shipIcon, zIndexOffset: 1000 }).addTo(map);
+  shipMarker.setOpacity(0);
+
+  map.on('movestart', () => { isFlying = true; });
+  map.on('moveend', () => { isFlying = false; });
+}
+
+// ====== 教皇子午线 ======
+function drawMeridian() {
+  const meridianCoords = [[60, -46], [-60, -46]];
+  meridianLine = L.polyline(meridianCoords, {
+    color: '#C0392B',
+    weight: 1.5,
+    opacity: 0,
+    dashArray: '8 6',
+    lineCap: 'round'
+  }).addTo(map);
+}
+
+// ====== 更新标记状态 ======
+function updateMarkers() {
+  markers.forEach((marker, i) => {
+    const el = marker.getElement();
+    if (!el) return;
+    const inner = el.querySelector('.nm-marker');
+    if (!inner) return;
+    inner.classList.remove('active', 'past', 'future');
+    if (i === currentEvent) inner.classList.add('active');
+    else if (i < currentEvent) inner.classList.add('past');
+    else inner.classList.add('future');
+
+    // 国家筛选隐藏
+    const evt = events[i];
+    const visible = activeCountries.has(evt.country);
+    marker.setOpacity(visible ? 1 : 0.2);
+  });
+}
+
+// ====== 更新航线透明度 ======
+function updateRoutes() {
+  events.forEach((e, i) => {
+    if (!e.route || !routeLines[i]) return;
+    const visible = activeCountries.has(e.country);
+    const line = routeLines[i];
+
+    if (i === currentEvent) {
+      line.setStyle({ opacity: visible ? 0.85 : 0.15, weight: 3.5, dashArray: null });
+      const path = line.getElement();
+      if (path) path.classList.add('nm-route-active');
+    } else if (i < currentEvent) {
+      line.setStyle({ opacity: visible ? 0.45 : 0.08, weight: 2, dashArray: '6 5' });
+      const path = line.getElement();
+      if (path) path.classList.remove('nm-route-active');
+    } else {
+      line.setStyle({ opacity: visible ? 0.18 : 0.05, weight: 2, dashArray: '6 5' });
+      const path = line.getElement();
+      if (path) path.classList.remove('nm-route-active');
+    }
+  });
+
+  // 教皇子午线
+  if (meridianLine) {
+    const meridianVisible = activeCountries.has('spain') || activeCountries.has('portugal');
+    if (currentEvent === 2) {
+      meridianLine.setStyle({ opacity: meridianVisible ? 0.6 : 0.1 });
+    } else if (currentEvent > 2) {
+      meridianLine.setStyle({ opacity: meridianVisible ? 0.3 : 0.05 });
+    } else {
+      meridianLine.setStyle({ opacity: 0 });
+    }
+  }
+}
+
+// ====== 动画绘制当前航线 ======
+function animateActiveRoute() {
+  const e = events[currentEvent];
+  if (!e.route || e.route.length < 2) {
+    shipMarker.setOpacity(0);
+    return;
+  }
+
+  const c = countries[e.country];
+
+  // 清除之前的动画路线
+  if (activeRouteLine) {
+    map.removeLayer(activeRouteLine);
+  }
+
+  // 创建动画路线
+  activeRouteLine = L.polyline([e.route[0]], {
+    color: c.color,
+    weight: 3.5,
+    opacity: 0.9,
+    lineCap: 'round',
+    lineJoin: 'round'
+  }).addTo(map);
+
+  // 停止之前的动画
+  if (routeAnimTween) routeAnimTween.kill();
+  routeAnimObj.progress = 0;
+
+  // 显示船舶标记
+  shipMarker.setLatLng(e.route[0]);
+  shipMarker.setOpacity(1);
+
+  // GSAP 动画
+  routeAnimTween = gsap.to(routeAnimObj, {
+    progress: 1,
+    duration: Math.min(2.5, 1.2 + e.route.length * 0.25),
+    ease: 'power2.inOut',
+    onUpdate: () => {
+      const p = routeAnimObj.progress;
+      const partial = getPartialRoute(e.route, p);
+      activeRouteLine.setLatLngs(partial);
+      const pt = getRoutePoint(e.route, p);
+      shipMarker.setLatLng(pt);
+    },
+    onComplete: () => {
+      // 船舶到达后淡出
+      gsap.to(shipMarker.getElement(), {
+        opacity: 0.4,
+        duration: 0.8,
+        ease: 'power2.out'
+      });
+    }
+  });
+}
+
+// ====== 构建时间轴 ======
+function buildTimeline() {
+  const list = document.getElementById('timelineList');
+  list.innerHTML = events.map((e, i) => {
+    const c = countries[e.country];
+    return `
+    <div class="timeline-event ${i === currentEvent ? 'active' : ''}" data-idx="${i}">
+      <div class="timeline-event-dot" style="border-color:${c.color}"></div>
+      <div class="timeline-event-content">
+        <div class="timeline-event-year">
+          <span class="nm-event-country-tag" style="background:${c.color}"></span>
+          ${e.yearLabel}
+        </div>
+        <div class="timeline-event-title">${e.title}</div>
+        <div class="nm-event-place">${e.place.split('（')[0]}</div>
+        <div class="timeline-event-desc">${e.desc.substring(0, 65)}…</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.timeline-event').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      if (isPlaying) togglePlay();
+      selectEvent(idx);
+    });
+  });
+}
+
+// ====== 构建阶段进度条 ======
+function buildPhaseBar() {
+  const bar = document.getElementById('phaseBar');
+  bar.innerHTML = phases.map((p, i) => {
+    const count = events.filter(e => e.phase === i).length;
+    return `<div class="nm-phase-segment" data-phase="${i}" 
+             style="flex: ${count};" 
+             title="${p.name}"></div>`;
+  }).join('');
+}
+
+function updatePhaseBar() {
+  const curPhase = events[currentEvent].phase;
+  document.querySelectorAll('.nm-phase-segment').forEach((el, i) => {
+    el.classList.remove('active', 'past');
+    if (i === curPhase) el.classList.add('active');
+    else if (i < curPhase) el.classList.add('past');
+  });
+}
+
+// ====== 国家筛选 ======
+function setupCountryFilter() {
+  document.querySelectorAll('.nm-country-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const ctry = chip.dataset.country;
+      if (ctry === 'all') {
+        const allActive = activeCountries.size === 4;
+        if (allActive) {
+          activeCountries.clear();
+        } else {
+          activeCountries = new Set(['portugal','spain','netherlands','england']);
+        }
+        document.querySelectorAll('.nm-country-chip').forEach(c => {
+          const isActive = c.dataset.country === 'all' ? !allActive : activeCountries.has(c.dataset.country);
+          c.classList.toggle('active', isActive);
+        });
+      } else {
+        if (activeCountries.has(ctry)) {
+          activeCountries.delete(ctry);
+          chip.classList.remove('active');
+        } else {
+          activeCountries.add(ctry);
+          chip.classList.add('active');
+        }
+        // 更新"全部"按钮状态
+        const allChip = document.querySelector('.nm-country-chip[data-country="all"]');
+        allChip.classList.toggle('active', activeCountries.size === 4);
+      }
+      updateRoutes();
+      updateMarkers();
+    });
+  });
+}
+
+// ====== 选中事件 ======
+function selectEvent(idx) {
+  currentEvent = idx;
+  const e = events[idx];
+  const c = countries[e.country];
+
+  // 卡片切换动画
+  const card = document.getElementById('infoCard');
+  gsap.fromTo(card,
+    { opacity: 0.6, y: 8 },
+    { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+  );
+
+  // 更新信息卡片
+  document.getElementById('infoYear').textContent = e.year;
+  document.getElementById('infoPlace').textContent = e.place;
+  document.getElementById('infoTitle').textContent = e.title;
+  document.getElementById('infoDesc').textContent = e.desc;
+  document.getElementById('infoExplorerName').textContent = e.explorer;
+
+  // 国家标签
+  const countryEl = document.getElementById('infoCountry');
+  countryEl.textContent = c.name;
+  countryEl.style.background = c.light;
+  countryEl.style.color = c.color;
+
+  // 印章（国家色圆+罗盘星）
+  const sealEl = document.getElementById('infoSeal');
+  sealEl.style.background = c.color;
+  sealEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L14 12L12 22L10 12Z" fill="#fff" opacity="0.9"/><path d="M2 12L12 14L22 12L12 10Z" fill="#fff" opacity="0.5"/></svg>`;
+
+  // 更新时间轴高亮
+  document.querySelectorAll('.timeline-event').forEach((el, i) => {
+    el.classList.remove('active', 'past');
+    if (i === idx) el.classList.add('active');
+    else if (i < idx) el.classList.add('past');
+  });
+
+  // 滚动到当前事件
+  const activeEl = document.querySelector('.timeline-event.active');
+  if (activeEl) {
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // 更新进度条
+  const progress = ((idx + 1) / events.length) * 100;
+  document.getElementById('progressBar').style.width = `${progress}%`;
+  document.getElementById('eventCounter').textContent = `${idx + 1} / ${events.length}`;
+
+  // 更新地图
+  updateMarkers();
+  updateRoutes();
+  updatePhaseBar();
+
+  // 动画绘制航线
+  if (e.route) {
+    animateActiveRoute();
+  } else {
+    shipMarker.setOpacity(0);
+    if (activeRouteLine) map.removeLayer(activeRouteLine);
+  }
+
+  // 飞到当前位置
+  if (!isFlying) {
+    if (e.route && e.route.length > 2) {
+      const bounds = L.latLngBounds(e.route);
+      map.flyToBounds(bounds, { padding: [80, 80], duration: 1.2, maxZoom: 6 });
+    } else {
+      map.flyTo([e.lat, e.lng], Math.max(map.getZoom(), 3), {
+        duration: 1.2,
+        easeLinearity: 0.25
+      });
+    }
+  }
+}
+
+// ====== 播放控制 ======
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+  const label = document.getElementById('playLabel');
+
+  if (isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    label.textContent = '暂停';
+    playTimer = setInterval(() => {
+      let next = currentEvent + 1;
+      if (next >= events.length) next = 0;
+      selectEvent(next);
+    }, 4500);
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent = '播放';
+    clearInterval(playTimer);
+  }
+}
+
+// ====== 键盘导航 ======
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    if (currentEvent > 0) { if (isPlaying) togglePlay(); selectEvent(currentEvent - 1); }
+  } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    if (currentEvent < events.length - 1) { if (isPlaying) togglePlay(); selectEvent(currentEvent + 1); }
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    togglePlay();
+  }
+});
+
+// ====== 导航栏滚动 ======
+window.addEventListener('scroll', () => {
+  document.getElementById('demoNavbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  buildTimeline();
+  buildPhaseBar();
+  setupCountryFilter();
+
+  // 延迟选中第一个事件
+  setTimeout(() => {
+    selectEvent(0);
+  }, 300);
+
+  // 播放按钮
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // 入场动画淡出
+  setTimeout(() => {
+    document.getElementById('entryOverlay').classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('entryOverlay').style.display = 'none';
+    }, 1200);
+  }, 2800);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>3D 分子结构交互查看器 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #0a0a0f;
+    color: #e5e5e5;
+    font-family: var(--font-sans);
+  }
+
+  /* 聚光灯径向渐变背景 */
+  #canvasContainer {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(ellipse 80% 70% at 50% 45%, #1c1c26 0%, #0e0e14 55%, #060608 100%);
+  }
+  #canvasContainer canvas { display: block; }
+
+  /* ===== 分子选择面板（左侧） ===== */
+  .mol-panel {
+    position: fixed;
+    top: 80px;
+    left: 20px;
+    z-index: 50;
+    width: 220px;
+    padding: 14px 16px;
+    background: rgba(12, 12, 16, 0.6);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: var(--radius-card);
+  }
+  .mol-panel-title {
+    font-family: var(--font-serif);
+    font-size: 12px;
+    font-weight: 600;
+    color: #d4d4d4;
+    letter-spacing: 0.03em;
+    margin-bottom: 10px;
+  }
+  .mol-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 52vh;
+    overflow-y: auto;
+  }
+  .mol-list::-webkit-scrollbar { width: 4px; }
+  .mol-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  .mol-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 11px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    font-size: 12px;
+    color: #a3a3a3;
+  }
+  .mol-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e5e5e5;
+  }
+  .mol-item.active {
+    background: rgba(0, 188, 212, 0.12);
+    border-color: rgba(0, 188, 212, 0.35);
+    color: #4dd0e1;
+  }
+  .mol-item-name { font-weight: 500; }
+  .mol-item-formula {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    opacity: 0.65;
+  }
+
+  /* ===== 信息面板（右侧） ===== */
+  .info-panel {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 50;
+    width: 250px;
+    padding: 14px 16px;
+    background: rgba(12, 12, 16, 0.6);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: var(--radius-card);
+  }
+  .info-panel-title {
+    font-family: var(--font-serif);
+    font-size: 12px;
+    font-weight: 600;
+    color: #d4d4d4;
+    margin-bottom: 10px;
+  }
+  .info-mol-name {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+  }
+  .info-mol-formula {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: #4dd0e1;
+    margin-top: 2px;
+  }
+  .info-rows {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11px;
+  }
+  .info-row .label {
+    color: #737373;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .info-row .val {
+    color: #d4d4d4;
+    font-weight: 500;
+    text-align: right;
+  }
+  .info-row .val.accent { color: #4dd0e1; font-family: var(--font-mono); }
+  .info-desc {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 10.5px;
+    line-height: 1.65;
+    color: #8a8a8a;
+  }
+  .legend-block {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: #737373;
+  }
+  .legend-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: inset -2px -2px 3px rgba(0,0,0,0.3);
+  }
+
+  /* ===== 原子点击信息浮层 ===== */
+  .atom-popup {
+    position: fixed;
+    z-index: 60;
+    padding: 10px 14px;
+    background: rgba(8, 8, 12, 0.88);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 188, 212, 0.3);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: #e5e5e5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s var(--ease);
+    transform: translate(-50%, calc(-100% - 16px));
+    white-space: nowrap;
+  }
+  .atom-popup.visible { opacity: 1; }
+  .atom-popup .ap-symbol {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .atom-popup .ap-name { color: #a3a3a3; font-size: 11px; margin-top: 1px; }
+  .atom-popup .ap-meta { color: #4dd0e1; font-family: var(--font-mono); font-size: 10px; margin-top: 3px; }
+
+  /* ===== 键角标注浮层 ===== */
+  .angle-label {
+    position: fixed;
+    z-index: 55;
+    padding: 2px 8px;
+    background: rgba(0, 188, 212, 0.15);
+    border: 1px solid rgba(0, 188, 212, 0.3);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: #4dd0e1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s var(--ease);
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+  }
+  .angle-label.visible { opacity: 1; }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 900px) {
+    .mol-panel { width: 180px; padding: 10px 12px; }
+    .info-panel { width: 200px; padding: 10px 12px; }
+    .info-mol-name { font-size: 15px; }
+  }
+  @media (max-width: 640px) {
+    .mol-panel {
+      top: auto;
+      bottom: 60px;
+      left: 8px;
+      right: 8px;
+      width: auto;
+      max-height: 120px;
+    }
+    .mol-list {
+      flex-direction: row;
+      overflow-x: auto;
+      max-height: none;
+      gap: 6px;
+    }
+    .mol-item { flex-shrink: 0; min-width: 90px; }
+    .info-panel { display: none; }
+  }
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar immersive" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">化学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">3D 分子结构交互查看器</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-chem">化学</span>
+      <a href="/skills/jingbo-edu-3d-micro-structure-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 全屏 3D 画布 ====== -->
+<div id="canvasContainer"></div>
+
+<!-- ====== 加载提示 ====== -->
+<div class="demo-loading active" id="loading">加载分子数据中</div>
+
+<!-- ====== 分子选择面板 ====== -->
+<div class="mol-panel">
+  <div class="mol-panel-title">分子选择</div>
+  <div class="mol-list" id="molList"></div>
+</div>
+
+<!-- ====== 信息面板 ====== -->
+<div class="info-panel" id="infoPanel">
+  <div class="info-panel-title">分子信息</div>
+  <div class="info-mol-name" id="infoName">水</div>
+  <div class="info-mol-formula" id="infoFormula">H₂O</div>
+  <div class="info-rows" id="infoRows"></div>
+  <div class="info-desc" id="infoDesc"></div>
+  <div class="legend-block">
+    <div class="legend-grid" id="legendGrid"></div>
+  </div>
+</div>
+
+<!-- ====== 原子信息浮层 ====== -->
+<div class="atom-popup" id="atomPopup">
+  <div class="ap-symbol" id="apSymbol"></div>
+  <div class="ap-name" id="apName"></div>
+  <div class="ap-meta" id="apMeta"></div>
+</div>
+
+<!-- ====== 键角标注 ====== -->
+<div class="angle-label" id="angleLabel"></div>
+
+<!-- ====== 操作提示 ====== -->
+<div class="demo-scene-hint">拖拽旋转 · 滚轮缩放 · 点击原子查看信息 · 双击重置</div>
+
+<!-- ====== 左下浮动控件 ====== -->
+<div class="demo-floating-group demo-floating-left">
+  <button class="demo-icon-btn active" id="spinBtn" data-tooltip="自动旋转">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+  </button>
+  <button class="demo-icon-btn" id="resetBtn" data-tooltip="重置视角">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+  </button>
+  <button class="demo-icon-btn active" id="labelBtn" data-tooltip="键角标注">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+  </button>
+  <button class="demo-icon-btn" id="lonePairBtn" data-tooltip="孤电子对">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>
+  </button>
+</div>
+
+<!-- ====== 右下浮动控件 ====== -->
+<div class="demo-floating-group demo-floating-right">
+  <button class="demo-icon-btn" id="fullscreenBtn" data-tooltip="全屏">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+  </button>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar immersive">
+  <div class="demo-info-left">
+    <span class="demo-info-title">3d-molecule-viewer</span>
+    <span class="demo-tech-tag">Three.js</span>
+    <span class="demo-tech-tag">WebGL</span>
+    <span class="demo-tech-tag">PBR</span>
+  </div>
+  <div class="demo-info-center">
+    <div class="demo-mode-switcher">
+      <button class="demo-mode-btn active" data-mode="ballstick">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><line x1="8" y1="8" x2="16" y2="16"/></svg>
+        <span>球棍</span>
+      </button>
+      <button class="demo-mode-btn" data-mode="spacefill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="3.5" opacity="0.5"/><circle cx="15" cy="14" r="3.5" opacity="0.5"/></svg>
+        <span>空间填充</span>
+      </button>
+      <button class="demo-mode-btn" data-mode="wireframe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="8.5" x2="22" y2="15.5"/><line x1="22" y1="8.5" x2="2" y2="15.5"/></svg>
+        <span>线框</span>
+      </button>
+    </div>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="atomCount">原子: -</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ============================================================
+   一、原子属性（CPK 配色 + 范德华半径）
+   ============================================================ */
+const ATOM_PROPS = {
+  H:  { color: 0xf5f5f5, vdw: 1.20, name: '氢', en: 'Hydrogen',  mass: 1.008 },
+  C:  { color: 0x5a5a5a, vdw: 1.70, name: '碳', en: 'Carbon',    mass: 12.01 },
+  N:  { color: 0x3050f8, vdw: 1.55, name: '氮', en: 'Nitrogen',  mass: 14.01 },
+  O:  { color: 0xff0d0d, vdw: 1.52, name: '氧', en: 'Oxygen',    mass: 16.00 },
+  S:  { color: 0xffff30, vdw: 1.80, name: '硫', en: 'Sulfur',    mass: 32.07 },
+  Cl: { color: 0x1ff01f, vdw: 1.75, name: '氯', en: 'Chlorine',  mass: 35.45 },
+};
+
+/* ============================================================
+   二、分子数据（3D 坐标单位：Å，键级：1/2/3）
+   ============================================================ */
+const MOLECULES = {
+  water: {
+    name: '水', formula: 'H₂O', mass: '18.02',
+    geometry: 'V形（弯曲）', hybridization: 'sp³',
+    bondAngle: '104.5°', polarity: '极性分子',
+    vsepr: 'O 有 4 对价电子（2 成键 + 2 孤对），电子对构型为四面体',
+    desc: '氧原子 sp³ 杂化，两对孤电子对的排斥力大于成键电子对，将 H-O-H 键角从 109.5° 压缩至 104.5°。',
+    atoms: [
+      { el: 'O', pos: [0, 0, 0] },
+      { el: 'H', pos: [0.757, 0.587, 0] },
+      { el: 'H', pos: [-0.757, 0.587, 0] },
+    ],
+    bonds: [[0,1,1],[0,2,1]],
+    lonePairs: [{ c: 0, pos: [0, -0.48, 0.45] }, { c: 0, pos: [0, -0.48, -0.45] }],
+    angles: [{ c: 0, a: 1, b: 2, v: 104.5 }],
+  },
+  methane: {
+    name: '甲烷', formula: 'CH₄', mass: '16.04',
+    geometry: '正四面体', hybridization: 'sp³',
+    bondAngle: '109.5°', polarity: '非极性分子',
+    vsepr: 'C 有 4 对价电子（全部成键），电子对构型与分子构型均为正四面体',
+    desc: '碳原子 sp³ 杂化，四个 C-H 键指向正四面体顶点，键角精确为 109°28\'，是完全对称的非极性分子。',
+    atoms: [
+      { el: 'C', pos: [0, 0, 0] },
+      { el: 'H', pos: [0.629, 0.629, 0.629] },
+      { el: 'H', pos: [-0.629, -0.629, 0.629] },
+      { el: 'H', pos: [-0.629, 0.629, -0.629] },
+      { el: 'H', pos: [0.629, -0.629, -0.629] },
+    ],
+    bonds: [[0,1,1],[0,2,1],[0,3,1],[0,4,1]],
+    angles: [{ c: 0, a: 1, b: 2, v: 109.5 }],
+  },
+  ammonia: {
+    name: '氨', formula: 'NH₃', mass: '17.03',
+    geometry: '三角锥形', hybridization: 'sp³',
+    bondAngle: '107°', polarity: '极性分子',
+    vsepr: 'N 有 4 对价电子（3 成键 + 1 孤对），电子对构型为四面体，分子构型为三角锥',
+    desc: '氮原子 sp³ 杂化，一对孤电子对的排斥使 H-N-H 键角从 109.5° 压缩至 107°，分子呈三角锥形。',
+    atoms: [
+      { el: 'N', pos: [0, 0.149, 0] },
+      { el: 'H', pos: [0.939, -0.337, 0] },
+      { el: 'H', pos: [-0.470, -0.337, 0.814] },
+      { el: 'H', pos: [-0.470, -0.337, -0.814] },
+    ],
+    bonds: [[0,1,1],[0,2,1],[0,3,1]],
+    lonePairs: [{ c: 0, pos: [0, 0.75, 0] }],
+    angles: [{ c: 0, a: 1, b: 2, v: 107.0 }],
+  },
+  co2: {
+    name: '二氧化碳', formula: 'CO₂', mass: '44.01',
+    geometry: '直线形', hybridization: 'sp',
+    bondAngle: '180°', polarity: '非极性分子',
+    vsepr: 'C 有 2 对价电子（全部成键），电子对构型为直线形',
+    desc: '碳原子 sp 杂化，两个 C=O 双键呈 180° 对称排布。虽 C=O 键有极性，但分子整体对称，为非极性分子。',
+    atoms: [
+      { el: 'C', pos: [0, 0, 0] },
+      { el: 'O', pos: [1.16, 0, 0] },
+      { el: 'O', pos: [-1.16, 0, 0] },
+    ],
+    bonds: [[0,1,2],[0,2,2]],
+    angles: [{ c: 0, a: 1, b: 2, v: 180.0 }],
+  },
+  benzene: {
+    name: '苯', formula: 'C₆H₆', mass: '78.11',
+    geometry: '平面正六边形', hybridization: 'sp²',
+    bondAngle: '120°', polarity: '非极性分子',
+    vsepr: '每个 C 有 3 对价电子（全部成键），电子对构型为平面三角形',
+    desc: '六个碳原子 sp² 杂化形成平面六元环，C-C 键角 120°。六个 p 轨道侧面重叠形成大 π 键，使所有 C-C 键等长（1.39Å），具有特殊稳定性。',
+    atoms: (() => {
+      const a = []; const rC = 1.39, rH = 2.47;
+      for (let i = 0; i < 6; i++) {
+        const t = (i * Math.PI) / 3;
+        a.push({ el: 'C', pos: [rC*Math.cos(t), rC*Math.sin(t), 0] });
+      }
+      for (let i = 0; i < 6; i++) {
+        const t = (i * Math.PI) / 3;
+        a.push({ el: 'H', pos: [rH*Math.cos(t), rH*Math.sin(t), 0] });
+      }
+      return a;
+    })(),
+    bonds: (() => {
+      const b = [];
+      for (let i = 0; i < 6; i++) {
+        b.push([i, (i+1)%6, i%2===0 ? 2 : 1]); // 交替双键（Kekulé 结构）
+      }
+      for (let i = 0; i < 6; i++) { b.push([i, i+6, 1]); }
+      return b;
+    })(),
+    angles: [{ c: 0, a: 1, b: 5, v: 120.0 }],
+  },
+  ethylene: {
+    name: '乙烯', formula: 'C₂H₄', mass: '28.05',
+    geometry: '平面分子', hybridization: 'sp²',
+    bondAngle: '121.3°', polarity: '非极性分子',
+    vsepr: '每个 C 有 3 对价电子（全部成键），平面三角形排布',
+    desc: '碳原子 sp² 杂化，C=C 双键由一个 σ 键和一个 π 键组成。所有原子共面，H-C-H 键角约 117°，H-C=C 约 121°。',
+    atoms: [
+      { el: 'C', pos: [0, 0, 0] },
+      { el: 'C', pos: [1.34, 0, 0] },
+      { el: 'H', pos: [-0.53, 0.93, 0] },
+      { el: 'H', pos: [-0.53, -0.93, 0] },
+      { el: 'H', pos: [1.87, 0.93, 0] },
+      { el: 'H', pos: [1.87, -0.93, 0] },
+    ],
+    bonds: [[0,1,2],[0,2,1],[0,3,1],[1,4,1],[1,5,1]],
+    angles: [{ c: 0, a: 2, b: 1, v: 121.3 }],
+  },
+  formaldehyde: {
+    name: '甲醛', formula: 'CH₂O', mass: '30.03',
+    geometry: '平面三角形', hybridization: 'sp²',
+    bondAngle: '116.5°', polarity: '极性分子',
+    vsepr: 'C 有 3 对价电子（全部成键），平面三角形排布',
+    desc: '碳原子 sp² 杂化，C=O 双键与两个 C-H 单键共面。氧的电负性使分子具有较强极性，是醛类的最简单代表。',
+    atoms: [
+      { el: 'C', pos: [0, 0, 0] },
+      { el: 'O', pos: [0, 1.21, 0] },
+      { el: 'H', pos: [0.94, -0.54, 0] },
+      { el: 'H', pos: [-0.94, -0.54, 0] },
+    ],
+    bonds: [[0,1,2],[0,2,1],[0,3,1]],
+    angles: [{ c: 0, a: 2, b: 3, v: 116.5 }],
+  },
+  acetylene: {
+    name: '乙炔', formula: 'C₂H₂', mass: '26.04',
+    geometry: '直线形', hybridization: 'sp',
+    bondAngle: '180°', polarity: '非极性分子',
+    vsepr: '每个 C 有 2 对价电子（全部成键），直线形排布',
+    desc: '碳原子 sp 杂化，C≡C 三键由一个 σ 键和两个 π 键组成。所有原子共线，键角 180°，是最简单的炔烃。',
+    atoms: [
+      { el: 'C', pos: [0, 0, 0] },
+      { el: 'C', pos: [1.20, 0, 0] },
+      { el: 'H', pos: [-1.06, 0, 0] },
+      { el: 'H', pos: [2.26, 0, 0] },
+    ],
+    bonds: [[0,1,3],[0,2,1],[1,3,1]],
+    angles: [{ c: 0, a: 2, b: 1, v: 180.0 }],
+  },
+};
+
+/* ============================================================
+   三、全局变量与状态
+   ============================================================ */
+let scene, camera, renderer, controls, raycaster, pointer;
+let moleculeGroup = null;
+let glowMesh = null;
+let bgParticles = null;
+let envTex = null;
+let clock;
+
+const state = {
+  molKey: 'water',
+  mode: 'ballstick',
+  spinning: true,
+  showLabels: true,
+  showLonePairs: false,
+  selectedAtom: null,
+  // 切换动画
+  transitioning: false,
+  transPhase: null,    // 'out' | 'in'
+  transProgress: 0,
+  pendingMol: null,
+  pendingMode: null,
+};
+
+const MODE_SCALES = {
+  ballstick: { atom: 0.32, bond: 0.07, showBonds: true, wire: false },
+  spacefill: { atom: 0.82, bond: 0.04, showBonds: false, wire: false },
+  wireframe: { atom: 0.16, bond: 0.01, showBonds: true, wire: true },
+};
+
+/* ============================================================
+   四、初始化场景
+   ============================================================ */
+function init() {
+  const container = document.getElementById('canvasContainer');
+
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a0a0f, 0.035);
+
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
+  camera.position.set(0, 1.5, 8);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  container.appendChild(renderer.domElement);
+
+  // 环境贴图（PBR 反射）
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environment = envTex;
+
+  // 灯光
+  const ambient = new THREE.AmbientLight(0x6a6a8a, 0.35);
+  scene.add(ambient);
+
+  const key = new THREE.DirectionalLight(0xffffff, 1.6);
+  key.position.set(6, 8, 6);
+  scene.add(key);
+
+  const fill = new THREE.DirectionalLight(0x4dd0e1, 0.5);
+  fill.position.set(-5, -2, 3);
+  scene.add(fill);
+
+  const rim = new THREE.DirectionalLight(0xff8855, 0.4);
+  rim.position.set(0, -3, -6);
+  scene.add(rim);
+
+  // 控制器
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.rotateSpeed = 0.7;
+  controls.zoomSpeed = 0.8;
+  controls.minDistance = 3;
+  controls.maxDistance = 25;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.6;
+
+  // 射线检测
+  raycaster = new THREE.Raycaster();
+  pointer = new THREE.Vector2();
+
+  clock = new THREE.Clock();
+
+  // 背景粒子
+  createBackgroundParticles();
+
+  // 选中辉光
+  const glowGeo = new THREE.SphereGeometry(1, 24, 24);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0x00bcd4,
+    transparent: true,
+    opacity: 0.0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  glowMesh = new THREE.Mesh(glowGeo, glowMat);
+  glowMesh.visible = false;
+  scene.add(glowMesh);
+
+  // 构建首个分子
+  buildMolecule(state.molKey);
+
+  document.getElementById('loading').classList.remove('active');
+}
+
+/* ============================================================
+   五、背景粒子（星空）
+   ============================================================ */
+function createBackgroundParticles() {
+  const count = 600;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+
+  for (let i = 0; i < count; i++) {
+    const r = 30 + Math.random() * 50;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i*3+2] = r * Math.cos(phi);
+
+    const brightness = 0.3 + Math.random() * 0.7;
+    colors[i*3]   = brightness * 0.8;
+    colors[i*3+1] = brightness * 0.85;
+    colors[i*3+2] = brightness;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size: 0.18,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.6,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    sizeAttenuation: true,
+  });
+
+  bgParticles = new THREE.Points(geo, mat);
+  scene.add(bgParticles);
+}
+
+/* ============================================================
+   六、分子构建
+   ============================================================ */
+function disposeGroup(group) {
+  group.traverse(obj => {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+      else obj.material.dispose();
+    }
+  });
+}
+
+function getPerpendicular(dir) {
+  const norm = dir.clone().normalize();
+  let perp = new THREE.Vector3().crossVectors(norm, new THREE.Vector3(0, 0, 1));
+  if (perp.length() < 0.01) {
+    perp = new THREE.Vector3().crossVectors(norm, new THREE.Vector3(0, 1, 0));
+  }
+  return perp.normalize();
+}
+
+function makeAtomMesh(el, pos, scale) {
+  const props = ATOM_PROPS[el] || ATOM_PROPS.C;
+  const radius = Math.max(0.05, props.vdw * scale);
+  const segs = state.mode === 'wireframe' ? 12 : 28;
+  const geo = new THREE.SphereGeometry(radius, segs, segs);
+
+  let mat;
+  if (state.mode === 'wireframe') {
+    mat = new THREE.MeshBasicMaterial({
+      color: props.color,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.7,
+    });
+  } else {
+    mat = new THREE.MeshPhysicalMaterial({
+      color: props.color,
+      metalness: el === 'C' ? 0.15 : 0.05,
+      roughness: 0.22,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.12,
+      envMapIntensity: 1.3,
+      reflectivity: 0.5,
+    });
+  }
+
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(pos[0], pos[1], pos[2]);
+  mesh.userData = { type: 'atom', el, props, originalScale: 1 };
+  return mesh;
+}
+
+function makeBondMesh(p1, p2, order, radius, wire) {
+  const group = new THREE.Group();
+  const dir = new THREE.Vector3().subVectors(p2, p1);
+  const length = dir.length();
+  if (length < 0.001) return group;
+  const center = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+  const norm = dir.clone().normalize();
+
+  const r = Math.max(0.005, radius);
+  const segs = wire ? 6 : 14;
+  const geo = new THREE.CylinderGeometry(r, r, length, segs, 1);
+
+  let mat;
+  if (wire) {
+    mat = new THREE.MeshBasicMaterial({ color: 0xb0b0b0, wireframe: true, transparent: true, opacity: 0.5 });
+  } else {
+    mat = new THREE.MeshPhysicalMaterial({
+      color: 0xc8c8c8,
+      metalness: 0.85,
+      roughness: 0.25,
+      clearcoat: 0.4,
+      envMapIntensity: 1.0,
+    });
+  }
+
+  const placeCyl = (offset) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.copy(center).add(offset);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), norm);
+    group.add(m);
+  };
+
+  if (order <= 1) {
+    placeCyl(new THREE.Vector3(0, 0, 0));
+  } else {
+    const perp = getPerpendicular(dir).multiplyScalar(r * 2.4);
+    for (let i = 0; i < order; i++) {
+      placeCyl(perp.clone().multiplyScalar(i - (order - 1) / 2));
+    }
+  }
+  group.userData = { type: 'bond' };
+  return group;
+}
+
+function makeLonePairMesh(centerPos, lpPos) {
+  const dir = new THREE.Vector3().subVectors(lpPos, centerPos);
+  const dist = dir.length();
+  const mid = new THREE.Vector3().addVectors(centerPos, lpPos).multiplyScalar(0.5).add(dir.clone().multiplyScalar(0.15));
+
+  const geo = new THREE.SphereGeometry(0.28, 20, 20);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xb496ff,
+    transparent: true,
+    opacity: 0.35,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(mid);
+  mesh.scale.set(1, 1.4, 1);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+  mesh.userData = { type: 'lonepair' };
+  return mesh;
+}
+
+function makeAngleArc(centerPos, dirA, dirB, value, radius) {
+  const angle = dirA.angleTo(dirB);
+  const segments = 40;
+  const points = [];
+  const normal = new THREE.Vector3().crossVectors(dirA, dirB);
+  if (normal.length() < 0.001) return null;
+  normal.normalize();
+
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const q = new THREE.Quaternion().setFromAxisAngle(normal, angle * t);
+    const p = dirA.clone().applyQuaternion(q).multiplyScalar(radius).add(centerPos);
+    points.push(p);
+  }
+  const geo = new THREE.BufferGeometry().setFromPoints(points);
+  const mat = new THREE.LineBasicMaterial({
+    color: 0x00bcd4,
+    transparent: true,
+    opacity: 0.5,
+  });
+  const line = new THREE.Line(geo, mat);
+  line.userData = { type: 'anglearc' };
+
+  // 弧线中点（用于标签定位）
+  const midQ = new THREE.Quaternion().setFromAxisAngle(normal, angle * 0.5);
+  const midPoint = dirA.clone().applyQuaternion(midQ).multiplyScalar(radius * 1.25).add(centerPos);
+  line.userData.midPoint = midPoint;
+  line.userData.value = value;
+
+  return line;
+}
+
+function buildMolecule(key) {
+  const mol = MOLECULES[key];
+  if (!mol) return;
+
+  // 清理旧分子
+  if (moleculeGroup) {
+    scene.remove(moleculeGroup);
+    disposeGroup(moleculeGroup);
+  }
+
+  moleculeGroup = new THREE.Group();
+  const ms = MODE_SCALES[state.mode];
+
+  // 原子
+  const atomMeshes = [];
+  mol.atoms.forEach((atom, i) => {
+    const mesh = makeAtomMesh(atom.el, atom.pos, ms.atom);
+    mesh.userData.index = i;
+    moleculeGroup.add(mesh);
+    atomMeshes.push(mesh);
+  });
+
+  // 化学键
+  if (ms.showBonds || state.mode === 'wireframe') {
+    mol.bonds.forEach(([a, b, order]) => {
+      const pa = new THREE.Vector3(...mol.atoms[a].pos);
+      const pb = new THREE.Vector3(...mol.atoms[b].pos);
+      const bondGroup = makeBondMesh(pa, pb, order, ms.bond, ms.wire);
+      moleculeGroup.add(bondGroup);
+    });
+  }
+
+  // 孤电子对
+  if (state.showLonePairs && mol.lonePairs) {
+    mol.lonePairs.forEach(lp => {
+      const cp = new THREE.Vector3(...mol.atoms[lp.c].pos);
+      const lpPos = new THREE.Vector3(...lp.pos);
+      moleculeGroup.add(makeLonePairMesh(cp, lpPos));
+    });
+  }
+
+  // 键角弧线
+  if (state.showLabels && mol.angles) {
+    mol.angles.forEach(ang => {
+      const cp = new THREE.Vector3(...mol.atoms[ang.c].pos);
+      const pa = new THREE.Vector3(...mol.atoms[ang.a].pos);
+      const pb = new THREE.Vector3(...mol.atoms[ang.b].pos);
+      const dirA = new THREE.Vector3().subVectors(pa, cp).normalize();
+      const dirB = new THREE.Vector3().subVectors(pb, cp).normalize();
+      const props = ATOM_PROPS[mol.atoms[ang.c].el];
+      const arcRadius = props.vdw * ms.atom * 1.8;
+      const arc = makeAngleArc(cp, dirA, dirB, ang.v, arcRadius);
+      if (arc) moleculeGroup.add(arc);
+    });
+  }
+
+  // 居中分子
+  const box = new THREE.Box3().setFromObject(moleculeGroup);
+  const center = box.getCenter(new THREE.Vector3());
+  moleculeGroup.position.sub(center);
+
+  scene.add(moleculeGroup);
+
+  // 更新 UI
+  updateInfoPanel(key);
+  document.getElementById('atomCount').textContent = `原子: ${mol.atoms.length}`;
+}
+
+/* ============================================================
+   七、信息面板更新
+   ============================================================ */
+function updateInfoPanel(key) {
+  const mol = MOLECULES[key];
+  document.getElementById('infoName').textContent = mol.name;
+  document.getElementById('infoFormula').textContent = mol.formula;
+  document.getElementById('infoRows').innerHTML = `
+    <div class="info-row"><span class="label">空间构型</span><span class="val">${mol.geometry}</span></div>
+    <div class="info-row"><span class="label">杂化方式</span><span class="val">${mol.hybridization}</span></div>
+    <div class="info-row"><span class="label">键角</span><span class="val accent">${mol.bondAngle}</span></div>
+    <div class="info-row"><span class="label">极性</span><span class="val">${mol.polarity}</span></div>
+    <div class="info-row"><span class="label">摩尔质量</span><span class="val">${mol.mass} g/mol</span></div>
+    <div class="info-row"><span class="label">VSEPR</span><span class="val" style="max-width:150px">${mol.vsepr}</span></div>
+  `;
+  document.getElementById('infoDesc').textContent = mol.desc;
+}
+
+/* ============================================================
+   八、图例生成
+   ============================================================ */
+function buildLegend() {
+  const els = ['H', 'C', 'N', 'O', 'S', 'Cl'];
+  const grid = document.getElementById('legendGrid');
+  grid.innerHTML = els.map(el => {
+    const p = ATOM_PROPS[el];
+    const hex = '#' + p.color.toString(16).padStart(6, '0');
+    return `<div class="legend-item"><span class="legend-dot" style="background:${hex}"></span>${el} ${p.name}</div>`;
+  }).join('');
+}
+
+/* ============================================================
+   九、分子选择列表
+   ============================================================ */
+function buildMolList() {
+  const list = document.getElementById('molList');
+  list.innerHTML = Object.entries(MOLECULES).map(([key, mol]) => `
+    <div class="mol-item ${key === state.molKey ? 'active' : ''}" data-mol="${key}">
+      <span class="mol-item-name">${mol.name}</span>
+      <span class="mol-item-formula">${mol.formula}</span>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   十、交互：点击原子
+   ============================================================ */
+function onPointerClick(e) {
+  if (state.transitioning) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(pointer, camera);
+  const atoms = [];
+  moleculeGroup.traverse(obj => {
+    if (obj.userData.type === 'atom') atoms.push(obj);
+  });
+  const hits = raycaster.intersectObjects(atoms, false);
+
+  if (hits.length > 0) {
+    selectAtom(hits[0].object);
+  } else {
+    deselectAtom();
+  }
+}
+
+function selectAtom(mesh) {
+  state.selectedAtom = mesh;
+  const props = mesh.userData.props;
+  const popup = document.getElementById('atomPopup');
+  document.getElementById('apSymbol').textContent = mesh.userData.el;
+  document.getElementById('apName').textContent = `${props.name} · ${props.en}`;
+  document.getElementById('apMeta').textContent = `vdW ${props.vdw}Å · ${props.mass} g/mol`;
+  popup.classList.add('visible');
+
+  // 辉光
+  glowMesh.visible = true;
+  glowMesh.material.color.setHex(0x00bcd4);
+  glowMesh.material.opacity = 0.25;
+  const r = props.vdw * MODE_SCALES[state.mode].atom * 1.8;
+  glowMesh.scale.setScalar(r);
+}
+
+function deselectAtom() {
+  state.selectedAtom = null;
+  document.getElementById('atomPopup').classList.remove('visible');
+  glowMesh.visible = false;
+}
+
+/* ============================================================
+   十一、双击重置
+   ============================================================ */
+function onDoubleClick() {
+  controls.reset();
+  camera.position.set(0, 1.5, 8);
+  controls.update();
+}
+
+/* ============================================================
+   十二、分子切换动画
+   ============================================================ */
+function switchMolecule(key) {
+  if (key === state.molKey && !state.pendingMode) return;
+  if (state.transitioning) {
+    state.pendingMol = key;
+    return;
+  }
+  state.transitioning = true;
+  state.transPhase = 'out';
+  state.transProgress = 0;
+  state.pendingMol = key;
+  deselectAtom();
+}
+
+function switchMode(mode) {
+  if (mode === state.mode) return;
+  if (state.transitioning) {
+    state.pendingMode = mode;
+    return;
+  }
+  state.mode = mode;
+  state.transitioning = true;
+  state.transPhase = 'out';
+  state.transProgress = 0;
+  state.pendingMol = state.molKey; // 重建同分子
+}
+
+// 用于切换标注/孤电子对等选项后重建当前分子（不改变模式）
+function rebuildMolecule() {
+  if (state.transitioning) return;
+  state.transitioning = true;
+  state.transPhase = 'out';
+  state.transProgress = 0;
+  state.pendingMol = state.molKey;
+}
+
+function updateTransition(dt) {
+  if (!state.transitioning) return;
+  const speed = 2.8;
+  state.transProgress += dt * speed;
+
+  if (state.transPhase === 'out') {
+    const t = Math.min(state.transProgress, 1);
+    const scale = 1 - t;
+    const opacity = 1 - t;
+    if (moleculeGroup) {
+      moleculeGroup.scale.setScalar(Math.max(0.001, scale));
+      moleculeGroup.traverse(obj => {
+        if (obj.material) {
+          if (obj.material.transparent !== undefined) {
+            obj.material.transparent = true;
+            obj.material.opacity = opacity * (obj.userData.type === 'lonepair' ? 0.35 : 1);
+          }
+        }
+      });
+      moleculeGroup.rotation.y += dt * 2;
+    }
+    if (state.transProgress >= 1) {
+      state.transPhase = 'in';
+      state.transProgress = 0;
+      if (state.pendingMode) {
+        state.mode = state.pendingMode;
+        state.pendingMode = null;
+      }
+      buildMolecule(state.pendingMol);
+      state.molKey = state.pendingMol;
+      state.pendingMol = null;
+      moleculeGroup.scale.setScalar(0.001);
+    }
+  } else if (state.transPhase === 'in') {
+    const t = Math.min(state.transProgress, 1);
+    // easeOutBack
+    const c1 = 1.70158, c3 = c1 + 1;
+    const eased = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    const scale = Math.max(0.001, eased);
+    if (moleculeGroup) {
+      moleculeGroup.scale.setScalar(scale);
+      moleculeGroup.traverse(obj => {
+        if (obj.material && obj.userData.type !== 'lonepair') {
+          obj.material.transparent = true;
+          obj.material.opacity = Math.min(1, t * 1.5);
+        }
+      });
+    }
+    if (state.transProgress >= 1) {
+      state.transitioning = false;
+      if (moleculeGroup) {
+        moleculeGroup.scale.setScalar(1);
+        moleculeGroup.traverse(obj => {
+          if (obj.material && obj.userData.type !== 'lonepair') {
+            obj.material.transparent = false;
+            obj.material.opacity = 1;
+          }
+        });
+      }
+      // 处理排队请求
+      if (state.pendingMol && state.pendingMol !== state.molKey) {
+        switchMolecule(state.pendingMol);
+        state.pendingMol = null;
+      }
+    }
+  }
+}
+
+/* ============================================================
+   十三、UI 标签更新（投影 3D → 2D）
+   ============================================================ */
+const _projVec = new THREE.Vector3();
+
+function updateLabels() {
+  // 原子弹窗
+  if (state.selectedAtom) {
+    const popup = document.getElementById('atomPopup');
+    _projVec.copy(state.selectedAtom.position);
+    // 应用父级变换
+    if (state.selectedAtom.parent) {
+      state.selectedAtom.parent.localToWorld(_projVec);
+    }
+    _projVec.project(camera);
+    const x = (_projVec.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+    const y = (-_projVec.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+    popup.style.left = x + 'px';
+    popup.style.top = y + 'px';
+
+    // 辉光跟随选中原子
+    glowMesh.position.copy(state.selectedAtom.position);
+    if (state.selectedAtom.parent) {
+      state.selectedAtom.parent.localToWorld(glowMesh.position);
+    }
+  }
+
+  // 键角标签
+  const angleLabel = document.getElementById('angleLabel');
+  if (state.showLabels && moleculeGroup && !state.transitioning) {
+    let arcFound = null;
+    moleculeGroup.traverse(obj => {
+      if (obj.userData.type === 'anglearc' && !arcFound) arcFound = obj;
+    });
+    if (arcFound) {
+      _projVec.copy(arcFound.userData.midPoint);
+      if (arcFound.parent) arcFound.parent.localToWorld(_projVec);
+      _projVec.project(camera);
+      if (_projVec.z < 1) {
+        const x = (_projVec.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+        const y = (-_projVec.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+        angleLabel.style.left = x + 'px';
+        angleLabel.style.top = y + 'px';
+        angleLabel.textContent = arcFound.userData.value.toFixed(1) + '°';
+        angleLabel.classList.add('visible');
+      } else {
+        angleLabel.classList.remove('visible');
+      }
+    } else {
+      angleLabel.classList.remove('visible');
+    }
+  } else {
+    angleLabel.classList.remove('visible');
+  }
+}
+
+/* ============================================================
+   十四、动画循环
+   ============================================================ */
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  controls.autoRotate = state.spinning && !state.transitioning;
+  controls.update();
+
+  // 背景粒子缓慢旋转
+  if (bgParticles) {
+    bgParticles.rotation.y += dt * 0.015;
+    bgParticles.rotation.x += dt * 0.008;
+  }
+
+  // 辉光脉动
+  if (glowMesh.visible) {
+    const pulse = 0.22 + Math.sin(clock.elapsedTime * 3) * 0.08;
+    glowMesh.material.opacity = pulse;
+  }
+
+  // 切换动画
+  updateTransition(dt);
+
+  // 标签
+  updateLabels();
+
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   十五、窗口缩放
+   ============================================================ */
+function onResize() {
+  const c = document.getElementById('canvasContainer');
+  camera.aspect = c.clientWidth / c.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(c.clientWidth, c.clientHeight);
+}
+
+/* ============================================================
+   十六、UI 事件绑定
+   ============================================================ */
+function bindUI() {
+  // 分子选择
+  document.getElementById('molList').addEventListener('click', (e) => {
+    const item = e.target.closest('.mol-item');
+    if (!item) return;
+    const key = item.dataset.mol;
+    if (key === state.molKey && !state.transitioning) return;
+    document.querySelectorAll('.mol-item').forEach(m => m.classList.remove('active'));
+    item.classList.add('active');
+    switchMolecule(key);
+  });
+
+  // 模式切换
+  document.querySelectorAll('.demo-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      if (mode === state.mode && !state.transitioning) return;
+      document.querySelectorAll('.demo-mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      switchMode(mode);
+    });
+  });
+
+  // 自动旋转
+  const spinBtn = document.getElementById('spinBtn');
+  spinBtn.addEventListener('click', () => {
+    state.spinning = !state.spinning;
+    spinBtn.classList.toggle('active', state.spinning);
+  });
+
+  // 重置
+  document.getElementById('resetBtn').addEventListener('click', onDoubleClick);
+
+  // 键角标注
+  const labelBtn = document.getElementById('labelBtn');
+  labelBtn.addEventListener('click', () => {
+    state.showLabels = !state.showLabels;
+    labelBtn.classList.toggle('active', state.showLabels);
+    rebuildMolecule();
+  });
+
+  // 孤电子对
+  const lpBtn = document.getElementById('lonePairBtn');
+  lpBtn.addEventListener('click', () => {
+    state.showLonePairs = !state.showLonePairs;
+    lpBtn.classList.toggle('active', state.showLonePairs);
+    rebuildMolecule();
+  });
+
+  // 全屏
+  document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+
+  // 画布交互
+  renderer.domElement.addEventListener('click', onPointerClick);
+  renderer.domElement.addEventListener('dblclick', onDoubleClick);
+  window.addEventListener('resize', onResize);
+
+  // 导航栏滚动（沉浸式无滚动，但保持一致性）
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+buildLegend();
+buildMolList();
+init();
+bindUI();
+animate();
+</script>
+
+</body>
+</html>

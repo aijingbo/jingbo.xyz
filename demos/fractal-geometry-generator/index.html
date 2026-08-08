@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>分形几何生成器 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+  html, body { height: 100%; overflow: hidden; }
+
+  /* ====== 控制面板扩展 ====== */
+  .fractal-control-panel {
+    flex-shrink: 0;
+    height: 200px;
+    background-color: var(--surface-muted);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* --- 分形类型标签栏 --- */
+  .fractal-type-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 24px 0;
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .fractal-type-bar::-webkit-scrollbar { display: none; }
+
+  .fractal-type-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--fs-small);
+    font-weight: 500;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    border-radius: var(--radius) var(--radius) 0 0;
+    transition: all var(--duration-fast) var(--ease);
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    flex-shrink: 0;
+  }
+  .fractal-type-tab:hover { color: var(--text); }
+  .fractal-type-tab.active {
+    color: var(--brand);
+    border-bottom-color: var(--brand);
+    font-weight: 600;
+  }
+  .fractal-type-tab svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+  /* --- 参数行 --- */
+  .fractal-params-row {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 12px 24px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+
+  .param-group {
+    display: none;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+  }
+  .param-group.active { display: flex; }
+
+  .param-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 130px;
+  }
+  .param-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .param-slider-label {
+    font-size: var(--fs-tiny);
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .param-slider-value {
+    font-family: var(--font-mono);
+    font-size: var(--fs-tiny);
+    font-weight: 600;
+    color: var(--brand);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* --- 底部操作行 --- */
+  .fractal-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 24px 12px;
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .fractal-actions-row::-webkit-scrollbar { display: none; }
+
+  .fractal-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .fractal-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .fractal-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--fs-tiny);
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .fractal-checkbox input {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--brand);
+    cursor: pointer;
+  }
+
+  .fractal-preset-select {
+    padding: 6px 28px 6px 12px;
+    font-size: var(--fs-tiny);
+    font-family: var(--font-sans);
+    color: var(--text);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6b6b' stroke-width='2'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    white-space: nowrap;
+  }
+
+  /* --- 速度切换 --- */
+  .fractal-speed-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2px;
+    flex-shrink: 0;
+  }
+  .fractal-speed-btn {
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--fs-tiny);
+    font-family: var(--font-sans);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all var(--duration-fast) var(--ease);
+  }
+  .fractal-speed-btn.active {
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-weight: 600;
+  }
+
+  /* ====== 画布区 ====== */
+  .interactive-canvas-area {
+    transition: background var(--duration-slow) var(--ease);
+  }
+  .interactive-canvas-area.dark-mode {
+    background: linear-gradient(180deg, #0a0a12 0%, #12121e 100%);
+  }
+  .interactive-canvas-area.dark-mode .interactive-data-display {
+    background-color: rgba(20, 20, 30, 0.85);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .interactive-canvas-area.dark-mode .data-label { color: rgba(255, 255, 255, 0.5); }
+  .interactive-canvas-area.dark-mode .data-value { color: rgba(255, 255, 255, 0.9); }
+
+  /* --- 进度条 --- */
+  .fractal-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    z-index: 20;
+    display: none;
+  }
+  .fractal-progress.active { display: block; }
+  .fractal-progress-bar {
+    height: 100%;
+    background: var(--brand);
+    width: 0%;
+    transition: width 100ms linear;
+  }
+
+  /* --- 信息覆盖层 --- */
+  .fractal-info-overlay {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: none;
+  }
+  .fractal-info-title {
+    font-family: var(--font-serif);
+    font-size: var(--fs-h3);
+    font-weight: 700;
+    color: var(--text);
+    text-shadow: 0 2px 8px rgba(250, 248, 245, 0.8);
+    line-height: 1.2;
+  }
+  .fractal-info-desc {
+    font-size: var(--fs-tiny);
+    color: var(--text-muted);
+    max-width: 300px;
+    line-height: 1.5;
+  }
+  .dark-mode .fractal-info-title {
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+  .dark-mode .fractal-info-desc { color: rgba(255, 255, 255, 0.5); }
+
+  /* --- 步骤指示器 --- */
+  .fractal-step-indicator {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    z-index: 20;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: var(--fs-tiny);
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .fractal-step-indicator.active { display: flex; }
+  .dark-mode .fractal-step-indicator {
+    background: rgba(20, 20, 30, 0.85);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* --- 曼德博缩放提示 --- */
+  .fractal-zoom-hint {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 20;
+    display: none;
+    padding: 6px 12px;
+    background: rgba(20, 20, 30, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius);
+    font-size: var(--fs-tiny);
+    color: rgba(255, 255, 255, 0.6);
+    font-family: var(--font-mono);
+    pointer-events: none;
+  }
+  .fractal-zoom-hint.active { display: block; }
+
+  /* ====== 响应式 ====== */
+  @media (max-width: 768px) {
+    .fractal-control-panel { height: auto; max-height: 260px; }
+    .fractal-params-row { flex-wrap: wrap; }
+    .param-slider { min-width: 110px; }
+    .fractal-info-overlay { display: none; }
+  }
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">分形几何生成器</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-math">数学</span>
+      <a href="/skills/jingbo-edu-math-graph-tool-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体 ====== -->
+<div class="framework-interactive">
+  <div class="interactive-main">
+
+    <!-- ========== 画布区 ========== -->
+    <div class="interactive-canvas-area" id="canvasArea">
+      <canvas id="fractalCanvas"></canvas>
+
+      <!-- 数据显示卡片 -->
+      <div class="interactive-data-display">
+        <div class="data-row">
+          <span class="data-label">迭代次数</span>
+          <span class="data-value" id="dataIter">—</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">分形维度</span>
+          <span class="data-value" id="dataDim">—</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">渲染时间</span>
+          <span class="data-value" id="dataTime">—</span>
+        </div>
+      </div>
+
+      <!-- 进度条 -->
+      <div class="fractal-progress" id="progressBar">
+        <div class="fractal-progress-bar" id="progressFill"></div>
+      </div>
+
+      <!-- 信息覆盖层 -->
+      <div class="fractal-info-overlay">
+        <div class="fractal-info-title" id="infoTitle">分形树</div>
+        <div class="fractal-info-desc" id="infoDesc">递归分支生长，每一层按比例缩小并偏转角度</div>
+      </div>
+
+      <!-- 步骤指示器 -->
+      <div class="fractal-step-indicator" id="stepIndicator">
+        <span id="stepText">第 0 / 0 阶</span>
+      </div>
+
+      <!-- 曼德博缩放提示 -->
+      <div class="fractal-zoom-hint" id="zoomHint">
+        点击放大 · 右键缩小 · 滚轮缩放
+      </div>
+    </div>
+
+    <!-- ========== 控制面板 ========== -->
+    <div class="fractal-control-panel">
+
+      <!-- 分形类型标签 -->
+      <div class="fractal-type-bar" id="typeBar">
+        <button class="fractal-type-tab active" data-type="tree">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22V8M12 8l-4-4M12 8l4-4M8 4l-2-2M8 4l2-2M16 4l-2-2M16 4l2-2"/></svg>
+          分形树
+        </button>
+        <button class="fractal-type-tab" data-type="koch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h4l2-4 4 4 2-4 4 4h2"/></svg>
+          科赫雪花
+        </button>
+        <button class="fractal-type-tab" data-type="sierpinski">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3L2 21h20L12 3z"/><path d="M12 12l-5 9M12 12l5 9" opacity="0.5"/></svg>
+          谢尔宾斯基
+        </button>
+        <button class="fractal-type-tab" data-type="mandelbrot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="8" cy="12" r="3" fill="currentColor" opacity="0.3"/></svg>
+          曼德博集合
+        </button>
+        <button class="fractal-type-tab" data-type="julia">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20 6 6 0 1 0 0-12 3 3 0 1 1 0-8z"/></svg>
+          朱利亚集合
+        </button>
+      </div>
+
+      <!-- 参数滑块（上下文相关） -->
+      <div class="fractal-params-row">
+
+        <!-- 分形树参数 -->
+        <div class="param-group active" data-fractal="tree">
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">迭代深度</span>
+              <span class="param-slider-value" id="treeIterVal">8</span>
+            </div>
+            <input type="range" class="control-slider" id="treeIter" min="1" max="11" value="8" />
+          </div>
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">分支角度</span>
+              <span class="param-slider-value" id="treeAngleVal">30°</span>
+            </div>
+            <input type="range" class="control-slider" id="treeAngle" min="15" max="75" value="30" />
+          </div>
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">缩放比例</span>
+              <span class="param-slider-value" id="treeScaleVal">0.70</span>
+            </div>
+            <input type="range" class="control-slider" id="treeScale" min="50" max="90" value="70" />
+          </div>
+        </div>
+
+        <!-- 科赫雪花参数 -->
+        <div class="param-group" data-fractal="koch">
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">迭代深度</span>
+              <span class="param-slider-value" id="kochIterVal">4</span>
+            </div>
+            <input type="range" class="control-slider" id="kochIter" min="0" max="6" value="4" />
+          </div>
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">多边形边数</span>
+              <span class="param-slider-value" id="kochSidesVal">3</span>
+            </div>
+            <input type="range" class="control-slider" id="kochSides" min="3" max="8" value="3" />
+          </div>
+        </div>
+
+        <!-- 谢尔宾斯基参数 -->
+        <div class="param-group" data-fractal="sierpinski">
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">迭代深度</span>
+              <span class="param-slider-value" id="sierIterVal">6</span>
+            </div>
+            <input type="range" class="control-slider" id="sierIter" min="0" max="8" value="6" />
+          </div>
+        </div>
+
+        <!-- 曼德博参数 -->
+        <div class="param-group" data-fractal="mandelbrot">
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">最大迭代</span>
+              <span class="param-slider-value" id="mandelIterVal">200</span>
+            </div>
+            <input type="range" class="control-slider" id="mandelIter" min="50" max="500" step="10" value="200" />
+          </div>
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">缩放级别</span>
+              <span class="param-slider-value" id="mandelZoomVal">1.0×</span>
+            </div>
+            <input type="range" class="control-slider" id="mandelZoom" min="10" max="10000" value="10" />
+          </div>
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">配色方案</span>
+              <span class="param-slider-value" id="mandelColorVal">火焰</span>
+            </div>
+            <select class="fractal-preset-select" id="mandelColor" style="min-width:100px">
+              <option value="fire">火焰</option>
+              <option value="ocean">海洋</option>
+              <option value="rainbow">彩虹</option>
+              <option value="bw">黑白</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 朱利亚参数 -->
+        <div class="param-group" data-fractal="julia">
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">最大迭代</span>
+              <span class="param-slider-value" id="juliaIterVal">200</span>
+            </div>
+            <input type="range" class="control-slider" id="juliaIter" min="50" max="500" step="10" value="200" />
+          </div>
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">C 实部</span>
+              <span class="param-slider-value" id="juliaCReVal">-0.70</span>
+            </div>
+            <input type="range" class="control-slider" id="juliaCRe" min="-100" max="100" value="-70" />
+          </div>
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">C 虚部</span>
+              <span class="param-slider-value" id="juliaCImVal">0.27</span>
+            </div>
+            <input type="range" class="control-slider" id="juliaCIm" min="-100" max="100" value="27" />
+          </div>
+          <div class="param-slider">
+            <div class="param-slider-header">
+              <span class="param-slider-label">配色方案</span>
+              <span class="param-slider-value" id="juliaColorVal">火焰</span>
+            </div>
+            <select class="fractal-preset-select" id="juliaColor" style="min-width:100px">
+              <option value="fire">火焰</option>
+              <option value="ocean">海洋</option>
+              <option value="rainbow">彩虹</option>
+              <option value="bw">黑白</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 操作行 -->
+      <div class="fractal-actions-row">
+        <button class="control-btn control-btn-play" id="playBtn" title="播放/暂停">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+        <button class="control-btn" id="resetBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          重置
+        </button>
+
+        <div class="fractal-divider"></div>
+
+        <div class="fractal-speed-group">
+          <button class="fractal-speed-btn" data-speed="0.5">慢速</button>
+          <button class="fractal-speed-btn active" data-speed="1">正常</button>
+          <button class="fractal-speed-btn" data-speed="2">快速</button>
+        </div>
+
+        <div class="fractal-divider"></div>
+
+        <div class="fractal-checkbox-group">
+          <label class="fractal-checkbox"><input type="checkbox" id="optSteps" /> 逐步生成</label>
+          <label class="fractal-checkbox"><input type="checkbox" id="optDimension" checked /> 显示维度</label>
+          <label class="fractal-checkbox"><input type="checkbox" id="optGrid" /> 显示网格</label>
+          <label class="fractal-checkbox" id="windLabel" style="display:none"><input type="checkbox" id="optWind" checked /> 风吹动效</label>
+        </div>
+
+        <div class="fractal-divider"></div>
+
+        <select class="fractal-preset-select" id="presetSelect">
+          <option value="">— 预设 —</option>
+          <option value="koch3">经典科赫雪花</option>
+          <option value="sier6">谢尔宾斯基三角</option>
+          <option value="treeLife">分形生命树</option>
+          <option value="mandelFull">曼德博全景图</option>
+          <option value="mandelSeahorse">曼德博海马谷</option>
+          <option value="juliaRabbit">朱利亚兔子</option>
+        </select>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">fractal-geometry-generator</span>
+    <span class="demo-tech-tag">Canvas 2D</span>
+    <span class="demo-tech-tag">递归算法</span>
+    <span class="demo-tech-tag">复数迭代</span>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="fpsTag">— FPS</span>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   分形几何生成器 — 核心逻辑
+   支持：分形树 / 科赫雪花 / 谢尔宾斯基 / 曼德博 / 朱利亚
+   ============================================================ */
+
+const canvas = document.getElementById('fractalCanvas');
+const ctx = canvas.getContext('2d');
+const canvasArea = document.getElementById('canvasArea');
+const dpr = window.devicePixelRatio || 1;
+
+// ====== 全局状态 ======
+const state = {
+  type: 'tree',
+  // 分形树
+  treeIter: 8,
+  treeAngle: 30,
+  treeScale: 0.70,
+  // 科赫雪花
+  kochIter: 4,
+  kochSides: 3,
+  // 谢尔宾斯基
+  sierIter: 6,
+  // 曼德博
+  mandelIter: 200,
+  mandelZoom: 1.0,
+  mandelCenterX: -0.5,
+  mandelCenterY: 0,
+  mandelColor: 'fire',
+  // 朱利亚
+  juliaIter: 200,
+  juliaCRe: -0.70,
+  juliaCIm: 0.27,
+  juliaColor: 'fire',
+  // 通用
+  optSteps: false,
+  optDimension: true,
+  optGrid: false,
+  optWind: true,
+  speed: 1,
+  isPlaying: false,
+  currentStep: 0,
+  time: 0,
+};
+
+// ====== 分形元信息 ======
+const fractalMeta = {
+  tree:        { title: '分形树',     desc: '递归分支生长，每一层按比例缩小并偏转角度', dark: false },
+  koch:        { title: '科赫雪花',   desc: '每条线段中间凸起等边三角形，无限迭代生成雪花的边界', dark: false },
+  sierpinski:  { title: '谢尔宾斯基三角', desc: '三角形中点连线迭代细分，移除中心部分形成镂空图案', dark: false },
+  mandelbrot:  { title: '曼德博集合',  desc: '复数迭代 z → z² + c，收敛点构成分形边界', dark: true },
+  julia:       { title: '朱利亚集合',  desc: '固定参数 c 的复数迭代，不同 c 值生成截然不同的分形形态', dark: true },
+};
+
+// ====== Canvas 尺寸自适应 ======
+let cssW = 0, cssH = 0;
+
+function resizeCanvas() {
+  const rect = canvasArea.getBoundingClientRect();
+  cssW = rect.width;
+  cssH = rect.height;
+  canvas.width = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  scheduleRender();
+});
+
+// ====== 渲染调度 ======
+let renderId = 0;     // 用于取消旧的曼德博渲染
+let renderTimer = null;
+
+function scheduleRender(delay = 0) {
+  if (renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => doRender(), delay);
+}
+
+function doRender() {
+  if (state.type === 'mandelbrot' || state.type === 'julia') {
+    renderEscapeFractal();
+  } else {
+    renderGeometricFractal(state.optSteps ? state.currentStep : -1);
+  }
+}
+
+// ====== 颜色工具 ======
+function hexToRgb(hex) {
+  const m = hex.replace('#', '');
+  return [parseInt(m.slice(0,2),16), parseInt(m.slice(2,4),16), parseInt(m.slice(4,6),16)];
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerpColor(c1, c2, t) {
+  return [Math.round(lerp(c1[0],c2[0],t)), Math.round(lerp(c1[1],c2[1],t)), Math.round(lerp(c1[2],c2[2],t))];
+}
+
+// 预计算调色板（1024级，用于曼德博/朱利亚平滑着色）
+const PALETTE_SIZE = 1024;
+const palettes = {};
+
+function buildPalette(scheme) {
+  const arr = new Uint8ClampedArray(PALETTE_SIZE * 3);
+  for (let i = 0; i < PALETTE_SIZE; i++) {
+    const t = i / (PALETTE_SIZE - 1);
+    let c;
+    switch (scheme) {
+      case 'fire':
+        if (t < 0.15) c = lerpColor([0,0,0],[10,5,60], t/0.15);
+        else if (t < 0.35) c = lerpColor([10,5,60],[130,20,0], (t-0.15)/0.20);
+        else if (t < 0.55) c = lerpColor([130,20,0],[220,80,0], (t-0.35)/0.20);
+        else if (t < 0.75) c = lerpColor([220,80,0],[255,200,0], (t-0.55)/0.20);
+        else if (t < 0.92) c = lerpColor([255,200,0],[255,240,200], (t-0.75)/0.17);
+        else c = [255,255,255];
+        break;
+      case 'ocean':
+        if (t < 0.2) c = lerpColor([0,0,0],[0,10,50], t/0.2);
+        else if (t < 0.45) c = lerpColor([0,10,50],[0,80,140], (t-0.2)/0.25);
+        else if (t < 0.7) c = lerpColor([0,80,140],[0,180,200], (t-0.45)/0.25);
+        else if (t < 0.9) c = lerpColor([0,180,200],[180,230,255], (t-0.7)/0.20);
+        else c = [255,255,255];
+        break;
+      case 'rainbow':
+        const hue = t * 300; // 紫→红
+        c = hslToRgb(hue, 0.85, 0.5);
+        break;
+      case 'bw':
+        const v = Math.floor(t * 255);
+        c = [v, v, v];
+        break;
+      default:
+        c = [0, 0, 0];
+    }
+    arr[i*3] = c[0]; arr[i*3+1] = c[1]; arr[i*3+2] = c[2];
+  }
+  return arr;
+}
+
+function hslToRgb(h, s, l) {
+  h /= 360;
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1; if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+}
+
+// 初始化调色板
+['fire', 'ocean', 'rainbow', 'bw'].forEach(s => palettes[s] = buildPalette(s));
+
+// ====== 背景绘制 ======
+function drawBackground(isDark) {
+  if (isDark) {
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(0, 0, cssW, cssH);
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, 0, cssH);
+    grad.addColorStop(0, '#faf8f5');
+    grad.addColorStop(1, '#f0ebe3');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, cssW, cssH);
+  }
+}
+
+function drawGrid() {
+  if (!state.optGrid) return;
+  ctx.strokeStyle = state.type === 'mandelbrot' || state.type === 'julia'
+    ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+  ctx.lineWidth = 1;
+  const step = 40;
+  for (let x = 0; x < cssW; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cssH); ctx.stroke();
+  }
+  for (let y = 0; y < cssH; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cssW, y); ctx.stroke();
+  }
+  // 中心十字线
+  ctx.strokeStyle = state.type === 'mandelbrot' || state.type === 'julia'
+    ? 'rgba(255,255,255,0.12)' : 'rgba(194,65,12,0.15)';
+  ctx.beginPath(); ctx.moveTo(cssW/2, 0); ctx.lineTo(cssW/2, cssH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, cssH/2); ctx.lineTo(cssW, cssH/2); ctx.stroke();
+}
+
+// ====== 分形树 ======
+function renderTree(maxDepth) {
+  const t0 = performance.now();
+  drawBackground(false);
+  drawGrid();
+
+  if (maxDepth < 0) maxDepth = state.treeIter;
+
+  const startX = cssW / 2;
+  const startY = cssH * 0.92;
+  const trunkLen = cssH * 0.22;
+
+  const angleRad = state.treeAngle * Math.PI / 180;
+  const wind = state.optWind ? Math.sin(state.time * 0.6) * 0.015 : 0;
+
+  // 递归绘制
+  function branch(x, y, len, angle, depth) {
+    if (depth > maxDepth || len < 0.5) return;
+
+    const actualAngle = angle + (state.optWind ? Math.sin(state.time * 0.8 + depth * 0.4) * 0.02 * (depth / maxDepth) : 0);
+    const endX = x + Math.cos(actualAngle) * len;
+    const endY = y + Math.sin(actualAngle) * len;
+
+    // 颜色渐变：主干深紫 → 末端翠绿
+    const t = depth / state.treeIter;
+    const c1 = hexToRgb('#4a235a');
+    const c2 = hexToRgb('#27ae60');
+    const c = lerpColor(c1, c2, t);
+    ctx.strokeStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+    ctx.lineWidth = Math.max(0.5, (state.treeIter - depth + 1) * 0.7);
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    // 叶子（最后两层画小圆）
+    if (depth >= maxDepth - 1 && depth >= 3) {
+      const leafColor = lerpColor(hexToRgb('#1e8449'), hexToRgb('#52be80'), Math.random());
+      ctx.fillStyle = `rgba(${leafColor[0]},${leafColor[1]},${leafColor[2]},0.6)`;
+      ctx.beginPath();
+      ctx.arc(endX, endY, 1.5 + Math.random() * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    branch(endX, endY, len * state.treeScale, actualAngle - angleRad, depth + 1);
+    branch(endX, endY, len * state.treeScale, actualAngle + angleRad, depth + 1);
+  }
+
+  branch(startX, startY, trunkLen, -Math.PI / 2 + wind, 0);
+
+  const dt = performance.now() - t0;
+  updateDataDisplay(maxDepth, getFractalDimension(), dt);
+}
+
+// ====== 科赫雪花 ======
+function renderKoch(maxDepth) {
+  const t0 = performance.now();
+  drawBackground(false);
+  drawGrid();
+
+  if (maxDepth < 0) maxDepth = state.kochIter;
+
+  const cx = cssW / 2;
+  const cy = cssH / 2;
+  const radius = Math.min(cssW, cssH) * 0.32;
+  const sides = state.kochSides;
+
+  // 计算初始多边形顶点
+  const points = [];
+  for (let i = 0; i < sides; i++) {
+    const angle = -Math.PI / 2 + (i / sides) * Math.PI * 2;
+    points.push([cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius]);
+  }
+
+  // 颜色渐变
+  const c1 = hexToRgb('#4a235a');
+  const c2 = hexToRgb('#884ea0');
+
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 逐层绘制（用于逐步动画）
+  let currentSegments = points.map((p, i) => [points[i], points[(i + 1) % sides]]);
+
+  for (let iter = 0; iter < maxDepth; iter++) {
+    const newSegs = [];
+    for (const [a, b] of currentSegments) {
+      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const p1 = [a[0] + dx / 3, a[1] + dy / 3];
+      const p3 = [a[0] + 2 * dx / 3, a[1] + 2 * dy / 3];
+      const angle = Math.atan2(dy, dx) - Math.PI / 3;
+      const segLen = Math.sqrt(dx * dx + dy * dy) / 3;
+      const p2 = [p1[0] + Math.cos(angle) * segLen, p1[1] + Math.sin(angle) * segLen];
+      newSegs.push([a, p1], [p1, p2], [p2, p3], [p3, b]);
+    }
+    currentSegments = newSegs;
+  }
+
+  // 填充
+  ctx.fillStyle = 'rgba(136, 78, 160, 0.06)';
+  ctx.beginPath();
+  ctx.moveTo(currentSegments[0][0][0], currentSegments[0][0][1]);
+  for (const [a, b] of currentSegments) {
+    ctx.lineTo(b[0], b[1]);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // 描边（带渐变色）
+  const segCount = currentSegments.length;
+  for (let i = 0; i < segCount; i++) {
+    const t = i / segCount;
+    const c = lerpColor(c1, c2, t);
+    ctx.strokeStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+    ctx.beginPath();
+    ctx.moveTo(currentSegments[i][0][0], currentSegments[i][0][1]);
+    ctx.lineTo(currentSegments[i][1][0], currentSegments[i][1][1]);
+    ctx.stroke();
+  }
+
+  const dt = performance.now() - t0;
+  updateDataDisplay(maxDepth, getFractalDimension(), dt);
+}
+
+// ====== 谢尔宾斯基三角形 ======
+function renderSierpinski(maxDepth) {
+  const t0 = performance.now();
+  drawBackground(false);
+  drawGrid();
+
+  if (maxDepth < 0) maxDepth = state.sierIter;
+
+  const cx = cssW / 2;
+  const cy = cssH / 2 + 20;
+  const size = Math.min(cssW, cssH) * 0.34;
+
+  // 初始大三角形
+  const h = size * Math.sqrt(3) / 2;
+  const p1 = [cx, cy - h * 2 / 3];
+  const p2 = [cx - size / 2, cy + h / 3];
+  const p3 = [cx + size / 2, cy + h / 3];
+
+  ctx.lineWidth = 0.5;
+
+  function sierpinski(a, b, c, depth) {
+    if (depth >= maxDepth) {
+      // 根据深度设置渐变色
+      const t = depth / Math.max(state.sierIter, 1);
+      const c1 = hexToRgb('#4a235a');
+      const c2 = hexToRgb('#884ea0');
+      const col = lerpColor(c1, c2, t);
+      ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},0.12)`;
+      ctx.strokeStyle = `rgba(${col[0]},${col[1]},${col[2]},0.8)`;
+
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.lineTo(c[0], c[1]);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      return;
+    }
+
+    const ab = [(a[0]+b[0])/2, (a[1]+b[1])/2];
+    const bc = [(b[0]+c[0])/2, (b[1]+c[1])/2];
+    const ca = [(c[0]+a[0])/2, (c[1]+a[1])/2];
+
+    sierpinski(a, ab, ca, depth + 1);
+    sierpinski(ab, b, bc, depth + 1);
+    sierpinski(ca, bc, c, depth + 1);
+  }
+
+  sierpinski(p1, p2, p3, 0);
+
+  const dt = performance.now() - t0;
+  updateDataDisplay(maxDepth, getFractalDimension(), dt);
+}
+
+// ====== 曼德博/朱利亚集合（渐进式渲染） ======
+function renderEscapeFractal() {
+  const myId = ++renderId;
+  const t0 = performance.now();
+
+  const isMandelbrot = state.type === 'mandelbrot';
+  const maxIter = isMandelbrot ? state.mandelIter : state.juliaIter;
+  const colorScheme = isMandelbrot ? state.mandelColor : state.juliaColor;
+  const palette = palettes[colorScheme];
+
+  // 渲染分辨率（限制最大尺寸保证性能）
+  const maxDim = 720;
+  const aspect = cssW / cssH;
+  let rw, rh;
+  if (aspect > 1) { rw = maxDim; rh = Math.round(maxDim / aspect); }
+  else { rh = maxDim; rw = Math.round(maxDim * aspect); }
+
+  // 离屏 canvas
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = rw;
+  offCanvas.height = rh;
+  const offCtx = offCanvas.getContext('2d');
+  const imageData = offCtx.createImageData(rw, rh);
+  const data = imageData.data;
+
+  // 复数平面映射
+  const zoom = isMandelbrot ? state.mandelZoom : 1.0;
+  const centerX = isMandelbrot ? state.mandelCenterX : 0;
+  const centerY = isMandelbrot ? state.mandelCenterY : 0;
+  const planeRange = 3.0 / zoom;
+  const scaleX = planeRange / rw;
+  const scaleY = planeRange / rw; // 保持正方形比例
+
+  // 朱利亚参数
+  const cRe = state.juliaCRe;
+  const cIm = state.juliaCIm;
+
+  // 显示进度条
+  const progressBar = document.getElementById('progressBar');
+  const progressFill = document.getElementById('progressFill');
+  progressBar.classList.add('active');
+
+  let currentRow = 0;
+  const rowsPerChunk = Math.max(4, Math.ceil(rh / 30));
+
+  function renderChunk() {
+    if (myId !== renderId) return; // 已被取消
+
+    const endRow = Math.min(currentRow + rowsPerChunk, rh);
+
+    for (let py = currentRow; py < endRow; py++) {
+      for (let px = 0; px < rw; px++) {
+        const x0 = centerX + (px - rw / 2) * scaleX;
+        const y0 = centerY + (py - rh / 2) * scaleY;
+
+        let x, y, iter;
+        if (isMandelbrot) {
+          // 曼德博：z 从 0 开始，c 为像素坐标
+          x = 0; y = 0;
+          let x2 = 0, y2 = 0;
+          iter = 0;
+          while (x2 + y2 < 256 && iter < maxIter) {
+            y = 2 * x * y + y0;
+            x = x2 - y2 + x0;
+            x2 = x * x; y2 = y * y;
+            iter++;
+          }
+        } else {
+          // 朱利亚：z 为像素坐标，c 固定
+          x = x0; y = y0;
+          let x2 = x * x, y2 = y * y;
+          iter = 0;
+          while (x2 + y2 < 256 && iter < maxIter) {
+            y = 2 * x * y + cIm;
+            x = x2 - y2 + cRe;
+            x2 = x * x; y2 = y * y;
+            iter++;
+          }
+        }
+
+        const idx = (py * rw + px) * 4;
+        if (iter === maxIter) {
+          data[idx] = 0; data[idx+1] = 0; data[idx+2] = 0;
+        } else {
+          // 平滑着色
+          const logZn = Math.log(x * x + y * y) / 2;
+          const nu = Math.log(logZn / Math.LN2) / Math.LN2;
+          const smoothIter = iter + 1 - nu;
+          const paletteIdx = Math.floor((smoothIter / maxIter) * (PALETTE_SIZE - 1));
+          const clampedIdx = Math.max(0, Math.min(PALETTE_SIZE - 1, paletteIdx)) * 3;
+          data[idx] = palette[clampedIdx];
+          data[idx+1] = palette[clampedIdx + 1];
+          data[idx+2] = palette[clampedIdx + 2];
+        }
+        data[idx+3] = 255;
+      }
+    }
+
+    // 渐进式更新画布
+    offCtx.putImageData(imageData, 0, 0, 0, currentRow, rw, endRow - currentRow);
+
+    // 绘制到主画布
+    drawBackground(true);
+    drawGrid();
+    ctx.drawImage(offCanvas, 0, 0, rw, rh, 0, 0, cssW, cssH);
+
+    currentRow = endRow;
+    const progress = currentRow / rh;
+    progressFill.style.width = (progress * 100) + '%';
+
+    if (currentRow < rh) {
+      requestAnimationFrame(renderChunk);
+    } else {
+      progressBar.classList.remove('active');
+      const dt = performance.now() - t0;
+      updateDataDisplay(maxIter, getFractalDimension(), dt);
+    }
+  }
+
+  renderChunk();
+}
+
+// ====== 几何分形统一入口 ======
+function renderGeometricFractal(stepOverride) {
+  switch (state.type) {
+    case 'tree':       renderTree(stepOverride); break;
+    case 'koch':       renderKoch(stepOverride); break;
+    case 'sierpinski': renderSierpinski(stepOverride); break;
+  }
+}
+
+// ====== 分形维度计算 ======
+function getFractalDimension() {
+  switch (state.type) {
+    case 'tree':
+      return Math.log(2) / Math.log(1 / state.treeScale);
+    case 'koch':
+      return Math.log(4) / Math.log(3);
+    case 'sierpinski':
+      return Math.log(3) / Math.log(2);
+    case 'mandelbrot':
+    case 'julia':
+      return 2.0;
+    default:
+      return 0;
+  }
+}
+
+// ====== 数据显示更新 ======
+function updateDataDisplay(iter, dimension, renderTime) {
+  document.getElementById('dataIter').textContent = iter + (state.type === 'mandelbrot' || state.type === 'julia' ? ' 次迭代' : ' 阶');
+  document.getElementById('dataDim').textContent = state.optDimension ? dimension.toFixed(4) : '—';
+  document.getElementById('dataTime').textContent = renderTime.toFixed(0) + ' ms';
+}
+
+// ====== 信息覆盖层更新 ======
+function updateInfoOverlay() {
+  const meta = fractalMeta[state.type];
+  document.getElementById('infoTitle').textContent = meta.title;
+  document.getElementById('infoDesc').textContent = meta.desc;
+
+  // 画布区暗色模式
+  canvasArea.classList.toggle('dark-mode', meta.dark);
+
+  // 缩放提示
+  document.getElementById('zoomHint').classList.toggle('active', state.type === 'mandelbrot');
+
+  // 风吹动效选项
+  document.getElementById('windLabel').style.display = state.type === 'tree' ? 'inline-flex' : 'none';
+}
+
+// ====== 步骤指示器 ======
+function updateStepIndicator(current, max) {
+  const indicator = document.getElementById('stepIndicator');
+  if (state.optSteps && (state.type === 'tree' || state.type === 'koch' || state.type === 'sierpinski')) {
+    indicator.classList.add('active');
+    document.getElementById('stepText').textContent = `第 ${current} / ${max} 阶`;
+  } else {
+    indicator.classList.remove('active');
+  }
+}
+
+// ====== 逐步动画 ======
+let stepAnimTimer = null;
+
+function startStepAnimation() {
+  if (stepAnimTimer) clearTimeout(stepAnimTimer);
+
+  const maxStep = state.type === 'tree' ? state.treeIter
+                : state.type === 'koch' ? state.kochIter
+                : state.type === 'sierpinski' ? state.sierIter : 0;
+
+  if (maxStep === 0) return;
+
+  state.currentStep = 0;
+  const delay = 600 / state.speed;
+
+  function nextStep() {
+    if (!state.isPlaying) return;
+    if (state.currentStep > maxStep) {
+      state.isPlaying = false;
+      updatePlayButton();
+      state.currentStep = maxStep;
+      return;
+    }
+    renderGeometricFractal(state.currentStep);
+    updateStepIndicator(state.currentStep, maxStep);
+    state.currentStep++;
+    stepAnimTimer = setTimeout(nextStep, delay);
+  }
+
+  nextStep();
+}
+
+// ====== 动画循环（用于风吹动效） ======
+let lastFrame = 0;
+let fpsCounter = 0;
+let fpsTime = 0;
+
+function animate(now) {
+  const dt = (now - lastFrame) / 1000 || 0.016;
+  lastFrame = now;
+
+  // FPS 计算
+  fpsCounter++;
+  fpsTime += dt;
+  if (fpsTime >= 0.5) {
+    document.getElementById('fpsTag').textContent = Math.round(fpsCounter / fpsTime) + ' FPS';
+    fpsCounter = 0; fpsTime = 0;
+  }
+
+  let needsRender = false;
+
+  // 风吹动效（分形树）
+  if (state.type === 'tree' && state.optWind && !state.isPlaying && !state.optSteps) {
+    state.time += dt;
+    needsRender = true;
+  }
+
+  // 逐步动画播放中
+  if (state.isPlaying && state.optSteps && (state.type === 'tree' || state.type === 'koch' || state.type === 'sierpinski')) {
+    state.time += dt;
+  }
+
+  if (needsRender) {
+    renderGeometricFractal(-1);
+  }
+
+  requestAnimationFrame(animate);
+}
+
+// ====== 播放按钮 ======
+function updatePlayButton() {
+  const icon = document.getElementById('playIcon');
+  if (state.isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+  }
+}
+
+// ====== 曼德博缩放交互 ======
+canvas.addEventListener('click', (e) => {
+  if (state.type !== 'mandelbrot') return;
+
+  const rect = canvas.getBoundingClientRect();
+  const px = (e.clientX - rect.left) / rect.width;
+  const py = (e.clientY - rect.top) / rect.height;
+
+  const planeRange = 3.0 / state.mandelZoom;
+  const newX = state.mandelCenterX + (px - 0.5) * planeRange;
+  const newY = state.mandelCenterY + (py - 0.5) * planeRange * (cssH / cssW);
+
+  state.mandelCenterX = newX;
+  state.mandelCenterY = newY;
+  state.mandelZoom = Math.min(state.mandelZoom * 2, 1000);
+
+  // 更新缩放滑块
+  document.getElementById('mandelZoom').value = state.mandelZoom * 10;
+  document.getElementById('mandelZoomVal').textContent = state.mandelZoom.toFixed(1) + '×';
+
+  scheduleRender();
+});
+
+canvas.addEventListener('contextmenu', (e) => {
+  if (state.type !== 'mandelbrot') return;
+  e.preventDefault();
+
+  state.mandelZoom = Math.max(state.mandelZoom / 2, 1);
+  document.getElementById('mandelZoom').value = state.mandelZoom * 10;
+  document.getElementById('mandelZoomVal').textContent = state.mandelZoom.toFixed(1) + '×';
+
+  scheduleRender();
+});
+
+canvas.addEventListener('wheel', (e) => {
+  if (state.type !== 'mandelbrot') return;
+  e.preventDefault();
+
+  const rect = canvas.getBoundingClientRect();
+  const px = (e.clientX - rect.left) / rect.width;
+  const py = (e.clientY - rect.top) / rect.height;
+
+  const planeRange = 3.0 / state.mandelZoom;
+  const targetX = state.mandelCenterX + (px - 0.5) * planeRange;
+  const targetY = state.mandelCenterY + (py - 0.5) * planeRange * (cssH / cssW);
+
+  const factor = e.deltaY < 0 ? 1.3 : 1 / 1.3;
+  state.mandelZoom = Math.max(1, Math.min(state.mandelZoom * factor, 1000));
+
+  // 缓慢移向鼠标位置
+  state.mandelCenterX = state.mandelCenterX + (targetX - state.mandelCenterX) * 0.3;
+  state.mandelCenterY = state.mandelCenterY + (targetY - state.mandelCenterY) * 0.3;
+
+  document.getElementById('mandelZoom').value = state.mandelZoom * 10;
+  document.getElementById('mandelZoomVal').textContent = state.mandelZoom.toFixed(1) + '×';
+
+  scheduleRender(50);
+}, { passive: false });
+
+// ====== 分形类型切换 ======
+document.getElementById('typeBar').addEventListener('click', (e) => {
+  const tab = e.target.closest('.fractal-type-tab');
+  if (!tab) return;
+
+  const type = tab.dataset.type;
+  if (type === state.type) return;
+
+  // 停止动画
+  state.isPlaying = false;
+  if (stepAnimTimer) clearTimeout(stepAnimTimer);
+  updatePlayButton();
+
+  // 切换类型
+  state.type = type;
+  state.currentStep = 0;
+
+  // 更新 UI
+  document.querySelectorAll('.fractal-type-tab').forEach(t => t.classList.toggle('active', t.dataset.type === type));
+  document.querySelectorAll('.param-group').forEach(g => g.classList.toggle('active', g.dataset.fractal === type));
+
+  updateInfoOverlay();
+  scheduleRender();
+});
+
+// ====== 参数滑块绑定 ======
+function bindSlider(id, valId, formatter, callback) {
+  const slider = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  slider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    valEl.textContent = formatter(val);
+    callback(val);
+    scheduleRender(50);
+  });
+}
+
+// 分形树
+bindSlider('treeIter', 'treeIterVal', v => v, v => { state.treeIter = v; state.currentStep = 0; });
+bindSlider('treeAngle', 'treeAngleVal', v => v + '°', v => state.treeAngle = v);
+bindSlider('treeScale', 'treeScaleVal', v => (v / 100).toFixed(2), v => state.treeScale = v / 100);
+
+// 科赫
+bindSlider('kochIter', 'kochIterVal', v => v, v => { state.kochIter = v; state.currentStep = 0; });
+bindSlider('kochSides', 'kochSidesVal', v => v, v => state.kochSides = v);
+
+// 谢尔宾斯基
+bindSlider('sierIter', 'sierIterVal', v => v, v => { state.sierIter = v; state.currentStep = 0; });
+
+// 曼德博
+bindSlider('mandelIter', 'mandelIterVal', v => v, v => state.mandelIter = v);
+bindSlider('mandelZoom', 'mandelZoomVal', v => (v / 10).toFixed(1) + '×', v => state.mandelZoom = v / 10);
+
+document.getElementById('mandelColor').addEventListener('change', (e) => {
+  state.mandelColor = e.target.value;
+  document.getElementById('mandelColorVal').textContent = e.target.options[e.target.selectedIndex].text;
+  scheduleRender();
+});
+
+// 朱利亚
+bindSlider('juliaIter', 'juliaIterVal', v => v, v => state.juliaIter = v);
+bindSlider('juliaCRe', 'juliaCReVal', v => (v / 100).toFixed(2), v => state.juliaCRe = v / 100);
+bindSlider('juliaCIm', 'juliaCImVal', v => (v / 100).toFixed(2), v => state.juliaCIm = v / 100);
+
+document.getElementById('juliaColor').addEventListener('change', (e) => {
+  state.juliaColor = e.target.value;
+  document.getElementById('juliaColorVal').textContent = e.target.options[e.target.selectedIndex].text;
+  scheduleRender();
+});
+
+// ====== 显示选项 ======
+document.getElementById('optSteps').addEventListener('change', (e) => {
+  state.optSteps = e.target.checked;
+  state.currentStep = 0;
+  if (!state.optSteps) {
+    state.isPlaying = false;
+    updatePlayButton();
+  }
+  updateStepIndicator(0, 0);
+  scheduleRender();
+});
+
+document.getElementById('optDimension').addEventListener('change', (e) => {
+  state.optDimension = e.target.checked;
+  scheduleRender();
+});
+
+document.getElementById('optGrid').addEventListener('change', (e) => {
+  state.optGrid = e.target.checked;
+  scheduleRender();
+});
+
+document.getElementById('optWind').addEventListener('change', (e) => {
+  state.optWind = e.target.checked;
+  if (!state.optWind) scheduleRender();
+});
+
+// ====== 速度切换 ======
+document.querySelectorAll('.fractal-speed-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.fractal-speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.speed = parseFloat(btn.dataset.speed);
+  });
+});
+
+// ====== 播放/暂停 ======
+document.getElementById('playBtn').addEventListener('click', () => {
+  if (state.type === 'mandelbrot' || state.type === 'julia') return; // 逃生分形不支持逐步
+
+  if (state.optSteps) {
+    state.isPlaying = !state.isPlaying;
+    updatePlayButton();
+    if (state.isPlaying) {
+      startStepAnimation();
+    } else {
+      if (stepAnimTimer) clearTimeout(stepAnimTimer);
+    }
+  } else {
+    // 非逐步模式：切换风吹动效
+    state.optWind = !state.optWind;
+    document.getElementById('optWind').checked = state.optWind;
+  }
+});
+
+// ====== 重置 ======
+document.getElementById('resetBtn').addEventListener('click', () => {
+  state.isPlaying = false;
+  if (stepAnimTimer) clearTimeout(stepAnimTimer);
+  updatePlayButton();
+  state.currentStep = 0;
+
+  // 重置当前分形参数为默认值
+  switch (state.type) {
+    case 'tree':
+      state.treeIter = 8; state.treeAngle = 30; state.treeScale = 0.70;
+      document.getElementById('treeIter').value = 8;
+      document.getElementById('treeIterVal').textContent = '8';
+      document.getElementById('treeAngle').value = 30;
+      document.getElementById('treeAngleVal').textContent = '30°';
+      document.getElementById('treeScale').value = 70;
+      document.getElementById('treeScaleVal').textContent = '0.70';
+      break;
+    case 'koch':
+      state.kochIter = 4; state.kochSides = 3;
+      document.getElementById('kochIter').value = 4;
+      document.getElementById('kochIterVal').textContent = '4';
+      document.getElementById('kochSides').value = 3;
+      document.getElementById('kochSidesVal').textContent = '3';
+      break;
+    case 'sierpinski':
+      state.sierIter = 6;
+      document.getElementById('sierIter').value = 6;
+      document.getElementById('sierIterVal').textContent = '6';
+      break;
+    case 'mandelbrot':
+      state.mandelIter = 200; state.mandelZoom = 1.0;
+      state.mandelCenterX = -0.5; state.mandelCenterY = 0;
+      document.getElementById('mandelIter').value = 200;
+      document.getElementById('mandelIterVal').textContent = '200';
+      document.getElementById('mandelZoom').value = 10;
+      document.getElementById('mandelZoomVal').textContent = '1.0×';
+      break;
+    case 'julia':
+      state.juliaIter = 200; state.juliaCRe = -0.70; state.juliaCIm = 0.27;
+      document.getElementById('juliaIter').value = 200;
+      document.getElementById('juliaIterVal').textContent = '200';
+      document.getElementById('juliaCRe').value = -70;
+      document.getElementById('juliaCReVal').textContent = '-0.70';
+      document.getElementById('juliaCIm').value = 27;
+      document.getElementById('juliaCImVal').textContent = '0.27';
+      break;
+  }
+
+  scheduleRender();
+});
+
+// ====== 预设 ======
+const presets = {
+  koch3: {
+    type: 'koch', kochIter: 3, kochSides: 3,
+  },
+  sier6: {
+    type: 'sierpinski', sierIter: 6,
+  },
+  treeLife: {
+    type: 'tree', treeIter: 9, treeAngle: 25, treeScale: 0.72, optWind: true,
+  },
+  mandelFull: {
+    type: 'mandelbrot', mandelIter: 200, mandelZoom: 1.0,
+    mandelCenterX: -0.5, mandelCenterY: 0, mandelColor: 'fire',
+  },
+  mandelSeahorse: {
+    type: 'mandelbrot', mandelIter: 400, mandelZoom: 40,
+    mandelCenterX: -0.745, mandelCenterY: 0.113, mandelColor: 'rainbow',
+  },
+  juliaRabbit: {
+    type: 'julia', juliaIter: 250, juliaCRe: -0.123, juliaCIm: 0.745, juliaColor: 'ocean',
+  },
+};
+
+document.getElementById('presetSelect').addEventListener('change', (e) => {
+  const key = e.target.value;
+  if (!key || !presets[key]) return;
+
+  const p = presets[key];
+  e.target.value = ''; // 重置下拉
+
+  // 停止动画
+  state.isPlaying = false;
+  if (stepAnimTimer) clearTimeout(stepAnimTimer);
+  updatePlayButton();
+  state.currentStep = 0;
+
+  // 应用预设参数
+  Object.assign(state, p);
+
+  // 更新所有 UI 控件
+  if (state.type !== p.type) {
+    // 切换分形类型
+    document.querySelectorAll('.fractal-type-tab').forEach(t => t.classList.toggle('active', t.dataset.type === p.type));
+    document.querySelectorAll('.param-group').forEach(g => g.classList.toggle('active', g.dataset.fractal === p.type));
+    updateInfoOverlay();
+  }
+
+  // 更新滑块值
+  if (p.type === 'tree') {
+    document.getElementById('treeIter').value = state.treeIter;
+    document.getElementById('treeIterVal').textContent = state.treeIter;
+    document.getElementById('treeAngle').value = state.treeAngle;
+    document.getElementById('treeAngleVal').textContent = state.treeAngle + '°';
+    document.getElementById('treeScale').value = state.treeScale * 100;
+    document.getElementById('treeScaleVal').textContent = state.treeScale.toFixed(2);
+    if (p.optWind !== undefined) document.getElementById('optWind').checked = p.optWind;
+  } else if (p.type === 'koch') {
+    document.getElementById('kochIter').value = state.kochIter;
+    document.getElementById('kochIterVal').textContent = state.kochIter;
+    document.getElementById('kochSides').value = state.kochSides;
+    document.getElementById('kochSidesVal').textContent = state.kochSides;
+  } else if (p.type === 'sierpinski') {
+    document.getElementById('sierIter').value = state.sierIter;
+    document.getElementById('sierIterVal').textContent = state.sierIter;
+  } else if (p.type === 'mandelbrot') {
+    document.getElementById('mandelIter').value = state.mandelIter;
+    document.getElementById('mandelIterVal').textContent = state.mandelIter;
+    document.getElementById('mandelZoom').value = state.mandelZoom * 10;
+    document.getElementById('mandelZoomVal').textContent = state.mandelZoom.toFixed(1) + '×';
+    document.getElementById('mandelColor').value = state.mandelColor;
+    document.getElementById('mandelColorVal').textContent = document.querySelector(`#mandelColor option[value="${state.mandelColor}"]`).text;
+  } else if (p.type === 'julia') {
+    document.getElementById('juliaIter').value = state.juliaIter;
+    document.getElementById('juliaIterVal').textContent = state.juliaIter;
+    document.getElementById('juliaCRe').value = state.juliaCRe * 100;
+    document.getElementById('juliaCReVal').textContent = state.juliaCRe.toFixed(2);
+    document.getElementById('juliaCIm').value = state.juliaCIm * 100;
+    document.getElementById('juliaCImVal').textContent = state.juliaCIm.toFixed(2);
+    document.getElementById('juliaColor').value = state.juliaColor;
+    document.getElementById('juliaColorVal').textContent = document.querySelector(`#juliaColor option[value="${state.juliaColor}"]`).text;
+  }
+
+  scheduleRender();
+});
+
+// ====== 导航栏滚动效果 ======
+window.addEventListener('scroll', () => {
+  document.getElementById('demoNavbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', () => {
+  resizeCanvas();
+  updateInfoOverlay();
+  scheduleRender();
+  requestAnimationFrame(animate);
+});
+
+// 立即初始化（如果 DOMContentLoaded 已触发）
+if (document.readyState !== 'loading') {
+  resizeCanvas();
+  updateInfoOverlay();
+  scheduleRender();
+  requestAnimationFrame(animate);
+}
+</script>
+
+</body>
+</html>

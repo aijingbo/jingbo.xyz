@@ -1,0 +1,2217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>板块构造与地震 3D · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #0a0a14;
+    color: #e5e5e5;
+    font-family: var(--font-sans);
+    user-select: none;
+  }
+
+  /* ============ 星空背景 ============ */
+  #canvas-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+  }
+
+  /* ============ 顶部导航栏 ============ */
+  .navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: rgba(10, 10, 20, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: all 0.3s ease;
+  }
+  .nav-left, .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 700;
+    color: #e5e5e5;
+    white-space: nowrap;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #a3a3a3;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: #fff; }
+  .back-link svg { width: 16px; height: 16px; }
+  .brand-logo {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+  }
+  .brand-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .tag-geo {
+    display: inline-flex;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 999px;
+    background: rgba(8, 145, 178, 0.15);
+    color: #22d3ee;
+  }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s;
+  }
+  .btn-download:hover {
+    background: var(--brand-hover);
+    transform: translateY(-1px);
+  }
+  .btn-download svg { width: 13px; height: 13px; }
+
+  /* ============ 加载动画 ============ */
+  #loading {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0a0a14;
+    transition: opacity 0.8s ease;
+  }
+  #loading.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .loading-ring {
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba(255, 87, 34, 0.15);
+    border-top-color: #FF5722;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: var(--font-serif);
+    font-size: 14px;
+    color: #a3a3a3;
+    letter-spacing: 0.1em;
+  }
+
+  /* ============ 左侧控制面板 ============ */
+  .panel-left {
+    position: fixed;
+    top: 76px;
+    left: 20px;
+    z-index: 50;
+    width: 220px;
+    padding: 16px;
+    background: rgba(10, 10, 20, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  .panel-title {
+    font-family: var(--font-serif);
+    font-size: 12px;
+    font-weight: 600;
+    color: #e5e5e5;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+  .panel-section {
+    margin-bottom: 14px;
+  }
+  .panel-section:last-child { margin-bottom: 0; }
+  .panel-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 10px 0;
+  }
+
+  /* 视图模式按钮组 */
+  .view-mode-group {
+    display: flex;
+    gap: 4px;
+  }
+  .view-btn {
+    flex: 1;
+    padding: 8px 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: #a3a3a3;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    font-family: var(--font-sans);
+  }
+  .view-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e5e5e5;
+  }
+  .view-btn.active {
+    background: rgba(255, 87, 34, 0.2);
+    border-color: rgba(255, 87, 34, 0.4);
+    color: #FF7043;
+  }
+
+  /* 圈层开关 */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 0;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .toggle-row:hover { opacity: 0.85; }
+  .toggle-label {
+    font-size: 12px;
+    color: #c5c5c5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toggle-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .toggle-switch {
+    width: 30px;
+    height: 16px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #888;
+    transition: all 0.2s;
+  }
+  .toggle-row.active .toggle-switch {
+    background: rgba(255, 87, 34, 0.4);
+  }
+  .toggle-row.active .toggle-switch::after {
+    left: 16px;
+    background: #FF5722;
+  }
+  .toggle-row.active .toggle-label {
+    color: #e5e5e5;
+  }
+
+  /* 时间尺度按钮 */
+  .time-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .time-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    color: #a3a3a3;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+  }
+  .time-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #c5c5c5;
+  }
+  .time-btn.active {
+    background: rgba(255, 87, 34, 0.15);
+    border-color: rgba(255, 87, 34, 0.3);
+    color: #FFAB40;
+  }
+  .time-btn .time-period {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #6b6b6b;
+  }
+  .time-btn.active .time-period { color: #FFAB40; }
+
+  /* ============ 右侧面板 ============ */
+  .panel-right {
+    position: fixed;
+    top: 76px;
+    right: 20px;
+    z-index: 50;
+    width: 220px;
+    padding: 16px;
+    background: rgba(10, 10, 20, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  /* 边界演示按钮 */
+  .boundary-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    color: #c5c5c5;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 4px;
+    font-family: var(--font-sans);
+    text-align: left;
+  }
+  .boundary-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .boundary-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+  .boundary-info {
+    flex: 1;
+  }
+  .boundary-name {
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .boundary-desc {
+    font-size: 10px;
+    color: #6b6b6b;
+    margin-top: 2px;
+  }
+
+  /* ============ 浮动控件 ============ */
+  .floating-left {
+    position: fixed;
+    bottom: 76px;
+    left: 20px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .floating-right {
+    position: fixed;
+    bottom: 76px;
+    right: 20px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .icon-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e5e5e5;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s;
+    position: relative;
+  }
+  .icon-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+  }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .icon-btn.active {
+    background: rgba(255, 87, 34, 0.25);
+    border-color: rgba(255, 87, 34, 0.4);
+    color: #FF7043;
+  }
+  .icon-btn .tooltip {
+    position: absolute;
+    right: 52px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: #e5e5e5;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .icon-btn:hover .tooltip { opacity: 1; }
+
+  /* ============ 操作提示 ============ */
+  .scene-hint {
+    position: fixed;
+    bottom: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    font-size: 11px;
+    color: #6b6b6b;
+    background: rgba(10, 10, 20, 0.5);
+    backdrop-filter: blur(8px);
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    white-space: nowrap;
+    transition: opacity 0.3s;
+  }
+
+  /* ============ 底部信息条 ============ */
+  .info-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: rgba(10, 10, 20, 0.6);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .info-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .info-title {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5e5e5;
+  }
+  .tech-tag {
+    display: inline-flex;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 500;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #a3a3a3;
+  }
+  .info-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    font-size: 11px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+  }
+  .status-tag .pulse-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ============ 板块标签 ============ */
+  #plate-labels {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 30;
+    pointer-events: none;
+  }
+  .plate-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: rgba(10, 10, 20, 0.7);
+    backdrop-filter: blur(8px);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  /* ============ 悬浮提示 ============ */
+  #tooltip {
+    position: fixed;
+    z-index: 60;
+    padding: 8px 14px;
+    background: rgba(10, 10, 20, 0.9);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #e5e5e5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    max-width: 240px;
+  }
+  #tooltip.show { opacity: 1; }
+  #tooltip .tt-title {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  #tooltip .tt-row {
+    font-size: 11px;
+    color: #a3a3a3;
+    margin-top: 2px;
+  }
+  #tooltip .tt-row span { color: #FFAB40; }
+
+  /* ============ 边界演示弹窗 ============ */
+  #boundary-modal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+  }
+  #boundary-modal.show { display: flex; }
+  .modal-content {
+    width: 90%;
+    max-width: 560px;
+    background: rgba(15, 15, 25, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .modal-title {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: #e5e5e5;
+  }
+  .modal-close {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    color: #a3a3a3;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+  .modal-body {
+    padding: 20px;
+  }
+  #demo-canvas {
+    width: 100%;
+    height: 220px;
+    border-radius: 8px;
+    background: #0d0d18;
+    margin-bottom: 14px;
+  }
+  .modal-desc {
+    font-size: 13px;
+    color: #c5c5c5;
+    line-height: 1.7;
+  }
+  .modal-desc strong {
+    color: #FFAB40;
+  }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 768px) {
+    .panel-left, .panel-right {
+      width: calc(100% - 40px);
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+    .panel-left {
+      top: auto;
+      bottom: 130px;
+      left: 20px;
+      transform: translateY(calc(100% + 20px));
+    }
+    .panel-right {
+      top: auto;
+      bottom: 130px;
+      right: 20px;
+      transform: translateY(calc(100% + 20px));
+    }
+    .panel-left.show, .panel-right.show {
+      transform: translateY(0);
+    }
+    .nav-center { font-size: 13px; }
+    .scene-hint { font-size: 10px; }
+    .floating-left { bottom: 60px; left: 12px; }
+    .floating-right { bottom: 60px; right: 12px; }
+    .icon-btn { width: 40px; height: 40px; }
+    .info-bar { height: 40px; padding: 0 12px; }
+    .info-title { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== 导航栏 ====== -->
+<header class="demo-navbar immersive" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">地理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">板块构造与地震</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-geo">地理</span>
+      <a href="/skills/jingbo-edu-3d-earth-science-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 3D 画布 ====== -->
+<div id="canvas-container"></div>
+
+<!-- ====== 加载提示 ====== -->
+<div id="loading">
+  <div class="loading-ring"></div>
+  <div class="loading-text">正在构建地球模型…</div>
+</div>
+
+<!-- ====== 左侧控制面板 ====== -->
+<div class="panel-left" id="panelLeft">
+  <div class="panel-section">
+    <div class="panel-title">视图模式</div>
+    <div class="view-mode-group">
+      <button class="view-btn active" data-view="full">完整地球</button>
+      <button class="view-btn" data-view="section">半剖视</button>
+    </div>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="panel-section">
+    <div class="panel-title">圈层显示</div>
+    <div class="toggle-row active" data-layer="surface">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#2E7D32;"></span>地球表面</span>
+      <span class="toggle-switch"></span>
+    </div>
+    <div class="toggle-row active" data-layer="crust">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#9E9E9E;"></span>地壳</span>
+      <span class="toggle-switch"></span>
+    </div>
+    <div class="toggle-row active" data-layer="upperMantle">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#FF7043;"></span>上地幔</span>
+      <span class="toggle-switch"></span>
+    </div>
+    <div class="toggle-row active" data-layer="lowerMantle">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#D32F2F;"></span>下地幔</span>
+      <span class="toggle-switch"></span>
+    </div>
+    <div class="toggle-row active" data-layer="outerCore">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#FFD54F;"></span>外核</span>
+      <span class="toggle-switch"></span>
+    </div>
+    <div class="toggle-row active" data-layer="innerCore">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#ECEFF1;"></span>内核</span>
+      <span class="toggle-switch"></span>
+    </div>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="panel-section">
+    <div class="panel-title">显示标记</div>
+    <div class="toggle-row active" data-layer="boundaries">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#FF5722;"></span>板块边界</span>
+      <span class="toggle-switch"></span>
+    </div>
+    <div class="toggle-row active" data-layer="earthquakes">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#F44336;"></span>地震带</span>
+      <span class="toggle-switch"></span>
+    </div>
+    <div class="toggle-row active" data-layer="volcanoes">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#FF9800;"></span>火山</span>
+      <span class="toggle-switch"></span>
+    </div>
+    <div class="toggle-row active" data-layer="labels">
+      <span class="toggle-label"><span class="toggle-dot" style="background:#a3a3a3;"></span>板块名称</span>
+      <span class="toggle-switch"></span>
+    </div>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="panel-section">
+    <div class="panel-title">时间尺度</div>
+    <div class="time-btn-group">
+      <button class="time-btn" data-time="pangea">
+        <span>泛大陆</span>
+        <span class="time-period">2亿年前</span>
+      </button>
+      <button class="time-btn active" data-time="present">
+        <span>现在</span>
+        <span class="time-period">2026年</span>
+      </button>
+      <button class="time-btn" data-time="future">
+        <span>未来</span>
+        <span class="time-period">5千万年后</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 右侧面板 ====== -->
+<div class="panel-right" id="panelRight">
+  <div class="panel-section">
+    <div class="panel-title">边界类型演示</div>
+    <button class="boundary-btn" data-boundary="convergent">
+      <div class="boundary-icon" style="background:rgba(244,67,54,0.15);color:#F44336;">↗↖</div>
+      <div class="boundary-info">
+        <div class="boundary-name">消亡边界（碰撞）</div>
+        <div class="boundary-desc">板块挤压 → 海沟·山脉</div>
+      </div>
+    </button>
+    <button class="boundary-btn" data-boundary="divergent">
+      <div class="boundary-icon" style="background:rgba(76,175,80,0.15);color:#4CAF50;">↖↗</div>
+      <div class="boundary-info">
+        <div class="boundary-name">生长边界（张裂）</div>
+        <div class="boundary-desc">板块分离 → 裂谷·海岭</div>
+      </div>
+    </button>
+    <button class="boundary-btn" data-boundary="transform">
+      <div class="boundary-icon" style="background:rgba(255,152,0,0.15);color:#FF9800;">↑↓</div>
+      <div class="boundary-info">
+        <div class="boundary-name">转换边界（错动）</div>
+        <div class="boundary-desc">水平滑动 → 断层</div>
+      </div>
+    </button>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="panel-section">
+    <div class="panel-title">地震演示</div>
+    <div style="font-size:11px;color:#6b6b6b;line-height:1.6;">
+      点击地球上的红色地震标记，触发地震波传播动画。
+    </div>
+    <button class="boundary-btn" id="triggerRandomQuake" style="margin-top:8px;">
+      <div class="boundary-icon" style="background:rgba(244,67,54,0.15);color:#F44336;">⚡</div>
+      <div class="boundary-info">
+        <div class="boundary-name">随机触发地震</div>
+        <div class="boundary-desc">模拟板块边界地震</div>
+      </div>
+    </button>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="panel-section">
+    <div class="panel-title">图例</div>
+    <div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:#a3a3a3;">
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:12px;height:3px;background:#FF5722;border-radius:2px;"></span>板块边界</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:#F44336;"></span>地震带</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid #FF9800;"></span>火山</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.5);"></span>地震波</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 板块标签层 ====== -->
+<div id="plate-labels"></div>
+
+<!-- ====== 悬浮提示 ====== -->
+<div id="tooltip"></div>
+
+<!-- ====== 操作提示 ====== -->
+<div class="scene-hint">拖拽旋转 · 滚轮缩放 · 点击红色标记触发地震</div>
+
+<!-- ====== 左下浮动控件 ====== -->
+<div class="floating-left">
+  <button class="icon-btn active" id="spinBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+    <span class="tooltip">自动旋转</span>
+  </button>
+  <button class="icon-btn" id="resetBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    <span class="tooltip">重置视角</span>
+  </button>
+</div>
+
+<!-- ====== 右下浮动控件 ====== -->
+<div class="floating-right">
+  <button class="icon-btn" id="panelToggleBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+    <span class="tooltip">面板开关</span>
+  </button>
+  <button class="icon-btn" id="fullscreenBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+    <span class="tooltip">全屏</span>
+  </button>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="info-bar">
+  <div class="info-left">
+    <span class="info-title">S010 · 板块构造 3D 可视化</span>
+    <span class="tech-tag">Three.js</span>
+    <span class="tech-tag">WebGL</span>
+  </div>
+  <div class="info-right">
+    <span class="status-tag" id="statusTag"><span class="pulse-dot"></span>就绪</span>
+  </div>
+</footer>
+
+<!-- ====== 边界演示弹窗 ====== -->
+<div id="boundary-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">边界类型演示</div>
+      <button class="modal-close" id="modalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <canvas id="demo-canvas" width="520" height="220"></canvas>
+      <div class="modal-desc" id="modalDesc"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   数据定义
+   ============================================================ */
+
+// 简化大陆轮廓 [lat, lon]
+const CONTINENTS = {
+  northAmerica: [[72,-168],[72,-52],[60,-55],[50,-60],[45,-67],[38,-75],[30,-80],[25,-80],[20,-90],[25,-108],[30,-115],[38,-122],[48,-125],[55,-130],[60,-140],[68,-155],[72,-168]],
+  southAmerica: [[12,-72],[5,-50],[-5,-35],[-20,-40],[-35,-52],[-50,-68],[-55,-70],[-45,-73],[-30,-72],[-15,-75],[-5,-78],[5,-77],[12,-72]],
+  africa: [[35,-8],[35,12],[30,22],[15,38],[12,43],[0,42],[-12,40],[-25,35],[-35,20],[-28,15],[-15,12],[-5,8],[5,-3],[15,-15],[28,-12],[35,-8]],
+  europe: [[72,-5],[72,35],[65,40],[55,35],[50,15],[42,8],[36,-5],[40,-10],[50,-5],[60,-5],[72,-5]],
+  asia: [[72,35],[72,170],[65,175],[55,160],[45,142],[35,140],[25,122],[10,108],[8,98],[12,80],[20,72],[28,68],[35,50],[42,48],[50,45],[60,50],[72,35]],
+  australia: [[-12,115],[-10,130],[-12,142],[-18,146],[-28,153],[-38,145],[-35,138],[-32,125],[-32,115],[-22,113],[-12,115]],
+  antarctica: [[-62,-180],[-65,-120],[-68,-60],[-70,0],[-68,60],[-65,120],[-62,180],[-85,0],[-85,-180]]
+};
+
+// 泛大陆偏移（各大陆经度偏移量）
+const PANGEA_OFFSETS = {
+  northAmerica: 60, southAmerica: 50, africa: 0, europe: -25,
+  asia: -15, australia: -45, antarctica: 0
+};
+const FUTURE_OFFSETS = {
+  northAmerica: -5, southAmerica: -3, africa: 3, europe: 0,
+  asia: 0, australia: 3, antarctica: 0
+};
+
+// 板块边界 [lat, lon] — 消亡/生长/转换
+const BOUNDARIES = {
+  convergent: [
+    // 南美西海岸（纳斯卡板块俯冲）
+    [[5,-78],[-5,-81],[-15,-75],[-25,-70],[-35,-72],[-45,-75],[-55,-70]],
+    // 阿留申-日本-菲律宾
+    [[55,-170],[52,175],[50,180],[45,175],[40,170],[35,165],[30,155],[25,145],[30,130],[35,140],[40,142],[45,145]],
+    // 菲律宾-印尼
+    [[15,120],[5,125],[-5,130],[-10,120],[-5,105],[0,100],[-5,108],[-10,115],[-15,120],[-10,130],[-5,140],[-15,145]],
+    // 喜马拉雅碰撞带
+    [[35,70],[33,75],[30,80],[28,85],[27,90],[25,95],[22,95],[18,95],[15,92]],
+    // 新西兰
+    [[-35,175],[-40,173],[-45,168],[-42,172],[-38,175]]
+  ],
+  divergent: [
+    // 大西洋中脊
+    [[80,-5],[70,-18],[60,-30],[50,-28],[40,-30],[30,-42],[20,-25],[10,-13],[0,-14],[-10,-13],[-25,-13],[-40,-10],[-55,-1]],
+    // 东非裂谷
+    [[20,35],[15,38],[5,38],[-5,35],[-15,33],[-20,30]],
+    // 东太平洋海隆
+    [[20,-108],[10,-102],[0,-102],[-10,-108],[-25,-113],[-40,-112],[-55,-115]]
+  ],
+  transform: [
+    // 圣安德烈斯断层
+    [[38,-123],[36,-121],[34,-119],[33,-116]],
+    // 北安纳托利亚断层
+    [[40,26],[38,30],[35,33],[40,40]]
+  ]
+};
+
+// 地震带
+const EARTHQUAKE_ZONES = [
+  { name: '日本', lat: 35.5, lon: 139.8, magnitude: '7.2', depth: '30km' },
+  { name: '智利', lat: -33.4, lon: -70.6, magnitude: '8.0', depth: '50km' },
+  { name: '旧金山', lat: 37.7, lon: -122.4, magnitude: '6.9', depth: '15km' },
+  { name: '尼泊尔', lat: 28.2, lon: 84.1, magnitude: '7.8', depth: '10km' },
+  { name: '苏门答腊', lat: -1.0, lon: 100.0, magnitude: '8.6', depth: '30km' },
+  { name: '海地', lat: 18.5, lon: -72.5, magnitude: '7.0', depth: '13km' },
+  { name: '土耳其', lat: 38.5, lon: 31.0, magnitude: '7.5', depth: '18km' },
+  { name: '墨西哥', lat: 17.5, lon: -100.0, magnitude: '7.1', depth: '40km' }
+];
+
+// 火山
+const VOLCANOES = [
+  { name: '富士山', lat: 35.4, lon: 138.7 },
+  { name: '圣海伦斯', lat: 46.2, lon: -122.2 },
+  { name: '皮纳图博', lat: 15.1, lon: 120.4 },
+  { name: '克拉卡托', lat: -6.1, lon: 105.4 },
+  { name: '维苏威', lat: 40.8, lon: 14.4 },
+  { name: '冒纳罗亚', lat: 19.5, lon: -155.6 }
+];
+
+// 六大板块
+const PLATES = [
+  { name: '亚欧板块', lat: 50, lon: 80 },
+  { name: '非洲板块', lat: 5, lon: 20 },
+  { name: '美洲板块', lat: 40, lon: -80 },
+  { name: '太平洋板块', lat: 0, lon: -160 },
+  { name: '印度洋板块', lat: -15, lon: 95 },
+  { name: '南极洲板块', lat: -80, lon: 0 }
+];
+
+// 内部圈层
+const LAYER_DATA = [
+  { key: 'crust', name: '地壳', radius: 2.015, color: 0x9E9E9E, opacity: 0.85 },
+  { key: 'upperMantle', name: '上地幔', radius: 1.85, color: 0xFF7043, opacity: 0.75 },
+  { key: 'lowerMantle', name: '下地幔', radius: 1.50, color: 0xD32F2F, opacity: 0.75 },
+  { key: 'outerCore', name: '外核', radius: 1.05, color: 0xFFD54F, opacity: 0.85 },
+  { key: 'innerCore', name: '内核', radius: 0.60, color: 0xECEFF1, opacity: 1.0 }
+];
+
+/* ============================================================
+   全局变量
+   ============================================================ */
+let scene, camera, renderer, controls;
+let earthGroup, earthMesh, layerMeshes = {};
+let boundaryGroup, earthquakeGroup, volcanoGroup;
+let starField, waveGroup, volcanoParticles = [];
+let plateLabelElements = [];
+let clipPlane;
+let raycaster, mouse;
+let clock;
+let isSpinning = true;
+let viewMode = 'full';
+let timeMode = 'present';
+let layerVisibility = {};
+let entryAnimation = true;
+let entryProgress = 0;
+let demoAnimationId = null;
+const EARTH_RADIUS = 2.0;
+
+/* ============================================================
+   工具函数
+   ============================================================ */
+
+function latLonToVec3(lat, lon, radius) {
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+function latLonToCanvas(lat, lon, w, h) {
+  return {
+    x: (lon + 180) / 360 * w,
+    y: (90 - lat) / 180 * h
+  };
+}
+
+/* ============================================================
+   场景初始化
+   ============================================================ */
+
+function init() {
+  const container = document.getElementById('canvas-container');
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a14);
+  scene.fog = new THREE.FogExp2(0x0a0a14, 0.02);
+
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
+  camera.position.set(0, 0, 20);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.localClippingEnabled = true;
+  container.appendChild(renderer.domElement);
+
+  // 光照
+  const ambient = new THREE.AmbientLight(0x404060, 0.5);
+  scene.add(ambient);
+  const sunLight = new THREE.DirectionalLight(0xFFE0B2, 1.3);
+  sunLight.position.set(5, 3, 5);
+  scene.add(sunLight);
+  const rimLight = new THREE.DirectionalLight(0x4FC3F7, 0.4);
+  rimLight.position.set(-5, -2, -3);
+  scene.add(rimLight);
+
+  // 控制器
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 3.5;
+  controls.maxDistance = 12;
+  controls.rotateSpeed = 0.6;
+  controls.zoomSpeed = 0.8;
+
+  // 剖切平面
+  clipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), -100);
+
+  // 射线检测
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  clock = new THREE.Clock();
+
+  waveGroup = new THREE.Group();
+  scene.add(waveGroup);
+
+  // 创建场景元素
+  createStarField();
+  createEarth();
+  createInternalLayers();
+  createBoundaries();
+  createEarthquakeMarkers();
+  createVolcanoMarkers();
+  createPlateLabels();
+
+  // 事件绑定
+  bindEvents();
+
+  // 隐藏加载界面
+  setTimeout(() => {
+    document.getElementById('loading').classList.add('hidden');
+  }, 600);
+
+  animate();
+}
+
+/* ============================================================
+   星空背景
+   ============================================================ */
+
+function createStarField() {
+  const count = 3000;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+
+  for (let i = 0; i < count; i++) {
+    const r = 50 + Math.random() * 80;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+
+    const brightness = 0.5 + Math.random() * 0.5;
+    const tint = Math.random();
+    if (tint < 0.7) {
+      colors[i * 3] = brightness;
+      colors[i * 3 + 1] = brightness;
+      colors[i * 3 + 2] = brightness;
+    } else if (tint < 0.85) {
+      colors[i * 3] = brightness * 0.8;
+      colors[i * 3 + 1] = brightness * 0.9;
+      colors[i * 3 + 2] = brightness;
+    } else {
+      colors[i * 3] = brightness;
+      colors[i * 3 + 1] = brightness * 0.8;
+      colors[i * 3 + 2] = brightness * 0.6;
+    }
+    sizes[i] = Math.random() * 2 + 0.5;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+
+  const mat = new THREE.PointsMaterial({
+    size: 1.2,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.8,
+    sizeAttenuation: true,
+    depthWrite: false
+  });
+
+  starField = new THREE.Points(geo, mat);
+  scene.add(starField);
+}
+
+/* ============================================================
+   地球表面（程序化纹理）
+   ============================================================ */
+
+function createEarthTexture(mode) {
+  const w = 1024, h = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+
+  // 海洋背景渐变
+  const oceanGrad = ctx.createLinearGradient(0, 0, 0, h);
+  oceanGrad.addColorStop(0, '#0a2540');
+  oceanGrad.addColorStop(0.5, '#0D47A1');
+  oceanGrad.addColorStop(1, '#0a2540');
+  ctx.fillStyle = oceanGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // 海洋纹理噪点
+  for (let i = 0; i < 8000; i++) {
+    const a = Math.random() * 0.08;
+    ctx.fillStyle = `rgba(13, 71, 161, ${a})`;
+    ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+  }
+
+  // 绘制大陆
+  const offsets = mode === 'pangea' ? PANGEA_OFFSETS : (mode === 'future' ? FUTURE_OFFSETS : {});
+
+  for (const [name, path] of Object.entries(CONTINENTS)) {
+    const lonOffset = offsets[name] || 0;
+    ctx.beginPath();
+    path.forEach((pt, i) => {
+      const p = latLonToCanvas(pt[0], pt[1] + lonOffset, w, h);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.closePath();
+
+    // 大陆渐变填充
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#3a6e2e');
+    grad.addColorStop(0.4, '#2E7D32');
+    grad.addColorStop(0.7, '#5D4037');
+    grad.addColorStop(1, '#4E342E');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // 大陆边缘描边
+    ctx.strokeStyle = 'rgba(109, 76, 65, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 大陆内部纹理
+    ctx.save();
+    ctx.clip();
+    for (let j = 0; j < 300; j++) {
+      const a = Math.random() * 0.15;
+      const c = Math.random() > 0.5 ? `rgba(46,125,50,${a})` : `rgba(109,76,65,${a})`;
+      ctx.fillStyle = c;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 3, 3);
+    }
+    ctx.restore();
+  }
+
+  // 南北极冰盖
+  ctx.fillStyle = 'rgba(236, 239, 241, 0.6)';
+  ctx.fillRect(0, 0, w, 30);
+  ctx.fillRect(0, h - 35, w, 35);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  return texture;
+}
+
+function createEarth() {
+  earthGroup = new THREE.Group();
+  scene.add(earthGroup);
+
+  const geo = new THREE.SphereGeometry(EARTH_RADIUS, 64, 48);
+  const tex = createEarthTexture(timeMode);
+  const mat = new THREE.MeshPhongMaterial({
+    map: tex,
+    shininess: 8,
+    specular: 0x222233,
+    clippingPlanes: [clipPlane],
+    clipShadows: true,
+    side: THREE.DoubleSide
+  });
+
+  earthMesh = new THREE.Mesh(geo, mat);
+  earthGroup.add(earthMesh);
+
+  // 大气层光晕
+  const atmoGeo = new THREE.SphereGeometry(EARTH_RADIUS * 1.08, 48, 32);
+  const atmoMat = new THREE.ShaderMaterial({
+    uniforms: {
+      glowColor: { value: new THREE.Color(0x4FC3F7) }
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 glowColor;
+      varying vec3 vNormal;
+      void main() {
+        float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+        gl_FragColor = vec4(glowColor, intensity * 0.5);
+      }
+    `,
+    side: THREE.BackSide,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false
+  });
+  const atmosphere = new THREE.Mesh(atmoGeo, atmoMat);
+  earthGroup.add(atmosphere);
+
+  layerVisibility.surface = true;
+}
+
+/* ============================================================
+   地球内部圈层
+   ============================================================ */
+
+function createInternalLayers() {
+  LAYER_DATA.forEach(layer => {
+    const geo = new THREE.SphereGeometry(layer.radius, 48, 32);
+    const mat = new THREE.MeshPhongMaterial({
+      color: layer.color,
+      transparent: true,
+      opacity: layer.opacity,
+      shininess: layer.key === 'innerCore' ? 80 : 10,
+      clippingPlanes: [clipPlane],
+      side: THREE.DoubleSide,
+      depthWrite: layer.key === 'innerCore'
+    });
+
+    // 内核发光
+    if (layer.key === 'innerCore') {
+      mat.emissive = new THREE.Color(layer.color);
+      mat.emissiveIntensity = 0.3;
+    }
+    if (layer.key === 'outerCore') {
+      mat.emissive = new THREE.Color(layer.color);
+      mat.emissiveIntensity = 0.15;
+    }
+
+    const mesh = new THREE.Mesh(geo, mat);
+    earthGroup.add(mesh);
+    layerMeshes[layer.key] = mesh;
+    layerVisibility[layer.key] = true;
+  });
+}
+
+/* ============================================================
+   板块边界（发光线条）
+   ============================================================ */
+
+function createBoundaries() {
+  boundaryGroup = new THREE.Group();
+  earthGroup.add(boundaryGroup);
+
+  const boundaryColors = {
+    convergent: 0xF44336,
+    divergent: 0x4CAF50,
+    transform: 0xFF9800
+  };
+
+  for (const [type, segments] of Object.entries(BOUNDARIES)) {
+    segments.forEach(seg => {
+      const points = seg.map(p => latLonToVec3(p[0], p[1], EARTH_RADIUS * 1.003));
+      const geo = new THREE.BufferGeometry().setFromPoints(points);
+
+      const mat = new THREE.LineBasicMaterial({
+        color: boundaryColors[type],
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending,
+        linewidth: 2,
+        clippingPlanes: [clipPlane]
+      });
+
+      const line = new THREE.Line(geo, mat);
+      const pulseVal = Math.random() * Math.PI * 2;
+      line.userData = { type, pulse: pulseVal };
+      boundaryGroup.add(line);
+
+      // 添加发光点
+      const dotGeo = new THREE.BufferGeometry().setFromPoints(points);
+      const dotMat = new THREE.PointsMaterial({
+        color: boundaryColors[type],
+        size: 4,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: false,
+        clippingPlanes: [clipPlane]
+      });
+      const dots = new THREE.Points(dotGeo, dotMat);
+      dots.userData = { pulse: pulseVal };
+      boundaryGroup.add(dots);
+    });
+  }
+
+  layerVisibility.boundaries = true;
+}
+
+/* ============================================================
+   地震带标记
+   ============================================================ */
+
+function createEarthquakeMarkers() {
+  earthquakeGroup = new THREE.Group();
+  earthGroup.add(earthquakeGroup);
+
+  EARTHQUAKE_ZONES.forEach(zone => {
+    const pos = latLonToVec3(zone.lat, zone.lon, EARTH_RADIUS * 1.01);
+
+    // 脉冲球
+    const geo = new THREE.SphereGeometry(0.025, 12, 8);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xF44336,
+      transparent: true,
+      opacity: 0.9,
+      clippingPlanes: [clipPlane]
+    });
+    const marker = new THREE.Mesh(geo, mat);
+    marker.position.copy(pos);
+    marker.userData = { zone, pulse: Math.random() * Math.PI * 2 };
+    earthquakeGroup.add(marker);
+
+    // 光环
+    const ringGeo = new THREE.RingGeometry(0.03, 0.06, 16);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xF44336,
+      transparent: true,
+      opacity: 0.5,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      clippingPlanes: [clipPlane]
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.copy(pos);
+    ring.lookAt(0, 0, 0);
+    ring.userData = { pulse: Math.random() * Math.PI * 2, isRing: true };
+    earthquakeGroup.add(ring);
+  });
+
+  layerVisibility.earthquakes = true;
+}
+
+/* ============================================================
+   火山标记 + 喷发粒子
+   ============================================================ */
+
+function createVolcanoMarkers() {
+  volcanoGroup = new THREE.Group();
+  earthGroup.add(volcanoGroup);
+
+  VOLCANOES.forEach(vol => {
+    const pos = latLonToVec3(vol.lat, vol.lon, EARTH_RADIUS * 1.005);
+    const normal = pos.clone().normalize();
+
+    // 锥形火山
+    const geo = new THREE.ConeGeometry(0.022, 0.05, 8);
+    const mat = new THREE.MeshPhongMaterial({
+      color: 0xFF9800,
+      emissive: 0xFF5722,
+      emissiveIntensity: 0.4,
+      transparent: true,
+      opacity: 0.9,
+      clippingPlanes: [clipPlane]
+    });
+    const cone = new THREE.Mesh(geo, mat);
+    cone.position.copy(pos);
+    cone.lookAt(0, 0, 0);
+    cone.rotateX(Math.PI / 2);
+    volcanoGroup.add(cone);
+
+    // 粒子系统
+    const particleCount = 60;
+    const positions = new Float32Array(particleCount * 3);
+    const velocities = [];
+    const lifetimes = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3] = pos.x;
+      positions[i * 3 + 1] = pos.y;
+      positions[i * 3 + 2] = pos.z;
+      velocities.push({
+        x: normal.x + (Math.random() - 0.5) * 0.3,
+        y: normal.y + (Math.random() - 0.5) * 0.3,
+        z: normal.z + (Math.random() - 0.5) * 0.3,
+        speed: 0.005 + Math.random() * 0.01
+      });
+      lifetimes.push(Math.random());
+    }
+
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const pMat = new THREE.PointsMaterial({
+      color: 0xFF5722,
+      size: 0.04,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+      clippingPlanes: [clipPlane]
+    });
+
+    const particles = new THREE.Points(pGeo, pMat);
+    particles.userData = {
+      basePos: pos.clone(),
+      velocities,
+      lifetimes,
+      volcano: vol
+    };
+    volcanoGroup.add(particles);
+    volcanoParticles.push(particles);
+  });
+
+  layerVisibility.volcanoes = true;
+}
+
+/* ============================================================
+   板块名称标签（HTML overlay）
+   ============================================================ */
+
+function createPlateLabels() {
+  const container = document.getElementById('plate-labels');
+  PLATES.forEach(plate => {
+    const div = document.createElement('div');
+    div.className = 'plate-label';
+    div.textContent = plate.name;
+    container.appendChild(div);
+    plateLabelElements.push({
+      el: div,
+      pos: latLonToVec3(plate.lat, plate.lon, EARTH_RADIUS * 1.05)
+    });
+  });
+  layerVisibility.labels = true;
+}
+
+function updatePlateLabels() {
+  if (!layerVisibility.labels) {
+    plateLabelElements.forEach(l => l.el.style.display = 'none');
+    return;
+  }
+
+  const rotMatrix = new THREE.Matrix4().extractRotation(earthGroup.matrixWorld);
+
+  plateLabelElements.forEach(label => {
+    const worldPos = label.pos.clone().applyMatrix4(earthGroup.matrixWorld);
+    const toCam = camera.position.clone().sub(worldPos).normalize();
+    const surfaceNormal = label.pos.clone().normalize().applyMatrix4(rotMatrix).normalize();
+    const dot = toCam.dot(surfaceNormal);
+
+    if (dot > -0.1) {
+      const screenPos = worldPos.clone().project(camera);
+      const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+      label.el.style.left = x + 'px';
+      label.el.style.top = y + 'px';
+      label.el.style.opacity = Math.max(0, Math.min(1, (dot + 0.1) * 3));
+      label.el.style.display = 'block';
+    } else {
+      label.el.style.display = 'none';
+    }
+  });
+}
+
+/* ============================================================
+   地震波动画
+   ============================================================ */
+
+function triggerEarthquake(zone) {
+  const pos = latLonToVec3(zone.lat, zone.lon, EARTH_RADIUS * 1.01);
+  const normal = pos.clone().normalize();
+
+  // 创建3个扩散波
+  for (let i = 0; i < 3; i++) {
+    const waveGeo = new THREE.SphereGeometry(0.03, 24, 16, 0, Math.PI * 2, 0, Math.PI);
+    const waveMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.6,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const wave = new THREE.Mesh(waveGeo, waveMat);
+    wave.position.copy(pos);
+    wave.lookAt(0, 0, 0);
+    wave.rotateX(Math.PI / 2);
+    wave.userData = {
+      startTime: clock.getElapsedTime() + i * 0.4,
+      duration: 2.5,
+      basePos: pos.clone(),
+      normal: normal.clone()
+    };
+    waveGroup.add(wave);
+  }
+
+  // 状态更新
+  const statusTag = document.getElementById('statusTag');
+  statusTag.innerHTML = '<span class="pulse-dot" style="background:#F44336;"></span>地震: ' + zone.name + ' M' + zone.magnitude;
+  statusTag.style.background = 'rgba(244, 67, 54, 0.15)';
+  statusTag.style.color = '#F44336';
+  setTimeout(() => {
+    statusTag.innerHTML = '<span class="pulse-dot"></span>就绪';
+    statusTag.style.background = '';
+    statusTag.style.color = '';
+  }, 4000);
+}
+
+function updateSeismicWaves() {
+  const now = clock.getElapsedTime();
+  const toRemove = [];
+
+  waveGroup.children.forEach((wave, i) => {
+    const elapsed = now - wave.userData.startTime;
+    if (elapsed < 0) return;
+    if (elapsed > wave.userData.duration) {
+      toRemove.push(wave);
+      return;
+    }
+    const t = elapsed / wave.userData.duration;
+    const scale = 0.03 + t * 1.5;
+    wave.scale.set(scale, scale, scale);
+    wave.material.opacity = 0.6 * (1 - t);
+  });
+
+  toRemove.forEach(w => {
+    waveGroup.remove(w);
+    w.geometry.dispose();
+    w.material.dispose();
+  });
+}
+
+/* ============================================================
+   火山粒子更新
+   ============================================================ */
+
+function updateVolcanoParticles(delta) {
+  volcanoParticles.forEach(particles => {
+    const positions = particles.geometry.attributes.position.array;
+    const { basePos, velocities, lifetimes } = particles.userData;
+
+    for (let i = 0; i < lifetimes.length; i++) {
+      lifetimes[i] += delta * 0.5;
+      if (lifetimes[i] > 1) {
+        lifetimes[i] = 0;
+        positions[i * 3] = basePos.x;
+        positions[i * 3 + 1] = basePos.y;
+        positions[i * 3 + 2] = basePos.z;
+      } else {
+        const v = velocities[i];
+        positions[i * 3] += v.x * v.speed * (1 - lifetimes[i] * 0.3);
+        positions[i * 3 + 1] += v.y * v.speed * (1 - lifetimes[i] * 0.3);
+        positions[i * 3 + 2] += v.z * v.speed * (1 - lifetimes[i] * 0.3);
+      }
+    }
+    particles.geometry.attributes.position.needsUpdate = true;
+    particles.material.opacity = 0.7;
+  });
+}
+
+/* ============================================================
+   动画主循环
+   ============================================================ */
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const delta = clock.getDelta();
+  const time = clock.getElapsedTime();
+
+  // 入场动画
+  if (entryAnimation) {
+    entryProgress = Math.min(1, entryProgress + delta * 0.6);
+    const eased = 1 - Math.pow(1 - entryProgress, 3);
+    camera.position.z = 20 - eased * 15;
+    controls.enabled = false;
+    if (entryProgress >= 1) {
+      entryAnimation = false;
+      controls.enabled = true;
+    }
+  }
+
+  // 自动旋转
+  if (isSpinning && !entryAnimation) {
+    earthGroup.rotation.y += delta * 0.08;
+  }
+
+  // 星空缓慢旋转
+  starField.rotation.y += delta * 0.005;
+
+  // 板块边界脉动
+  boundaryGroup.children.forEach(child => {
+    if (child instanceof THREE.Line) {
+      child.material.opacity = 0.5 + Math.sin(time * 1.5 + child.userData.pulse) * 0.3;
+    } else if (child instanceof THREE.Points) {
+      child.material.opacity = 0.7 + Math.sin(time * 1.5 + (child.userData.pulse || 0)) * 0.2;
+    }
+  });
+
+  // 地震标记脉动
+  earthquakeGroup.children.forEach(child => {
+    const pulse = Math.sin(time * 2 + child.userData.pulse);
+    if (child.userData.isRing) {
+      child.scale.setScalar(1 + pulse * 0.3);
+      child.material.opacity = 0.3 + pulse * 0.2;
+    } else {
+      child.scale.setScalar(1 + pulse * 0.2);
+    }
+  });
+
+  // 更新动画
+  updateSeismicWaves();
+  updateVolcanoParticles(delta);
+  updatePlateLabels();
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   视图模式切换
+   ============================================================ */
+
+function setViewMode(mode) {
+  viewMode = mode;
+  if (mode === 'section') {
+    clipPlane.constant = 0;
+    // 调整相机角度以更好展示剖面
+    if (!entryAnimation) {
+      const targetPos = new THREE.Vector3(3, 1, 4);
+      animateCameraTo(targetPos);
+    }
+  } else {
+    clipPlane.constant = -100;
+  }
+
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === mode);
+  });
+}
+
+function animateCameraTo(target) {
+  const start = camera.position.clone();
+  const duration = 800;
+  const startTime = performance.now();
+
+  function tween() {
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(1, elapsed / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    camera.position.lerpVectors(start, target, eased);
+    if (t < 1) requestAnimationFrame(tween);
+  }
+  tween();
+}
+
+/* ============================================================
+   时间尺度切换
+   ============================================================ */
+
+function setTimeMode(mode) {
+  timeMode = mode;
+  const newTex = createEarthTexture(mode);
+  earthMesh.material.map = newTex;
+  earthMesh.material.needsUpdate = true;
+
+  document.querySelectorAll('.time-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.time === mode);
+  });
+}
+
+/* ============================================================
+   圈层显示开关
+   ============================================================ */
+
+function toggleLayer(layer, visible) {
+  layerVisibility[layer] = visible;
+
+  switch(layer) {
+    case 'surface':
+      earthMesh.visible = visible;
+      break;
+    case 'crust':
+    case 'upperMantle':
+    case 'lowerMantle':
+    case 'outerCore':
+    case 'innerCore':
+      if (layerMeshes[layer]) layerMeshes[layer].visible = visible;
+      break;
+    case 'boundaries':
+      boundaryGroup.visible = visible;
+      break;
+    case 'earthquakes':
+      earthquakeGroup.visible = visible;
+      break;
+    case 'volcanoes':
+      volcanoGroup.visible = visible;
+      break;
+    case 'labels':
+      plateLabelElements.forEach(l => {
+        l.el.style.display = visible ? 'block' : 'none';
+      });
+      break;
+  }
+}
+
+/* ============================================================
+   边界类型演示（2D Canvas）
+   ============================================================ */
+
+function showBoundaryDemo(type) {
+  const modal = document.getElementById('boundary-modal');
+  const title = document.getElementById('modalTitle');
+  const desc = document.getElementById('modalDesc');
+  const canvas = document.getElementById('demo-canvas');
+  const ctx = canvas.getContext('2d');
+
+  const demos = {
+    convergent: {
+      title: '消亡边界 — 碰撞挤压',
+      desc: '<strong>消亡边界</strong>（板块碰撞）：两个板块相向运动，彼此碰撞挤压。<br><br>' +
+            '• 大洋板块与大陆板块碰撞：大洋板块密度大，俯冲到大陆板块下方，形成<strong>海沟</strong>和<strong>岛弧</strong>，如马里亚纳海沟和日本群岛。<br>' +
+            '• 大陆板块与大陆板块碰撞：地壳褶皱隆起，形成巨大<strong>山脉</strong>，如印度洋板块与亚欧板块碰撞形成的<strong>喜马拉雅山脉</strong>。<br>' +
+            '• 碰撞带是地球上<strong>地震和火山</strong>最集中的区域。'
+    },
+    divergent: {
+      title: '生长边界 — 张裂拉伸',
+      desc: '<strong>生长边界</strong>（板块张裂）：两个板块背向运动，彼此分离。<br><br>' +
+            '• 在大洋中：地幔岩浆涌出冷却形成新的洋壳，形成<strong>大洋中脊（海岭）</strong>，如大西洋中脊。<br>' +
+            '• 在大陆上：地壳断裂下陷，形成<strong>裂谷</strong>，如东非大裂谷。<br>' +
+            '• 张裂持续进行可形成新的海洋，大西洋就是约1.5亿年前泛大陆裂开后形成的。'
+    },
+    transform: {
+      title: '转换边界 — 水平错动',
+      desc: '<strong>转换边界</strong>（板块错动）：两个板块沿断层水平滑动，既不碰撞也不分离。<br><br>' +
+            '• 最典型的是美国加州的<strong>圣安德烈斯断层</strong>，太平洋板块向北、美洲板块向南。<br>' +
+            '• 转换边界不会形成山脉或海沟，但会引发<strong>强烈地震</strong>。<br>' +
+            '• 1906年旧金山大地震（M7.8）就是圣安德烈斯断层错动造成的。'
+    }
+  };
+
+  title.textContent = demos[type].title;
+  desc.innerHTML = demos[type].desc;
+  modal.classList.add('show');
+
+  // 动画
+  if (demoAnimationId) cancelAnimationFrame(demoAnimationId);
+  const startTime = performance.now();
+
+  function draw() {
+    const elapsed = (performance.now() - startTime) / 1000;
+    const cycle = (elapsed % 6) / 6; // 6秒循环
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (type === 'convergent') drawConvergentDemo(ctx, canvas, cycle);
+    else if (type === 'divergent') drawDivergentDemo(ctx, canvas, cycle);
+    else if (type === 'transform') drawTransformDemo(ctx, canvas, cycle);
+
+    demoAnimationId = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function drawConvergentDemo(ctx, cv, t) {
+  const w = cv.width, h = cv.height;
+  const move = Math.sin(t * Math.PI * 2) * 15;
+
+  // 背景渐变
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#0d0d18');
+  bg.addColorStop(1, '#1a1a2e');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // 地幔层
+  ctx.fillStyle = 'rgba(255, 112, 67, 0.15)';
+  ctx.fillRect(0, h * 0.7, w, h * 0.3);
+
+  // 左板块（大陆）
+  const leftX = w * 0.25 + move;
+  drawPlateBlock(ctx, leftX - 80, h * 0.3, 80, h * 0.55, '#5D4037', '#8D6E63', '大陆板块');
+
+  // 右板块（大洋，俯冲）
+  const rightX = w * 0.75 - move;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(rightX + 80, h * 0.35);
+  ctx.lineTo(rightX + 80, h * 0.85);
+  ctx.lineTo(rightX + 20, h * 0.85);
+  ctx.lineTo(rightX, h * 0.65);
+  ctx.lineTo(rightX + 40, h * 0.45);
+  ctx.lineTo(rightX + 80, h * 0.35);
+  ctx.closePath();
+  const oceanGrad = ctx.createLinearGradient(rightX, 0, rightX + 80, 0);
+  oceanGrad.addColorStop(0, '#1565C0');
+  oceanGrad.addColorStop(1, '#0D47A1');
+  ctx.fillStyle = oceanGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(13, 71, 161, 0.8)';
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#64B5F6';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('大洋板块', rightX + 40, h * 0.55);
+
+  // 海沟标记
+  const trenchX = (leftX + rightX) / 2;
+  ctx.strokeStyle = '#F44336';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(trenchX, h * 0.35);
+  ctx.lineTo(trenchX, h * 0.7);
+  ctx.stroke();
+
+  // 火山
+  if (move < 0) {
+    const volcX = leftX + 5;
+    const volcH = 25 + Math.abs(move) * 0.8;
+    ctx.fillStyle = '#6D4C41';
+    ctx.beginPath();
+    ctx.moveTo(volcX - 12, h * 0.3);
+    ctx.lineTo(volcX, h * 0.3 - volcH);
+    ctx.lineTo(volcX + 12, h * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    // 喷发
+    ctx.fillStyle = 'rgba(255, 87, 34, 0.6)';
+    for (let i = 0; i < 6; i++) {
+      const px = volcX + (Math.random() - 0.5) * 20;
+      const py = h * 0.3 - volcH - Math.random() * 15;
+      ctx.beginPath();
+      ctx.arc(px, py, 2 + Math.random() * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 地震波
+  const quakePhase = (t * 3) % 1;
+  ctx.strokeStyle = `rgba(244, 67, 54, ${1 - quakePhase})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(trenchX, h * 0.5, quakePhase * 60, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 箭头
+  drawArrow(ctx, leftX - 50, h * 0.5, 1);
+  drawArrow(ctx, rightX + 50, h * 0.5, -1);
+
+  // 标注
+  ctx.fillStyle = '#F44336';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('海沟', trenchX, h * 0.25);
+  ctx.fillStyle = '#FF9800';
+  if (move < 0) ctx.fillText('火山', leftX + 5, h * 0.3 - 35);
+}
+
+function drawDivergentDemo(ctx, cv, t) {
+  const w = cv.width, h = cv.height;
+  const gap = Math.sin(t * Math.PI * 2) * 20 + 30;
+
+  ctx.fillStyle = '#0d0d18';
+  ctx.fillRect(0, 0, w, h);
+
+  // 地幔
+  const mantleGrad = ctx.createLinearGradient(0, h * 0.5, 0, h);
+  mantleGrad.addColorStop(0, 'rgba(255, 112, 67, 0.3)');
+  mantleGrad.addColorStop(1, 'rgba(211, 47, 47, 0.2)');
+  ctx.fillStyle = mantleGrad;
+  ctx.fillRect(0, h * 0.5, w, h * 0.5);
+
+  // 左板块
+  const leftEnd = w / 2 - gap;
+  drawPlateBlock(ctx, leftEnd - 100, h * 0.3, 100, h * 0.55, '#5D4037', '#8D6E63', '');
+
+  // 右板块
+  const rightStart = w / 2 + gap;
+  drawPlateBlock(ctx, rightStart, h * 0.3, 100, h * 0.55, '#5D4037', '#8D6E63', '');
+
+  // 岩浆涌出
+  ctx.fillStyle = 'rgba(255, 87, 34, 0.8)';
+  ctx.beginPath();
+  ctx.moveTo(leftEnd, h * 0.5);
+  ctx.lineTo(rightStart, h * 0.5);
+  ctx.lineTo(rightStart, h * 0.3);
+  ctx.lineTo(leftEnd, h * 0.3);
+  ctx.closePath();
+  ctx.fill();
+
+  // 岩浆粒子
+  for (let i = 0; i < 8; i++) {
+    const px = leftEnd + (rightStart - leftEnd) * Math.random();
+    const py = h * 0.3 + Math.random() * 20;
+    ctx.fillStyle = `rgba(255, ${152 + Math.random() * 100}, 0, ${0.4 + Math.random() * 0.4})`;
+    ctx.beginPath();
+    ctx.arc(px, py, 1.5 + Math.random() * 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 箭头
+  drawArrow(ctx, leftEnd - 30, h * 0.5, -1);
+  drawArrow(ctx, rightStart + 30, h * 0.5, 1);
+
+  // 标注
+  ctx.fillStyle = '#4CAF50';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('新洋壳', w / 2, h * 0.2);
+  ctx.fillStyle = '#FF7043';
+  ctx.fillText('岩浆', w / 2, h * 0.65);
+}
+
+function drawTransformDemo(ctx, cv, t) {
+  const w = cv.width, h = cv.height;
+  const offset = Math.sin(t * Math.PI * 2) * 25;
+
+  ctx.fillStyle = '#0d0d18';
+  ctx.fillRect(0, 0, w, h);
+
+  // 断层线
+  const faultX = w / 2;
+  ctx.strokeStyle = 'rgba(255, 152, 0, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([8, 4]);
+  ctx.beginPath();
+  ctx.moveTo(faultX, 0);
+  ctx.lineTo(faultX, h);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 上板块（向北移动）
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, w, h / 2);
+  ctx.clip();
+  ctx.translate(0, offset);
+  drawPlateBlock(ctx, 10, h * 0.1, w * 0.45, h * 0.35, '#5D4037', '#8D6E63', '');
+  drawPlateBlock(ctx, w * 0.55, h * 0.1, w * 0.4, h * 0.35, '#5D4037', '#8D6E63', '');
+  ctx.restore();
+
+  // 下板块（向南移动）
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, h / 2, w, h / 2);
+  ctx.clip();
+  ctx.translate(0, -offset);
+  drawPlateBlock(ctx, 10, h * 0.5, w * 0.45, h * 0.35, '#5D4037', '#8D6E63', '');
+  drawPlateBlock(ctx, w * 0.55, h * 0.5, w * 0.4, h * 0.35, '#5D4037', '#8D6E63', '');
+  ctx.restore();
+
+  // 箭头
+  drawArrow(ctx, w * 0.3, h * 0.25, 0, 1);
+  drawArrow(ctx, w * 0.7, h * 0.75, 0, -1);
+
+  // 地震波
+  const quakePhase = (t * 3) % 1;
+  ctx.strokeStyle = `rgba(244, 67, 54, ${1 - quakePhase})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(faultX, h / 2, quakePhase * 50, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 标注
+  ctx.fillStyle = '#FF9800';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('转换断层', faultX, h * 0.08);
+  ctx.fillStyle = '#a3a3a3';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('↑', w * 0.3, h * 0.42);
+  ctx.fillText('↓', w * 0.7, h * 0.62);
+}
+
+function drawPlateBlock(ctx, x, y, w, h, color1, color2, label) {
+  const grad = ctx.createLinearGradient(x, y, x, y + h);
+  grad.addColorStop(0, color2);
+  grad.addColorStop(1, color1);
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.strokeRect(x, y, w, h);
+  if (label) {
+    ctx.fillStyle = '#a3a3a3';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x + w / 2, y + h / 2);
+  }
+}
+
+function drawArrow(ctx, x, y, dirX, dirY = 0) {
+  ctx.strokeStyle = '#FF5722';
+  ctx.fillStyle = '#FF5722';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  if (dirX !== 0) {
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + dirX * 25, y);
+    ctx.lineTo(x + dirX * 18, y - 5);
+    ctx.moveTo(x + dirX * 25, y);
+    ctx.lineTo(x + dirX * 18, y + 5);
+  } else {
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y + dirY * 25);
+    ctx.lineTo(x - 5, y + dirY * 18);
+    ctx.moveTo(x, y + dirY * 25);
+    ctx.lineTo(x + 5, y + dirY * 18);
+  }
+  ctx.stroke();
+}
+
+/* ============================================================
+   事件绑定
+   ============================================================ */
+
+function bindEvents() {
+  // 窗口大小
+  window.addEventListener('resize', onWindowResize);
+
+  // 视图模式切换
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => setViewMode(btn.dataset.view));
+  });
+
+  // 时间尺度切换
+  document.querySelectorAll('.time-btn').forEach(btn => {
+    btn.addEventListener('click', () => setTimeMode(btn.dataset.time));
+  });
+
+  // 圈层开关
+  document.querySelectorAll('.toggle-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const layer = row.dataset.layer;
+      const isActive = row.classList.toggle('active');
+      toggleLayer(layer, isActive);
+    });
+  });
+
+  // 边界演示
+  document.querySelectorAll('.boundary-btn[data-boundary]').forEach(btn => {
+    btn.addEventListener('click', () => showBoundaryDemo(btn.dataset.boundary));
+  });
+
+  // 随机地震
+  document.getElementById('triggerRandomQuake').addEventListener('click', () => {
+    const zone = EARTHQUAKE_ZONES[Math.floor(Math.random() * EARTHQUAKE_ZONES.length)];
+    triggerEarthquake(zone);
+  });
+
+  // Canvas点击 → 触发地震
+  renderer.domElement.addEventListener('click', onCanvasClick);
+
+  // Canvas鼠标移动 → 显示提示
+  renderer.domElement.addEventListener('mousemove', onCanvasMove);
+
+  // 自动旋转
+  document.getElementById('spinBtn').addEventListener('click', () => {
+    isSpinning = !isSpinning;
+    document.getElementById('spinBtn').classList.toggle('active', isSpinning);
+  });
+
+  // 重置视角
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    animateCameraTo(new THREE.Vector3(0, 0, 5));
+    earthGroup.rotation.set(0, 0, 0);
+    controls.target.set(0, 0, 0);
+  });
+
+  // 全屏
+  document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  // 面板开关
+  document.getElementById('panelToggleBtn').addEventListener('click', () => {
+    const left = document.getElementById('panelLeft');
+    const right = document.getElementById('panelRight');
+    const isHidden = left.style.opacity === '0';
+    left.style.opacity = isHidden ? '1' : '0';
+    left.style.transform = isHidden ? '' : 'translateX(-120%)';
+    right.style.opacity = isHidden ? '1' : '0';
+    right.style.transform = isHidden ? '' : 'translateX(120%)';
+  });
+
+  // 弹窗关闭
+  document.getElementById('modalClose').addEventListener('click', () => {
+    document.getElementById('boundary-modal').classList.remove('show');
+    if (demoAnimationId) cancelAnimationFrame(demoAnimationId);
+  });
+  document.getElementById('boundary-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'boundary-modal') {
+      document.getElementById('boundary-modal').classList.remove('show');
+      if (demoAnimationId) cancelAnimationFrame(demoAnimationId);
+    }
+  });
+}
+
+function onCanvasClick(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  // 检测点击地震标记
+  const targets = [...earthquakeGroup.children].filter(c => !c.userData.isRing);
+  const intersects = raycaster.intersectObjects(targets);
+  if (intersects.length > 0) {
+    const zone = intersects[0].object.userData.zone;
+    if (zone) triggerEarthquake(zone);
+  }
+}
+
+function onCanvasMove(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const tooltip = document.getElementById('tooltip');
+  const targets = [...earthquakeGroup.children].filter(c => !c.userData.isRing);
+  const intersects = raycaster.intersectObjects(targets);
+
+  if (intersects.length > 0) {
+    const zone = intersects[0].object.userData.zone;
+    tooltip.innerHTML = `
+      <div class="tt-title">${zone.name}</div>
+      <div class="tt-row">震级: <span>M${zone.magnitude}</span></div>
+      <div class="tt-row">深度: <span>${zone.depth}</span></div>
+      <div class="tt-row" style="margin-top:4px;color:#6b6b6b;">点击触发地震波</div>
+    `;
+    tooltip.style.left = (event.clientX + 14) + 'px';
+    tooltip.style.top = (event.clientY + 14) + 'px';
+    tooltip.classList.add('show');
+    renderer.domElement.style.cursor = 'pointer';
+  } else {
+    tooltip.classList.remove('show');
+    renderer.domElement.style.cursor = 'grab';
+  }
+}
+
+function onWindowResize() {
+  const container = document.getElementById('canvas-container');
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>简谐运动与波动 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+/* ============================================================
+   D214 · 简谐运动与波动 — 交互工具型
+   精密物理实验仪器风格
+   ============================================================ */
+
+:root {
+  --phy-primary: #16a085;       /* 深青色 - 主色 */
+  --phy-primary-light: #1abc9c; /* 浅青色 */
+  --phy-bg: #faf8f5;            /* 暖白背景 */
+  --phy-canvas-bg: #f5f2ed;     /* 画布区背景 */
+  --phy-spring: #2980b9;        /* 钢蓝色 - 弹簧/摆球 */
+  --phy-spring-light: #5dade2;
+  --phy-disp: #3498db;          /* 位移曲线 - 靛蓝 */
+  --phy-vel: #f39c12;           /* 速度曲线 - 橙黄 */
+  --phy-acc: #9b59b6;           /* 加速度曲线 - 紫红 */
+  --phy-ke: #e74c3c;            /* 动能 - 红 */
+  --phy-pe: #2980b9;            /* 势能 - 蓝 */
+  --phy-total: #27ae60;         /* 总机械能 - 绿 */
+  --phy-wave: #1abc9c;          /* 波形 */
+  --phy-ref: #34495e;           /* 参考圆 - 深灰 */
+  --phy-ref-arrow: #e74c3c;    /* 参考圆矢量 - 红 */
+  --phy-grid: rgba(180, 170, 155, 0.15);
+  --phy-axis: #b0a595;
+  --phy-panel-bg: rgba(255, 255, 255, 0.92);
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body { background: var(--phy-bg); }
+
+/* ============ 主框架 ============ */
+.shm-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+  padding-top: 64px;
+  padding-bottom: 52px;
+}
+
+/* ============ 上部区域：动画 + 侧栏 ============ */
+.shm-upper {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  min-height: 0;
+}
+
+/* ---------- 动画画布区 ---------- */
+.shm-canvas-area {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #faf8f5 0%, #f0ebe3 100%);
+  border-right: 1px solid var(--border);
+}
+#animCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 模式标签 */
+.shm-mode-label {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.shm-mode-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--phy-primary);
+  box-shadow: 0 0 8px rgba(22, 160, 133, 0.4);
+  animation: shm-pulse 2s ease-in-out infinite;
+}
+@keyframes shm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.shm-mode-text {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- 侧栏 ---------- */
+.shm-side-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.shm-side-section {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.shm-side-title {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+/* 参考圆 */
+.shm-ref-circle-wrap {
+  display: flex;
+  justify-content: center;
+}
+#refCanvas {
+  width: 180px;
+  height: 180px;
+}
+
+/* 能量条 */
+.shm-energy-bar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.shm-energy-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.shm-energy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.shm-energy-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.shm-energy-label .dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.shm-energy-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+.shm-energy-track {
+  height: 8px;
+  background: var(--surface-muted);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.shm-energy-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.1s linear;
+}
+.shm-energy-fill.ke { background: linear-gradient(90deg, #e74c3c, #ff6b6b); }
+.shm-energy-fill.pe { background: linear-gradient(90deg, #2980b9, #5dade2); }
+.shm-energy-total-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--phy-total);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.shm-energy-total-line::before {
+  content: '';
+  flex: 1;
+  height: 1px;
+  border-top: 1.5px dashed var(--phy-total);
+}
+
+/* 数据显示 */
+.shm-data-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.shm-data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.shm-data-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.shm-data-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.shm-data-value.disp { color: var(--phy-disp); }
+.shm-data-value.vel { color: var(--phy-vel); }
+.shm-data-value.acc { color: var(--phy-acc); }
+
+/* ============ 曲线图区 ============ */
+.shm-graph-area {
+  height: 200px;
+  flex-shrink: 0;
+  position: relative;
+  background: #fefcf9;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+#graphCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.shm-graph-legend {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  display: flex;
+  gap: 16px;
+  z-index: 5;
+}
+.shm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+.shm-legend-item.inactive { opacity: 0.3; }
+.shm-legend-dot {
+  width: 10px; height: 3px;
+  border-radius: 2px;
+}
+.shm-graph-axis-label {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+/* ============ 控制面板 ============ */
+.shm-control-panel {
+  flex-shrink: 0;
+  height: 176px;
+  background: var(--surface-muted);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 160px 1fr 280px;
+  gap: 0;
+}
+.shm-ctrl-section {
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+.shm-ctrl-section + .shm-ctrl-section {
+  border-left: 1px solid var(--border-soft);
+}
+.shm-ctrl-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* 模式选择 */
+.shm-mode-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.shm-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  text-align: left;
+}
+.shm-mode-btn:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+.shm-mode-btn.active {
+  background: var(--phy-primary);
+  border-color: var(--phy-primary);
+  color: #fff;
+}
+.shm-mode-btn svg {
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+}
+
+/* 参数滑块 */
+.shm-sliders {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px 24px;
+}
+.shm-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.shm-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.shm-slider-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.shm-slider-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--phy-primary);
+}
+.shm-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.shm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--phy-primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.15s;
+}
+.shm-slider::-webkit-slider-thumb:hover { transform: scale(1.25); }
+.shm-slider::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--phy-primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* 右侧控制区 */
+.shm-curve-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.shm-toggle-btn {
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.shm-toggle-btn:hover { border-color: var(--text-faint); }
+.shm-toggle-btn.active {
+  color: #fff;
+  border-color: transparent;
+}
+.shm-toggle-btn.active[data-curve="x"] { background: var(--phy-disp); }
+.shm-toggle-btn.active[data-curve="v"] { background: var(--phy-vel); }
+.shm-toggle-btn.active[data-curve="a"] { background: var(--phy-acc); }
+.shm-toggle-btn.active[data-curve="e"] { background: var(--phy-ke); }
+.shm-toggle-btn.active[data-curve="ref"] { background: var(--phy-ref); }
+
+/* 预设 */
+.shm-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shm-preset-select {
+  flex: 1;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+/* 播放控制 */
+.shm-playback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shm-play-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--phy-primary);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.shm-play-btn:hover { background: #149077; transform: scale(1.05); }
+.shm-play-btn svg { width: 16px; height: 16px; }
+
+.shm-ctrl-small {
+  width: 32px; height: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.shm-ctrl-small:hover { border-color: var(--text-faint); color: var(--text); }
+.shm-ctrl-small svg { width: 14px; height: 14px; }
+
+.shm-speed-group {
+  display: flex;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px;
+}
+.shm-speed-btn {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.shm-speed-btn.active {
+  background: var(--phy-primary);
+  color: #fff;
+}
+
+/* ============ 信息条 ============ */
+.demo-info-bar {
+  height: 52px;
+}
+.demo-info-center {
+  gap: var(--spacer-16);
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 1024px) {
+  .shm-upper { grid-template-columns: 1fr 220px; }
+  .shm-control-panel { grid-template-columns: 140px 1fr 240px; }
+  .shm-sliders { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .shm-app { padding-top: 56px; padding-bottom: 44px; }
+  .shm-upper { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .shm-side-panel {
+    flex-direction: row;
+    overflow-x: auto;
+    max-height: 140px;
+    border-top: 1px solid var(--border);
+  }
+  .shm-side-section {
+    border-bottom: none;
+    border-right: 1px solid var(--border-soft);
+    min-width: 200px;
+    flex-shrink: 0;
+  }
+  .shm-graph-area { height: 140px; }
+  .shm-control-panel {
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  .shm-ctrl-section + .shm-ctrl-section { border-left: none; border-top: 1px solid var(--border-soft); }
+  .shm-sliders { grid-template-columns: repeat(2, 1fr); }
+  .shm-mode-btns { flex-direction: row; }
+  .demo-info-bar { height: 44px; }
+  .demo-info-title { display: none; }
+}
+
+@media (max-width: 480px) {
+  .shm-sliders { grid-template-columns: 1fr; }
+  .shm-graph-area { height: 120px; }
+}
+
+/* 滚动条 */
+.shm-side-panel::-webkit-scrollbar { width: 4px; }
+.shm-side-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">物理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">简谐运动与波动</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-physics">物理</span>
+      <a href="/skills/jingbo-edu-physics-experiment-sim-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体 ====== -->
+<div class="shm-app">
+
+  <!-- ========== 上部：动画 + 侧栏 ========== -->
+  <div class="shm-upper">
+
+    <!-- 动画画布 -->
+    <div class="shm-canvas-area">
+      <div class="shm-mode-label">
+        <span class="shm-mode-dot"></span>
+        <span class="shm-mode-text" id="modeLabel">弹簧振子</span>
+      </div>
+      <canvas id="animCanvas"></canvas>
+    </div>
+
+    <!-- 侧栏 -->
+    <aside class="shm-side-panel">
+
+      <!-- 参考圆 -->
+      <div class="shm-side-section">
+        <div class="shm-side-title">参考圆</div>
+        <div class="shm-ref-circle-wrap">
+          <canvas id="refCanvas" width="360" height="360"></canvas>
+        </div>
+      </div>
+
+      <!-- 能量 -->
+      <div class="shm-side-section">
+        <div class="shm-side-title">能量分布</div>
+        <div class="shm-energy-bar-group">
+          <div class="shm-energy-item">
+            <div class="shm-energy-header">
+              <span class="shm-energy-label"><span class="dot" style="background:var(--phy-ke)"></span>动能 Eₖ</span>
+              <span class="shm-energy-value" id="keValue" style="color:var(--phy-ke)">0.00</span>
+            </div>
+            <div class="shm-energy-track"><div class="shm-energy-fill ke" id="keBar" style="width:0%"></div></div>
+          </div>
+          <div class="shm-energy-item">
+            <div class="shm-energy-header">
+              <span class="shm-energy-label"><span class="dot" style="background:var(--phy-pe)"></span>势能 Eₚ</span>
+              <span class="shm-energy-value" id="peValue" style="color:var(--phy-pe)">0.00</span>
+            </div>
+            <div class="shm-energy-track"><div class="shm-energy-fill pe" id="peBar" style="width:0%"></div></div>
+          </div>
+          <div class="shm-energy-total-line">
+            <span>总机械能 E</span>
+            <span id="totalValue">0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 实时数据 -->
+      <div class="shm-side-section">
+        <div class="shm-side-title">实时数据</div>
+        <div class="shm-data-grid">
+          <div class="shm-data-row">
+            <span class="shm-data-label">位移 x</span>
+            <span class="shm-data-value disp" id="dataX">0.00 cm</span>
+          </div>
+          <div class="shm-data-row">
+            <span class="shm-data-label">速度 v</span>
+            <span class="shm-data-value vel" id="dataV">0.00 cm/s</span>
+          </div>
+          <div class="shm-data-row">
+            <span class="shm-data-label">加速度 a</span>
+            <span class="shm-data-value acc" id="dataA">0.00 cm/s²</span>
+          </div>
+          <div class="shm-data-row">
+            <span class="shm-data-label">周期 T</span>
+            <span class="shm-data-value" id="dataT">3.14 s</span>
+          </div>
+          <div class="shm-data-row">
+            <span class="shm-data-label">频率 f</span>
+            <span class="shm-data-value" id="dataF">0.32 Hz</span>
+          </div>
+          <div class="shm-data-row">
+            <span class="shm-data-label">相位 φ</span>
+            <span class="shm-data-value" id="dataPhi">0.00 rad</span>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- ========== 曲线图区 ========== -->
+  <div class="shm-graph-area">
+    <div class="shm-graph-legend" id="graphLegend">
+      <div class="shm-legend-item" data-curve="x">
+        <span class="shm-legend-dot" style="background:var(--phy-disp)"></span>位移 x-t
+      </div>
+      <div class="shm-legend-item inactive" data-curve="v">
+        <span class="shm-legend-dot" style="background:var(--phy-vel)"></span>速度 v-t
+      </div>
+      <div class="shm-legend-item inactive" data-curve="a">
+        <span class="shm-legend-dot" style="background:var(--phy-acc)"></span>加速度 a-t
+      </div>
+      <div class="shm-legend-item inactive" data-curve="e">
+        <span class="shm-legend-dot" style="background:var(--phy-ke)"></span>能量 E-t
+      </div>
+    </div>
+    <canvas id="graphCanvas"></canvas>
+  </div>
+
+  <!-- ========== 控制面板 ========== -->
+  <div class="shm-control-panel">
+
+    <!-- 模式选择 -->
+    <div class="shm-ctrl-section">
+      <div class="shm-ctrl-label">振动模型</div>
+      <div class="shm-mode-btns">
+        <button class="shm-mode-btn active" data-mode="spring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h2l2-4 2 8 2-8 2 8 2-8 2 8 2-4h2"/></svg>
+          弹簧振子
+        </button>
+        <button class="shm-mode-btn" data-mode="pendulum">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v6m0 0l4 8a4 4 0 1 1-8 0z"/></svg>
+          单摆
+        </button>
+        <button class="shm-mode-btn" data-mode="wave">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/></svg>
+          波动
+        </button>
+      </div>
+    </div>
+
+    <!-- 参数滑块 -->
+    <div class="shm-ctrl-section">
+      <div class="shm-ctrl-label">参数调节</div>
+      <div class="shm-sliders" id="sliderArea">
+        <!-- 动态生成 -->
+      </div>
+    </div>
+
+    <!-- 显示与播放控制 -->
+    <div class="shm-ctrl-section">
+      <div class="shm-ctrl-label">显示与控制</div>
+      <div class="shm-curve-toggles">
+        <button class="shm-toggle-btn active" data-curve="x">x-t</button>
+        <button class="shm-toggle-btn" data-curve="v">v-t</button>
+        <button class="shm-toggle-btn" data-curve="a">a-t</button>
+        <button class="shm-toggle-btn" data-curve="e">E-t</button>
+        <button class="shm-toggle-btn active" data-curve="ref">参考圆</button>
+      </div>
+      <div class="shm-preset-row">
+        <select class="shm-preset-select" id="presetSelect">
+          <option value="">— 选择预设 —</option>
+          <option value="shm">标准简谐运动</option>
+          <option value="damped">欠阻尼振动</option>
+          <option value="resonance">共振现象</option>
+          <option value="isochronism">单摆等时性</option>
+          <option value="transverse">横波传播</option>
+          <option value="superposition">波的叠加</option>
+        </select>
+      </div>
+      <div class="shm-playback">
+        <button class="shm-play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+        </button>
+        <button class="shm-ctrl-small" id="stepBtn" title="单步前进">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l10 8-10 8V4z"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+        </button>
+        <button class="shm-ctrl-small" id="resetBtn" title="重置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.7 3"/><polyline points="3 4 3 9 8 9"/></svg>
+        </button>
+        <div class="shm-speed-group">
+          <button class="shm-speed-btn" data-speed="0.25">0.25×</button>
+          <button class="shm-speed-btn" data-speed="0.5">0.5×</button>
+          <button class="shm-speed-btn active" data-speed="1">1×</button>
+          <button class="shm-speed-btn" data-speed="2">2×</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<div class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">简谐运动与波动</span>
+    <span class="demo-tech-tag">Canvas 2D</span>
+    <span class="demo-tech-tag">物理引擎</span>
+  </div>
+  <div class="demo-info-center">
+    <span class="demo-info-link">F = -kx</span>
+    <span class="demo-info-link">x = A·cos(ωt + φ)</span>
+    <span class="demo-info-link">T = 2π√(L/g)</span>
+    <span class="demo-info-link">v = λf</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/demos.html" class="demo-info-link">更多 Demo →</a>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   物理状态
+   ============================================================ */
+const state = {
+  mode: 'spring',        // spring | pendulum | wave
+  amplitude: 5,          // cm (spring) / ° (pendulum)
+  omega: 2,              // rad/s
+  phase: 0,              // rad
+  damping: 0,            // 0-1
+  // 波动参数
+  wavelength: 150,       // px
+  waveSpeed: 80,         // px/s
+  waveSuperposition: false,
+  // 受迫振动
+  forcedMode: false,
+  driveFreq: 2,          // Hz
+  // 播放
+  time: 0,
+  playing: true,
+  speed: 1,
+  // 显示
+  curves: { x: true, v: false, a: false, e: false },
+  showRefCircle: true,
+  // 历史数据
+  history: [],
+  maxHistory: 600,
+  // 单摆参数
+  pendulumLength: 200,   // px (visual)
+  g: 9.8,                // m/s²
+};
+
+/* ============================================================
+   Canvas 初始化
+   ============================================================ */
+const animCanvas = document.getElementById('animCanvas');
+const animCtx = animCanvas.getContext('2d');
+const graphCanvas = document.getElementById('graphCanvas');
+const graphCtx = graphCanvas.getContext('2d');
+const refCanvas = document.getElementById('refCanvas');
+const refCtx = refCanvas.getContext('2d');
+
+let dpr = window.devicePixelRatio || 1;
+
+function resizeCanvas(canvas, ctx) {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { w: rect.width, h: rect.height };
+}
+
+let animSize = { w: 0, h: 0 };
+let graphSize = { w: 0, h: 0 };
+
+function handleResize() {
+  dpr = window.devicePixelRatio || 1;
+  animSize = resizeCanvas(animCanvas, animCtx);
+  graphSize = resizeCanvas(graphCanvas, graphCtx);
+  // 参考圆固定大小
+  refCanvas.width = 360;
+  refCanvas.height = 360;
+}
+window.addEventListener('resize', handleResize);
+
+/* ============================================================
+   物理计算引擎
+   ============================================================ */
+function physics(t) {
+  const A = state.amplitude;
+  const w = state.omega;
+  const phi = state.phase;
+  const g = state.damping;
+
+  const decay = Math.exp(-g * t);
+  const cosArg = w * t + phi;
+  const sinArg = Math.sin(cosArg);
+  const cosVal = Math.cos(cosArg);
+
+  let x, v, a;
+
+  if (state.forcedMode) {
+    // 受迫振动：自由振动衰减 + 驱动振动稳态
+    const wd = 2 * Math.PI * state.driveFreq;
+    const xFree = A * cosVal * decay;
+    const xDriven = A * 0.8 * Math.cos(wd * t);
+    x = xFree + xDriven;
+    v = -A * w * sinArg * decay - A * 0.8 * wd * Math.sin(wd * t);
+    a = -A * w * w * cosVal * decay - A * 0.8 * wd * wd * Math.cos(wd * t);
+  } else {
+    x = A * cosVal * decay;
+    v = -A * w * sinArg * decay;
+    a = -A * w * w * cosVal * decay;
+  }
+
+  // 能量（比例值）
+  const ke = 0.5 * v * v;
+  const pe = 0.5 * w * w * x * x;
+  const total = ke + pe;
+
+  return { x, v, a, ke, pe, total, phase: cosArg };
+}
+
+function getPeriod() {
+  return (2 * Math.PI) / state.omega;
+}
+
+/* ============================================================
+   渲染 — 弹簧振子
+   ============================================================ */
+function drawSpring(ctx, w, h, data) {
+  ctx.clearRect(0, 0, w, h);
+
+  const centerY = h / 2;
+  const wallX = 50;
+  const equilibriumX = w * 0.55;
+  const scale = 12; // 1cm = 12px
+  const ballX = equilibriumX + data.x * scale;
+  const ballRadius = 18;
+
+  // ---- 背景网格 ----
+  drawGrid(ctx, w, h);
+
+  // ---- 平衡位置标记 ----
+  ctx.strokeStyle = 'rgba(180, 165, 145, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  ctx.moveTo(equilibriumX, centerY - 60);
+  ctx.lineTo(equilibriumX, centerY + 60);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = 'rgba(140, 130, 115, 0.5)';
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('O', equilibriumX, centerY + 75);
+
+  // ---- 位移标尺 ----
+  ctx.strokeStyle = 'rgba(140, 130, 115, 0.2)';
+  ctx.lineWidth = 1;
+  const rulerY = centerY + 50;
+  ctx.beginPath();
+  ctx.moveTo(equilibriumX - state.amplitude * scale, rulerY);
+  ctx.lineTo(equilibriumX + state.amplitude * scale, rulerY);
+  ctx.stroke();
+  // 刻度
+  for (let i = -state.amplitude; i <= state.amplitude; i++) {
+    const tx = equilibriumX + i * scale;
+    ctx.beginPath();
+    ctx.moveTo(tx, rulerY - 3);
+    ctx.lineTo(tx, rulerY + 3);
+    ctx.stroke();
+    if (i !== 0) {
+      ctx.fillStyle = 'rgba(140, 130, 115, 0.4)';
+      ctx.font = '8px JetBrains Mono, monospace';
+      ctx.fillText(i, tx, rulerY + 14);
+    }
+  }
+  ctx.fillStyle = 'rgba(140, 130, 115, 0.4)';
+  ctx.font = '8px JetBrains Mono, monospace';
+  ctx.fillText('cm', equilibriumX + state.amplitude * scale + 15, rulerY + 4);
+
+  // ---- 墙壁 ----
+  ctx.fillStyle = '#d4c9b8';
+  ctx.fillRect(wallX - 8, centerY - 50, 8, 100);
+  // 墙壁斜线
+  ctx.strokeStyle = '#b8aa97';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 10; i++) {
+    const y = centerY - 50 + i * 10;
+    ctx.beginPath();
+    ctx.moveTo(wallX - 8, y);
+    ctx.lineTo(wallX - 16, y + 8);
+    ctx.stroke();
+  }
+
+  // ---- 弹簧 ----
+  const springStart = wallX;
+  const springEnd = ballX - ballRadius;
+  drawSpringCoil(ctx, springStart, centerY, springEnd, centerY, 16, 12);
+
+  // ---- 残影轨迹 ----
+  if (state.history.length > 2) {
+    const trailLen = Math.min(20, state.history.length);
+    for (let i = state.history.length - trailLen; i < state.history.length - 1; i++) {
+      const alpha = (i - (state.history.length - trailLen)) / trailLen * 0.15;
+      const trailX = equilibriumX + state.history[i].x * scale;
+      ctx.fillStyle = `rgba(41, 128, 185, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(trailX, centerY, ballRadius * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ---- 振子球 ----
+  const ballGrad = ctx.createRadialGradient(
+    ballX - 5, centerY - 5, 2,
+    ballX, centerY, ballRadius
+  );
+  ballGrad.addColorStop(0, '#7fc4eb');
+  ballGrad.addColorStop(0.5, '#3a8fc4');
+  ballGrad.addColorStop(1, '#1c5d8a');
+
+  // 阴影
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+  ctx.beginPath();
+  ctx.ellipse(ballX, centerY + ballRadius + 2, ballRadius * 0.9, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 球体
+  ctx.fillStyle = ballGrad;
+  ctx.beginPath();
+  ctx.arc(ballX, centerY, ballRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 高光
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.beginPath();
+  ctx.arc(ballX - 6, centerY - 6, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ---- 速度矢量箭头 ----
+  if (Math.abs(data.v) > 0.1) {
+    const arrowLen = data.v * 3;
+    const arrowY = centerY - ballRadius - 12;
+    ctx.strokeStyle = 'rgba(243, 156, 18, 0.7)';
+    ctx.fillStyle = 'rgba(243, 156, 18, 0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ballX, arrowY);
+    ctx.lineTo(ballX + arrowLen, arrowY);
+    ctx.stroke();
+    // 箭头头
+    const dir = Math.sign(arrowLen);
+    ctx.beginPath();
+    ctx.moveTo(ballX + arrowLen, arrowY);
+    ctx.lineTo(ballX + arrowLen - dir * 6, arrowY - 3);
+    ctx.lineTo(ballX + arrowLen - dir * 6, arrowY + 3);
+    ctx.closePath();
+    ctx.fill();
+    // 标签
+    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.fillStyle = 'rgba(243, 156, 18, 0.7)';
+    ctx.textAlign = 'center';
+    ctx.fillText('v', ballX + arrowLen / 2, arrowY - 5);
+  }
+
+  // ---- 回复力矢量 ----
+  if (Math.abs(data.x) > 0.3) {
+    const forceLen = -data.x * 2;
+    const forceY = centerY + ballRadius + 15;
+    ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+    ctx.fillStyle = 'rgba(231, 76, 60, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(ballX, forceY);
+    ctx.lineTo(ballX + forceLen, forceY);
+    ctx.stroke();
+    const dir = Math.sign(forceLen);
+    if (dir !== 0) {
+      ctx.beginPath();
+      ctx.moveTo(ballX + forceLen, forceY);
+      ctx.lineTo(ballX + forceLen - dir * 5, forceY - 3);
+      ctx.lineTo(ballX + forceLen - dir * 5, forceY + 3);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.fillStyle = 'rgba(231, 76, 60, 0.6)';
+    ctx.textAlign = 'center';
+    ctx.fillText('F', ballX + forceLen / 2, forceY + 12);
+  }
+}
+
+function drawSpringCoil(ctx, x1, y1, x2, y2, coils, amp) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len < 5) return;
+
+  const angle = Math.atan2(dy, dx);
+  ctx.save();
+  ctx.translate(x1, y1);
+  ctx.rotate(angle);
+
+  // 弹簧颜色渐变
+  const grad = ctx.createLinearGradient(0, 0, len, 0);
+  grad.addColorStop(0, '#2980b9');
+  grad.addColorStop(1, '#3498db');
+
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const segments = coils * 4;
+  const step = len / segments;
+
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+
+  // 连接线段
+  ctx.lineTo(step * 0.5, 0);
+
+  for (let i = 0; i < coils; i++) {
+    const baseX = step * 0.5 + (len - step) * (i / coils);
+    const nextX = step * 0.5 + (len - step) * ((i + 1) / coils);
+    const midX = (baseX + nextX) / 2;
+
+    // 用贝塞尔曲线画螺旋圈
+    ctx.bezierCurveTo(
+      baseX + (nextX - baseX) * 0.2, -amp,
+      baseX + (nextX - baseX) * 0.8, amp,
+      nextX, 0
+    );
+  }
+
+  // 末尾连接
+  ctx.lineTo(len, 0);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/* ============================================================
+   渲染 — 单摆
+   ============================================================ */
+function drawPendulum(ctx, w, h, data) {
+  ctx.clearRect(0, 0, w, h);
+
+  const pivotX = w / 2;
+  const pivotY = h * 0.18;
+  const length = Math.min(h * 0.55, 240);
+  const ballRadius = 16;
+
+  // 振幅转换为弧度
+  const ampRad = state.amplitude * Math.PI / 180;
+  const angle = (data.x / state.amplitude) * ampRad;
+
+  const ballX = pivotX + Math.sin(angle) * length;
+  const ballY = pivotY + Math.cos(angle) * length;
+
+  // ---- 背景网格 ----
+  drawGrid(ctx, w, h);
+
+  // ---- 摆动弧线轨迹 ----
+  ctx.strokeStyle = 'rgba(180, 165, 145, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 4]);
+  ctx.beginPath();
+  ctx.arc(pivotX, pivotY, length, Math.PI / 2 - ampRad, Math.PI / 2 + ampRad);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ---- 平衡位置虚线 ----
+  ctx.strokeStyle = 'rgba(180, 165, 145, 0.15)';
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  ctx.moveTo(pivotX, pivotY);
+  ctx.lineTo(pivotX, pivotY + length + 20);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ---- 顶部支架 ----
+  ctx.fillStyle = '#d4c9b8';
+  ctx.fillRect(pivotX - 40, pivotY - 10, 80, 8);
+  // 支架斜线
+  ctx.strokeStyle = '#b8aa97';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 8; i++) {
+    ctx.beginPath();
+    ctx.moveTo(pivotX - 40 + i * 10, pivotY - 10);
+    ctx.lineTo(pivotX - 45 + i * 10, pivotY - 18);
+    ctx.stroke();
+  }
+
+  // ---- 残影 ----
+  if (state.history.length > 2) {
+    const trailLen = Math.min(15, state.history.length);
+    for (let i = state.history.length - trailLen; i < state.history.length - 1; i++) {
+      const alpha = (i - (state.history.length - trailLen)) / trailLen * 0.12;
+      const trailAngle = (state.history[i].x / state.amplitude) * ampRad;
+      const tx = pivotX + Math.sin(trailAngle) * length;
+      const ty = pivotY + Math.cos(trailAngle) * length;
+      ctx.fillStyle = `rgba(41, 128, 185, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(tx, ty, ballRadius * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ---- 摆杆 ----
+  ctx.strokeStyle = '#7f7060';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pivotX, pivotY);
+  ctx.lineTo(ballX, ballY);
+  ctx.stroke();
+
+  // ---- 枢轴 ----
+  ctx.fillStyle = '#555';
+  ctx.beginPath();
+  ctx.arc(pivotX, pivotY, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#888';
+  ctx.beginPath();
+  ctx.arc(pivotX, pivotY, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ---- 摆球 ----
+  const ballGrad = ctx.createRadialGradient(
+    ballX - 5, ballY - 5, 2,
+    ballX, ballY, ballRadius
+  );
+  ballGrad.addColorStop(0, '#7fc4eb');
+  ballGrad.addColorStop(0.5, '#3a8fc4');
+  ballGrad.addColorStop(1, '#1c5d8a');
+
+  ctx.fillStyle = ballGrad;
+  ctx.beginPath();
+  ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.beginPath();
+  ctx.arc(ballX - 5, ballY - 5, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ---- 角度显示 ----
+  if (Math.abs(angle) > 0.02) {
+    ctx.strokeStyle = 'rgba(22, 160, 133, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, 30, Math.PI / 2, Math.PI / 2 + angle, angle < 0);
+    ctx.stroke();
+
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.fillStyle = 'rgba(22, 160, 133, 0.7)';
+    ctx.textAlign = 'center';
+    const labelAngle = Math.PI / 2 + angle / 2;
+    const labelR = 42;
+    ctx.fillText(
+      (angle * 180 / Math.PI).toFixed(1) + '°',
+      pivotX + Math.cos(labelAngle) * labelR,
+      pivotY + Math.sin(labelAngle) * labelR + 3
+    );
+  }
+
+  // ---- 速度矢量 ----
+  if (Math.abs(data.v) > 0.1) {
+    const tangentAngle = angle + Math.PI / 2;
+    const arrowLen = data.v * 3;
+    const ax = ballX + Math.cos(tangentAngle) * (ballRadius + 5);
+    const ay = ballY + Math.sin(tangentAngle) * (ballRadius + 5);
+    const ex = ax + Math.cos(tangentAngle) * arrowLen;
+    const ey = ay + Math.sin(tangentAngle) * arrowLen;
+
+    ctx.strokeStyle = 'rgba(243, 156, 18, 0.7)';
+    ctx.fillStyle = 'rgba(243, 156, 18, 0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    const dir = Math.sign(arrowLen);
+    const perpX = Math.cos(tangentAngle + Math.PI / 2) * 3 * dir;
+    const perpY = Math.sin(tangentAngle + Math.PI / 2) * 3 * dir;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - Math.cos(tangentAngle) * 6 * dir + perpX, ey - Math.sin(tangentAngle) * 6 * dir + perpY);
+    ctx.lineTo(ex - Math.cos(tangentAngle) * 6 * dir - perpX, ey - Math.sin(tangentAngle) * 6 * dir - perpY);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+/* ============================================================
+   渲染 — 波动
+   ============================================================ */
+function drawWave(ctx, w, h, data) {
+  ctx.clearRect(0, 0, w, h);
+
+  const centerY = h / 2;
+  const A = state.amplitude * 4; // 放大振幅用于显示
+  const lambda = state.wavelength;
+  const v = state.waveSpeed;
+  const k = (2 * Math.PI) / lambda;
+  const omega = k * v;
+  const t = state.time;
+
+  // ---- 背景网格 ----
+  drawGrid(ctx, w, h);
+
+  // ---- 平衡线 ----
+  ctx.strokeStyle = 'rgba(180, 165, 145, 0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, centerY);
+  ctx.lineTo(w, centerY);
+  ctx.stroke();
+
+  // ---- 波形填充 ----
+  const grad = ctx.createLinearGradient(0, centerY - A, 0, centerY + A);
+  grad.addColorStop(0, 'rgba(26, 188, 156, 0.15)');
+  grad.addColorStop(0.5, 'rgba(22, 160, 133, 0.05)');
+  grad.addColorStop(1, 'rgba(26, 188, 156, 0.15)');
+
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(0, centerY);
+  for (let x = 0; x <= w; x += 2) {
+    const y = centerY + A * Math.sin(k * x - omega * t);
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(w, centerY);
+  ctx.closePath();
+  ctx.fill();
+
+  // ---- 波形线 ----
+  ctx.strokeStyle = '#1abc9c';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 1) {
+    const y = centerY + A * Math.sin(k * x - omega * t);
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // ---- 第二列波（叠加模式） ----
+  if (state.waveSuperposition) {
+    const k2 = k * 1.3;
+    const omega2 = omega * 1.3;
+
+    ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    for (let x = 0; x <= w; x += 1) {
+      const y = centerY + A * 0.7 * Math.sin(k2 * x - omega2 * t);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 叠加波
+    ctx.strokeStyle = '#9b59b6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = 0; x <= w; x += 1) {
+      const y1 = A * Math.sin(k * x - omega * t);
+      const y2 = A * 0.7 * Math.sin(k2 * x - omega2 * t);
+      const y = centerY + y1 + y2;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // ---- 质点 ----
+  const numParticles = Math.floor(w / 30);
+  for (let i = 0; i <= numParticles; i++) {
+    const px = (i / numParticles) * w;
+    const py = centerY + A * Math.sin(k * px - omega * t);
+
+    // 连接线
+    ctx.strokeStyle = 'rgba(22, 160, 133, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px, centerY);
+    ctx.lineTo(px, py);
+    ctx.stroke();
+
+    // 质点
+    ctx.fillStyle = '#16a085';
+    ctx.beginPath();
+    ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 高亮某个质点
+    if (i === Math.floor(numParticles / 3)) {
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(px, py, 6, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 标注
+      ctx.font = '9px JetBrains Mono, monospace';
+      ctx.fillStyle = '#e74c3c';
+      ctx.textAlign = 'center';
+      ctx.fillText('P', px, py - 12);
+    }
+  }
+
+  // ---- 波长标注 ----
+  const wlStart = 40;
+  const wlEnd = wlStart + lambda;
+  if (wlEnd < w) {
+    const wlY = centerY + A + 30;
+    ctx.strokeStyle = 'rgba(22, 160, 133, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(wlStart, wlY);
+    ctx.lineTo(wlEnd, wlY);
+    ctx.stroke();
+    // 端点
+    ctx.beginPath();
+    ctx.moveTo(wlStart, wlY - 4);
+    ctx.lineTo(wlStart, wlY + 4);
+    ctx.moveTo(wlEnd, wlY - 4);
+    ctx.lineTo(wlEnd, wlY + 4);
+    ctx.stroke();
+
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.fillStyle = 'rgba(22, 160, 133, 0.7)';
+    ctx.textAlign = 'center';
+    ctx.fillText('λ', (wlStart + wlEnd) / 2, wlY + 14);
+  }
+
+  // ---- 传播方向箭头 ----
+  const arrowY = centerY - A - 20;
+  ctx.strokeStyle = 'rgba(22, 160, 133, 0.4)';
+  ctx.fillStyle = 'rgba(22, 160, 133, 0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(w - 60, arrowY);
+  ctx.lineTo(w - 30, arrowY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(w - 30, arrowY);
+  ctx.lineTo(w - 36, arrowY - 3);
+  ctx.lineTo(w - 36, arrowY + 3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('v', w - 45, arrowY - 5);
+}
+
+/* ============================================================
+   渲染 — 背景网格
+   ============================================================ */
+function drawGrid(ctx, w, h) {
+  ctx.strokeStyle = 'rgba(180, 170, 155, 0.08)';
+  ctx.lineWidth = 1;
+  const step = 30;
+  for (let x = 0; x < w; x += step) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y < h; y += step) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+}
+
+/* ============================================================
+   渲染 — 曲线图
+   ============================================================ */
+function drawGraph() {
+  const ctx = graphCtx;
+  const { w, h } = graphSize;
+  ctx.clearRect(0, 0, w, h);
+
+  const padding = { top: 30, right: 20, bottom: 20, left: 40 };
+  const plotW = w - padding.left - padding.right;
+  const plotH = h - padding.top - padding.bottom;
+  const cx = padding.left;
+  const cy = padding.top;
+
+  // ---- 背景 ----
+  ctx.fillStyle = '#fefcf9';
+  ctx.fillRect(cx, cy, plotW, plotH);
+
+  // ---- 网格 ----
+  ctx.strokeStyle = 'rgba(180, 170, 155, 0.12)';
+  ctx.lineWidth = 1;
+  const xSteps = 10;
+  const ySteps = 5;
+  for (let i = 0; i <= xSteps; i++) {
+    const x = cx + (plotW / xSteps) * i;
+    ctx.beginPath();
+    ctx.moveTo(x, cy);
+    ctx.lineTo(x, cy + plotH);
+    ctx.stroke();
+  }
+  for (let i = 0; i <= ySteps; i++) {
+    const y = cy + (plotH / ySteps) * i;
+    ctx.beginPath();
+    ctx.moveTo(cx, y);
+    ctx.lineTo(cx + plotW, y);
+    ctx.stroke();
+  }
+
+  // ---- 中线（零线） ----
+  ctx.strokeStyle = 'rgba(140, 130, 115, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + plotH / 2);
+  ctx.lineTo(cx + plotW, cy + plotH / 2);
+  ctx.stroke();
+
+  // ---- 坐标轴 ----
+  ctx.strokeStyle = 'rgba(140, 130, 115, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx, cy + plotH);
+  ctx.lineTo(cx + plotW, cy + plotH);
+  ctx.stroke();
+
+  // ---- 轴标签 ----
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.fillStyle = 'rgba(140, 130, 115, 0.6)';
+  ctx.textAlign = 'right';
+  ctx.fillText('0', cx - 4, cy + plotH / 2 + 3);
+  ctx.fillText('+', cx - 4, cy + 4);
+  ctx.fillText('−', cx - 4, cy + plotH - 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('t →', cx + plotW - 10, cy + plotH + 14);
+
+  // ---- 时间窗口 ----
+  const timeWindow = 10; // 显示最近10秒
+  const currentT = state.time;
+  const startT = Math.max(0, currentT - timeWindow);
+
+  // ---- 绘制曲线 ----
+  if (state.history.length < 2) return;
+
+  const maxA = state.amplitude;
+  const energyMax = 0.5 * maxA * maxA * state.omega * state.omega; // 最大总机械能 ½A²ω²
+
+  const curveConfigs = [
+    { key: 'x', color: '#3498db', getY: d => d.x / maxA, label: 'x' },
+    { key: 'v', color: '#f39c12', getY: d => d.v / (maxA * state.omega), label: 'v' },
+    { key: 'a', color: '#9b59b6', getY: d => d.a / (maxA * state.omega * state.omega), label: 'a' },
+  ];
+
+  // 普通曲线
+  curveConfigs.forEach(cfg => {
+    if (!state.curves[cfg.key]) return;
+
+    ctx.strokeStyle = cfg.color;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // 发光效果
+    ctx.shadowColor = cfg.color;
+    ctx.shadowBlur = 4;
+
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < state.history.length; i++) {
+      const d = state.history[i];
+      if (d.t < startT) continue;
+      const px = cx + ((d.t - startT) / timeWindow) * plotW;
+      const py = cy + plotH / 2 - cfg.getY(d) * (plotH / 2 - 5);
+      if (!started) { ctx.moveTo(px, py); started = true; }
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  });
+
+  // 能量曲线
+  if (state.curves.e) {
+    const energyCurves = [
+      { key: 'ke', color: '#e74c3c', getY: d => d.ke / energyMax },
+      { key: 'pe', color: '#2980b9', getY: d => d.pe / energyMax },
+      { key: 'total', color: '#27ae60', getY: d => d.total / energyMax, dashed: true },
+    ];
+
+    energyCurves.forEach(cfg => {
+      ctx.strokeStyle = cfg.color;
+      ctx.lineWidth = cfg.dashed ? 1.5 : 2;
+      if (cfg.dashed) ctx.setLineDash([5, 4]);
+
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i < state.history.length; i++) {
+        const d = state.history[i];
+        if (d.t < startT) continue;
+        const px = cx + ((d.t - startT) / timeWindow) * plotW;
+        const py = cy + plotH - cfg.getY(d) * (plotH - 5);
+        if (!started) { ctx.moveTo(px, py); started = true; }
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  }
+
+  // ---- 当前时间指示线 ----
+  if (state.history.length > 0) {
+    const px = cx + plotW;
+    ctx.strokeStyle = 'rgba(194, 65, 12, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath();
+    ctx.moveTo(px, cy);
+    ctx.lineTo(px, cy + plotH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+/* ============================================================
+   渲染 — 参考圆
+   ============================================================ */
+function drawRefCircle(data) {
+  const ctx = refCtx;
+  const size = 360;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = 120;
+
+  ctx.clearRect(0, 0, size, size);
+
+  if (!state.showRefCircle) return;
+
+  // ---- 外圆 ----
+  ctx.strokeStyle = 'rgba(52, 73, 94, 0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // ---- 坐标轴 ----
+  ctx.strokeStyle = 'rgba(52, 73, 94, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  ctx.moveTo(cx - radius - 15, cy);
+  ctx.lineTo(cx + radius + 15, cy);
+  ctx.moveTo(cx, cy - radius - 15);
+  ctx.lineTo(cx, cy + radius + 15);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 轴标签
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.fillStyle = 'rgba(52, 73, 94, 0.4)';
+  ctx.textAlign = 'left';
+  ctx.fillText('x', cx + radius + 18, cy + 3);
+  ctx.textAlign = 'center';
+  ctx.fillText('y', cx, cy - radius - 20);
+
+  // ---- 刻度 ----
+  ctx.strokeStyle = 'rgba(52, 73, 94, 0.2)';
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const x1 = cx + Math.cos(a) * (radius - 4);
+    const y1 = cy + Math.sin(a) * (radius - 4);
+    const x2 = cx + Math.cos(a) * radius;
+    const y2 = cy + Math.sin(a) * radius;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  // ---- 矢量角度与长度 ----
+  // 参考圆：矢量长度 = 振幅（随阻尼衰减），角度 = ωt + φ
+  // 矢量在x轴上的投影 = 位移 x = A·cos(ωt+φ)·e^(-γt)
+  const angle = state.omega * state.time + state.phase;
+  const decay = Math.exp(-state.damping * state.time);
+  const actualRadius = radius * decay; // 矢量长度恒为振幅（阻尼时衰减）
+  const vecX = cx + Math.cos(angle) * actualRadius;
+  const vecY = cy - Math.sin(angle) * actualRadius; // y轴翻转
+
+  // ---- 矢量线 ----
+  ctx.strokeStyle = '#e74c3c';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(vecX, vecY);
+  ctx.stroke();
+
+  // ---- 矢量端点 ----
+  ctx.fillStyle = '#e74c3c';
+  ctx.beginPath();
+  ctx.arc(vecX, vecY, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ---- 投影到 x 轴 ----
+  ctx.strokeStyle = 'rgba(52, 152, 219, 0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(vecX, vecY);
+  ctx.lineTo(vecX, cy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 投影点
+  ctx.fillStyle = '#3498db';
+  ctx.beginPath();
+  ctx.arc(vecX, cy, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ---- 投影到 y 轴 ----
+  ctx.strokeStyle = 'rgba(243, 156, 18, 0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(vecX, vecY);
+  ctx.lineTo(cx, vecY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ---- 中心点 ----
+  ctx.fillStyle = '#34495e';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ---- 相位角度标注 ----
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.fillStyle = 'rgba(52, 73, 94, 0.6)';
+  ctx.textAlign = 'center';
+  const displayAngle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  ctx.fillText('φ = ' + displayAngle.toFixed(2) + ' rad', cx, size - 10);
+
+  // ---- 旋转方向箭头 ----
+  ctx.strokeStyle = 'rgba(52, 73, 94, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 8, -Math.PI / 4, -Math.PI / 8);
+  ctx.stroke();
+  // 箭头
+  const arrowAngle = -Math.PI / 8;
+  const ax = cx + Math.cos(arrowAngle) * (radius + 8);
+  const ay = cy + Math.sin(arrowAngle) * (radius + 8);
+  ctx.fillStyle = 'rgba(52, 73, 94, 0.3)';
+  ctx.beginPath();
+  ctx.moveTo(ax, ay);
+  ctx.lineTo(ax - 5, ay - 3);
+  ctx.lineTo(ax - 3, ay + 4);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/* ============================================================
+   更新数据显示
+   ============================================================ */
+function updateDataDisplay(data) {
+  const unit = state.mode === 'pendulum' ? '°' : 'cm';
+  const velUnit = state.mode === 'pendulum' ? '°/s' : 'cm/s';
+  const accUnit = state.mode === 'pendulum' ? '°/s²' : 'cm/s²';
+
+  document.getElementById('dataX').textContent = data.x.toFixed(2) + ' ' + unit;
+  document.getElementById('dataV').textContent = data.v.toFixed(2) + ' ' + velUnit;
+  document.getElementById('dataA').textContent = data.a.toFixed(2) + ' ' + accUnit;
+
+  const T = getPeriod();
+  document.getElementById('dataT').textContent = T.toFixed(2) + ' s';
+  document.getElementById('dataF').textContent = (1 / T).toFixed(3) + ' Hz';
+
+  const currentPhase = ((state.omega * state.time + state.phase) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  document.getElementById('dataPhi').textContent = currentPhase.toFixed(2) + ' rad';
+
+  // 能量（最大总机械能 = ½A²ω²）
+  const maxE = 0.5 * state.amplitude * state.amplitude * state.omega * state.omega;
+  const kePercent = maxE > 0 ? Math.min(100, (data.ke / maxE) * 100) : 0;
+  const pePercent = maxE > 0 ? Math.min(100, (data.pe / maxE) * 100) : 0;
+
+  document.getElementById('keValue').textContent = data.ke.toFixed(2);
+  document.getElementById('peValue').textContent = data.pe.toFixed(2);
+  document.getElementById('totalValue').textContent = data.total.toFixed(2);
+
+  document.getElementById('keBar').style.width = kePercent + '%';
+  document.getElementById('peBar').style.width = pePercent + '%';
+}
+
+/* ============================================================
+   动画主循环
+   ============================================================ */
+let lastFrameTime = 0;
+
+function animate(timestamp) {
+  if (!lastFrameTime) lastFrameTime = timestamp;
+  const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
+  lastFrameTime = timestamp;
+
+  if (state.playing) {
+    state.time += dt * state.speed;
+  }
+
+  const data = physics(state.time);
+
+  // 记录历史
+  if (state.playing) {
+    state.history.push({
+      t: state.time,
+      x: data.x,
+      v: data.v,
+      a: data.a,
+      ke: data.ke,
+      pe: data.pe,
+      total: data.total
+    });
+    while (state.history.length > state.maxHistory) {
+      state.history.shift();
+    }
+  }
+
+  // 渲染
+  const { w, h } = animSize;
+  if (state.mode === 'spring') {
+    drawSpring(animCtx, w, h, data);
+  } else if (state.mode === 'pendulum') {
+    drawPendulum(animCtx, w, h, data);
+  } else if (state.mode === 'wave') {
+    drawWave(animCtx, w, h, data);
+  }
+
+  drawGraph();
+  drawRefCircle(data);
+  updateDataDisplay(data);
+
+  requestAnimationFrame(animate);
+}
+
+/* ============================================================
+   参数滑块配置
+   ============================================================ */
+const sliderConfigs = {
+  spring: [
+    { key: 'amplitude', label: '振幅 A', min: 1, max: 10, step: 0.5, unit: 'cm' },
+    { key: 'omega', label: '角频率 ω', min: 0.5, max: 5, step: 0.1, unit: 'rad/s' },
+    { key: 'phase', label: '初相位 φ', min: 0, max: 6.28, step: 0.262, unit: 'rad' },
+    { key: 'damping', label: '阻尼 γ', min: 0, max: 1, step: 0.01, unit: '' },
+  ],
+  pendulum: [
+    { key: 'amplitude', label: '振幅 θ₀', min: 5, max: 45, step: 1, unit: '°' },
+    { key: 'omega', label: '角频率 ω', min: 0.5, max: 5, step: 0.1, unit: 'rad/s' },
+    { key: 'phase', label: '初相位 φ', min: 0, max: 6.28, step: 0.262, unit: 'rad' },
+    { key: 'damping', label: '阻尼 γ', min: 0, max: 1, step: 0.01, unit: '' },
+  ],
+  wave: [
+    { key: 'amplitude', label: '振幅 A', min: 1, max: 10, step: 0.5, unit: 'cm' },
+    { key: 'wavelength', label: '波长 λ', min: 50, max: 300, step: 10, unit: 'px' },
+    { key: 'waveSpeed', label: '波速 v', min: 20, max: 200, step: 10, unit: 'px/s' },
+    { key: 'phase', label: '初相位 φ', min: 0, max: 6.28, step: 0.262, unit: 'rad' },
+  ],
+};
+
+function buildSliders() {
+  const area = document.getElementById('sliderArea');
+  area.innerHTML = '';
+  const configs = sliderConfigs[state.mode];
+
+  configs.forEach(cfg => {
+    const group = document.createElement('div');
+    group.className = 'shm-slider-group';
+    group.innerHTML = `
+      <div class="shm-slider-header">
+        <span class="shm-slider-label">${cfg.label}</span>
+        <span class="shm-slider-value" id="sliderVal_${cfg.key}">${state[cfg.key].toFixed(2)}${cfg.unit}</span>
+      </div>
+      <input type="range" class="shm-slider" id="slider_${cfg.key}"
+             min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${state[cfg.key]}" />
+    `;
+    area.appendChild(group);
+
+    const slider = group.querySelector('input');
+    const valDisplay = group.querySelector('.shm-slider-value');
+
+    slider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      state[cfg.key] = val;
+      valDisplay.textContent = val.toFixed(2) + cfg.unit;
+      // 参数变化时重置时间和历史
+      if (cfg.key !== 'phase') {
+        // 不重置时间，只是物理参数变化
+      }
+    });
+  });
+}
+
+/* ============================================================
+   预设
+   ============================================================ */
+const presets = {
+  shm: {
+    name: '标准简谐运动',
+    mode: 'spring',
+    apply: () => {
+      state.mode = 'spring';
+      state.amplitude = 5;
+      state.omega = 2;
+      state.phase = 0;
+      state.damping = 0;
+      state.forcedMode = false;
+      state.waveSuperposition = false;
+      resetTime();
+    }
+  },
+  damped: {
+    name: '欠阻尼振动',
+    mode: 'spring',
+    apply: () => {
+      state.mode = 'spring';
+      state.amplitude = 8;
+      state.omega = 2;
+      state.phase = 0;
+      state.damping = 0.15;
+      state.forcedMode = false;
+      state.waveSuperposition = false;
+      resetTime();
+    }
+  },
+  resonance: {
+    name: '共振现象',
+    mode: 'spring',
+    apply: () => {
+      state.mode = 'spring';
+      state.amplitude = 3;
+      state.omega = 2;
+      state.phase = 0;
+      state.damping = 0.05;
+      state.forcedMode = true;
+      state.driveFreq = 2 / (2 * Math.PI); // 驱动频率=固有频率
+      state.waveSuperposition = false;
+      resetTime();
+    }
+  },
+  isochronism: {
+    name: '单摆等时性',
+    mode: 'pendulum',
+    apply: () => {
+      state.mode = 'pendulum';
+      state.amplitude = 15;
+      state.omega = 2;
+      state.phase = 0;
+      state.damping = 0;
+      state.forcedMode = false;
+      state.waveSuperposition = false;
+      resetTime();
+    }
+  },
+  transverse: {
+    name: '横波传播',
+    mode: 'wave',
+    apply: () => {
+      state.mode = 'wave';
+      state.amplitude = 5;
+      state.wavelength = 150;
+      state.waveSpeed = 80;
+      state.phase = 0;
+      state.damping = 0;
+      state.forcedMode = false;
+      state.waveSuperposition = false;
+      resetTime();
+    }
+  },
+  superposition: {
+    name: '波的叠加',
+    mode: 'wave',
+    apply: () => {
+      state.mode = 'wave';
+      state.amplitude = 5;
+      state.wavelength = 150;
+      state.waveSpeed = 80;
+      state.phase = 0;
+      state.damping = 0;
+      state.forcedMode = false;
+      state.waveSuperposition = true;
+      resetTime();
+    }
+  },
+};
+
+function resetTime() {
+  state.time = 0;
+  state.history = [];
+  lastFrameTime = 0;
+  buildSliders();
+  updateModeUI();
+}
+
+/* ============================================================
+   UI 更新
+   ============================================================ */
+function updateModeUI() {
+  document.querySelectorAll('.shm-mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === state.mode);
+  });
+
+  const labels = { spring: '弹簧振子', pendulum: '单摆', wave: '波动' };
+  document.getElementById('modeLabel').textContent = labels[state.mode];
+}
+
+/* ============================================================
+   事件绑定
+   ============================================================ */
+// 模式切换
+document.querySelectorAll('.shm-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.mode = btn.dataset.mode;
+    state.forcedMode = false;
+    state.waveSuperposition = false;
+    resetTime();
+  });
+});
+
+// 曲线切换
+document.querySelectorAll('.shm-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const curve = btn.dataset.curve;
+    if (curve === 'ref') {
+      state.showRefCircle = !state.showRefCircle;
+      btn.classList.toggle('active', state.showRefCircle);
+    } else {
+      state.curves[curve] = !state.curves[curve];
+      btn.classList.toggle('active', state.curves[curve]);
+      // 更新图例
+      const legendItem = document.querySelector(`.shm-legend-item[data-curve="${curve}"]`);
+      if (legendItem) {
+        legendItem.classList.toggle('inactive', !state.curves[curve]);
+      }
+    }
+  });
+});
+
+// 图例点击切换
+document.querySelectorAll('.shm-legend-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const curve = item.dataset.curve;
+    state.curves[curve] = !state.curves[curve];
+    item.classList.toggle('inactive', !state.curves[curve]);
+    const toggleBtn = document.querySelector(`.shm-toggle-btn[data-curve="${curve}"]`);
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('active', state.curves[curve]);
+    }
+  });
+});
+
+// 预设
+document.getElementById('presetSelect').addEventListener('change', (e) => {
+  const key = e.target.value;
+  if (key && presets[key]) {
+    presets[key].apply();
+    e.target.value = '';
+  }
+});
+
+// 播放/暂停
+const playBtn = document.getElementById('playBtn');
+const playIcon = document.getElementById('playIcon');
+playBtn.addEventListener('click', () => {
+  state.playing = !state.playing;
+  if (state.playing) {
+    playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+  } else {
+    playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+  }
+  if (state.playing) lastFrameTime = 0;
+});
+
+// 单步前进
+document.getElementById('stepBtn').addEventListener('click', () => {
+  state.playing = false;
+  playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+  state.time += 0.05;
+  const data = physics(state.time);
+  state.history.push({
+    t: state.time,
+    x: data.x, v: data.v, a: data.a,
+    ke: data.ke, pe: data.pe, total: data.total
+  });
+  while (state.history.length > state.maxHistory) {
+    state.history.shift();
+  }
+});
+
+// 重置
+document.getElementById('resetBtn').addEventListener('click', () => {
+  resetTime();
+});
+
+// 速度
+document.querySelectorAll('.shm-speed-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.shm-speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.speed = parseFloat(btn.dataset.speed);
+  });
+});
+
+// 触摸暂停/播放
+animCanvas.addEventListener('click', () => {
+  playBtn.click();
+});
+
+/* ============================================================
+   导航栏滚动
+   ============================================================ */
+// （本页面不滚动，但保留样式一致性）
+
+/* ============================================================
+   启动
+   ============================================================ */
+handleResize();
+buildSliders();
+updateModeUI();
+requestAnimationFrame(animate);
+
+</script>
+</body>
+</html>

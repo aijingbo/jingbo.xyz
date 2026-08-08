@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>三角函数单位圆动态演示 · 景礴</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>" />
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<style>
+/* ====== 布局 ====== */
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--bg); }
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+}
+
+/* ====== 顶部导航 ====== */
+.demo-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacer-24);
+  height: 56px;
+  flex-shrink: 0;
+  background: rgba(250, 248, 245, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+}
+.nav-left { display: flex; align-items: center; gap: var(--spacer-16); }
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--text-muted); text-decoration: none;
+  font-size: var(--fs-small); font-weight: 500;
+  transition: color var(--duration-fast) var(--ease);
+}
+.back-link:hover { color: var(--text); }
+.nav-logo {
+  font-family: var(--font-serif); font-size: 18px; font-weight: 700;
+  color: var(--text); text-decoration: none;
+}
+.nav-center {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-serif); font-size: 15px; font-weight: 600;
+  color: var(--text);
+}
+.nav-right { display: flex; align-items: center; gap: var(--spacer-12); }
+.demo-btn-download {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border); border-radius: var(--radius-full);
+  background: var(--surface); color: var(--text-muted);
+  text-decoration: none; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.demo-btn-download:hover { border-color: var(--text-faint); color: var(--text); }
+.demo-btn-download svg { width: 14px; height: 14px; }
+.demo-nav-divider {
+  width: 1px; height: 18px; background: var(--border);
+}
+
+/* ====== 画布区 ====== */
+.canvas-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fdfbf7 0%, #f5f0e8 100%);
+  min-height: 0;
+  display: flex;
+}
+#canvas { display: block; width: 100%; height: 100%; }
+
+/* ====== 数据面板 ====== */
+.data-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  min-width: 180px;
+}
+.data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.data-label {
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.data-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.data-value.accent { color: #8B5CF6; }
+.data-value.sin-c { color: #8B5CF6; }
+.data-value.cos-c { color: #ec4899; }
+.data-value.tan-c { color: #f59e0b; }
+.data-divider {
+  height: 1px; background: var(--border-soft); margin: 2px 0;
+}
+.quadrant-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(139, 92, 246, 0.12);
+  color: #8B5CF6;
+}
+
+/* ====== 画布提示 ====== */
+.canvas-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  padding: 5px 14px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+  animation: hint-fade 3s ease-in-out infinite;
+}
+@keyframes hint-fade {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ====== 控制面板 ====== */
+.control-panel {
+  flex-shrink: 0;
+  background: var(--surface-muted);
+  border-top: 1px solid var(--border);
+  padding: 12px 24px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.ctrl-row.wrap { flex-wrap: wrap; }
+
+.ctrl-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ctrl-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* ====== 滑块 ====== */
+.sliders-row {
+  display: flex;
+  gap: 28px;
+  flex: 1;
+  min-width: 0;
+}
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 100px;
+}
+.slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.slider-label {
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.slider-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  color: #8B5CF6;
+  min-width: 60px;
+  text-align: right;
+}
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #8B5CF6;
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.15s ease;
+}
+.slider::-webkit-slider-thumb:hover { transform: scale(1.25); }
+.slider::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #8B5CF6; cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* ====== 按钮通用 ====== */
+.pill, .toggle, .preset-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.pill:hover, .toggle:hover, .preset-btn:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+.pill.active, .preset-btn.active {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #8B5CF6;
+}
+.toggle.active {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.25);
+  color: #8B5CF6;
+  font-weight: 600;
+}
+.preset-btn {
+  min-width: 36px; height: 28px; padding: 0 6px;
+  font-family: var(--font-mono); font-weight: 600;
+  font-size: 10px; border-radius: var(--radius);
+}
+
+/* ====== 播放按钮 ====== */
+.play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.play-btn:hover { border-color: var(--text-faint); color: var(--text); }
+.play-btn.active {
+  background: #8B5CF6;
+  border-color: #8B5CF6;
+  color: white;
+}
+.play-btn svg { width: 12px; height: 12px; }
+
+.icon-btn-small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.icon-btn-small:hover { border-color: var(--text-faint); color: var(--text); }
+.icon-btn-small svg { width: 14px; height: 14px; }
+
+/* ====== 图例 ====== */
+.legend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.legend-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+
+/* ====== 响应式 ====== */
+@media (max-width: 900px) {
+  .nav-center { display: none; }
+  .data-panel {
+    min-width: 140px;
+    padding: 10px 14px;
+  }
+  .data-value { font-size: 12px; }
+  .control-panel { padding: 10px 14px 12px; gap: 6px; }
+  .sliders-row { flex-wrap: wrap; gap: 12px; }
+  .slider-group { min-width: 45%; }
+  .ctrl-row { flex-wrap: wrap; gap: 12px; }
+  .ctrl-section-label { display: none; }
+  .legend { display: none; }
+}
+@media (max-width: 600px) {
+  .data-panel { display: none; }
+  .canvas-hint { font-size: 10px; padding: 4px 10px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ====== 顶部导航 ====== -->
+  <header class="demo-navbar" id="demoNavbar">
+    <div class="nav-left">
+      <a href="/" class="nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="back-link">课件库</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="nav-center">三角函数单位圆动态演示</div>
+    <div class="nav-right">
+      <span class="tag tag-math">数学</span>
+      <a href="/skills/jingbo-edu-trig-circle-viz-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ====== 画布区 ====== -->
+  <div class="canvas-area">
+    <canvas id="canvas"></canvas>
+
+    <div class="data-panel" id="dataPanel">
+      <div class="data-row">
+        <span class="data-label">角度 θ</span>
+        <span class="data-value accent" id="dAngle">0°</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">弧度</span>
+        <span class="data-value accent" id="dRad">0</span>
+      </div>
+      <div class="data-divider"></div>
+      <div class="data-row">
+        <span class="data-label">cos θ</span>
+        <span class="data-value cos-c" id="dCos">1.000</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">sin θ</span>
+        <span class="data-value sin-c" id="dSin">0.000</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">tan θ</span>
+        <span class="data-value tan-c" id="dTan">0.000</span>
+      </div>
+      <div class="data-divider"></div>
+      <div class="data-row">
+        <span class="data-label">象限</span>
+        <span class="quadrant-badge" id="dQuad">—</span>
+      </div>
+    </div>
+
+    <div class="canvas-hint" id="canvasHint">拖动圆上的点或滑动角度滑块</div>
+  </div>
+
+  <!-- ====== 控制面板 ====== -->
+  <div class="control-panel">
+
+    <!-- 滑块行 -->
+    <div class="ctrl-row">
+      <div class="sliders-row">
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">角度 θ</span>
+            <span class="slider-value" id="vTheta">0°</span>
+          </div>
+          <input type="range" class="slider" id="sTheta" min="0" max="6283" step="1" value="0">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">动画速度</span>
+            <span class="slider-value" id="vSpeed">1.0×</span>
+          </div>
+          <input type="range" class="slider" id="sSpeed" min="1" max="40" step="1" value="10">
+        </div>
+      </div>
+      <div class="ctrl-section">
+        <span class="ctrl-section-label">播放</span>
+        <button class="play-btn" id="btnPlay" title="空格键切换">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+          播放
+        </button>
+        <button class="icon-btn-small" id="btnReset" title="重置 (R)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+        <button class="icon-btn-small" id="btnReverse" title="反向">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 功能按钮行 -->
+    <div class="ctrl-row wrap">
+      <div class="ctrl-section">
+        <span class="ctrl-section-label">函数</span>
+        <div id="funcGroup" style="display:flex;gap:4px;">
+          <button class="pill active" data-func="sin">sin</button>
+          <button class="pill" data-func="cos">cos</button>
+          <button class="pill" data-func="tan">tan</button>
+          <button class="pill" data-func="all">全部</button>
+        </div>
+      </div>
+      <div class="ctrl-section">
+        <span class="ctrl-section-label">预设角度</span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="preset-btn" data-preset="0">0</button>
+          <button class="preset-btn" data-preset="1">π/6</button>
+          <button class="preset-btn" data-preset="2">π/4</button>
+          <button class="preset-btn" data-preset="3">π/3</button>
+          <button class="preset-btn" data-preset="4">π/2</button>
+          <button class="preset-btn" data-preset="5">2π/3</button>
+          <button class="preset-btn" data-preset="6">3π/4</button>
+          <button class="preset-btn" data-preset="7">5π/6</button>
+          <button class="preset-btn" data-preset="8">π</button>
+        </div>
+      </div>
+      <div class="ctrl-section">
+        <span class="ctrl-section-label">显示</span>
+        <div id="displayGroup" style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="toggle active" data-disp="grid">网格</button>
+          <button class="toggle active" data-disp="arc">角度弧</button>
+          <button class="toggle active" data-disp="proj">投影线</button>
+          <button class="toggle active" data-disp="triangle">参考三角形</button>
+          <button class="toggle" data-disp="tangent">切线</button>
+          <button class="toggle active" data-disp="wave">波形图</button>
+          <button class="toggle active" data-disp="labels">标注</button>
+        </div>
+      </div>
+      <div class="ctrl-section">
+        <span class="ctrl-section-label">范围</span>
+        <div id="rangeGroup" style="display:flex;gap:4px;">
+          <button class="pill active" data-range="02pi">0~2π</button>
+          <button class="pill" data-range="2pi2pi">-2π~2π</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图例行 -->
+    <div class="ctrl-row">
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot" style="background:#8B5CF6;"></span>sin θ</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ec4899;"></span>cos θ</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>tan θ</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>角度 θ</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+//  状态管理
+// ============================================================
+const state = {
+  theta: 0,              // 当前角度（弧度）
+  funcType: 'sin',       // 当前主函数
+  display: {
+    grid: true,
+    arc: true,
+    proj: true,
+    triangle: true,
+    tangent: false,
+    wave: true,
+    labels: true,
+  },
+  rangeKey: '02pi',
+  playing: false,
+  speed: 1.0,
+  reverse: false,
+  dragging: false,
+};
+
+const PRESETS = [
+  0,
+  Math.PI / 6,
+  Math.PI / 4,
+  Math.PI / 3,
+  Math.PI / 2,
+  (2 * Math.PI) / 3,
+  (3 * Math.PI) / 4,
+  (5 * Math.PI) / 6,
+  Math.PI,
+];
+
+// 颜色常量
+const C = {
+  bg: '#fdfbf7',
+  grid: 'rgba(139,92,246,0.06)',
+  gridMajor: 'rgba(139,92,246,0.12)',
+  axis: 'rgba(26,26,26,0.35)',
+  circle: 'rgba(26,26,26,0.5)',
+  circleFill: 'rgba(139,92,246,0.03)',
+  sin: '#8B5CF6',
+  cos: '#ec4899',
+  tan: '#f59e0b',
+  angle: '#10b981',
+  point: '#8B5CF6',
+  text: '#1a1a1a',
+  textMuted: '#6b6b6b',
+  textFaint: '#a3a3a3',
+  projSin: 'rgba(139,92,246,0.7)',
+  projCos: 'rgba(236,72,153,0.7)',
+  triangle: 'rgba(139,92,246,0.1)',
+  triangleBorder: 'rgba(139,92,246,0.4)',
+  tangent: 'rgba(245,158,11,0.6)',
+};
+
+// ============================================================
+//  Canvas 初始化
+// ============================================================
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+
+function resize() {
+  DPR = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = rect.width;
+  H = rect.height;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  render();
+}
+
+window.addEventListener('resize', resize);
+
+// ============================================================
+//  绘制辅助函数
+// ============================================================
+function drawLine(x1, y1, x2, y2, color, width, dash) {
+  ctx.beginPath();
+  ctx.setLineDash(dash || []);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width || 1.5;
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawArrow(x1, y1, x2, y2, color, width) {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const headLen = 8;
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width || 1.5;
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.fillStyle = color;
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - headLen * Math.cos(angle - 0.35), y2 - headLen * Math.sin(angle - 0.35));
+  ctx.lineTo(x2 - headLen * Math.cos(angle + 0.35), y2 - headLen * Math.sin(angle + 0.35));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawDashedLine(x1, y1, x2, y2, color, width) {
+  drawLine(x1, y1, x2, y2, color, width, [4, 4]);
+}
+
+function drawText(text, x, y, font, color, align) {
+  ctx.font = font || '12px "Noto Sans SC", sans-serif';
+  ctx.fillStyle = color || C.text;
+  ctx.textAlign = align || 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+// ============================================================
+//  主渲染函数
+// ============================================================
+function render() {
+  ctx.clearRect(0, 0, W, H);
+
+  // 布局：左侧单位圆，右侧波形图
+  const showWave = state.display.wave;
+  let circleW, waveW;
+  if (showWave && W > 600) {
+    circleW = Math.min(W * 0.48, H * 1.1);
+    waveW = W - circleW;
+  } else {
+    circleW = Math.min(W, H * 1.3);
+    waveW = 0;
+  }
+
+  const circleCx = circleW / 2;
+  const circleCy = H / 2;
+  const radius = Math.min(circleW, H) * 0.35;
+
+  // 绘制单位圆区域
+  drawUnitCircle(circleCx, circleCy, radius);
+
+  // 绘制波形图区域
+  if (showWave && waveW > 0) {
+    drawWavePlot(circleW, 0, waveW, H, radius);
+  }
+}
+
+// ============================================================
+//  单位圆绘制
+// ============================================================
+function drawUnitCircle(cx, cy, r) {
+  const theta = state.theta;
+  const px = cx + r * Math.cos(theta);
+  const py = cy - r * Math.sin(theta);
+
+  // ---- 网格 ----
+  if (state.display.grid) {
+    const gridSize = r / 2;
+    ctx.strokeStyle = C.grid;
+    ctx.lineWidth = 1;
+    for (let i = -4; i <= 4; i++) {
+      const gx = cx + i * gridSize;
+      const gy = cy + i * gridSize;
+      if (gx >= 0 && gx <= W) {
+        ctx.beginPath();
+        ctx.moveTo(gx, Math.max(0, cy - r * 2));
+        ctx.lineTo(gx, Math.min(H, cy + r * 2));
+        ctx.stroke();
+      }
+      if (gy >= 0 && gy <= H) {
+        ctx.beginPath();
+        ctx.moveTo(Math.max(0, cx - r * 2), gy);
+        ctx.lineTo(Math.min(W, cx + r * 2), gy);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // ---- 坐标轴 ----
+  drawArrow(cx - r * 1.35, cy, cx + r * 1.35, cy, C.axis, 1.5);
+  drawArrow(cx, cy + r * 1.35, cx, cy - r * 1.35, C.axis, 1.5);
+
+  // 轴标签
+  if (state.display.labels) {
+    drawText('x', cx + r * 1.35 + 12, cy, 'italic 13px "Noto Serif SC", serif', C.textMuted, 'left');
+    drawText('y', cx, cy - r * 1.35 - 12, 'italic 13px "Noto Serif SC", serif', C.textMuted, 'center');
+    drawText('1', cx + r + 8, cy + 10, '11px "JetBrains Mono", monospace', C.textFaint, 'left');
+    drawText('−1', cx - r - 14, cy + 10, '11px "JetBrains Mono", monospace', C.textFaint, 'center');
+    drawText('1', cx - 12, cy - r - 4, '11px "JetBrains Mono", monospace', C.textFaint, 'right');
+    drawText('−1', cx - 14, cy + r + 4, '11px "JetBrains Mono", monospace', C.textFaint, 'right');
+    drawText('O', cx - 8, cy + 10, 'italic 12px "Noto Serif SC", serif', C.textMuted, 'right');
+  }
+
+  // ---- 单位圆 ----
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = C.circleFill;
+  ctx.fill();
+  ctx.strokeStyle = C.circle;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // ---- 角度弧 ----
+  if (state.display.arc) {
+    const arcR = r * 0.22;
+    ctx.beginPath();
+    ctx.strokeStyle = C.angle;
+    ctx.lineWidth = 2.5;
+    if (theta >= 0) {
+      ctx.arc(cx, cy, arcR, 0, theta, false);
+    } else {
+      ctx.arc(cx, cy, arcR, 0, theta, true);
+    }
+    ctx.stroke();
+
+    // 角度标注
+    if (state.display.labels) {
+      const midAngle = theta / 2;
+      const labelR = arcR + 16;
+      const labelX = cx + labelR * Math.cos(midAngle);
+      const labelY = cy - labelR * Math.sin(midAngle);
+      const degText = (theta * 180 / Math.PI).toFixed(0) + '°';
+      drawText(degText, labelX, labelY, '11px "JetBrains Mono", monospace', C.angle, 'center');
+    }
+  }
+
+  // ---- 参考三角形 ----
+  if (state.display.triangle) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(px, cy);
+    ctx.lineTo(px, py);
+    ctx.closePath();
+    ctx.fillStyle = C.triangle;
+    ctx.fill();
+    ctx.strokeStyle = C.triangleBorder;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ---- 切线 ----
+  if (state.display.tangent && Math.abs(Math.cos(theta)) > 0.01) {
+    // 切线在 x=1 处的垂直线上
+    const tangentX = cx + r;
+    const t = Math.tan(theta);
+    const tangentY1 = cy - r * t;
+    
+    // 从切点画切线
+    const slope = -Math.tan(theta); // 切线斜率（屏幕坐标）
+    const len = r * 0.8;
+    const dx = len * Math.cos(theta + Math.PI / 2);
+    const dy = -len * Math.sin(theta + Math.PI / 2);
+    
+    drawLine(tangentX - dx, tangentY1 - dy, tangentX + dx, tangentY1 + dy, C.tangent, 2);
+
+    // 从原点到切线终点的连线
+    if (t > -10 && t < 10) {
+      drawDashedLine(cx, cy, tangentX, tangentY1, C.tan, 1);
+    }
+
+    // 切线点
+    ctx.beginPath();
+    ctx.arc(tangentX, tangentY1, 4, 0, Math.PI * 2);
+    ctx.fillStyle = C.tan;
+    ctx.fill();
+
+    if (state.display.labels) {
+      drawText('tan θ', tangentX + 12, tangentY1, '11px "JetBrains Mono", monospace', C.tan, 'left');
+    }
+  }
+
+  // ---- 投影线 ----
+  if (state.display.proj) {
+    // cos θ 水平投影（从原点到 x 投影）
+    drawLine(cx, cy, px, cy, C.projCos, 3);
+    // sin θ 垂直投影（从 x 投影到点）
+    drawLine(px, cy, px, py, C.projSin, 3);
+
+    if (state.display.labels) {
+      // cos 标注
+      const cosLabelX = (cx + px) / 2;
+      drawText('cos θ', cosLabelX, cy + 16, '11px "JetBrains Mono", monospace', C.cos, 'center');
+      // sin 标注
+      const sinLabelY = (cy + py) / 2;
+      drawText('sin θ', px + 22, sinLabelY, '11px "JetBrains Mono", monospace', C.sin, 'left');
+    }
+  }
+
+  // ---- 半径线（从原点到点）----
+  drawArrow(cx, cy, px, py, C.angle, 2);
+
+  // ---- 动点 ----
+  // 外发光
+  const glow = ctx.createRadialGradient(px, py, 0, px, py, 18);
+  glow.addColorStop(0, 'rgba(139,92,246,0.35)');
+  glow.addColorStop(1, 'rgba(139,92,246,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(px, py, 18, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 主点
+  ctx.beginPath();
+  ctx.arc(px, py, 7, 0, Math.PI * 2);
+  ctx.fillStyle = C.point;
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // ---- 坐标轴上的投影点 ----
+  if (state.display.proj) {
+    // x 轴投影点
+    ctx.beginPath();
+    ctx.arc(px, cy, 4, 0, Math.PI * 2);
+    ctx.fillStyle = C.cos;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // y 轴投影点
+    ctx.beginPath();
+    ctx.arc(cx, py, 4, 0, Math.PI * 2);
+    ctx.fillStyle = C.sin;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 从点到 y 轴的虚线
+    drawDashedLine(px, py, cx, py, 'rgba(139,92,246,0.25)', 1);
+  }
+
+  // ---- 点的坐标标注 ----
+  if (state.display.labels) {
+    const cosVal = Math.cos(theta);
+    const sinVal = Math.sin(theta);
+    const coordText = `(${cosVal.toFixed(2)}, ${sinVal.toFixed(2)})`;
+    const labelOffsetX = px > cx ? 14 : -14;
+    const labelOffsetY = py < cy ? -16 : 16;
+    drawText(coordText, px + labelOffsetX, py + labelOffsetY, '11px "JetBrains Mono", monospace', C.textMuted, px > cx ? 'left' : 'right');
+  }
+}
+
+// ============================================================
+//  波形图绘制
+// ============================================================
+function drawWavePlot(x, y, w, h, circleR) {
+  const theta = state.theta;
+  const padding = { top: 30, bottom: 36, left: 40, right: 20 };
+  const plotW = w - padding.left - padding.right;
+  const plotH = h - padding.top - padding.bottom;
+  const plotX = x + padding.left;
+  const plotY = y + padding.top;
+  const midY = plotY + plotH / 2;
+
+  // 范围
+  let xMin, xMax;
+  if (state.rangeKey === '02pi') {
+    xMin = 0; xMax = 2 * Math.PI;
+  } else {
+    xMin = -2 * Math.PI; xMax = 2 * Math.PI;
+  }
+  const yMin = -1.8, yMax = 1.8;
+
+  const xToPx = (val) => plotX + (val - xMin) / (xMax - xMin) * plotW;
+  const yToPx = (val) => midY - val / (yMax - yMin) * plotH;
+
+  // ---- 背景 ----
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillRect(plotX, plotY, plotW, plotH);
+
+  // ---- 网格 ----
+  if (state.display.grid) {
+    ctx.strokeStyle = C.grid;
+    ctx.lineWidth = 1;
+    // 垂直网格（π 刻度）
+    const piStep = Math.PI / 2;
+    for (let v = Math.ceil(xMin / piStep) * piStep; v <= xMax; v += piStep) {
+      const px = xToPx(v);
+      ctx.beginPath();
+      ctx.moveTo(px, plotY);
+      ctx.lineTo(px, plotY + plotH);
+      ctx.stroke();
+    }
+    // 水平网格
+    for (let v = -1; v <= 1; v += 0.5) {
+      const py = yToPx(v);
+      ctx.beginPath();
+      ctx.moveTo(plotX, py);
+      ctx.lineTo(plotX + plotW, py);
+      ctx.stroke();
+    }
+  }
+
+  // ---- 坐标轴 ----
+  // x 轴
+  drawArrow(plotX - 5, midY, plotX + plotW + 5, midY, C.axis, 1.5);
+  // y 轴
+  drawArrow(plotX, plotY + plotH + 5, plotX, plotY - 5, C.axis, 1.5);
+
+  // ---- 刻度标签 ----
+  if (state.display.labels) {
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillStyle = C.textFaint;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    // x 轴刻度
+    const piLabels = [
+      { val: 0, label: '0' },
+      { val: Math.PI / 2, label: 'π/2' },
+      { val: Math.PI, label: 'π' },
+      { val: 3 * Math.PI / 2, label: '3π/2' },
+      { val: 2 * Math.PI, label: '2π' },
+      { val: -Math.PI / 2, label: '−π/2' },
+      { val: -Math.PI, label: '−π' },
+      { val: -3 * Math.PI / 2, label: '−3π/2' },
+      { val: -2 * Math.PI, label: '−2π' },
+    ];
+    piLabels.forEach(p => {
+      if (p.val >= xMin && p.val <= xMax) {
+        ctx.fillText(p.label, xToPx(p.val), midY + 8);
+      }
+    });
+    // y 轴刻度
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    [-1, 1].forEach(v => {
+      ctx.fillText(v.toString(), plotX - 8, yToPx(v));
+    });
+    // 轴标签
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'italic 11px "Noto Serif SC", serif';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText('θ', plotX + plotW + 8, midY + 4);
+  }
+
+  // ---- y=1 和 y=-1 参考线 ----
+  drawDashedLine(plotX, yToPx(1), plotX + plotW, yToPx(1), 'rgba(139,92,246,0.15)', 1);
+  drawDashedLine(plotX, yToPx(-1), plotX + plotW, yToPx(-1), 'rgba(139,92,246,0.15)', 1);
+
+  // ---- 绘制波形 ----
+  const drawCurve = (fn, color, lineWidth) => {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth || 2;
+    const steps = 300;
+    let started = false;
+    for (let i = 0; i <= steps; i++) {
+      const t = xMin + (xMax - xMin) * i / steps;
+      let val = fn(t);
+      // 限制 tan 的范围
+      if (Math.abs(val) > yMax) {
+        if (started) {
+          ctx.stroke();
+          ctx.beginPath();
+        }
+        started = false;
+        continue;
+      }
+      const px = xToPx(t);
+      const py = yToPx(val);
+      if (!started) {
+        ctx.moveTo(px, py);
+        started = true;
+      } else {
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+  };
+
+  // 根据函数类型绘制
+  const showAll = state.funcType === 'all';
+  if (showAll || state.funcType === 'sin') {
+    drawCurve(Math.sin, C.sin, state.funcType === 'sin' ? 2.5 : 1.8);
+  }
+  if (showAll || state.funcType === 'cos') {
+    drawCurve(Math.cos, C.cos, state.funcType === 'cos' ? 2.5 : 1.8);
+  }
+  if (showAll || state.funcType === 'tan') {
+    drawCurve(Math.tan, C.tan, state.funcType === 'tan' ? 2.5 : 1.8);
+  }
+
+  // ---- 当前角度的垂直线 ----
+  const thetaClamped = Math.max(xMin, Math.min(xMax, theta));
+  const thetaPx = xToPx(thetaClamped);
+  drawDashedLine(thetaPx, plotY, thetaPx, plotY + plotH, 'rgba(16,185,129,0.4)', 1.5);
+
+  // ---- 当前角度的函数值点 ----
+  const drawValuePoint = (fn, color) => {
+    const val = fn(theta);
+    if (Math.abs(val) <= yMax) {
+      const px = thetaPx;
+      const py = yToPx(val);
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  };
+
+  if (showAll || state.funcType === 'sin') drawValuePoint(Math.sin, C.sin);
+  if (showAll || state.funcType === 'cos') drawValuePoint(Math.cos, C.cos);
+  if (showAll || state.funcType === 'tan') {
+    const tanVal = Math.tan(theta);
+    if (Math.abs(tanVal) <= yMax) drawValuePoint(Math.tan, C.tan);
+  }
+
+  // ---- 当前角度标注 ----
+  if (state.display.labels && thetaClamped >= xMin && thetaClamped <= xMax) {
+    const degText = (theta * 180 / Math.PI).toFixed(0) + '°';
+    drawText(degText, thetaPx, plotY - 8, '10px "JetBrains Mono", monospace', C.angle, 'center');
+  }
+
+  // ---- 标题 ----
+  drawText('波形图', plotX + plotW / 2, y + 16, '600 13px "Noto Sans SC", sans-serif', C.text, 'center');
+}
+
+// ============================================================
+//  数据面板更新
+// ============================================================
+function updateDataPanel() {
+  const theta = state.theta;
+  const deg = (theta * 180 / Math.PI) % 360;
+  const cosV = Math.cos(theta);
+  const sinV = Math.sin(theta);
+  const tanV = Math.abs(cosV) < 1e-10 ? Infinity : Math.tan(theta);
+
+  document.getElementById('dAngle').textContent = deg.toFixed(1) + '°';
+  
+  // 弧度显示
+  let radText;
+  const normalized = ((theta % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  if (Math.abs(normalized) < 0.001) radText = '0';
+  else if (Math.abs(normalized - Math.PI / 6) < 0.01) radText = 'π/6';
+  else if (Math.abs(normalized - Math.PI / 4) < 0.01) radText = 'π/4';
+  else if (Math.abs(normalized - Math.PI / 3) < 0.01) radText = 'π/3';
+  else if (Math.abs(normalized - Math.PI / 2) < 0.01) radText = 'π/2';
+  else if (Math.abs(normalized - Math.PI) < 0.01) radText = 'π';
+  else if (Math.abs(normalized - 3 * Math.PI / 2) < 0.01) radText = '3π/2';
+  else if (Math.abs(normalized - 2 * Math.PI) < 0.01) radText = '2π';
+  else radText = normalized.toFixed(3);
+  document.getElementById('dRad').textContent = radText;
+
+  document.getElementById('dCos').textContent = cosV.toFixed(3);
+  document.getElementById('dSin').textContent = sinV.toFixed(3);
+  document.getElementById('dTan').textContent = Math.abs(tanV) > 999 ? '∞' : tanV.toFixed(3);
+
+  // 象限
+  const quad = getQuadrant(theta);
+  document.getElementById('dQuad').textContent = quad;
+}
+
+function getQuadrant(theta) {
+  const norm = ((theta % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  if (norm === 0 || norm === 2 * Math.PI) return 'x 轴正';
+  if (norm === Math.PI / 2) return 'y 轴正';
+  if (norm === Math.PI) return 'x 轴负';
+  if (norm === 3 * Math.PI / 2) return 'y 轴负';
+  if (norm > 0 && norm < Math.PI / 2) return '第一象限';
+  if (norm > Math.PI / 2 && norm < Math.PI) return '第二象限';
+  if (norm > Math.PI && norm < 3 * Math.PI / 2) return '第三象限';
+  if (norm > 3 * Math.PI / 2 && norm < 2 * Math.PI) return '第四象限';
+  return '—';
+}
+
+// ============================================================
+//  动画循环
+// ============================================================
+let lastTime = 0;
+let animationFrame = null;
+
+function animate(time) {
+  if (!state.playing) return;
+  const dt = (time - lastTime) / 1000;
+  lastTime = time;
+
+  const direction = state.reverse ? -1 : 1;
+  state.theta += direction * state.speed * dt;
+
+  // 更新滑块
+  const sliderVal = ((state.theta % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  document.getElementById('sTheta').value = Math.round(sliderVal * 1000);
+  document.getElementById('vTheta').textContent = (sliderVal * 180 / Math.PI).toFixed(0) + '°';
+
+  render();
+  updateDataPanel();
+
+  animationFrame = requestAnimationFrame(animate);
+}
+
+function togglePlay() {
+  state.playing = !state.playing;
+  const btn = document.getElementById('btnPlay');
+  const icon = document.getElementById('playIcon');
+  if (state.playing) {
+    btn.classList.add('active');
+    btn.lastChild.textContent = ' 暂停';
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    lastTime = performance.now();
+    animationFrame = requestAnimationFrame(animate);
+  } else {
+    btn.classList.remove('active');
+    btn.lastChild.textContent = ' 播放';
+    icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+  }
+}
+
+// ============================================================
+//  事件绑定
+// ============================================================
+
+// 角度滑块
+const sTheta = document.getElementById('sTheta');
+sTheta.addEventListener('input', () => {
+  state.theta = parseInt(sTheta.value) / 1000;
+  document.getElementById('vTheta').textContent = (state.theta * 180 / Math.PI).toFixed(0) + '°';
+  render();
+  updateDataPanel();
+});
+
+// 速度滑块
+const sSpeed = document.getElementById('sSpeed');
+sSpeed.addEventListener('input', () => {
+  state.speed = parseInt(sSpeed.value) / 10;
+  document.getElementById('vSpeed').textContent = state.speed.toFixed(1) + '×';
+});
+
+// 播放按钮
+document.getElementById('btnPlay').addEventListener('click', togglePlay);
+
+// 重置按钮
+document.getElementById('btnReset').addEventListener('click', () => {
+  state.theta = 0;
+  sTheta.value = 0;
+  document.getElementById('vTheta').textContent = '0°';
+  if (state.playing) togglePlay();
+  render();
+  updateDataPanel();
+});
+
+// 反向按钮
+document.getElementById('btnReverse').addEventListener('click', () => {
+  state.reverse = !state.reverse;
+  document.getElementById('btnReverse').style.color = state.reverse ? '#8B5CF6' : '';
+  document.getElementById('btnReverse').style.borderColor = state.reverse ? 'rgba(139,92,246,0.3)' : '';
+});
+
+// 函数选择
+document.getElementById('funcGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  document.querySelectorAll('#funcGroup .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.funcType = btn.dataset.func;
+  render();
+});
+
+// 预设按钮
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const idx = parseInt(btn.dataset.preset);
+    state.theta = PRESETS[idx];
+    const sliderVal = ((state.theta % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    sTheta.value = Math.round(sliderVal * 1000);
+    document.getElementById('vTheta').textContent = (state.theta * 180 / Math.PI).toFixed(0) + '°';
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+    updateDataPanel();
+    setTimeout(() => btn.classList.remove('active'), 600);
+  });
+});
+
+// 显示选项
+document.getElementById('displayGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.toggle');
+  if (!btn) return;
+  const key = btn.dataset.disp;
+  state.display[key] = !state.display[key];
+  btn.classList.toggle('active');
+  render();
+});
+
+// 范围选择
+document.getElementById('rangeGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  document.querySelectorAll('#rangeGroup .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.rangeKey = btn.dataset.range;
+  render();
+});
+
+// 键盘快捷键
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    togglePlay();
+  } else if (e.code === 'KeyR') {
+    document.getElementById('btnReset').click();
+  } else if (e.code === 'ArrowLeft') {
+    state.theta -= Math.PI / 36; // 5度
+    if (state.theta < 0) state.theta += 2 * Math.PI;
+    sTheta.value = Math.round(state.theta * 1000);
+    document.getElementById('vTheta').textContent = (state.theta * 180 / Math.PI).toFixed(0) + '°';
+    render();
+    updateDataPanel();
+  } else if (e.code === 'ArrowRight') {
+    state.theta += Math.PI / 36;
+    if (state.theta >= 2 * Math.PI) state.theta -= 2 * Math.PI;
+    sTheta.value = Math.round(state.theta * 1000);
+    document.getElementById('vTheta').textContent = (state.theta * 180 / Math.PI).toFixed(0) + '°';
+    render();
+    updateDataPanel();
+  }
+});
+
+// ---- Canvas 交互：拖动圆上的点 ----
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+  const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+  return { x, y };
+}
+
+function tryDragStart(e) {
+  const pos = getCanvasPos(e);
+  const showWave = state.display.wave;
+  let circleW;
+  if (showWave && W > 600) {
+    circleW = Math.min(W * 0.48, H * 1.1);
+  } else {
+    circleW = Math.min(W, H * 1.3);
+  }
+  const cx = circleW / 2;
+  const cy = H / 2;
+  const r = Math.min(circleW, H) * 0.35;
+  const px = cx + r * Math.cos(state.theta);
+  const py = cy - r * Math.sin(state.theta);
+
+  const dist = Math.hypot(pos.x - px, pos.y - py);
+  if (dist < 25) {
+    state.dragging = true;
+    if (state.playing) togglePlay();
+    e.preventDefault();
+  }
+}
+
+function dragMove(e) {
+  if (!state.dragging) return;
+  const pos = getCanvasPos(e);
+  const showWave = state.display.wave;
+  let circleW;
+  if (showWave && W > 600) {
+    circleW = Math.min(W * 0.48, H * 1.1);
+  } else {
+    circleW = Math.min(W, H * 1.3);
+  }
+  const cx = circleW / 2;
+  const cy = H / 2;
+
+  // 计算角度（注意 y 轴翻转）
+  let angle = Math.atan2(-(pos.y - cy), pos.x - cx);
+  if (angle < 0) angle += 2 * Math.PI;
+
+  state.theta = angle;
+  sTheta.value = Math.round(angle * 1000);
+  document.getElementById('vTheta').textContent = (angle * 180 / Math.PI).toFixed(0) + '°';
+  render();
+  updateDataPanel();
+  e.preventDefault();
+}
+
+function dragEnd() {
+  state.dragging = false;
+}
+
+canvas.addEventListener('mousedown', tryDragStart);
+canvas.addEventListener('mousemove', dragMove);
+canvas.addEventListener('mouseup', dragEnd);
+canvas.addEventListener('mouseleave', dragEnd);
+canvas.addEventListener('touchstart', tryDragStart, { passive: false });
+canvas.addEventListener('touchmove', dragMove, { passive: false });
+canvas.addEventListener('touchend', dragEnd);
+
+// ============================================================
+//  初始化
+// ============================================================
+resize();
+updateDataPanel();
+</script>
+</body>
+</html>

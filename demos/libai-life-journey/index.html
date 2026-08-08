@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>李白生平与游历路线 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   李白生平与游历路线 — 专属样式
+   水墨古卷 × 时空叙事
+   ============================================================ */
+
+:root {
+  /* 古卷配色 */
+  --lb-ink: #2D3748;
+  --lb-ink-light: #4A5568;
+  --lb-ochre: #8B5A2B;
+  --lb-ochre-light: #A67B4A;
+  --lb-paper: #F5F0E8;
+  --lb-paper-dark: #EDE6D8;
+  --lb-cinnabar: #C53030;
+  --lb-cinnabar-dark: #9B2C2C;
+  --lb-gold: #D4A574;
+  --lb-gold-soft: rgba(212, 165, 116, 0.3);
+  --lb-text: #2D3748;
+  --lb-text-muted: #718096;
+  --lb-border: #DDD5C7;
+
+  /* 字体 */
+  --lb-font-cal: 'Ma Shan Zheng', 'Noto Serif SC', serif;
+  --lb-font-serif: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+  --lb-font-sans: 'Noto Sans SC', -apple-system, sans-serif;
+  --lb-font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--lb-font-sans);
+  background: var(--lb-paper);
+  color: var(--lb-text);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ---------- 宣纸纹理 ---------- */
+.paper-texture {
+  background-color: var(--lb-paper);
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(139, 90, 43, 0.025) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(139, 90, 43, 0.02) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+/* ---------- 入场水墨动画 ---------- */
+.lb-entry {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lb-paper);
+  transition: opacity 1.2s ease;
+}
+.lb-entry.hidden { opacity: 0; pointer-events: none; }
+
+.lb-entry-ink {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(45, 55, 72, 0.12) 0%, rgba(45, 55, 72, 0.04) 40%, transparent 70%);
+  opacity: 0;
+  animation: lb-ink-spread 2.5s ease forwards;
+}
+@keyframes lb-ink-spread {
+  0% { opacity: 0; transform: scale(0.3); filter: blur(30px); }
+  40% { opacity: 0.6; transform: scale(0.8); filter: blur(12px); }
+  100% { opacity: 0.15; transform: scale(1.5); filter: blur(0); }
+}
+
+.lb-entry-text {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  opacity: 0;
+  animation: lb-text-fade 2s ease 0.8s forwards;
+}
+@keyframes lb-text-fade {
+  0% { opacity: 0; transform: translateY(20px); filter: blur(10px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.lb-entry-title {
+  font-family: var(--lb-font-cal);
+  font-size: clamp(32px, 5vw, 48px);
+  color: var(--lb-ink);
+  letter-spacing: 0.15em;
+  line-height: 1.4;
+}
+.lb-entry-sub {
+  font-family: var(--lb-font-serif);
+  font-size: 14px;
+  color: var(--lb-text-muted);
+  margin-top: 12px;
+  letter-spacing: 0.1em;
+}
+
+/* ---------- 导航栏覆盖 ---------- */
+.demo-navbar {
+  background-color: rgba(245, 240, 232, 0.88) !important;
+  border-bottom: 1px solid var(--lb-border) !important;
+}
+.demo-navbar.scrolled {
+  background-color: rgba(245, 240, 232, 0.95) !important;
+}
+.demo-nav-logo { font-family: var(--lb-font-serif); }
+
+/* ---------- 主体布局 ---------- */
+.framework-narrative {
+  background: var(--lb-paper) !important;
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(139, 90, 43, 0.025) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(139, 90, 43, 0.02) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E") !important;
+}
+
+.framework-narrative .narrative-main {
+  grid-template-columns: 68% 32% !important;
+}
+
+/* ---------- 地图区域 ---------- */
+.narrative-map-area {
+  background: var(--lb-paper-dark) !important;
+  border-right: 1px solid var(--lb-border) !important;
+  position: relative;
+}
+
+/* 地图区域边缘晕染效果 */
+.narrative-map-area::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 400;
+  box-shadow: inset 0 0 80px rgba(139, 90, 43, 0.06);
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  background: var(--lb-paper);
+  z-index: 1;
+}
+
+/* Leaflet 底图古纸色滤镜 */
+.leaflet-tile-pane {
+  filter: sepia(0.45) brightness(1.08) contrast(0.88) saturate(0.55) hue-rotate(-8deg);
+}
+
+.leaflet-container {
+  background: var(--lb-paper) !important;
+  font-family: var(--lb-font-sans) !important;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid var(--lb-border) !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(45, 55, 72, 0.08) !important;
+}
+.leaflet-control-zoom a {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--lb-ink) !important;
+  border-bottom: 1px solid var(--lb-border) !important;
+  font-family: var(--lb-font-serif) !important;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--lb-paper-dark) !important;
+  color: var(--lb-cinnabar) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(245, 240, 232, 0.7) !important;
+  color: var(--lb-text-muted) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a {
+  color: var(--lb-ochre) !important;
+}
+
+/* ---------- 自定义标记点 ---------- */
+.lb-marker {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lb-marker-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--lb-ochre);
+  border: 2px solid var(--lb-paper);
+  box-shadow: 0 1px 4px rgba(45, 55, 72, 0.2);
+  transition: all 0.3s ease;
+}
+.lb-marker.past .lb-marker-dot {
+  background: var(--lb-ochre);
+  opacity: 0.7;
+}
+.lb-marker.future .lb-marker-dot {
+  background: var(--lb-border);
+  opacity: 0.5;
+}
+.lb-marker.active .lb-marker-dot {
+  width: 16px;
+  height: 16px;
+  background: var(--lb-cinnabar);
+  border: 3px solid var(--lb-paper);
+  box-shadow: 0 0 0 4px rgba(197, 48, 48, 0.2), 0 2px 8px rgba(197, 48, 48, 0.3);
+}
+.lb-marker.active::before {
+  content: '';
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--lb-cinnabar);
+  opacity: 0;
+  animation: lb-marker-pulse 2s ease-out infinite;
+}
+@keyframes lb-marker-pulse {
+  0% { opacity: 0.6; transform: scale(0.6); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+.lb-marker-label {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--lb-font-serif);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lb-ink);
+  background: rgba(245, 240, 232, 0.92);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--lb-border);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.lb-marker.active .lb-marker-label,
+.lb-marker.past .lb-marker-label {
+  opacity: 1;
+}
+.lb-marker.active .lb-marker-label {
+  color: var(--lb-cinnabar);
+  border-color: var(--lb-cinnabar);
+  background: rgba(245, 240, 232, 0.95);
+}
+
+/* ---------- 标记点容器覆盖 ---------- */
+.lb-marker-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ---------- 时间轴自定义滚动条 ---------- */
+.narrative-timeline-list::-webkit-scrollbar { width: 4px; }
+.narrative-timeline-list::-webkit-scrollbar-track { background: transparent; }
+.narrative-timeline-list::-webkit-scrollbar-thumb {
+  background: var(--lb-border);
+  border-radius: 2px;
+}
+.narrative-timeline-list::-webkit-scrollbar-thumb:hover {
+  background: var(--lb-ochre-light);
+}
+
+/* ---------- 时间轴事件 hover 效果 ---------- */
+.timeline-event:hover .timeline-event-title {
+  color: var(--lb-ochre) !important;
+}
+.timeline-event:hover .timeline-event-dot {
+  border-color: var(--lb-ochre-light) !important;
+}
+
+/* ---------- 地图装饰角花 ---------- */
+.lb-corner-deco {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.25;
+}
+.lb-corner-deco svg { display: block; }
+.lb-corner-tl { top: 80px; left: 16px; }
+.lb-corner-br { bottom: 16px; right: 16px; transform: rotate(180deg); }
+
+/* ---------- 信息卡片 ---------- */
+.narrative-info-card {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  z-index: 20;
+  max-width: 380px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--lb-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(45, 55, 72, 0.1) !important;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lb-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--lb-border);
+  background: linear-gradient(180deg, rgba(245, 240, 232, 0.6), transparent);
+}
+
+.lb-card-year-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.narrative-info-year {
+  font-family: var(--lb-font-serif) !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  color: var(--lb-cinnabar) !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+.lb-card-phase {
+  font-family: var(--lb-font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--lb-ochre);
+  background: rgba(139, 90, 43, 0.08);
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.lb-card-seal {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: var(--lb-cinnabar);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--lb-font-cal);
+  font-size: 13px;
+  color: #fff;
+  flex-shrink: 0;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(197, 48, 48, 0.25);
+}
+
+.lb-card-body {
+  padding: 14px 22px 18px;
+}
+
+.lb-card-place {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--lb-font-sans);
+  font-size: 12px;
+  color: var(--lb-text-muted);
+  margin-bottom: 6px;
+}
+.lb-card-place svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+.narrative-info-title {
+  font-family: var(--lb-font-serif) !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--lb-ink) !important;
+  margin-bottom: 8px !important;
+  line-height: 1.3;
+}
+
+.narrative-info-desc {
+  font-size: 13px !important;
+  line-height: 1.7 !important;
+  color: var(--lb-text-muted) !important;
+}
+
+.lb-card-poem {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--lb-cinnabar);
+  background: rgba(197, 48, 48, 0.03);
+  border-radius: 0 6px 6px 0;
+}
+.lb-card-poem-text {
+  font-family: var(--lb-font-cal);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--lb-cinnabar-dark);
+  letter-spacing: 0.05em;
+}
+.lb-card-poem-source {
+  font-family: var(--lb-font-sans);
+  font-size: 10px;
+  color: var(--lb-text-muted);
+  margin-top: 4px;
+}
+
+/* ---------- 时间轴面板 ---------- */
+.narrative-timeline-panel {
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+.narrative-timeline-header {
+  padding: 20px 24px 16px !important;
+  border-bottom: 1px solid var(--lb-border) !important;
+  background: linear-gradient(180deg, rgba(245, 240, 232, 0.5), transparent);
+}
+
+.narrative-timeline-title {
+  font-family: var(--lb-font-serif) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--lb-ink) !important;
+}
+
+.narrative-timeline-subtitle {
+  font-family: var(--lb-font-serif) !important;
+  font-size: 12px !important;
+  color: var(--lb-text-muted) !important;
+  margin-top: 4px !important;
+  font-style: italic;
+}
+
+.lb-timeline-phase-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+.lb-phase-segment {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--lb-border);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.lb-phase-segment.active {
+  background: var(--lb-cinnabar);
+}
+.lb-phase-segment.past {
+  background: var(--lb-ochre);
+  opacity: 0.5;
+}
+
+/* ---------- 时间轴列表 ---------- */
+.narrative-timeline-list {
+  padding: 16px 20px !important;
+}
+
+.narrative-timeline-list::before {
+  left: 29px !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 2px !important;
+  background: var(--lb-border) !important;
+}
+
+.timeline-event {
+  padding: 8px 0 !important;
+  gap: 14px !important;
+}
+
+.timeline-event-dot {
+  width: 10px !important;
+  height: 10px !important;
+  margin-left: 15px !important;
+  margin-top: 4px !important;
+  border: 2px solid var(--lb-border) !important;
+  background: #fff !important;
+}
+
+.timeline-event.active .timeline-event-dot {
+  background: var(--lb-cinnabar) !important;
+  border-color: var(--lb-cinnabar) !important;
+  box-shadow: 0 0 0 4px rgba(197, 48, 48, 0.15) !important;
+}
+
+.timeline-event.past .timeline-event-dot {
+  background: var(--lb-ochre) !important;
+  border-color: var(--lb-ochre) !important;
+  opacity: 0.5;
+}
+
+.timeline-event-year {
+  font-family: var(--lb-font-mono) !important;
+  font-size: 11px !important;
+  color: var(--lb-text-muted) !important;
+}
+
+.timeline-event.active .timeline-event-year {
+  color: var(--lb-cinnabar) !important;
+}
+
+.timeline-event-title {
+  font-family: var(--lb-font-serif) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--lb-ink) !important;
+}
+
+.timeline-event.active .timeline-event-title {
+  color: var(--lb-cinnabar) !important;
+}
+
+.timeline-event-desc {
+  font-size: 11px !important;
+  color: var(--lb-text-muted) !important;
+  line-height: 1.5 !important;
+}
+
+.timeline-event.active .timeline-event-desc {
+  max-height: 80px !important;
+}
+
+.lb-event-place {
+  font-family: var(--lb-font-sans);
+  font-size: 10px;
+  color: var(--lb-ochre);
+  margin-top: 2px;
+}
+
+/* ---------- 底部播放控件 ---------- */
+.narrative-timeline-footer {
+  padding: 14px 20px !important;
+  border-top: 1px solid var(--lb-border) !important;
+  background: rgba(245, 240, 232, 0.5);
+}
+
+.narrative-play-btn {
+  background: var(--lb-cinnabar) !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+}
+.narrative-play-btn:hover {
+  background: var(--lb-cinnabar-dark) !important;
+}
+
+.narrative-progress {
+  background: var(--lb-border) !important;
+}
+
+.narrative-progress-bar {
+  background: var(--lb-cinnabar) !important;
+}
+
+.demo-tech-tag {
+  background: rgba(139, 90, 43, 0.08) !important;
+  color: var(--lb-ochre) !important;
+  border-color: var(--lb-border) !important;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1024px) {
+  .framework-narrative .narrative-main {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 58% 42% !important;
+  }
+  .narrative-map-area {
+    border-right: none !important;
+    border-bottom: 1px solid var(--lb-border) !important;
+  }
+  .narrative-info-card {
+    max-width: 300px;
+    bottom: 16px;
+    left: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .narrative-info-card {
+    left: 12px !important;
+    right: 12px !important;
+    max-width: none !important;
+    bottom: 12px !important;
+  }
+  .lb-card-body { padding: 12px 16px 14px; }
+  .lb-card-header { padding: 14px 16px 10px; }
+  .narrative-info-year { font-size: 22px !important; }
+  .narrative-info-title { font-size: 16px !important; }
+  .narrative-info-desc { font-size: 12px !important; }
+  .lb-card-poem-text { font-size: 13px; }
+  .lb-corner-deco { display: none; }
+  .narrative-timeline-list { padding: 12px 16px !important; }
+  .narrative-timeline-list::before { left: 25px !important; }
+  .timeline-event-dot { margin-left: 10px !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ====== 入场水墨动画 ====== -->
+<div class="lb-entry" id="entryOverlay">
+  <div class="lb-entry-ink"></div>
+  <div class="lb-entry-text">
+    <div class="lb-entry-title">李白生平与游历</div>
+    <div class="lb-entry-sub">仗剑去国 · 辞亲远游</div>
+  </div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">历史</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">李白生平与游历路线</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-history">历史</span>
+      <a href="/skills/jingbo-edu-history-map-narrative-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体：左右分栏 ====== -->
+<div class="framework-narrative">
+  <div class="narrative-main">
+
+    <!-- ========== 左侧：地图区域 ========== -->
+    <div class="narrative-map-area">
+
+      <!-- 地图容器 -->
+      <div id="map"></div>
+
+      <!-- 角花装饰 -->
+      <div class="lb-corner-deco lb-corner-tl">
+        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" stroke="#8B5A2B" stroke-width="1">
+          <path d="M5 5 L5 25 M5 5 L25 5" stroke-linecap="round"/>
+          <path d="M5 5 Q15 8 18 18" stroke-linecap="round" opacity="0.6"/>
+          <circle cx="8" cy="8" r="2" fill="#8B5A2B" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="lb-corner-deco lb-corner-br">
+        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" stroke="#8B5A2B" stroke-width="1">
+          <path d="M5 5 L5 25 M5 5 L25 5" stroke-linecap="round"/>
+          <path d="M5 5 Q15 8 18 18" stroke-linecap="round" opacity="0.6"/>
+          <circle cx="8" cy="8" r="2" fill="#8B5A2B" opacity="0.3"/>
+        </svg>
+      </div>
+
+      <!-- 信息卡片 -->
+      <div class="narrative-info-card" id="infoCard">
+        <div class="lb-card-header">
+          <div>
+            <div class="lb-card-year-row">
+              <div class="narrative-info-year" id="infoYear">701</div>
+              <span class="lb-card-phase" id="infoPhase">蜀中少年</span>
+            </div>
+          </div>
+          <div class="lb-card-seal">太白</div>
+        </div>
+        <div class="lb-card-body">
+          <div class="lb-card-place">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span id="infoPlace">碎叶城</span>
+            <span id="infoModernPlace" style="color:var(--lb-text-muted);font-size:11px;margin-left:4px;"></span>
+          </div>
+          <div class="narrative-info-title" id="infoTitle">诗仙降世</div>
+          <div class="narrative-info-desc" id="infoDesc">事件描述</div>
+          <div class="lb-card-poem" id="infoPoem" style="display:none;">
+            <div class="lb-card-poem-text" id="infoPoemText"></div>
+            <div class="lb-card-poem-source" id="infoPoemSource"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========== 右侧：时间轴面板 ========== -->
+    <div class="narrative-timeline-panel">
+
+      <!-- 时间轴标题 -->
+      <div class="narrative-timeline-header">
+        <div class="narrative-timeline-title">诗仙足迹</div>
+        <div class="narrative-timeline-subtitle">公元 701 — 762 年 · 十五处关键足迹</div>
+        <div class="lb-timeline-phase-bar" id="phaseBar"></div>
+      </div>
+
+      <!-- 时间轴事件列表 -->
+      <div class="narrative-timeline-list" id="timelineList"></div>
+
+      <!-- 底部播放控件 -->
+      <div class="narrative-timeline-footer">
+        <button class="narrative-play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="playLabel">播放</span>
+        </button>
+        <div class="narrative-progress">
+          <div class="narrative-progress-bar" id="progressBar" style="width:0%"></div>
+        </div>
+        <span class="demo-tech-tag" id="eventCounter">1 / 15</span>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 脚本 ====== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+/* ============================================================
+   李白生平与游历路线 — 主脚本
+   ============================================================ */
+
+// ====== 事件数据 ======
+const events = [
+  {
+    year: 701, yearLabel: '701年', place: '碎叶城', modernPlace: '今吉尔吉斯斯坦托克马克',
+    title: '诗仙降世', phase: '蜀中少年', phaseIdx: 0,
+    desc: '李白出生于西域碎叶城，字太白，号青莲居士。其先世于隋末流徙西域，其父李客为富商。碎叶是丝绸之路北道重镇，多元文化交汇之地，李白自小浸染胡汉交融的文化氛围，为其豪放洒脱的性格埋下伏笔。',
+    poem: null, lat: 42.83, lng: 75.30
+  },
+  {
+    year: 705, yearLabel: '705年', place: '四川江油', modernPlace: '今四川江油青莲乡',
+    title: '迁居蜀中', phase: '蜀中少年', phaseIdx: 0,
+    desc: '李白五岁时随家迁居四川绵州昌隆县青莲乡。蜀中生活是李白成长的关键时期，他"五岁诵六甲，十岁观百家"，博览群书，好剑术，喜任侠。岷山、蜀道的雄奇风光滋养了他的想象力，道教文化也深刻影响其思想。',
+    poem: { text: '五岁诵六甲，十岁观百家', source: '— 李白《上安州裴长史书》' },
+    lat: 31.77, lng: 104.74
+  },
+  {
+    year: 725, yearLabel: '725年', place: '江陵', modernPlace: '今湖北荆州',
+    title: '仗剑去国', phase: '出蜀漫游', phaseIdx: 1,
+    desc: '二十五岁的李白"仗剑去国，辞亲远游"，出三峡，经江陵，泛洞庭，东至金陵、扬州。在江陵遇司马承祯，称其"有仙风道骨"。此行开启了李白一生漫游的序幕，长江两岸的壮美景色激发了他的创作热情。',
+    poem: { text: '仗剑去国，辞亲远游', source: '— 李白《上安州裴长史书》' },
+    lat: 30.33, lng: 112.24
+  },
+  {
+    year: 727, yearLabel: '727年', place: '安陆', modernPlace: '今湖北安陆',
+    title: '定居安陆', phase: '出蜀漫游', phaseIdx: 1,
+    desc: '李白定居湖北安陆，娶前朝宰相许圉师的孙女许氏为妻。在安陆的十年间，他以安陆为中心，北游洛阳、太原，东游齐鲁，南游吴越。"酒隐安陆，蹉跎十年"，此间他广泛交游，干谒权贵，渴望从政。',
+    poem: { text: '酒隐安陆，蹉跎十年', source: '— 李白《秋于敬亭送从侄耑游庐山序》' },
+    lat: 31.26, lng: 113.69
+  },
+  {
+    year: 730, yearLabel: '730年', place: '长安', modernPlace: '今陕西西安',
+    title: '初入长安', phase: '出蜀漫游', phaseIdx: 1,
+    desc: '李白第一次入长安，希望得到举荐，实现政治理想。他谒见宰相张说，结识张垍，却未能得志。在长安期间，他目睹了帝都的繁华与权贵的骄奢，写下《蜀道难》等名篇，发出"大道如青天，我独不得出"的感叹。',
+    poem: { text: '大道如青天，我独不得出', source: '— 李白《行路难·其二》' },
+    lat: 34.26, lng: 108.94
+  },
+  {
+    year: 742, yearLabel: '742年', place: '长安', modernPlace: '今陕西西安',
+    title: '供奉翰林', phase: '长安翰林', phaseIdx: 2,
+    desc: '因道士吴筠与贺知章的举荐，李白奉诏入京，供奉翰林，为唐玄宗草拟文诰。"仰天大笑出门去，我辈岂是蓬蒿人"，这是李白一生中最风光的时期。贺知章称其为"谪仙人"，"力士脱靴、贵妃磨墨"的传说即发生于此。',
+    poem: { text: '仰天大笑出门去，我辈岂是蓬蒿人', source: '— 李白《南陵别儿童入京》' },
+    lat: 34.26, lng: 108.94
+  },
+  {
+    year: 744, yearLabel: '744年', place: '长安', modernPlace: '今陕西西安',
+    title: '赐金放还', phase: '赐金放还', phaseIdx: 3,
+    desc: '李白因性格傲岸，遭权贵谗毁，被唐玄宗"赐金放还"，结束了短短两年的宫廷生涯。离开长安后，他的政治理想受挫，转而将更多热情倾注于诗歌与求仙问道，创作进入新的高峰，诗风更加飘逸豪放。',
+    poem: null,
+    lat: 34.26, lng: 108.94
+  },
+  {
+    year: 744, yearLabel: '744年', place: '洛阳', modernPlace: '今河南洛阳',
+    title: '李杜相会', phase: '赐金放还', phaseIdx: 3,
+    desc: '李白与杜甫在洛阳相遇，中国文学史上最伟大的两位诗人历史性会面。两人一见如故，同游梁宋，登高怀古，饮酒论文。"醉眠秋共被，携手日同行"，这段交游成为文学史上的千古佳话，也深刻影响了两位诗人的创作。',
+    poem: { text: '醉眠秋共被，携手日同行', source: '— 杜甫《与李十二白同寻范十隐居》' },
+    lat: 34.62, lng: 112.45
+  },
+  {
+    year: 744, yearLabel: '744年', place: '梁宋', modernPlace: '今河南开封、商丘一带',
+    title: '三友同游', phase: '赐金放还', phaseIdx: 3,
+    desc: '李白、杜甫与高适三人同游梁宋，登吹台，琴台怀古，纵论天下。三位才华横溢的诗人结伴漫游，把酒论文，评骘古今，留下了一段文坛传奇。此时正值盛唐巅峰，三人的意气风发与时代精神高度契合。',
+    poem: null,
+    lat: 34.80, lng: 114.31
+  },
+  {
+    year: 750, yearLabel: '750年', place: '梁园', modernPlace: '今河南开封',
+    title: '梁园题壁', phase: '赐金放还', phaseIdx: 3,
+    desc: '李白游梁园，在墙壁上挥笔写下《梁园吟》，宗楚客的孙女宗氏见之，倾慕其才，"千金买壁"传为佳话，后李白与宗氏结为夫妻。梁园时期的李白虽仕途失意，但豪情不减，"天生我材必有用，千金散尽还复来"正作于此前后。',
+    poem: { text: '天生我材必有用，千金散尽还复来', source: '— 李白《将进酒》' },
+    lat: 34.80, lng: 114.31
+  },
+  {
+    year: 755, yearLabel: '755年', place: '庐山', modernPlace: '今江西九江',
+    title: '避乱庐山', phase: '乱世漂泊', phaseIdx: 4,
+    desc: '安史之乱爆发，李白携宗氏避乱庐山。大唐盛世戛然而止，战火纷飞，生灵涂炭。李白在庐山隐居期间，既忧国忧民，又心存出世之念，内心充满矛盾。"中夜四五叹，常为大国忧"，可见其家国情怀。',
+    poem: { text: '中夜四五叹，常为大国忧', source: '— 李白《赠江夏韦太守良宰》' },
+    lat: 29.55, lng: 115.98
+  },
+  {
+    year: 756, yearLabel: '756年', place: '寻阳', modernPlace: '今江西九江',
+    title: '入永王幕府', phase: '乱世漂泊', phaseIdx: 4,
+    desc: '永王李璘起兵勤王，李白受邀入其幕府。他以为报国之机已到，写下《永王东巡歌》十一首，抒发建功立业的豪情。然而永王的军事行动很快被唐肃宗视为反叛，李白也因此卷入政治漩涡，命运急转直下。',
+    poem: { text: '三川北虏乱如麻，四海南奔似永嘉', source: '— 李白《永王东巡歌·其二》' },
+    lat: 29.71, lng: 116.00
+  },
+  {
+    year: 757, yearLabel: '757年', place: '夜郎', modernPlace: '今贵州桐梓一带',
+    title: '流放夜郎', phase: '乱世漂泊', phaseIdx: 4,
+    desc: '永王兵败，李白被囚寻阳，经崔涣、宋若思等人力救，终被判处长流夜郎。"夜郎万里道，西上令人老"，年近六十的诗人踏上漫漫流放之路。行至白帝城时，朝廷因关中大旱宣布大赦，李白重获自由。',
+    poem: { text: '夜郎万里道，西上令人老', source: '— 李白《放后遇恩不沾》' },
+    lat: 28.52, lng: 106.80
+  },
+  {
+    year: 759, yearLabel: '759年', place: '白帝城', modernPlace: '今重庆奉节',
+    title: '朝辞白帝', phase: '乱世漂泊', phaseIdx: 4,
+    desc: '李白在白帝城遇赦，立即乘舟东下江陵，写下千古绝唱《早发白帝城》。诗中轻快的节奏、飞扬的意气，正是诗人绝处逢生心情的真实写照。两岸猿声回荡峡间，轻舟已过万重山，人生的苦难在此刻化为诗意的飞扬。',
+    poem: { text: '朝辞白帝彩云间，千里江陵一日还。两岸猿声啼不住，轻舟已过万重山。', source: '— 李白《早发白帝城》' },
+    lat: 31.05, lng: 109.54
+  },
+  {
+    year: 762, yearLabel: '762年', place: '当涂', modernPlace: '今安徽马鞍山',
+    title: '病逝当涂', phase: '乱世漂泊', phaseIdx: 4,
+    desc: '李白晚年漂泊于金陵、宣城一带，生活困顿，依靠族叔当涂县令李阳冰接济。762年，李白病逝于当涂，享年六十二岁。临终前赋《临终歌》，以大鹏自比。诗仙陨落，留下近千首不朽诗篇，光照千秋。',
+    poem: { text: '大鹏飞兮振八裔，中天摧兮力不济', source: '— 李白《临终歌》' },
+    lat: 31.55, lng: 118.50
+  }
+];
+
+// ====== 生平阶段 ======
+const phases = [
+  { name: '蜀中少年', color: '#6B8E5A' },
+  { name: '出蜀漫游', color: '#4A90B8' },
+  { name: '长安翰林', color: '#D4A574' },
+  { name: '赐金放还', color: '#8B5A2B' },
+  { name: '乱世漂泊', color: '#7B4B5C' }
+];
+
+// ====== 状态 ======
+let currentEvent = 0;
+let isPlaying = false;
+let playTimer = null;
+let map, markers = [], pathLine, pathTraveled;
+let isFlying = false;
+
+// ====== 初始化地图 ======
+function initMap() {
+  map = L.map('map', {
+    zoomControl: true,
+    attributionControl: true,
+    minZoom: 3,
+    maxZoom: 8,
+    zoomSnap: 0.5,
+    fadeAnimation: true,
+    zoomAnimation: true,
+    scrollWheelZoom: true
+  });
+
+  // 高德地图底图（国产瓦片，中文标注，加载快）
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    attribution: '© 高德地图',
+    subdomains: ['1', '2', '3', '4'],
+    maxZoom: 18
+  }).addTo(map);
+
+  // 计算边界并适配视图
+  const bounds = L.latLngBounds(events.map(e => [e.lat, e.lng]));
+  map.fitBounds(bounds, { padding: [60, 60] });
+
+  // 全路径（淡色虚线）
+  const fullCoords = events.map(e => [e.lat, e.lng]);
+  pathLine = L.polyline(fullCoords, {
+    color: '#8B5A2B',
+    weight: 2,
+    opacity: 0.2,
+    dashArray: '5 8',
+    lineCap: 'round'
+  }).addTo(map);
+
+  // 已走路径（朱砂红虚线）
+  pathTraveled = L.polyline([], {
+    color: '#C53030',
+    weight: 2.5,
+    opacity: 0.6,
+    dashArray: '5 8',
+    lineCap: 'round'
+  }).addTo(map);
+
+  // 创建标记点
+  events.forEach((e, i) => {
+    const icon = L.divIcon({
+      className: 'lb-marker-wrapper',
+      html: `<div class="lb-marker future" data-idx="${i}">
+              <div class="lb-marker-dot"></div>
+              <div class="lb-marker-label">${e.place}</div>
+            </div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+
+    const marker = L.marker([e.lat, e.lng], { icon }).addTo(map);
+    marker.on('click', () => selectEvent(i));
+    markers.push(marker);
+  });
+
+  // 禁止初始飞行动画冲突
+  map.on('movestart', () => { isFlying = true; });
+  map.on('moveend', () => { isFlying = false; });
+}
+
+// ====== 更新标记状态 ======
+function updateMarkers() {
+  markers.forEach((marker, i) => {
+    const el = marker.getElement();
+    if (!el) return;
+    const inner = el.querySelector('.lb-marker');
+    if (!inner) return;
+
+    inner.classList.remove('active', 'past', 'future');
+    if (i === currentEvent) {
+      inner.classList.add('active');
+    } else if (i < currentEvent) {
+      inner.classList.add('past');
+    } else {
+      inner.classList.add('future');
+    }
+  });
+}
+
+// ====== 更新路径 ======
+function updatePath() {
+  const traveled = events.slice(0, currentEvent + 1).map(e => [e.lat, e.lng]);
+  pathTraveled.setLatLngs(traveled);
+}
+
+// ====== 构建时间轴 ======
+function buildTimeline() {
+  const list = document.getElementById('timelineList');
+  list.innerHTML = events.map((e, i) => `
+    <div class="timeline-event ${i === currentEvent ? 'active' : ''}" data-idx="${i}">
+      <div class="timeline-event-dot"></div>
+      <div class="timeline-event-content">
+        <div class="timeline-event-year">${e.yearLabel}</div>
+        <div class="timeline-event-title">${e.title}</div>
+        <div class="lb-event-place">${e.place}</div>
+        <div class="timeline-event-desc">${e.desc.substring(0, 60)}…</div>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.timeline-event').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      selectEvent(idx);
+    });
+  });
+}
+
+// ====== 构建阶段进度条 ======
+function buildPhaseBar() {
+  const bar = document.getElementById('phaseBar');
+  bar.innerHTML = phases.map((p, i) => {
+    const eventCount = events.filter(e => e.phaseIdx === i).length;
+    return `<div class="lb-phase-segment" data-phase="${i}" 
+             style="flex: ${eventCount};" 
+             title="${p.name}"></div>`;
+  }).join('');
+}
+
+// ====== 更新阶段进度条 ======
+function updatePhaseBar() {
+  const currentPhase = events[currentEvent].phaseIdx;
+  document.querySelectorAll('.lb-phase-segment').forEach((el, i) => {
+    el.classList.remove('active', 'past');
+    if (i === currentPhase) el.classList.add('active');
+    else if (i < currentPhase) el.classList.add('past');
+  });
+}
+
+// ====== 选中事件 ======
+function selectEvent(idx) {
+  currentEvent = idx;
+  const e = events[idx];
+
+  // 更新信息卡片
+  const card = document.getElementById('infoCard');
+
+  // 卡片切换动画
+  gsap.fromTo(card,
+    { opacity: 0.6, y: 8 },
+    { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+  );
+
+  document.getElementById('infoYear').textContent = e.year;
+  document.getElementById('infoPhase').textContent = e.phase;
+  document.getElementById('infoPlace').textContent = e.place;
+  document.getElementById('infoModernPlace').textContent = '· ' + e.modernPlace;
+  document.getElementById('infoTitle').textContent = e.title;
+  document.getElementById('infoDesc').textContent = e.desc;
+
+  // 诗词展示
+  const poemEl = document.getElementById('infoPoem');
+  if (e.poem) {
+    poemEl.style.display = 'block';
+    document.getElementById('infoPoemText').textContent = e.poem.text;
+    document.getElementById('infoPoemSource').textContent = e.poem.source;
+    gsap.fromTo(poemEl,
+      { opacity: 0, x: -10 },
+      { opacity: 1, x: 0, duration: 0.5, delay: 0.2, ease: 'power2.out' }
+    );
+  } else {
+    poemEl.style.display = 'none';
+  }
+
+  // 更新时间轴高亮
+  document.querySelectorAll('.timeline-event').forEach((el, i) => {
+    el.classList.remove('active', 'past');
+    if (i === idx) el.classList.add('active');
+    else if (i < idx) el.classList.add('past');
+  });
+
+  // 滚动到当前事件
+  const activeEl = document.querySelector('.timeline-event.active');
+  if (activeEl) {
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // 更新进度条
+  const progress = ((idx + 1) / events.length) * 100;
+  document.getElementById('progressBar').style.width = `${progress}%`;
+  document.getElementById('eventCounter').textContent = `${idx + 1} / ${events.length}`;
+
+  // 更新地图
+  updateMarkers();
+  updatePath();
+  updatePhaseBar();
+
+  // 飞到当前位置（避免过于频繁）
+  if (!isFlying) {
+    map.flyTo([e.lat, e.lng], Math.max(map.getZoom(), 5), {
+      duration: 1.2,
+      easeLinearity: 0.25
+    });
+  }
+}
+
+// ====== 播放控制 ======
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+  const label = document.getElementById('playLabel');
+
+  if (isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    label.textContent = '暂停';
+
+    playTimer = setInterval(() => {
+      let next = currentEvent + 1;
+      if (next >= events.length) {
+        next = 0;
+      }
+      selectEvent(next);
+    }, 5000);
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent = '播放';
+    clearInterval(playTimer);
+  }
+}
+
+// ====== 键盘导航 ======
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    if (currentEvent > 0) selectEvent(currentEvent - 1);
+  } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    if (currentEvent < events.length - 1) selectEvent(currentEvent + 1);
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    togglePlay();
+  }
+});
+
+// ====== 导航栏滚动 ======
+window.addEventListener('scroll', () => {
+  document.getElementById('demoNavbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  buildTimeline();
+  buildPhaseBar();
+
+  // 延迟选中第一个事件（等地图加载）
+  setTimeout(() => {
+    selectEvent(0);
+  }, 300);
+
+  // 播放按钮
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // 入场动画淡出
+  setTimeout(() => {
+    document.getElementById('entryOverlay').classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('entryOverlay').style.display = 'none';
+    }, 1200);
+  }, 2800);
+
+  // 容器尺寸变化时刷新地图（修复 iframe 内嵌后地图不显示的问题）
+  window.addEventListener('resize', () => {
+    if (map) map.invalidateSize();
+  });
+  // 多次延迟刷新，确保 CSS 注入后地图正确渲染
+  setTimeout(() => { if (map) map.invalidateSize(); }, 500);
+  setTimeout(() => { if (map) map.invalidateSize(); }, 1500);
+  setTimeout(() => { if (map) map.invalidateSize(); }, 3000);
+});
+</script>
+
+</body>
+</html>

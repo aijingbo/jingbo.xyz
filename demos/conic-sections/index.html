@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>圆锥曲线动态轨迹生成器 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<style>
+  html, body { height: 100%; overflow: hidden; margin: 0; }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100svh;
+  }
+
+  /* ============ 导航栏 ============ */
+  .navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    height: 56px;
+    flex-shrink: 0;
+    background: rgba(250, 248, 245, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+  }
+  .nav-left { display: flex; align-items: center; gap: var(--spacer-16); }
+  .nav-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text-muted); text-decoration: none;
+    font-size: var(--fs-small); font-weight: 500;
+    transition: color var(--duration-fast) var(--ease);
+  }
+  .nav-back:hover { color: var(--text); }
+  .nav-logo {
+    font-family: var(--font-serif); font-size: 17px; font-weight: 700;
+    color: var(--text); text-decoration: none;
+  }
+  .nav-center {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-serif); font-size: 15px; font-weight: 600;
+    color: var(--text);
+  }
+  .nav-right { display: flex; align-items: center; gap: var(--spacer-12); }
+  .nav-download {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; font-size: var(--fs-small); font-weight: 500;
+    color: var(--brand); background: var(--brand-soft);
+    border: none; border-radius: var(--radius); cursor: pointer;
+    transition: all var(--duration-base) var(--ease); text-decoration: none;
+  }
+  .nav-download:hover { background: var(--brand-soft-hover); transform: translateY(-1px); }
+
+  /* ============ 画布区 ============ */
+  .canvas-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    min-height: 0;
+  }
+  #conicSvg, #coneCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  #coneCanvas { display: none; }
+
+  /* 信息卡片 */
+  .info-card {
+    position: absolute;
+    top: 16px; left: 16px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+    min-width: 240px;
+    z-index: 10;
+    user-select: none;
+  }
+  .info-type {
+    font-family: var(--font-serif);
+    font-size: 15px; font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .info-type-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--curve-color, #3730a3);
+  }
+  .info-formula {
+    font-family: 'Cambria Math', 'Times New Roman', Georgia, serif;
+    font-size: 16px; font-style: italic;
+    color: var(--curve-color, #3730a3);
+    text-align: center;
+    padding: 8px 12px;
+    background: rgba(55, 48, 163, 0.06);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+  .info-params {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+  }
+  .info-param {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px;
+  }
+  .info-param-label {
+    color: var(--text-muted);
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    font-style: italic;
+  }
+  .info-param-value {
+    font-family: var(--font-mono);
+    font-size: 12px; font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 定义演示信息 */
+  .def-info {
+    position: absolute;
+    bottom: 16px; right: 16px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+    z-index: 10;
+    display: none;
+    user-select: none;
+  }
+  .def-info.visible { display: block; }
+  .def-info-title {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .def-info-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 16px; font-size: 12px; margin-bottom: 2px;
+  }
+  .def-info-label { color: var(--text-muted); }
+  .def-info-value {
+    font-family: var(--font-mono); font-weight: 600;
+    color: var(--text); font-variant-numeric: tabular-nums;
+  }
+  .def-info-ratio {
+    margin-top: 4px; padding-top: 4px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .def-info-ratio .def-info-value { color: #8b5cf6; }
+
+  /* 提示文字 */
+  .hint {
+    position: absolute;
+    bottom: 16px; left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    font-size: var(--fs-tiny);
+    color: var(--text-muted);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ============ 控制面板 ============ */
+  .control-panel {
+    flex-shrink: 0;
+    background: var(--surface-muted);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  /* 滑块组 */
+  .slider-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slider-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 52px;
+  }
+  .slider-label em {
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    font-style: italic;
+    color: var(--text);
+  }
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 110px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px; height: 14px;
+    background: var(--curve-color, #3730a3);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(55, 48, 163, 0.3);
+    transition: transform var(--duration-fast) var(--ease);
+    border: 2px solid #fff;
+  }
+  .slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .slider::-moz-range-thumb {
+    width: 14px; height: 14px;
+    background: var(--curve-color, #3730a3);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(55, 48, 163, 0.3);
+  }
+  .slider-value {
+    font-family: var(--font-mono);
+    font-size: 12px; font-weight: 600;
+    color: var(--text);
+    min-width: 38px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 复选框组 */
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .checkbox-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    background: var(--surface);
+    user-select: none;
+  }
+  .checkbox-item:hover { border-color: var(--text-faint); color: var(--text); }
+  .checkbox-item.checked {
+    color: #3730a3;
+    border-color: rgba(55, 48, 163, 0.3);
+    background: rgba(55, 48, 163, 0.06);
+  }
+  .checkbox-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background var(--duration-fast) var(--ease);
+  }
+  .checkbox-item.checked .checkbox-dot { background: #3730a3; }
+
+  /* 视图模式切换 */
+  .view-tabs {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2px;
+    gap: 1px;
+  }
+  .view-tab {
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    white-space: nowrap;
+    font-family: var(--font-sans);
+  }
+  .view-tab:hover { color: var(--text); }
+  .view-tab.active {
+    background: #3730a3;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(55, 48, 163, 0.25);
+  }
+
+  /* 预设按钮 */
+  .preset-btn {
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    white-space: nowrap;
+    font-family: var(--font-sans);
+  }
+  .preset-btn:hover {
+    color: #3730a3;
+    border-color: rgba(55, 48, 163, 0.3);
+    background: rgba(55, 48, 163, 0.04);
+  }
+
+  /* 功能按钮 */
+  .ctrl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all var(--duration-base) var(--ease);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-sans);
+  }
+  .ctrl-btn:hover {
+    border-color: var(--text-faint);
+    background: var(--surface-muted);
+  }
+  .ctrl-btn.primary {
+    background: #3730a3;
+    color: #fff;
+    border-color: #3730a3;
+  }
+  .ctrl-btn.primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(55, 48, 163, 0.3);
+  }
+  .ctrl-btn .icon { font-size: 12px; line-height: 1; }
+
+  .ctrl-spacer { flex: 1; }
+
+  .divider-v {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+  }
+
+  /* SVG 样式 */
+  .svg-grid line { stroke: rgba(180, 170, 155, 0.18); stroke-width: 0.5; }
+  .svg-grid line.major { stroke: rgba(180, 170, 155, 0.3); }
+  .svg-axis { stroke: rgba(100, 90, 80, 0.35); stroke-width: 1; }
+  .svg-axis-arrow { fill: rgba(100, 90, 80, 0.4); }
+  .svg-axis-label {
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 12px;
+    fill: var(--text-muted);
+  }
+  .svg-curve {
+    fill: none;
+    stroke: #3730a3;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .svg-curve-glow {
+    fill: none;
+    stroke: rgba(55, 48, 163, 0.12);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .svg-focus { fill: #ef4444; }
+  .svg-focus-glow { fill: rgba(239, 68, 68, 0.15); }
+  .svg-focus-label {
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 13px;
+    font-weight: 600;
+    fill: #ef4444;
+  }
+  .svg-directrix {
+    stroke: #10b981;
+    stroke-width: 1.5;
+    stroke-dasharray: 6 4;
+  }
+  .svg-directrix-label {
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 12px;
+    fill: #10b981;
+  }
+  .svg-asymptote {
+    stroke: #f59e0b;
+    stroke-width: 1.2;
+    stroke-dasharray: 5 4;
+  }
+  .svg-asymptote-label {
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 11px;
+    fill: #f59e0b;
+  }
+  .svg-vertex { fill: #6366f1; }
+  .svg-vertex-label {
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 11px;
+    fill: #6366f1;
+  }
+  .svg-def-point { fill: #8b5cf6; }
+  .svg-def-point-glow { fill: rgba(139, 92, 246, 0.18); }
+  .svg-def-line {
+    stroke-width: 1.2;
+    stroke-dasharray: 4 3;
+    fill: none;
+  }
+  .svg-def-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* 响应式 */
+  @media (max-width: 900px) {
+    .nav-center { display: none; }
+    .info-card { min-width: 180px; padding: 12px 14px; top: 10px; left: 10px; }
+    .info-formula { font-size: 14px; }
+    .control-panel { padding: 10px 12px 12px; gap: 8px; }
+    .control-row { gap: 12px; }
+    .slider { width: 80px; }
+    .slider-label { min-width: 40px; font-size: 11px; }
+    .checkbox-group { gap: 2px; }
+    .checkbox-item { padding: 3px 8px; font-size: 10px; }
+    .preset-btn { padding: 3px 10px; font-size: 10px; }
+  }
+  @media (max-width: 600px) {
+    .info-card { min-width: 140px; }
+    .info-params { grid-template-columns: 1fr; }
+    .slider { width: 60px; }
+  }
+</style>
+
+<style>
+.demo-navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 56px;
+  background: rgba(250, 248, 245, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  transition: background 300ms ease, border-color 300ms ease;
+}
+.demo-navbar.scrolled {
+  background: rgba(250, 248, 245, 0.96);
+  border-bottom-color: rgba(0,0,0,0.1);
+}
+.demo-nav-left { display: flex; align-items: center; gap: 12px; }
+.demo-nav-logo {
+  font-family: var(--nm-font-cn-serif, "Noto Serif SC", serif);
+  font-size: 17px; font-weight: 700; color: var(--text, #1c1714);
+  text-decoration: none; letter-spacing: 0.04em;
+}
+.demo-nav-divider {
+  width: 1px; height: 16px; background: rgba(0,0,0,0.12);
+}
+.demo-nav-subject {
+  font-size: 14px; color: var(--text-muted, #6b6258);
+  text-decoration: none; font-weight: 500;
+  transition: color 200ms ease;
+}
+.demo-nav-subject:hover { color: var(--brand, #c2410c); }
+.demo-nav-center {
+  font-size: 14px; font-weight: 600; color: var(--text, #1c1714);
+  text-align: center; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.demo-nav-right { display: flex; align-items: center; gap: 12px; }
+.demo-btn-download {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; font-size: 13px; font-weight: 500;
+  color: var(--brand, #c2410c); text-decoration: none;
+  border: 1px solid rgba(194, 65, 12, 0.2); border-radius: 6px;
+  transition: all 200ms ease;
+}
+.demo-btn-download:hover {
+  background: rgba(194, 65, 12, 0.06); border-color: rgba(194, 65, 12, 0.3);
+}
+.demo-btn-download svg { width: 14px; height: 14px; }
+.tag {
+  display: inline-block; padding: 3px 8px; font-size: 12px;
+  font-weight: 600; border-radius: 4px;
+}
+.tag-bio { background: rgba(5,150,105,0.1); color: #059669; }
+.tag-chem { background: rgba(217,119,6,0.1); color: #d97706; }
+.tag-geo { background: rgba(8,145,178,0.1); color: #0891b2; }
+.tag-physics { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.tag-math { background: rgba(194,65,12,0.1); color: #c2410c; }
+.tag-history { background: rgba(220,38,38,0.1); color: #dc2626; }
+.tag-cs { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.tag-art { background: rgba(236,72,153,0.1); color: #ec4899; }
+.tag-cross { background: rgba(107,114,128,0.1); color: #6b7280; }
+@media (max-width: 768px) {
+  .demo-nav-center { display: none; }
+  .demo-nav-right .tag { display: none; }
+  .demo-btn-download span { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 导航栏 -->
+  <header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">圆锥曲线动态轨迹生成器</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-math">数学</span>
+      <a href="/skills/jingbo-edu-math-graph-tool-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- 画布区 -->
+  <div class="canvas-area" id="canvasArea">
+    <svg id="conicSvg" preserveAspectRatio="xMidYMid meet"></svg>
+    <canvas id="coneCanvas"></canvas>
+
+    <!-- 信息卡片 -->
+    <div class="info-card" id="infoCard">
+      <div class="info-type">
+        <span class="info-type-dot" id="infoDot"></span>
+        <span id="infoType">椭圆</span>
+      </div>
+      <div class="info-formula" id="infoFormula">x²/a² + y²/b² = 1</div>
+      <div class="info-params">
+        <div class="info-param"><span class="info-param-label">e</span><span class="info-param-value" id="paramE">0.60</span></div>
+        <div class="info-param"><span class="info-param-label">a</span><span class="info-param-value" id="paramA">5.0</span></div>
+        <div class="info-param"><span class="info-param-label">b</span><span class="info-param-value" id="paramB">4.0</span></div>
+        <div class="info-param"><span class="info-param-label">c</span><span class="info-param-value" id="paramC">3.0</span></div>
+        <div class="info-param"><span class="info-param-label">p</span><span class="info-param-value" id="paramP">3.2</span></div>
+        <div class="info-param"><span class="info-param-label">2c</span><span class="info-param-value" id="paramFocal">6.0</span></div>
+      </div>
+    </div>
+
+    <!-- 几何定义信息 -->
+    <div class="def-info" id="defInfo">
+      <div class="def-info-title">几何定义验证</div>
+      <div class="def-info-row"><span class="def-info-label">|PF| 到焦点</span><span class="def-info-value" id="defPF">0.00</span></div>
+      <div class="def-info-row"><span class="def-info-label">d 到准线</span><span class="def-info-value" id="defD">0.00</span></div>
+      <div class="def-info-row def-info-ratio"><span class="def-info-label">|PF| / d</span><span class="def-info-value" id="defRatio">= e</span></div>
+    </div>
+
+    <!-- 提示 -->
+    <div class="hint" id="hint">拖动滑块调节参数 · 空格键播放/暂停</div>
+  </div>
+
+  <!-- 控制面板 -->
+  <div class="control-panel">
+    <!-- 第一行：滑块 -->
+    <div class="control-row">
+      <div class="slider-group">
+        <span class="slider-label">离心率 <em>e</em></span>
+        <input type="range" class="slider" id="sliderE" min="0.1" max="3.0" step="0.01" value="0.6">
+        <span class="slider-value" id="valE">0.60</span>
+      </div>
+      <div class="slider-group">
+        <span class="slider-label">半轴 <em>a</em></span>
+        <input type="range" class="slider" id="sliderA" min="1" max="10" step="0.5" value="5">
+        <span class="slider-value" id="valA">5.0</span>
+      </div>
+      <div class="slider-group">
+        <span class="slider-label">旋转 <em>θ</em></span>
+        <input type="range" class="slider" id="sliderRot" min="0" max="360" step="1" value="0">
+        <span class="slider-value" id="valRot">0°</span>
+      </div>
+      <div class="slider-group">
+        <span class="slider-label"><em>x</em> 偏移</span>
+        <input type="range" class="slider" id="sliderX" min="-5" max="5" step="0.5" value="0">
+        <span class="slider-value" id="valX">0.0</span>
+      </div>
+      <div class="slider-group">
+        <span class="slider-label"><em>y</em> 偏移</span>
+        <input type="range" class="slider" id="sliderY" min="-5" max="5" step="0.5" value="0">
+        <span class="slider-value" id="valY">0.0</span>
+      </div>
+      <div class="ctrl-spacer"></div>
+      <button class="ctrl-btn primary" id="btnPlay">
+        <span class="icon" id="playIcon">▶</span>
+        <span id="playText">播放</span>
+      </button>
+      <button class="ctrl-btn" id="btnReset">
+        <span class="icon">↺</span>
+        <span>重置</span>
+      </button>
+    </div>
+
+    <!-- 第二行：选项 + 视图 + 预设 -->
+    <div class="control-row">
+      <div class="checkbox-group" id="checkboxGroup">
+        <div class="checkbox-item checked" data-key="focus"><span class="checkbox-dot"></span>焦点</div>
+        <div class="checkbox-item" data-key="directrix"><span class="checkbox-dot"></span>准线</div>
+        <div class="checkbox-item checked" data-key="axis"><span class="checkbox-dot"></span>对称轴</div>
+        <div class="checkbox-item" data-key="asymptote"><span class="checkbox-dot"></span>渐近线</div>
+        <div class="checkbox-item" data-key="vertex"><span class="checkbox-dot"></span>顶点</div>
+        <div class="checkbox-item checked" data-key="grid"><span class="checkbox-dot"></span>网格</div>
+        <div class="checkbox-item" data-key="definition"><span class="checkbox-dot"></span>几何定义</div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="view-tabs" id="viewTabs">
+        <button class="view-tab active" data-view="2d">2D 曲线</button>
+        <button class="view-tab" data-view="cone">圆锥切割</button>
+        <button class="view-tab" data-view="dual">双视图</button>
+      </div>
+      <div class="divider-v"></div>
+      <div class="checkbox-group">
+        <button class="preset-btn" data-preset="circle">正圆</button>
+        <button class="preset-btn" data-preset="ellipse">标准椭圆</button>
+        <button class="preset-btn" data-preset="parabola">抛物线</button>
+        <button class="preset-btn" data-preset="hyperbola">等轴双曲线</button>
+        <button class="preset-btn" data-preset="transition">过渡动画</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   圆锥曲线动态轨迹生成器
+   统一定义：到焦点距离 / 到准线距离 = e（离心率）
+   e < 1: 椭圆, e = 1: 抛物线, e > 1: 双曲线
+   ============================================================ */
+
+// ---------- 颜色常量 ----------
+const COLORS = {
+  curve: '#3730a3',
+  curveGlow: 'rgba(55, 48, 163, 0.12)',
+  focus: '#ef4444',
+  focusGlow: 'rgba(239, 68, 68, 0.15)',
+  directrix: '#10b981',
+  asymptote: '#f59e0b',
+  vertex: '#6366f1',
+  defPoint: '#8b5cf6',
+  defPointGlow: 'rgba(139, 92, 246, 0.18)',
+  grid: 'rgba(180, 170, 155, 0.18)',
+  gridMajor: 'rgba(180, 170, 155, 0.3)',
+  axis: 'rgba(100, 90, 80, 0.35)',
+  axisLabel: '#6b6b6b',
+};
+
+// ---------- 状态 ----------
+const state = {
+  e: 0.6,
+  a: 5,
+  rotation: 0,
+  offsetX: 0,
+  offsetY: 0,
+  viewMode: '2d',
+  show: {
+    focus: true,
+    directrix: false,
+    axis: true,
+    asymptote: false,
+    vertex: false,
+    grid: true,
+    definition: false,
+  },
+  isPlaying: false,
+  playMode: null, // 'transition' | 'point' | null
+  pointT: 0,
+  pointDirection: 1,
+};
+
+// ---------- SVG 元素 ----------
+const svg = document.getElementById('conicSvg');
+const svgNS = 'http://www.w3.org/2000/svg';
+const coneCanvas = document.getElementById('coneCanvas');
+const coneCtx = coneCanvas.getContext('2d');
+
+// 视图参数
+let viewScale = 30; // SVG units per math unit
+let viewCx = 0, viewCy = 0; // SVG center in SVG coordinates
+let viewW = 900, viewH = 600;
+
+// ---------- 数学计算 ----------
+function getParams(e, a) {
+  if (e < 0.999) {
+    const c = a * e;
+    const b = a * Math.sqrt(1 - e * e);
+    const p = (b * b) / a; // semi-latus rectum
+    return { type: 'ellipse', a, b, c, e, p };
+  } else if (e <= 1.001) {
+    return { type: 'parabola', a, e: 1, p: a, b: null, c: null };
+  } else {
+    const c = a * e;
+    const b = a * Math.sqrt(e * e - 1);
+    const p = (b * b) / a;
+    return { type: 'hyperbola', a, b, c, e, p };
+  }
+}
+
+function getTypeName(type) {
+  return { ellipse: '椭圆', parabola: '抛物线', hyperbola: '双曲线' }[type];
+}
+
+function getFormula(type) {
+  return {
+    ellipse: 'x²/a² + y²/b² = 1',
+    parabola: 'y² = 2px',
+    hyperbola: 'x²/a² − y²/b² = 1',
+  }[type];
+}
+
+function getCurveColor(e) {
+  if (e < 0.999) return '#3730a3'; // indigo
+  if (e <= 1.001) return '#7c3aed'; // violet
+  return '#6d28d9'; // purple
+}
+
+// 生成曲线点（数学坐标）
+function generateCurvePoints(params) {
+  const steps = 400;
+  if (params.type === 'ellipse') {
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * Math.PI * 2;
+      pts.push({ x: params.a * Math.cos(t), y: params.b * Math.sin(t) });
+    }
+    return { single: pts };
+  } else if (params.type === 'parabola') {
+    const pts = [];
+    const range = params.a * 5;
+    for (let i = 0; i <= steps; i++) {
+      const y = -range + (2 * range * i / steps);
+      pts.push({ x: (y * y) / (2 * params.a), y });
+    }
+    return { single: pts };
+  } else {
+    const right = [], left = [];
+    const tMax = 3.5;
+    for (let i = 0; i <= steps; i++) {
+      const t = -tMax + (2 * tMax * i / steps);
+      right.push({ x: params.a * Math.cosh(t), y: params.b * Math.sinh(t) });
+      left.push({ x: -params.a * Math.cosh(t), y: params.b * Math.sinh(t) });
+    }
+    return { right, left };
+  }
+}
+
+// 获取焦点位置（数学坐标，右焦点用于统一定义演示）
+function getFocusPositions(params) {
+  if (params.type === 'ellipse') {
+    return { f1: { x: -params.c, y: 0 }, f2: { x: params.c, y: 0 } };
+  } else if (params.type === 'parabola') {
+    return { f1: null, f2: { x: params.a / 2, y: 0 } };
+  } else {
+    return { f1: { x: -params.c, y: 0 }, f2: { x: params.c, y: 0 } };
+  }
+}
+
+// 获取准线位置（右准线用于统一定义演示）
+function getDirectrixX(params) {
+  if (params.type === 'parabola') {
+    return -params.a / 2; // 左准线
+  } else {
+    return params.a / params.e; // 右准线
+  }
+}
+
+// 计算动点 P 在曲线上的位置
+function getPointOnCurve(params, t) {
+  if (params.type === 'ellipse') {
+    return { x: params.a * Math.cos(t), y: params.b * Math.sin(t) };
+  } else if (params.type === 'parabola') {
+    const y = params.a * 3 * Math.sin(t);
+    return { x: (y * y) / (2 * params.a), y };
+  } else {
+    return { x: params.a * Math.cosh(t), y: params.b * Math.sinh(t) };
+  }
+}
+
+// 计算动点到焦点和准线的距离
+function getDefinitionDistances(params, point) {
+  const foci = getFocusPositions(params);
+  const focus = foci.f2;
+  const directrixX = getDirectrixX(params);
+  
+  const pf = Math.sqrt((point.x - focus.x) ** 2 + (point.y - focus.y) ** 2);
+  const d = Math.abs(directrixX - point.x);
+  
+  return { pf, d, focus, directrixX };
+}
+
+// ---------- 坐标变换 ----------
+// 数学坐标 → SVG 坐标
+function m2sX(x) { return viewCx + x * viewScale; }
+function m2sY(y) { return viewCy - y * viewScale; }
+
+// ---------- SVG 渲染 ----------
+function clearSvg() {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+}
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(svgNS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    el.setAttribute(k, v);
+  }
+  return el;
+}
+
+function updateViewBox() {
+  const rect = svg.getBoundingClientRect();
+  const area = document.getElementById('canvasArea');
+  const w = rect.width > 0 ? rect.width : area.clientWidth;
+  const h = rect.height > 0 ? rect.height : area.clientHeight;
+  
+  // 根据画布比例和参数自适应缩放
+  const maxExtent = Math.max(state.a * 2.5, 12);
+  viewScale = Math.min(w, h * 1.5) / (maxExtent * 2.2);
+  viewScale = Math.max(12, Math.min(viewScale, 50));
+  
+  viewW = w;
+  viewH = h;
+  viewCx = w / 2;
+  viewCy = h / 2;
+  
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+}
+
+function drawGrid() {
+  if (!state.show.grid) return;
+  const g = svgEl('g', { class: 'svg-grid' });
+  
+  const step = viewScale; // 1 math unit per grid cell
+  const majorEvery = 5;
+  
+  // 垂直线
+  const startX = Math.ceil((-viewCx) / step);
+  const endX = Math.ceil((viewW - viewCx) / step);
+  for (let i = startX; i <= endX; i++) {
+    const x = viewCx + i * step;
+    const isMajor = i % majorEvery === 0;
+    g.appendChild(svgEl('line', {
+      x1: x, y1: 0, x2: x, y2: viewH,
+      class: isMajor ? 'major' : '',
+    }));
+  }
+  
+  // 水平线
+  const startY = Math.ceil((-viewCy) / step);
+  const endY = Math.ceil((viewH - viewCy) / step);
+  for (let i = startY; i <= endY; i++) {
+    const y = viewCy + i * step;
+    const isMajor = i % majorEvery === 0;
+    g.appendChild(svgEl('line', {
+      x1: 0, y1: y, x2: viewW, y2: y,
+      class: isMajor ? 'major' : '',
+    }));
+  }
+  
+  svg.appendChild(g);
+}
+
+function drawAxes() {
+  if (!state.show.axis) return;
+  const g = svgEl('g', {});
+  
+  // X 轴
+  g.appendChild(svgEl('line', {
+    x1: 0, y1: viewCy, x2: viewW, y2: viewCy,
+    stroke: COLORS.axis, 'stroke-width': 1,
+  }));
+  // Y 轴
+  g.appendChild(svgEl('line', {
+    x1: viewCx, y1: 0, x2: viewCx, y2: viewH,
+    stroke: COLORS.axis, 'stroke-width': 1,
+  }));
+  
+  // 箭头 - X
+  g.appendChild(svgEl('polygon', {
+    points: `${viewW-8},${viewCy} ${viewW-16},${viewCy-4} ${viewW-16},${viewCy+4}`,
+    fill: COLORS.axis,
+  }));
+  // 箭头 - Y
+  g.appendChild(svgEl('polygon', {
+    points: `${viewCx},8 ${viewCx-4},16 ${viewCx+4},16`,
+    fill: COLORS.axis,
+  }));
+  
+  // 标签
+  const labelX = svgEl('text', {
+    x: viewW - 14, y: viewCy + 18,
+    'text-anchor': 'end',
+    class: 'svg-axis-label',
+  });
+  labelX.textContent = 'x';
+  g.appendChild(labelX);
+  
+  const labelY = svgEl('text', {
+    x: viewCx + 10, y: 16,
+    class: 'svg-axis-label',
+  });
+  labelY.textContent = 'y';
+  g.appendChild(labelY);
+  
+  const labelO = svgEl('text', {
+    x: viewCx + 8, y: viewCy + 16,
+    class: 'svg-axis-label',
+  });
+  labelO.textContent = 'O';
+  g.appendChild(labelO);
+  
+  svg.appendChild(g);
+}
+
+// 变换层（应用旋转和平移）
+function createTransformGroup() {
+  // 先绕数学原点(viewCx, viewCy)旋转，再按偏移量平移（SVG坐标）
+  const tx = state.offsetX * viewScale;
+  const ty = -state.offsetY * viewScale;
+  const g = svgEl('g', {
+    transform: `translate(${tx}, ${ty}) rotate(${-state.rotation}, ${viewCx}, ${viewCy})`,
+  });
+  return g;
+}
+
+function drawConicCurve(params, parent) {
+  const curveData = generateCurvePoints(params);
+  const color = getCurveColor(state.e);
+  
+  function buildPath(pts) {
+    return pts.map((p, i) => {
+      const sx = m2sX(p.x);
+      const sy = m2sY(p.y);
+      return `${i === 0 ? 'M' : 'L'}${sx.toFixed(1)},${sy.toFixed(1)}`;
+    }).join(' ');
+  }
+  
+  // 发光层
+  if (curveData.single) {
+    parent.appendChild(svgEl('path', {
+      d: buildPath(curveData.single),
+      fill: 'none',
+      stroke: COLORS.curveGlow,
+      'stroke-width': 8,
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    }));
+    parent.appendChild(svgEl('path', {
+      d: buildPath(curveData.single),
+      fill: 'none',
+      stroke: color,
+      'stroke-width': 2.2,
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    }));
+  } else {
+    // 双曲线两支
+    ['right', 'left'].forEach(key => {
+      const pts = curveData[key];
+      parent.appendChild(svgEl('path', {
+        d: buildPath(pts),
+        fill: 'none',
+        stroke: COLORS.curveGlow,
+        'stroke-width': 8,
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+      }));
+      parent.appendChild(svgEl('path', {
+        d: buildPath(pts),
+        fill: 'none',
+        stroke: color,
+        'stroke-width': 2.2,
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+      }));
+    });
+  }
+}
+
+function drawFoci(params, parent) {
+  if (!state.show.focus) return;
+  const foci = getFocusPositions(params);
+  
+  function drawOneFocus(f, label) {
+    if (!f) return;
+    const sx = m2sX(f.x), sy = m2sY(f.y);
+    // 光晕
+    parent.appendChild(svgEl('circle', {
+      cx: sx, cy: sy, r: 12,
+      fill: COLORS.focusGlow,
+    }));
+    // 圆点
+    parent.appendChild(svgEl('circle', {
+      cx: sx, cy: sy, r: 4.5,
+      fill: COLORS.focus,
+    }));
+    // 高光
+    parent.appendChild(svgEl('circle', {
+      cx: sx - 1.5, cy: sy - 1.5, r: 1.5,
+      fill: '#fff',
+    }));
+    // 标签
+    const text = svgEl('text', {
+      x: sx, y: sy - 12,
+      'text-anchor': 'middle',
+      class: 'svg-focus-label',
+    });
+    text.textContent = label;
+    parent.appendChild(text);
+  }
+  
+  drawOneFocus(foci.f1, 'F₁');
+  drawOneFocus(foci.f2, foci.f1 ? 'F₂' : 'F');
+}
+
+function drawDirectrix(params, parent) {
+  if (!state.show.directrix) return;
+  const dx = getDirectrixX(params);
+  const sx = m2sX(dx);
+  
+  // 延长到画布外（考虑旋转后需要更长）
+  const ext = Math.max(viewW, viewH) * 1.5;
+  parent.appendChild(svgEl('line', {
+    x1: sx, y1: viewCy - ext,
+    x2: sx, y2: viewCy + ext,
+    stroke: COLORS.directrix,
+    'stroke-width': 1.5,
+    'stroke-dasharray': '6 4',
+  }));
+  
+  // 标签
+  const text = svgEl('text', {
+    x: sx, y: viewCy - ext + 14,
+    'text-anchor': 'middle',
+    class: 'svg-directrix-label',
+  });
+  text.textContent = '准线 l';
+  parent.appendChild(text);
+}
+
+function drawAsymptotes(params, parent) {
+  if (!state.show.asymptote || params.type !== 'hyperbola') return;
+  
+  const slope = params.b / params.a;
+  const extend = Math.max(viewW, viewH);
+  
+  // y = ±(b/a)x
+  for (const s of [slope, -slope]) {
+    parent.appendChild(svgEl('line', {
+      x1: m2sX(-extend), y1: m2sY(s * (-extend)),
+      x2: m2sX(extend), y2: m2sY(s * extend),
+      stroke: COLORS.asymptote,
+      'stroke-width': 1.2,
+      'stroke-dasharray': '5 4',
+    }));
+  }
+  
+  // 标签
+  const labelX = m2sX(params.a * 1.5);
+  const labelY = m2sY(params.b * 1.5);
+  const text = svgEl('text', {
+    x: labelX + 6, y: labelY,
+    class: 'svg-asymptote-label',
+  });
+  text.textContent = 'y = ±(b/a)x';
+  parent.appendChild(text);
+}
+
+function drawVertices(params, parent) {
+  if (!state.show.vertex) return;
+  
+  const vertices = [];
+  if (params.type === 'ellipse') {
+    vertices.push({ p: { x: params.a, y: 0 }, label: 'A₁' });
+    vertices.push({ p: { x: -params.a, y: 0 }, label: 'A₂' });
+    vertices.push({ p: { x: 0, y: params.b }, label: 'B₁' });
+    vertices.push({ p: { x: 0, y: -params.b }, label: 'B₂' });
+  } else if (params.type === 'parabola') {
+    vertices.push({ p: { x: 0, y: 0 }, label: 'O' });
+  } else {
+    vertices.push({ p: { x: params.a, y: 0 }, label: 'A₁' });
+    vertices.push({ p: { x: -params.a, y: 0 }, label: 'A₂' });
+  }
+  
+  // 去重
+  const seen = new Set();
+  for (const v of vertices) {
+    const key = `${v.p.x.toFixed(2)},${v.p.y.toFixed(2)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    
+    const sx = m2sX(v.p.x), sy = m2sY(v.p.y);
+    parent.appendChild(svgEl('circle', {
+      cx: sx, cy: sy, r: 3,
+      fill: COLORS.vertex,
+    }));
+    const text = svgEl('text', {
+      x: sx + 8, y: sy - 6,
+      class: 'svg-vertex-label',
+    });
+    text.textContent = v.label;
+    parent.appendChild(text);
+  }
+}
+
+function drawDefinitionDemo(params, parent) {
+  if (!state.show.definition) return;
+  
+  // 动点位置
+  let t;
+  if (params.type === 'ellipse') {
+    t = state.pointT * Math.PI * 2;
+  } else if (params.type === 'parabola') {
+    t = state.pointT * Math.PI * 2;
+  } else {
+    t = (state.pointT - 0.5) * 4; // -2 to 2
+  }
+  
+  const point = getPointOnCurve(params, t);
+  const { pf, d, focus, directrixX } = getDefinitionDistances(params, point);
+  
+  const px = m2sX(point.x), py = m2sY(point.y);
+  const fx = m2sX(focus.x), fy = m2sY(focus.y);
+  const dx = m2sX(directrixX);
+  
+  // PF 连线（红色虚线）
+  parent.appendChild(svgEl('line', {
+    x1: px, y1: py, x2: fx, y2: fy,
+    stroke: COLORS.focus,
+    'stroke-width': 1.5,
+    'stroke-dasharray': '4 3',
+    opacity: 0.7,
+  }));
+  
+  // P 到准线的垂线（绿色虚线）
+  parent.appendChild(svgEl('line', {
+    x1: px, y1: py, x2: dx, y2: py,
+    stroke: COLORS.directrix,
+    'stroke-width': 1.5,
+    'stroke-dasharray': '4 3',
+    opacity: 0.7,
+  }));
+  
+  // 距离标注 - |PF|
+  const midPFx = (px + fx) / 2, midPFy = (py + fy) / 2;
+  const pfLabel = svgEl('text', {
+    x: midPFx + 6, y: midPFy - 4,
+    class: 'svg-def-label',
+    fill: COLORS.focus,
+  });
+  pfLabel.textContent = `|PF|=${pf.toFixed(2)}`;
+  parent.appendChild(pfLabel);
+  
+  // 距离标注 - d
+  const midDx = (px + dx) / 2;
+  const dLabel = svgEl('text', {
+    x: midDx, y: py - 8,
+    'text-anchor': 'middle',
+    class: 'svg-def-label',
+    fill: COLORS.directrix,
+  });
+  dLabel.textContent = `d=${d.toFixed(2)}`;
+  parent.appendChild(dLabel);
+  
+  // 动点 P（紫色，带光晕）
+  parent.appendChild(svgEl('circle', {
+    cx: px, cy: py, r: 14,
+    fill: COLORS.defPointGlow,
+  }));
+  parent.appendChild(svgEl('circle', {
+    cx: px, cy: py, r: 5,
+    fill: COLORS.defPoint,
+  }));
+  parent.appendChild(svgEl('circle', {
+    cx: px - 1.5, cy: py - 1.5, r: 1.5,
+    fill: '#fff',
+  }));
+  
+  // P 标签
+  const pLabel = svgEl('text', {
+    x: px + 8, y: py + 4,
+    'font-family': 'Cambria Math, Times New Roman, serif',
+    'font-style': 'italic',
+    'font-size': '13px',
+    'font-weight': '600',
+    fill: COLORS.defPoint,
+  });
+  pLabel.textContent = 'P';
+  parent.appendChild(pLabel);
+  
+  // 更新定义信息面板
+  document.getElementById('defPF').textContent = pf.toFixed(3);
+  document.getElementById('defD').textContent = d.toFixed(3);
+  const ratio = d > 0.001 ? (pf / d) : 0;
+  document.getElementById('defRatio').textContent = `${ratio.toFixed(3)} = e`;
+  document.getElementById('defInfo').classList.add('visible');
+}
+
+function render2D() {
+  clearSvg();
+  updateViewBox();
+  
+  const params = getParams(state.e, state.a);
+  
+  // 背景层
+  drawGrid();
+  drawAxes();
+  
+  // 变换层（曲线和几何元素都跟随旋转和平移）
+  const transformGroup = createTransformGroup();
+  
+  drawDirectrix(params, transformGroup);
+  drawAsymptotes(params, transformGroup);
+  drawConicCurve(params, transformGroup);
+  drawVertices(params, transformGroup);
+  drawFoci(params, transformGroup);
+  drawDefinitionDemo(params, transformGroup);
+  
+  svg.appendChild(transformGroup);
+  
+  // 更新信息卡片
+  updateInfoCard(params);
+  
+  // 如果定义演示未开启，隐藏信息
+  if (!state.show.definition) {
+    document.getElementById('defInfo').classList.remove('visible');
+  }
+}
+
+function updateInfoCard(params) {
+  const color = getCurveColor(state.e);
+  document.documentElement.style.setProperty('--curve-color', color);
+  document.getElementById('infoDot').style.background = color;
+  document.getElementById('infoType').textContent = getTypeName(params.type);
+  
+  const formulaEl = document.getElementById('infoFormula');
+  formulaEl.textContent = getFormula(params.type);
+  formulaEl.style.color = color;
+  formulaEl.style.background = `${color}0f`;
+  
+  document.getElementById('paramE').textContent = params.e.toFixed(2);
+  document.getElementById('paramA').textContent = params.a.toFixed(1);
+  document.getElementById('paramB').textContent = params.b !== null ? params.b.toFixed(1) : '—';
+  document.getElementById('paramC').textContent = params.c !== null ? params.c.toFixed(1) : '—';
+  document.getElementById('paramP').textContent = params.p.toFixed(1);
+  document.getElementById('paramFocal').textContent = params.c !== null ? (params.c * 2).toFixed(1) : (params.a / 2).toFixed(1);
+}
+
+// ---------- 圆锥切割视图 ----------
+function renderConeView() {
+  const area = document.getElementById('canvasArea');
+  const rect = coneCanvas.getBoundingClientRect();
+  const w = rect.width > 0 ? rect.width : area.clientWidth;
+  const h = rect.height > 0 ? rect.height : area.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  
+  coneCanvas.width = w * dpr;
+  coneCanvas.height = h * dpr;
+  coneCanvas.style.width = w + 'px';
+  coneCanvas.style.height = h + 'px';
+  coneCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  
+  coneCtx.clearRect(0, 0, w, h);
+  
+  // 背景
+  coneCtx.fillStyle = '#faf8f5';
+  coneCtx.fillRect(0, 0, w, h);
+  
+  const cx = w / 2;
+  const cy = h / 2;
+  const coneHeight = Math.min(h * 0.35, 200);
+  const coneRadius = coneHeight * 0.7;
+  
+  // 圆锥半角 α (固定 45° for nice visual)
+  const alpha = Math.PI / 4;
+  
+  // 切割平面角度 β (根据 e 映射)
+  let beta;
+  if (state.e < 1) {
+    beta = Math.PI / 2 - state.e * (Math.PI / 2 - alpha);
+  } else if (state.e <= 1.001) {
+    beta = alpha;
+  } else {
+    beta = alpha - Math.min((state.e - 1) * 0.35, alpha - 0.1);
+  }
+  beta = Math.max(beta, 0.08);
+  
+  // 绘制双圆锥
+  drawCone(cx, cy, coneHeight, coneRadius, beta, alpha);
+  
+  // 信息文字
+  coneCtx.fillStyle = '#6b6b6b';
+  coneCtx.font = '13px "Noto Sans SC", sans-serif';
+  coneCtx.textAlign = 'center';
+  const params = getParams(state.e, state.a);
+  coneCtx.fillText(`圆锥切割 → ${getTypeName(params.type)}`, cx, 32);
+  
+  coneCtx.font = 'italic 12px "Cambria Math", serif';
+  coneCtx.fillStyle = '#8b6b6b';
+  coneCtx.fillText(`e = ${state.e.toFixed(2)}  ·  β = ${(beta * 180 / Math.PI).toFixed(1)}°  ·  α = ${(alpha * 180 / Math.PI).toFixed(1)}°`, cx, 52);
+  
+  coneCtx.font = '12px "Noto Sans SC", sans-serif';
+  coneCtx.fillStyle = '#9b9b9b';
+  coneCtx.fillText('平面切割圆锥，不同角度产生不同曲线', cx, h - 20);
+  
+  // 更新信息卡片
+  updateInfoCard(params);
+}
+
+function drawCone(cx, cy, height, radius, beta, alpha) {
+  const ctx = coneCtx;
+  
+  // 圆锥顶点（上）和底面中心（下）→ 实际是双圆锥，顶点在中间
+  const apexY = cy;
+  const topY = cy - height;
+  const botY = cy + height;
+  const ellipseRy = radius * 0.25; // 椭圆的短半轴（透视压缩）
+  
+  // ---- 绘制后面的部分（半透明）----
+  ctx.save();
+  
+  // 上圆锥（倒置）
+  drawConeHalf(ctx, cx, apexY, topY, radius, ellipseRy, true);
+  // 下圆锥
+  drawConeHalf(ctx, cx, apexY, botY, radius, ellipseRy, false);
+  
+  // ---- 绘制切割平面 ----
+  drawCuttingPlane(ctx, cx, apexY, height, radius, beta, alpha);
+  
+  // ---- 绘制前面的部分 ----
+  drawConeHalfFront(ctx, cx, apexY, topY, radius, ellipseRy, true);
+  drawConeHalfFront(ctx, cx, apexY, botY, radius, ellipseRy, false);
+  
+  // ---- 绘制交线 ----
+  drawIntersectionCurve(ctx, cx, apexY, height, radius, beta, alpha, ellipseRy);
+  
+  ctx.restore();
+}
+
+function drawConeHalf(ctx, cx, apexY, endY, radius, ellipseRy, isTop) {
+  const dir = isTop ? -1 : 1;
+  
+  // 侧面线条（母线）- 后半部分
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+  ctx.lineWidth = 1;
+  
+  // 左右母线
+  ctx.beginPath();
+  ctx.moveTo(cx - radius * 0.1, apexY);
+  ctx.lineTo(cx - radius, endY);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(cx + radius * 0.1, apexY);
+  ctx.lineTo(cx + radius, endY);
+  ctx.stroke();
+  
+  // 底面/顶面椭圆 - 后半
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+  ctx.beginPath();
+  ctx.ellipse(cx, endY, radius, ellipseRy, 0, Math.PI, 0, true);
+  ctx.stroke();
+}
+
+function drawConeHalfFront(ctx, cx, apexY, endY, radius, ellipseRy, isTop) {
+  // 侧面填充（渐变）
+  const grad = ctx.createLinearGradient(cx - radius, endY, cx + radius, endY);
+  grad.addColorStop(0, 'rgba(148, 163, 184, 0.15)');
+  grad.addColorStop(0.5, 'rgba(100, 116, 139, 0.2)');
+  grad.addColorStop(1, 'rgba(148, 163, 184, 0.15)');
+  
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(cx, apexY);
+  ctx.lineTo(cx + radius, endY);
+  ctx.ellipse(cx, endY, radius, ellipseRy, 0, 0, Math.PI);
+  ctx.lineTo(cx - radius, endY);
+  ctx.closePath();
+  ctx.fill();
+  
+  // 前面母线
+  ctx.strokeStyle = 'rgba(71, 85, 105, 0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx, apexY);
+  ctx.lineTo(cx - radius, endY);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(cx, apexY);
+  ctx.lineTo(cx + radius, endY);
+  ctx.stroke();
+  
+  // 底面/顶面椭圆 - 前半
+  ctx.strokeStyle = 'rgba(100, 116, 139, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(cx, endY, radius, ellipseRy, 0, 0, Math.PI);
+  ctx.stroke();
+  
+  // 顶点
+  ctx.fillStyle = '#475569';
+  ctx.beginPath();
+  ctx.arc(cx, apexY, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawCuttingPlane(ctx, cx, apexY, height, radius, beta, alpha) {
+  // 切割平面用一个倾斜的矩形表示
+  const planeDist = height * 0.5; // 平面距顶点的距离
+  const planeW = radius * 1.6;
+  
+  // 平面与轴的夹角 beta
+  // 平面的倾斜：在 2D 侧视图中，平面是一条斜线
+  const planeY1 = apexY + planeDist * Math.sin(beta);
+  const planeY2 = apexY - planeDist * Math.sin(beta);
+  const planeX1 = cx - planeW * Math.cos(beta);
+  const planeX2 = cx + planeW * Math.cos(beta);
+  
+  // 绘制半透明平面
+  ctx.save();
+  ctx.fillStyle = 'rgba(55, 48, 163, 0.08)';
+  ctx.strokeStyle = 'rgba(55, 48, 163, 0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  
+  // 平面用两条平行线表示厚度
+  const thick = 3;
+  const perpX = Math.sin(beta);
+  const perpY = Math.cos(beta);
+  
+  ctx.beginPath();
+  ctx.moveTo(planeX1 - perpX * thick, planeY1 + perpY * thick);
+  ctx.lineTo(planeX2 - perpX * thick, planeY2 + perpY * thick);
+  ctx.lineTo(planeX2 + perpX * thick, planeY2 - perpY * thick);
+  ctx.lineTo(planeX1 + perpX * thick, planeY1 - perpY * thick);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawIntersectionCurve(ctx, cx, apexY, height, radius, beta, alpha, ellipseRy) {
+  // 在平面上绘制交线
+  const params = getParams(state.e, state.a);
+  const color = getCurveColor(state.e);
+  
+  // 简化：直接在切割平面位置绘制对应曲线形状
+  const planeDist = height * 0.5;
+  const planeCenterY = apexY + planeDist * Math.cos(beta) * 0.3;
+  const planeCenterX = cx;
+  
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8;
+  
+  if (params.type === 'ellipse') {
+    // 椭圆
+    const rx = radius * 0.55 * (1 - state.e * 0.3);
+    const ry = rx * Math.sqrt(1 - state.e * state.e) * 0.4 + 5;
+    ctx.beginPath();
+    ctx.ellipse(planeCenterX, planeCenterY, rx, ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (params.type === 'parabola') {
+    // 抛物线
+    ctx.beginPath();
+    const w = radius * 0.7;
+    for (let i = 0; i <= 100; i++) {
+      const t = -1 + 2 * i / 100;
+      const x = planeCenterX + t * w;
+      const y = planeCenterY + t * t * 30;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  } else {
+    // 双曲线
+    const w = radius * 0.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 80; i++) {
+      const t = -2 + 4 * i / 80;
+      const x = planeCenterX + w * Math.sign(t) * Math.cosh(Math.abs(t) * 0.5) * 0.3;
+      const y = planeCenterY + w * Math.sinh(t * 0.5) * 0.2;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    
+    // 第二支
+    ctx.beginPath();
+    for (let i = 0; i <= 80; i++) {
+      const t = -2 + 4 * i / 80;
+      const x = planeCenterX - w * Math.sign(t) * Math.cosh(Math.abs(t) * 0.5) * 0.3;
+      const y = planeCenterY + w * Math.sinh(t * 0.5) * 0.2;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  
+  ctx.restore();
+}
+
+// ---------- 主渲染 ----------
+function render() {
+  const area = document.getElementById('canvasArea');
+  const w = area.clientWidth;
+  const h = area.clientHeight;
+
+  // 重置元素样式
+  svg.style.display = 'none';
+  svg.style.width = '';
+  svg.style.float = '';
+  coneCanvas.style.display = 'none';
+  coneCanvas.style.width = '';
+  coneCanvas.style.float = '';
+
+  if (state.viewMode === '2d') {
+    svg.style.display = 'block';
+    render2D();
+
+  } else if (state.viewMode === 'cone') {
+    coneCanvas.style.display = 'block';
+    renderConeView();
+    const params = getParams(state.e, state.a);
+    updateInfoCard(params);
+    if (!state.show.definition) {
+      document.getElementById('defInfo').classList.remove('visible');
+    }
+
+  } else {
+    // 双视图：左 SVG，右 Canvas
+    const halfW = Math.floor(w / 2);
+    svg.style.display = 'block';
+    svg.style.width = halfW + 'px';
+    svg.style.float = 'left';
+    coneCanvas.style.display = 'block';
+    coneCanvas.style.width = (w - halfW) + 'px';
+    coneCanvas.style.float = 'right';
+
+    // 渲染 SVG（半宽，updateViewBox 会自动读取 SVG 的实际宽度）
+    render2D();
+
+    // 渲染圆锥切割（右半）
+    renderConeView();
+  }
+}
+
+// ---------- 动画 ----------
+let animFrameId = null;
+let lastTime = 0;
+
+function animate(now) {
+  const dt = (now - lastTime) / 1000 || 0.016;
+  lastTime = now;
+  
+  if (state.playMode === 'transition') {
+    // 离心率过渡动画
+    const speed = 0.3;
+    state.e += state.pointDirection * speed * dt;
+    if (state.e >= 2.5) { state.e = 2.5; state.pointDirection = -1; }
+    if (state.e <= 0.3) { state.e = 0.3; state.pointDirection = 1; }
+    
+    // 更新滑块
+    document.getElementById('sliderE').value = state.e;
+    document.getElementById('valE').textContent = state.e.toFixed(2);
+    
+    render();
+  } else if (state.playMode === 'point') {
+    // 动点轨迹动画
+    state.pointT += dt * 0.3;
+    if (state.pointT > 1) state.pointT -= 1;
+    render();
+  }
+  
+  if (state.isPlaying) {
+    animFrameId = requestAnimationFrame(animate);
+  }
+}
+
+function startPlay(mode) {
+  state.isPlaying = true;
+  state.playMode = mode;
+  state.pointDirection = 1;
+  lastTime = performance.now();
+  document.getElementById('playIcon').textContent = '⏸';
+  document.getElementById('playText').textContent = '暂停';
+  animFrameId = requestAnimationFrame(animate);
+}
+
+function stopPlay() {
+  state.isPlaying = false;
+  state.playMode = null;
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+  document.getElementById('playIcon').textContent = '▶';
+  document.getElementById('playText').textContent = '播放';
+}
+
+function togglePlay() {
+  if (state.isPlaying) {
+    stopPlay();
+  } else {
+    if (state.show.definition) {
+      startPlay('point');
+    } else {
+      startPlay('transition');
+    }
+  }
+}
+
+// ---------- 预设 ----------
+function applyPreset(name) {
+  stopPlay();
+  state.rotation = 0;
+  state.offsetX = 0;
+  state.offsetY = 0;
+  
+  switch (name) {
+    case 'circle':
+      state.e = 0.1; state.a = 5;
+      break;
+    case 'ellipse':
+      state.e = 0.6; state.a = 5;
+      break;
+    case 'parabola':
+      state.e = 1.0; state.a = 4;
+      break;
+    case 'hyperbola':
+      state.e = Math.SQRT2; state.a = 3;
+      break;
+    case 'transition':
+      state.e = 0.5; state.a = 5;
+      startPlay('transition');
+      break;
+  }
+  
+  state.pointT = 0;
+  syncSliders();
+  render();
+}
+
+function syncSliders() {
+  document.getElementById('sliderE').value = state.e;
+  document.getElementById('valE').textContent = state.e.toFixed(2);
+  document.getElementById('sliderA').value = state.a;
+  document.getElementById('valA').textContent = state.a.toFixed(1);
+  document.getElementById('sliderRot').value = state.rotation;
+  document.getElementById('valRot').textContent = state.rotation + '°';
+  document.getElementById('sliderX').value = state.offsetX;
+  document.getElementById('valX').textContent = state.offsetX.toFixed(1);
+  document.getElementById('sliderY').value = state.offsetY;
+  document.getElementById('valY').textContent = state.offsetY.toFixed(1);
+}
+
+// ---------- 重置 ----------
+function resetAll() {
+  stopPlay();
+  state.e = 0.6;
+  state.a = 5;
+  state.rotation = 0;
+  state.offsetX = 0;
+  state.offsetY = 0;
+  state.pointT = 0;
+  state.show = {
+    focus: true, directrix: false, axis: true,
+    asymptote: false, vertex: false, grid: true, definition: false,
+  };
+  state.viewMode = '2d';
+  syncSliders();
+  syncCheckboxes();
+  syncViewTabs();
+  render();
+}
+
+function syncCheckboxes() {
+  document.querySelectorAll('.checkbox-item').forEach(el => {
+    const key = el.dataset.key;
+    el.classList.toggle('checked', state.show[key]);
+  });
+}
+
+function syncViewTabs() {
+  document.querySelectorAll('.view-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === state.viewMode);
+  });
+}
+
+// ---------- 事件绑定 ----------
+function bindEvents() {
+  // 滑块
+  document.getElementById('sliderE').addEventListener('input', (e) => {
+    state.e = parseFloat(e.target.value);
+    document.getElementById('valE').textContent = state.e.toFixed(2);
+    if (state.isPlaying && state.playMode === 'transition') stopPlay();
+    render();
+  });
+  
+  document.getElementById('sliderA').addEventListener('input', (e) => {
+    state.a = parseFloat(e.target.value);
+    document.getElementById('valA').textContent = state.a.toFixed(1);
+    render();
+  });
+  
+  document.getElementById('sliderRot').addEventListener('input', (e) => {
+    state.rotation = parseInt(e.target.value);
+    document.getElementById('valRot').textContent = state.rotation + '°';
+    render();
+  });
+  
+  document.getElementById('sliderX').addEventListener('input', (e) => {
+    state.offsetX = parseFloat(e.target.value);
+    document.getElementById('valX').textContent = state.offsetX.toFixed(1);
+    render();
+  });
+  
+  document.getElementById('sliderY').addEventListener('input', (e) => {
+    state.offsetY = parseFloat(e.target.value);
+    document.getElementById('valY').textContent = state.offsetY.toFixed(1);
+    render();
+  });
+  
+  // 复选框
+  document.querySelectorAll('.checkbox-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const key = el.dataset.key;
+      state.show[key] = !state.show[key];
+      el.classList.toggle('checked', state.show[key]);
+      render();
+    });
+  });
+  
+  // 视图模式
+  document.querySelectorAll('.view-tab').forEach(el => {
+    el.addEventListener('click', () => {
+      state.viewMode = el.dataset.view;
+      syncViewTabs();
+      render();
+    });
+  });
+  
+  // 预设
+  document.querySelectorAll('.preset-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      applyPreset(el.dataset.preset);
+    });
+  });
+  
+  // 播放/暂停
+  document.getElementById('btnPlay').addEventListener('click', togglePlay);
+  
+  // 重置
+  document.getElementById('btnReset').addEventListener('click', resetAll);
+  
+  // 空格键
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+      e.preventDefault();
+      togglePlay();
+    }
+  });
+  
+  // 窗口大小变化
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => render(), 100);
+  });
+}
+
+// ---------- 初始化 ----------
+bindEvents();
+render();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数学图形工具 — 景礴学院技能库</title>
+  <meta name="description" content="数学图形工具技能：参数化数学图形的实时交互——圆锥曲线、三角波形、函数绘图、分形几何、复利计算，拖滑块即变。安装到Trae，说一句话生成课件。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="../assets/css/design-system.css">
+  <style>
+    /* 导航 */
+    .navbar { background-color: rgba(250,248,245,0.88); }
+    .navbar.scrolled { background-color: rgba(250,248,245,0.95); border-bottom-color: var(--border); }
+    .navbar-brand { font-size: 19px; letter-spacing: 0.04em; }
+    .navbar-links { display: flex; gap: 28px; align-items: center; }
+    .navbar-links a { font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--text-muted); text-decoration: none; transition: color var(--duration-fast) var(--ease); position: relative; }
+    .navbar-links a:hover { color: var(--text); }
+    .navbar-links a.active { color: var(--brand); font-weight: 600; }
+    .navbar-links a.active::after { content:''; position:absolute; bottom:-4px; left:0; right:0; height:2px; background:var(--brand); border-radius:1px; }
+
+    /* 面包屑 */
+    .breadcrumb { padding: 100px 24px 0; max-width: 900px; margin: 0 auto; }
+    .breadcrumb a { font-family: var(--font-sans); font-size: 13px; color: var(--text-faint); text-decoration: none; transition: color var(--duration-fast) var(--ease); }
+    .breadcrumb a:hover { color: var(--brand); }
+    .breadcrumb span { font-family: var(--font-sans); font-size: 13px; color: var(--text-faint); margin: 0 6px; }
+
+    
+    /* Hero */
+    .showcase-hero { padding: 20px 24px 36px; max-width: 900px; margin: 0 auto; }
+    .hero-banner { width: 100%; max-width: 900px; height: 180px; border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 24px; position: relative; background: #0a0a14; }
+    .hero-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hero-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.3)); pointer-events: none; }
+    .showcase-hero h1 { font-family: var(--font-serif); font-size: clamp(28px,3.5vw,38px); font-weight: 700; line-height: 1.2; margin-bottom: 10px; }
+    .hero-tagline { font-size: 16px; line-height: 1.7; color: var(--text-muted); max-width: 640px; margin-bottom: 16px; }
+    .hero-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .hero-tag { font-family: var(--font-sans); font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: var(--radius-full); }
+    .tag-subject { background: var(--surface-muted); color: var(--text-muted); border: 1px solid var(--border-soft); }
+    .tag-type { background: rgba(99,102,241,0.1); color: #6366f1; }
+
+    /* Tab 导航 */
+    .tab-nav { max-width: 900px; margin: 0 auto; padding: 0 24px; display: flex; gap: 0; border-bottom: 2px solid var(--border); }
+    .tab-btn { padding: 14px 24px; font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--text-muted); background: none; border: none; cursor: pointer; position: relative; transition: color var(--duration-fast) var(--ease); }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--brand); }
+    .tab-btn.active::after { content:''; position:absolute; bottom:-2px; left:0; right:0; height:2px; background:var(--brand); }
+
+    /* Tab 内容 */
+    .tab-content { max-width: 900px; margin: 0 auto; padding: 36px 24px 60px; display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s var(--ease); }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .tab-content h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 700; margin-bottom: 14px; margin-top: 32px; }
+    .tab-content h2:first-child { margin-top: 0; }
+    .tab-content h3 { font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; margin-top: 24px; }
+    .tab-content p { font-size: 15px; line-height: 1.8; color: var(--text-muted); margin-bottom: 12px; }
+    .tab-content ul { padding-left: 20px; margin-bottom: 16px; }
+    .tab-content li { font-size: 14px; line-height: 1.8; color: var(--text-muted); }
+    .tab-content strong { color: var(--text); font-weight: 600; }
+
+    
+    /* 案例网格 - 横向卡片 */
+    .case-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .case-card { display: flex; flex-direction: row; background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); overflow: hidden; text-decoration: none; color: inherit; transition: all var(--duration-base) var(--ease); }
+    .case-card:hover { border-color: var(--border); box-shadow: 0 6px 20px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .case-preview { width: 200px; min-width: 200px; height: 130px; position: relative; overflow: hidden; background: #0a0a14; }
+    .case-preview img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s var(--ease); display: block; }
+    .case-card:hover .case-preview img { transform: scale(1.05); }
+    .case-info { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+    .case-info h4 { font-family: var(--font-serif); font-size: 15px; font-weight: 700; margin-bottom: 4px; line-height: 1.3; }
+    .case-info p { font-size: 12.5px; line-height: 1.5; color: var(--text-muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .case-badge { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); margin-top: 6px; }
+
+    /* 安装框 */
+    .install-box { display: flex; gap: 0; margin: 20px 0 12px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+    .install-url { flex: 1; padding: 14px 16px; font-family: var(--font-mono); font-size: 13px; color: var(--text); background: var(--surface); border: none; outline: none; }
+    .install-copy { padding: 14px 24px; font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: #fff; background: var(--brand); border: none; cursor: pointer; white-space: nowrap; transition: background var(--duration-fast) var(--ease); }
+    .install-copy:hover { background: var(--brand-hover); }
+    .install-copy.copied { background: #059669; }
+    .install-download { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--text-muted); text-decoration: none; padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius); transition: all var(--duration-fast) var(--ease); }
+    .install-download:hover { color: var(--brand); border-color: var(--brand); }
+
+    /* 步骤 */
+    .steps { list-style: none; padding: 0; counter-reset: step; margin: 20px 0; }
+    .steps li { counter-increment: step; padding: 12px 0 12px 40px; position: relative; font-size: 14px; line-height: 1.7; color: var(--text-muted); border-bottom: 1px solid var(--border-soft); }
+    .steps li:last-child { border-bottom: none; }
+    .steps li::before { content: counter(step); position: absolute; left: 0; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); font-family: var(--font-mono); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+    /* 示例指令 */
+    .prompt-cards { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .prompt-card { padding: 12px 16px; background: var(--surface); border: 1px solid var(--border-soft); border-left: 3px solid #059669; border-radius: var(--radius); font-size: 14px; color: var(--text); cursor: pointer; transition: all var(--duration-fast) var(--ease); }
+    .prompt-card:hover { background: rgba(16,185,129,0.06); border-color: #059669; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(100px); display: flex; align-items: center; gap: 10px; padding: 14px 24px; background: #059669; color: #fff; font-family: var(--font-sans); font-size: 14px; font-weight: 500; border-radius: 10px; box-shadow: var(--shadow-deep); z-index: 1000; opacity: 0; transition: all var(--duration-base) var(--ease); pointer-events: none; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* Footer */
+    .footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; }
+    .footer-brand { font-family: var(--font-serif); font-size: 18px; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 8px; }
+    .footer-brand .fd { display: inline-block; width: 5px; height: 5px; background: var(--brand); border-radius: 50%; margin: 0 6px 2px; vertical-align: middle; }
+    .footer-meta { font-size: 12px; color: var(--text-faint); letter-spacing: 0.04em; }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .case-grid { grid-template-columns: 1fr; }
+      .case-preview { width: 140px; min-width: 140px; height: 100px; }
+      .navbar-links { display: none; }
+      .install-box { flex-direction: column; }
+      .install-copy { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar" id="navbar">
+    <div class="container-wide flex justify-between items-center" style="width:100%;">
+      <a href="../index.html" class="navbar-brand">景礴学院 <span class="brand-domain">jingbo.xyz</span></a>
+      <div class="navbar-links">
+        <a href="../index.html">首页</a>
+        <a href="../demos.html">课件库</a>
+        <a href="../skills.html" class="active">技能库</a>
+        <a href="../index.html#about">关于</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb">
+    <a href="../skills.html">技能库</a><span>/</span>数学图形工具
+  </div>
+
+  <div class="showcase-hero">
+    <div class="hero-banner"><img src="../assets/img/skill-previews/math-graph-tool.jpg" alt="数学图形工具" loading="lazy" /></div>
+    <h1>数学图形工具</h1>
+    <p class="hero-tagline">参数化数学图形的实时交互工具——圆锥曲线、三角波形、函数绘图、分形几何、复利计算，拖动滑块即时看到图形变化，让抽象的数学关系变得直观可感。</p>
+    <div class="hero-tags">
+      <span class="hero-tag tag-subject">数学</span>
+      <span class="hero-tag tag-type-tool">交互工具</span>
+      <span class="hero-tag tag-subject">7 个案例</span>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="intro">介绍</button>
+    <button class="tab-btn" data-tab="cases">案例</button>
+    <button class="tab-btn" data-tab="install">安装使用</button>
+  </div>
+
+  <!-- Tab: 介绍 -->
+  <div class="tab-content active" id="tab-intro">
+    <h2>这个技能做什么</h2>
+    <p>数学图形工具是一个<strong>交互式参数化可视化框架</strong>，使用 Canvas 与 JSXGraph 实现数学图形的实时渲染。左侧参数控制面板提供滑块、输入框等控件，右侧可视化区域随参数变化即时重绘，让学生在"拖动-观察-理解"的循环中掌握数学规律。</p>
+
+    <h2>核心特征</h2>
+    <ul>
+      <li><strong>实时参数化</strong>：滑块、输入框控制参数，图形随调节即时刷新</li>
+      <li><strong>暖色浅底布局</strong>：参数面板 + 可视化画布，清晰易读的工程化界面</li>
+      <li><strong>函数表达式解析</strong>：支持输入数学表达式实时绘制函数图像</li>
+      <li><strong>坐标系交互</strong>：滚轮缩放、拖拽平移，自由探索图形细节</li>
+      <li><strong>实时数据反馈</strong>：当前参数值、坐标、计算结果同步显示</li>
+      <li><strong>参数预设</strong>：一键恢复默认值，快速对比不同状态</li>
+    </ul>
+
+    <h2>适用场景</h2>
+    <p>任何需要通过参数变化来理解数学关系的场景：圆锥曲线的离心率与形状关系、三角函数的振幅频率相位、任意函数的图像绘制、分形几何的迭代生成、复利计算的本金利率年限分析等。把"如果改变这个参数会怎样"的疑问，变成可操作、可观察的实时实验。</p>
+
+    <h2>技术栈</h2>
+    <ul>
+      <li><strong>Canvas 2D</strong> — 高性能图形绘制</li>
+      <li><strong>JSXGraph</strong>（CDN 引入）— 交互式几何与函数绘图</li>
+      <li><strong>requestAnimationFrame</strong> — 流畅的实时重绘</li>
+      <li>纯单 HTML 文件，无构建依赖</li>
+    </ul>
+  </div>
+
+  <!-- Tab: 案例 -->
+  <div class="tab-content" id="tab-cases">
+    <h2>这个技能生成的案例</h2>
+    <p>以下是使用此技能生成的数学图形交互工具案例，点击可打开体验。</p>
+    <div class="case-grid">
+      <a href="../demos/conic-sections/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/conic-sections.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>圆锥曲线动态轨迹生成器</h4>
+          <p>离心率滑块控制椭圆/抛物线/双曲线</p>
+          <div class="case-badge">D203 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/trig-wave-generator/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/trig-wave-generator.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>三角函数波形发生器</h4>
+          <p>振幅频率相位实时调节</p>
+          <div class="case-badge">D206 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/function-plotter/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/function-plotter.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>函数图像绘制器</h4>
+          <p>输入函数表达式实时绘制</p>
+          <div class="case-badge">D209 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/fractal-geometry-generator/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/fractal-geometry-generator.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>分形几何生成器</h4>
+          <p>曼德博集合与科赫雪花</p>
+          <div class="case-badge">D217 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/compound-interest-calculator/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/compound-interest-calculator.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>复利计算器与财富增长</h4>
+          <p>本金利率年限参数化</p>
+          <div class="case-badge">D213 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/unit-circle-trig/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/unit-circle-trig.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>单位圆与三角函数</h4>
+          <p>单位圆→波形联动演示</p>
+          <div class="case-badge">D222 · 数学</div>
+        </div>
+      </a>
+      <a href="../demos/linear-transform-matrix/index.html" class="case-card">
+        <div class="case-preview"><img src="../assets/img/demo-previews/linear-transform-matrix.jpg" alt="" loading="lazy" /></div>
+        <div class="case-info">
+          <h4>线性变换矩阵可视化</h4>
+          <p>2D网格变形与矩阵</p>
+          <div class="case-badge">D223 · 数学</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Tab: 安装使用 -->
+  <div class="tab-content" id="tab-install">
+    <h2>安装此技能</h2>
+    <p>复制下方链接，粘贴到 Trae 等 AI 编程助手的对话框中即可安装。</p>
+
+    <div class="install-box">
+      <input type="text" class="install-url" id="installUrl" readonly value="https://cdn.jsdelivr.net/gh/aijingbo/jingbo.xyz@main/skills/jingbo-edu-math-graph-tool-v0.1.md">
+      <button class="install-copy" id="copyBtn" onclick="copyInstallUrl()">复制链接</button>
+    </div>
+    <a href="jingbo-edu-math-graph-tool-v0.1.md" download class="install-download">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      下载技能文件
+    </a>
+
+    <h2>使用步骤</h2>
+    <ol class="steps">
+      <li>点击上方「复制链接」按钮</li>
+      <li>打开 Trae（或任意 AI 编程助手）</li>
+      <li>在对话框中粘贴链接，发送「安装这个技能」</li>
+      <li>等待 AI 读取并安装技能</li>
+      <li>输入你的需求，例如「用这个技能生成一个圆锥曲线动态轨迹工具」</li>
+      <li>AI 自动生成交互式可视化课件</li>
+    </ol>
+
+    <h2>你可以这样说</h2>
+    <p>安装完成后，用自然语言描述你想要的工具：</p>
+    <div class="prompt-cards">
+      <div class="prompt-card" onclick="copyText(this)">「生成一个圆锥曲线动态轨迹工具」</div>
+      <div class="prompt-card" onclick="copyText(this)">「做一个三角函数波形发生器」</div>
+      <div class="prompt-card" onclick="copyText(this)">「创建一个分形几何生成器」</div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-brand">景礴学院<span class="fd"></span>jingbo.xyz</div>
+    <p class="footer-meta">在 AI 的时代，让每个角落都能看见磅礴 · © 2026 景礴学院</p>
+  </footer>
+
+  <div class="toast" id="toast">已复制到剪贴板</div>
+
+  <script>
+    // Tab 切换
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // 复制安装链接
+    function copyInstallUrl() {
+      const url = document.getElementById('installUrl').value;
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.classList.add('copied');
+        btn.textContent = '已复制';
+        showToast();
+        setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '复制链接'; }, 3000);
+      });
+    }
+
+    // 复制示例指令
+    function copyText(el) {
+      const text = el.textContent.replace(/「|」/g, '');
+      navigator.clipboard.writeText(text).then(() => {
+        showToast();
+      });
+    }
+
+    // Toast
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Navbar 滚动
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY > 24), { passive: true });
+  </script>
+</body>
+</html>

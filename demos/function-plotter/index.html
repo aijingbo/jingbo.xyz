@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>函数图像绘制器 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<style>
+  html, body { height: 100%; overflow: hidden; }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100svh;
+  }
+
+  /* ============ 导航栏 ============ */
+  .navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    height: 56px;
+    flex-shrink: 0;
+    background-color: rgba(250, 248, 245, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+  }
+  .navbar-left { display: flex; align-items: center; gap: var(--spacer-16); }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text-muted); text-decoration: none;
+    font-size: var(--fs-small); font-weight: 500;
+    transition: color var(--duration-fast) var(--ease);
+  }
+  .back-link:hover { color: var(--text); }
+  .navbar-logo {
+    font-family: var(--font-serif); font-size: 18px; font-weight: 700;
+    color: var(--text); text-decoration: none;
+  }
+  .navbar-center {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: var(--spacer-12);
+  }
+  .navbar-title {
+    font-family: var(--font-serif); font-size: 16px; font-weight: 600;
+    color: var(--text);
+  }
+  .navbar-right { display: flex; align-items: center; gap: var(--spacer-12); }
+  .download-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; font-size: var(--fs-small); font-weight: 500;
+    color: var(--brand); background-color: var(--brand-soft);
+    border: none; border-radius: var(--radius); cursor: pointer;
+    transition: all var(--duration-base) var(--ease); text-decoration: none;
+  }
+  .download-btn:hover { background-color: var(--brand-soft-hover); transform: translateY(-1px); }
+
+  /* ============ 主区域 ============ */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ============ 侧边栏 ============ */
+  .sidebar {
+    width: 320px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-scroll {
+    flex: 1; overflow-y: auto;
+    padding: var(--spacer-16) var(--spacer-20);
+  }
+  .sidebar-scroll::-webkit-scrollbar { width: 5px; }
+  .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .sb-section { margin-bottom: var(--spacer-20); }
+  .sb-section-title {
+    font-size: var(--fs-tiny); font-weight: 600;
+    color: var(--text-faint); text-transform: uppercase;
+    letter-spacing: 0.06em; margin-bottom: var(--spacer-10);
+  }
+
+  /* 函数输入行 */
+  .func-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .func-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    transition: opacity 0.2s;
+  }
+  .func-dot.inactive { opacity: 0.25; }
+  .func-input-wrap { flex: 1; position: relative; }
+  .func-prefix {
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--text-faint); pointer-events: none;
+  }
+  .func-input {
+    width: 100%; padding: 8px 8px 8px 32px;
+    font-family: var(--font-mono); font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-muted); color: var(--text);
+    outline: none; transition: all 0.2s;
+  }
+  .func-input:focus {
+    border-color: var(--brand); background: var(--surface);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+  }
+  .func-input.error {
+    border-color: var(--accent-history);
+    background: var(--accent-history-soft);
+  }
+  .func-toggle {
+    width: 28px; height: 28px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--surface);
+    cursor: pointer; font-size: 14px; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .func-toggle:hover { border-color: var(--text-muted); }
+  .func-toggle.active {
+    background: var(--brand); color: white; border-color: var(--brand);
+  }
+  .func-error {
+    font-size: 11px; color: var(--accent-history);
+    margin: 2px 0 6px 18px; font-family: var(--font-mono);
+  }
+
+  /* 快捷函数按钮 */
+  .quick-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  }
+  .quick-btn {
+    padding: 7px 4px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--text-muted);
+    cursor: pointer; transition: all 0.2s; text-align: center;
+    font-family: var(--font-mono);
+  }
+  .quick-btn:hover {
+    border-color: var(--brand); color: var(--brand);
+    background: var(--brand-soft);
+  }
+
+  /* 范围输入 */
+  .range-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .range-label {
+    font-size: 12px; font-weight: 600; color: var(--text-muted);
+    width: 16px; text-align: center;
+  }
+  .range-input {
+    width: 64px; padding: 6px 8px;
+    font-family: var(--font-mono); font-size: 12px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-muted); color: var(--text);
+    outline: none; text-align: center;
+  }
+  .range-input:focus { border-color: var(--brand); background: var(--surface); }
+  .range-sep { color: var(--text-faint); font-size: 12px; }
+  .reset-view-btn {
+    width: 100%; padding: 7px; margin-top: 4px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-muted); color: var(--text-muted);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .reset-view-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+  /* 显示选项 */
+  .opt-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
+  }
+  .opt-item {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; user-select: none;
+  }
+  .opt-item input { display: none; }
+  .opt-check {
+    width: 16px; height: 16px; border-radius: 4px;
+    border: 1.5px solid var(--border); background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .opt-item input:checked + .opt-check {
+    background: var(--brand); border-color: var(--brand);
+  }
+  .opt-check::after {
+    content: ''; width: 8px; height: 4px;
+    border: 1.5px solid white; border-top: none; border-right: none;
+    transform: rotate(-45deg) scale(0); transition: transform 0.2s;
+    margin-top: -2px;
+  }
+  .opt-item input:checked + .opt-check::after { transform: rotate(-45deg) scale(1); }
+  .opt-label { font-size: 12px; color: var(--text); }
+
+  /* 预设按钮 */
+  .preset-list { display: flex; flex-direction: column; gap: 6px; }
+  .preset-btn {
+    padding: 9px 12px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--text);
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .preset-btn:hover {
+    border-color: var(--brand); background: var(--brand-soft);
+  }
+  .preset-btn .preset-tag {
+    font-size: 10px; color: var(--text-faint);
+    font-family: var(--font-mono);
+  }
+
+  /* 动画控制 */
+  .anim-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .anim-select {
+    flex: 1; padding: 7px 8px;
+    font-size: 12px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface);
+    color: var(--text); outline: none; cursor: pointer;
+  }
+  .anim-btn {
+    padding: 8px 16px; font-size: 12px; font-weight: 600;
+    border: none; border-radius: var(--radius);
+    background: var(--brand); color: white; cursor: pointer;
+    transition: all 0.2s; width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .anim-btn:hover { background: var(--brand-hover); }
+  .anim-btn.playing { background: var(--text-muted); }
+
+  /* ============ 画布区域 ============ */
+  .canvas-area {
+    flex: 1; position: relative; overflow: hidden;
+    background: #faf8f5;
+  }
+  #plotCanvas {
+    width: 100%; height: 100%; display: block;
+    cursor: crosshair; touch-action: none;
+  }
+  #plotCanvas.dragging { cursor: grabbing; }
+
+  /* 信息面板 */
+  .info-panel {
+    position: absolute; top: 16px; right: 16px;
+    padding: 14px 18px; min-width: 200px;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+    font-size: 13px; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .info-panel.empty { opacity: 0.5; }
+  .info-coord {
+    font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+    color: var(--text); margin-bottom: 4px;
+  }
+  .info-coord span { color: var(--brand); }
+  .info-slope {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+  .info-divider {
+    height: 1px; background: var(--border); margin: 8px 0;
+  }
+  .info-section { margin-bottom: 6px; }
+  .info-section-title {
+    font-size: 10px; font-weight: 600; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px;
+  }
+  .info-point {
+    font-family: var(--font-mono); font-size: 12px; color: var(--text);
+    display: flex; align-items: center; gap: 6px; margin-bottom: 2px;
+  }
+  .info-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* 工具栏 */
+  .tool-bar {
+    position: absolute; bottom: 16px; left: 16px;
+    display: flex; gap: 8px;
+  }
+  .tool-btn {
+    padding: 8px 14px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    color: var(--text-muted); cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .tool-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .tool-btn.active {
+    background: var(--brand); color: white; border-color: var(--brand);
+  }
+
+  /* 状态提示 */
+  .status-hint {
+    position: absolute; bottom: 16px; right: 16px;
+    padding: 8px 14px; font-size: 12px;
+    background: rgba(26, 26, 26, 0.85); color: white;
+    border-radius: var(--radius-full);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .status-hint.show { opacity: 1; }
+
+  /* 移动端侧边栏切换 */
+  .mobile-toggle {
+    display: none; position: absolute; top: 12px; left: 12px;
+    z-index: 101; padding: 8px 12px; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: rgba(255,255,255,0.9); backdrop-filter: blur(8px);
+    color: var(--text); cursor: pointer;
+  }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 768px) {
+    .navbar-center { display: none; }
+    .sidebar {
+      position: absolute; z-index: 50;
+      height: 100%; width: 300px;
+      transform: translateX(-100%); transition: transform 0.3s;
+    }
+    .sidebar.open { transform: translateX(0); box-shadow: var(--shadow-deep); }
+    .mobile-toggle { display: block; }
+    .info-panel { top: 12px; right: 12px; min-width: 160px; padding: 10px 14px; }
+    .tool-bar { bottom: 12px; left: 12px; }
+  }
+</style>
+
+<style>
+.demo-navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 56px;
+  background: rgba(250, 248, 245, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  transition: background 300ms ease, border-color 300ms ease;
+}
+.demo-navbar.scrolled {
+  background: rgba(250, 248, 245, 0.96);
+  border-bottom-color: rgba(0,0,0,0.1);
+}
+.demo-nav-left { display: flex; align-items: center; gap: 12px; }
+.demo-nav-logo {
+  font-family: var(--nm-font-cn-serif, "Noto Serif SC", serif);
+  font-size: 17px; font-weight: 700; color: var(--text, #1c1714);
+  text-decoration: none; letter-spacing: 0.04em;
+}
+.demo-nav-divider {
+  width: 1px; height: 16px; background: rgba(0,0,0,0.12);
+}
+.demo-nav-subject {
+  font-size: 14px; color: var(--text-muted, #6b6258);
+  text-decoration: none; font-weight: 500;
+  transition: color 200ms ease;
+}
+.demo-nav-subject:hover { color: var(--brand, #c2410c); }
+.demo-nav-center {
+  font-size: 14px; font-weight: 600; color: var(--text, #1c1714);
+  text-align: center; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.demo-nav-right { display: flex; align-items: center; gap: 12px; }
+.demo-btn-download {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; font-size: 13px; font-weight: 500;
+  color: var(--brand, #c2410c); text-decoration: none;
+  border: 1px solid rgba(194, 65, 12, 0.2); border-radius: 6px;
+  transition: all 200ms ease;
+}
+.demo-btn-download:hover {
+  background: rgba(194, 65, 12, 0.06); border-color: rgba(194, 65, 12, 0.3);
+}
+.demo-btn-download svg { width: 14px; height: 14px; }
+.tag {
+  display: inline-block; padding: 3px 8px; font-size: 12px;
+  font-weight: 600; border-radius: 4px;
+}
+.tag-bio { background: rgba(5,150,105,0.1); color: #059669; }
+.tag-chem { background: rgba(217,119,6,0.1); color: #d97706; }
+.tag-geo { background: rgba(8,145,178,0.1); color: #0891b2; }
+.tag-physics { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.tag-math { background: rgba(194,65,12,0.1); color: #c2410c; }
+.tag-history { background: rgba(220,38,38,0.1); color: #dc2626; }
+.tag-cs { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.tag-art { background: rgba(236,72,153,0.1); color: #ec4899; }
+.tag-cross { background: rgba(107,114,128,0.1); color: #6b7280; }
+@media (max-width: 768px) {
+  .demo-nav-center { display: none; }
+  .demo-nav-right .tag { display: none; }
+  .demo-btn-download span { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 导航栏 -->
+  <header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">函数图像绘制器</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-math">数学</span>
+      <a href="/skills/jingbo-edu-math-graph-tool-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- 主区域 -->
+  <div class="main">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-scroll">
+
+        <!-- 函数表达式 -->
+        <div class="sb-section">
+          <div class="sb-section-title">函数表达式</div>
+          <div id="funcRows"></div>
+        </div>
+
+        <!-- 快捷函数 -->
+        <div class="sb-section">
+          <div class="sb-section-title">快捷函数</div>
+          <div class="quick-grid" id="quickGrid"></div>
+        </div>
+
+        <!-- 坐标范围 -->
+        <div class="sb-section">
+          <div class="sb-section-title">坐标范围</div>
+          <div class="range-row">
+            <span class="range-label">X</span>
+            <input type="number" class="range-input" id="xMinInput" value="-10" step="1">
+            <span class="range-sep">→</span>
+            <input type="number" class="range-input" id="xMaxInput" value="10" step="1">
+          </div>
+          <div class="range-row">
+            <span class="range-label">Y</span>
+            <input type="number" class="range-input" id="yMinInput" value="-8" step="1">
+            <span class="range-sep">→</span>
+            <input type="number" class="range-input" id="yMaxInput" value="12" step="1">
+          </div>
+          <button class="reset-view-btn" id="resetViewBtn">重置视图</button>
+        </div>
+
+        <!-- 显示选项 -->
+        <div class="sb-section">
+          <div class="sb-section-title">显示选项</div>
+          <div class="opt-grid" id="optGrid"></div>
+        </div>
+
+        <!-- 预设场景 -->
+        <div class="sb-section">
+          <div class="sb-section-title">预设场景</div>
+          <div class="preset-list" id="presetList"></div>
+        </div>
+
+        <!-- 动画演示 -->
+        <div class="sb-section">
+          <div class="sb-section-title">动画演示</div>
+          <div class="anim-row">
+            <select class="anim-select" id="animSelect">
+              <option value="none">选择动画…</option>
+              <option value="parabola-shift">抛物线平移 (b: -5→5)</option>
+              <option value="amplitude">振幅变化 (a: 0.5→3)</option>
+              <option value="frequency">频率变化 (k: 0.5→5)</option>
+              <option value="tangent-scan">切线扫描</option>
+              <option value="curve-grow">曲线生长</option>
+            </select>
+          </div>
+          <div class="anim-row">
+            <span style="font-size:12px;color:var(--text-muted);width:32px">速度</span>
+            <input type="range" class="slider" id="animSpeed" min="1" max="5" value="2" style="flex:1;height:4px;-webkit-appearance:none;background:var(--border);border-radius:2px;outline:none">
+            <span id="animSpeedVal" style="font-family:var(--font-mono);font-size:12px;color:var(--brand);font-weight:600;min-width:28px;text-align:right">2x</span>
+          </div>
+          <button class="anim-btn" id="animBtn"><span id="animIcon">▶</span><span id="animText">播放动画</span></button>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- 画布区域 -->
+    <div class="canvas-area">
+      <button class="mobile-toggle" id="mobileToggle">☰ 控制面板</button>
+      <canvas id="plotCanvas"></canvas>
+
+      <!-- 信息面板 -->
+      <div class="info-panel empty" id="infoPanel">
+        <div class="info-coord" id="infoCoord">移动鼠标查看坐标</div>
+        <div class="info-slope" id="infoSlope"></div>
+        <div class="info-divider" id="infoDivider" style="display:none"></div>
+        <div id="infoPoints"></div>
+      </div>
+
+      <!-- 工具栏 -->
+      <div class="tool-bar">
+        <button class="tool-btn" id="toolHome" title="重置视图">⌂ 主视图</button>
+        <button class="tool-btn" id="toolZoomIn" title="放大">＋</button>
+        <button class="tool-btn" id="toolZoomOut" title="缩小">－</button>
+      </div>
+
+      <!-- 状态提示 -->
+      <div class="status-hint" id="statusHint"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjs@12.4.2/lib/browser/math.min.js"></script>
+<script>
+/* ============================================================
+   函数图像绘制器
+   ============================================================ */
+
+// ---- 颜色 ----
+const FUNC_COLORS = ['#2563eb', '#8b5cf6', '#f59e0b'];
+const COLOR_ZERO = '#dc2626';
+const COLOR_VERTEX = '#16a34a';
+const COLOR_INTERSECT = '#d97706';
+const COLOR_TANGENT = '#374151';
+const COLOR_INTEGRAL = 'rgba(191, 219, 254, 0.45)';
+
+// ---- 状态 ----
+const state = {
+  functions: [
+    { expr: 'x^2', compiled: null, color: FUNC_COLORS[0], visible: true, error: null },
+    { expr: '',   compiled: null, color: FUNC_COLORS[1], visible: false, error: null },
+    { expr: '',   compiled: null, color: FUNC_COLORS[2], visible: false, error: null },
+  ],
+  view: { xMin: -10, xMax: 10, yMin: -8, yMax: 12 },
+  display: {
+    grid: true, axisLabels: true, functionValues: false,
+    zeros: true, vertices: false, intersections: false,
+    tangent: false, integral: false
+  },
+  hover: { active: false, x: 0, y: 0, funcIndex: -1, fx: 0, slope: 0 },
+  tangentPoint: null,
+  integralRange: null,
+  integralClickStep: 0,
+  animation: { playing: false, type: 'none', speed: 2, t: 0, rafId: null },
+  drag: { active: false, startX: 0, startY: 0, viewStart: null },
+  specialPoints: { zeros: [], vertices: [], intersections: [] },
+};
+
+// ---- Canvas ----
+const canvas = document.getElementById('plotCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const container = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = container.clientWidth * dpr;
+  canvas.height = container.clientHeight * dpr;
+  canvas.style.width = container.clientWidth + 'px';
+  canvas.style.height = container.clientHeight + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  render();
+}
+
+// ---- 坐标变换 ----
+function worldToScreen(x, y) {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  const sx = (x - state.view.xMin) / (state.view.xMax - state.view.xMin) * w;
+  const sy = h - (y - state.view.yMin) / (state.view.yMax - state.view.yMin) * h;
+  return { sx, sy };
+}
+function screenToWorld(sx, sy) {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  const x = sx / w * (state.view.xMax - state.view.xMin) + state.view.xMin;
+  const y = (1 - sy / h) * (state.view.yMax - state.view.yMin) + state.view.yMin;
+  return { x, y };
+}
+
+// ---- 表达式处理 ----
+function preprocessExpression(expr) {
+  if (!expr || !expr.trim()) return '';
+  let s = expr.trim();
+  s = s.replace(/\|([^|]+)\|/g, 'abs($1)');
+  s = s.replace(/\bln\(/g, 'log(');
+  s = s.replace(/\blg\(/g, 'log10(');
+  return s;
+}
+
+function compileFunction(index) {
+  const func = state.functions[index];
+  const raw = func.expr.trim();
+  if (!raw) { func.compiled = null; func.error = null; return; }
+  try {
+    const processed = preprocessExpression(raw);
+    func.compiled = math.compile(processed);
+    const test = func.compiled.evaluate({ x: 1 });
+    if (test === undefined) throw new Error('无法计算');
+    func.error = null;
+  } catch (e) {
+    func.compiled = null;
+    func.error = e.message.length > 30 ? e.message.substring(0, 30) + '…' : e.message;
+  }
+}
+
+function evalFunction(func, x, extraScope = {}) {
+  if (!func.compiled) return NaN;
+  try {
+    const result = func.compiled.evaluate({ x, ...extraScope });
+    if (typeof result === 'number') return result;
+    if (result && typeof result.re === 'number') {
+      if (Math.abs(result.im) < 1e-10) return result.re;
+      return NaN;
+    }
+    return NaN;
+  } catch { return NaN; }
+}
+
+function derivative(func, x, extraScope = {}) {
+  const h = Math.max(1e-6, Math.abs(x) * 1e-6);
+  return (evalFunction(func, x + h, extraScope) - evalFunction(func, x - h, extraScope)) / (2 * h);
+}
+
+// ---- 数值积分（Simpson） ----
+function numericalIntegral(func, a, b, extraScope = {}) {
+  const n = 200;
+  const h = (b - a) / n;
+  let sum = evalFunction(func, a, extraScope) + evalFunction(func, b, extraScope);
+  for (let i = 1; i < n; i++) {
+    const x = a + i * h;
+    sum += (i % 2 === 0 ? 2 : 4) * evalFunction(func, x, extraScope);
+  }
+  return sum * h / 3;
+}
+
+// ---- 特殊点检测 ----
+function findZeros(func, xMin, xMax, extraScope = {}) {
+  const zeros = [];
+  const steps = 400;
+  const dx = (xMax - xMin) / steps;
+  let prevX = xMin;
+  let prevY = evalFunction(func, prevX, extraScope);
+  for (let i = 1; i <= steps; i++) {
+    const x = xMin + i * dx;
+    const y = evalFunction(func, x, extraScope);
+    if (!isNaN(prevY) && !isNaN(y) && isFinite(prevY) && isFinite(y) && prevY * y < 0) {
+      let lo = prevX, hi = x, loY = prevY;
+      for (let j = 0; j < 50; j++) {
+        const mid = (lo + hi) / 2;
+        const midY = evalFunction(func, mid, extraScope);
+        if (isNaN(midY)) break;
+        if (Math.abs(midY) < 1e-10) { lo = hi = mid; break; }
+        if (loY * midY < 0) hi = mid;
+        else { lo = mid; loY = midY; }
+      }
+      zeros.push((lo + hi) / 2);
+    }
+    prevX = x; prevY = y;
+  }
+  return zeros;
+}
+
+function findExtrema(func, xMin, xMax, extraScope = {}) {
+  const extrema = [];
+  const steps = 300;
+  const dx = (xMax - xMin) / steps;
+  let prevD = derivative(func, xMin, extraScope);
+  for (let i = 1; i <= steps; i++) {
+    const x = xMin + i * dx;
+    const d = derivative(func, x, extraScope);
+    if (!isNaN(prevD) && !isNaN(d) && isFinite(prevD) && isFinite(d) && prevD * d < 0) {
+      let lo = xMin + (i - 1) * dx, hi = x, loD = prevD;
+      for (let j = 0; j < 30; j++) {
+        const mid = (lo + hi) / 2;
+        const midD = derivative(func, mid, extraScope);
+        if (isNaN(midD)) break;
+        if (loD * midD < 0) hi = mid;
+        else { lo = mid; loD = midD; }
+      }
+      const ex = (lo + hi) / 2;
+      const ey = evalFunction(func, ex, extraScope);
+      if (!isNaN(ey) && isFinite(ey)) extrema.push({ x: ex, y: ey });
+    }
+    prevD = d;
+  }
+  return extrema;
+}
+
+function findIntersections(f1, f2, xMin, xMax, extraScope = {}) {
+  const pts = [];
+  const steps = 400;
+  const dx = (xMax - xMin) / steps;
+  let prevX = xMin;
+  let prevDiff = evalFunction(f1, prevX, extraScope) - evalFunction(f2, prevX, extraScope);
+  for (let i = 1; i <= steps; i++) {
+    const x = xMin + i * dx;
+    const diff = evalFunction(f1, x, extraScope) - evalFunction(f2, x, extraScope);
+    if (!isNaN(prevDiff) && !isNaN(diff) && isFinite(prevDiff) && isFinite(diff) && prevDiff * diff < 0) {
+      let lo = prevX, hi = x, loDiff = prevDiff;
+      for (let j = 0; j < 50; j++) {
+        const mid = (lo + hi) / 2;
+        const midDiff = evalFunction(f1, mid, extraScope) - evalFunction(f2, mid, extraScope);
+        if (isNaN(midDiff)) break;
+        if (Math.abs(midDiff) < 1e-10) { lo = hi = mid; break; }
+        if (loDiff * midDiff < 0) hi = mid;
+        else { lo = mid; loDiff = midDiff; }
+      }
+      const ix = (lo + hi) / 2;
+      const iy = evalFunction(f1, ix, extraScope);
+      if (!isNaN(iy) && isFinite(iy)) pts.push({ x: ix, y: iy });
+    }
+    prevX = x; prevDiff = diff;
+  }
+  return pts;
+}
+
+function updateSpecialPoints(extraScope = {}) {
+  const { xMin, xMax } = state.view;
+  const visibleFuncs = state.functions.filter(f => f.visible && f.compiled);
+  state.specialPoints.zeros = [];
+  state.specialPoints.vertices = [];
+  state.specialPoints.intersections = [];
+  if (visibleFuncs.length === 0) return;
+  if (state.display.zeros || true) {
+    visibleFuncs.forEach(f => {
+      const zs = findZeros(f, xMin, xMax, extraScope);
+      zs.forEach(z => state.specialPoints.zeros.push({ x: z, color: f.color }));
+    });
+  }
+  if (state.display.vertices || true) {
+    visibleFuncs.forEach(f => {
+      const exs = findExtrema(f, xMin, xMax, extraScope);
+      exs.forEach(e => state.specialPoints.vertices.push({ x: e.x, y: e.y, color: f.color }));
+    });
+  }
+  if (state.display.intersections || true) {
+    for (let i = 0; i < visibleFuncs.length; i++) {
+      for (let j = i + 1; j < visibleFuncs.length; j++) {
+        const pts = findIntersections(visibleFuncs[i], visibleFuncs[j], xMin, xMax, extraScope);
+        pts.forEach(p => state.specialPoints.intersections.push(p));
+      }
+    }
+  }
+}
+
+// ---- 网格间距计算 ----
+function getGridSpacing(range) {
+  const rough = range / 10;
+  const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+  const norm = rough / mag;
+  let s;
+  if (norm < 1.5) s = 1;
+  else if (norm < 3) s = 2;
+  else if (norm < 7) s = 5;
+  else s = 10;
+  return s * mag;
+}
+
+function formatNumber(n, decimals = 2) {
+  if (Math.abs(n) < 1e-10) return '0';
+  if (Math.abs(n) >= 10000 || Math.abs(n) < 0.01) return n.toExponential(1);
+  return parseFloat(n.toFixed(decimals)).toString();
+}
+
+// ---- 渲染 ----
+function render() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+
+  // 背景
+  ctx.fillStyle = '#faf8f5';
+  ctx.fillRect(0, 0, w, h);
+
+  const extraScope = getAnimationScope();
+
+  // 网格
+  if (state.display.grid) drawGrid(w, h);
+
+  // 坐标轴
+  drawAxes(w, h);
+
+  // 更新特殊点
+  updateSpecialPoints(extraScope);
+
+  // 积分面积（在曲线下方）
+  if (state.display.integral && state.integralRange) {
+    drawIntegralArea(extraScope);
+  }
+
+  // 函数曲线
+  const drawProgress = state.animation.playing && state.animation.type === 'curve-grow'
+    ? state.animation.t : 1;
+  state.functions.forEach((func, i) => {
+    if (func.visible && func.compiled) {
+      drawFunctionCurve(func, extraScope, drawProgress);
+    }
+  });
+
+  // 函数值标注
+  if (state.display.functionValues) drawFunctionValues(extraScope);
+
+  // 特殊点
+  if (state.display.zeros) drawZeros();
+  if (state.display.vertices) drawExtrema();
+  if (state.display.intersections) drawIntersections();
+
+  // 切线
+  if (state.display.tangent && state.tangentPoint) {
+    drawTangentLine(extraScope);
+  }
+
+  // 悬停指示
+  if (state.hover.active) {
+    drawHoverIndicator(extraScope);
+  }
+
+  // 更新信息面板
+  updateInfoPanel(extraScope);
+}
+
+function drawGrid(w, h) {
+  const xRange = state.view.xMax - state.view.xMin;
+  const yRange = state.view.yMax - state.view.yMin;
+  const xStep = getGridSpacing(xRange);
+  const yStep = getGridSpacing(yRange);
+
+  ctx.strokeStyle = '#eeeae3';
+  ctx.lineWidth = 1;
+
+  // 垂直网格线
+  const xStart = Math.ceil(state.view.xMin / xStep) * xStep;
+  for (let x = xStart; x <= state.view.xMax; x += xStep) {
+    const { sx } = worldToScreen(x, 0);
+    ctx.beginPath();
+    ctx.moveTo(sx, 0);
+    ctx.lineTo(sx, h);
+    ctx.stroke();
+  }
+  // 水平网格线
+  const yStart = Math.ceil(state.view.yMin / yStep) * yStep;
+  for (let y = yStart; y <= state.view.yMax; y += yStep) {
+    const { sy } = worldToScreen(0, y);
+    ctx.beginPath();
+    ctx.moveTo(0, sy);
+    ctx.lineTo(w, sy);
+    ctx.stroke();
+  }
+}
+
+function drawAxes(w, h) {
+  const origin = worldToScreen(0, 0);
+  const xStep = getGridSpacing(state.view.xMax - state.view.xMin);
+  const yStep = getGridSpacing(state.view.yMax - state.view.yMin);
+
+  // 轴线
+  ctx.strokeStyle = '#9ca3af';
+  ctx.lineWidth = 1.5;
+  // X轴
+  if (origin.sy >= 0 && origin.sy <= h) {
+    ctx.beginPath();
+    ctx.moveTo(0, origin.sy);
+    ctx.lineTo(w, origin.sy);
+    ctx.stroke();
+  }
+  // Y轴
+  if (origin.sx >= 0 && origin.sx <= w) {
+    ctx.beginPath();
+    ctx.moveTo(origin.sx, 0);
+    ctx.lineTo(origin.sx, h);
+    ctx.stroke();
+  }
+
+  // 箭头
+  ctx.fillStyle = '#9ca3af';
+  if (origin.sy >= 0 && origin.sy <= h) {
+    ctx.beginPath();
+    ctx.moveTo(w - 8, origin.sy - 4);
+    ctx.lineTo(w, origin.sy);
+    ctx.lineTo(w - 8, origin.sy + 4);
+    ctx.fill();
+  }
+  if (origin.sx >= 0 && origin.sx <= w) {
+    ctx.beginPath();
+    ctx.moveTo(origin.sx - 4, 8);
+    ctx.lineTo(origin.sx, 0);
+    ctx.lineTo(origin.sx + 4, 8);
+    ctx.fill();
+  }
+
+  // 刻度标签
+  if (state.display.axisLabels) {
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '11px JetBrains Mono, monospace';
+
+    // X轴刻度
+    const xStart = Math.ceil(state.view.xMin / xStep) * xStep;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let x = xStart; x <= state.view.xMax; x += xStep) {
+      if (Math.abs(x) < xStep * 0.01) continue;
+      const { sx } = worldToScreen(x, 0);
+      let labelY = origin.sy + 4;
+      if (labelY > h - 16) labelY = h - 16;
+      if (labelY < 4) labelY = 4;
+      // 短刻度线
+      ctx.strokeStyle = '#9ca3af';
+      ctx.beginPath();
+      ctx.moveTo(sx, labelY - 4);
+      ctx.lineTo(sx, labelY);
+      ctx.stroke();
+      ctx.fillText(formatNumber(x), sx, labelY + 2);
+    }
+
+    // Y轴刻度
+    const yStart = Math.ceil(state.view.yMin / yStep) * yStep;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let y = yStart; y <= state.view.yMax; y += yStep) {
+      if (Math.abs(y) < yStep * 0.01) continue;
+      const { sy } = worldToScreen(0, y);
+      let labelX = origin.sx - 6;
+      if (labelX < 24) labelX = 24;
+      if (labelX > w - 4) labelX = w - 4;
+      ctx.strokeStyle = '#9ca3af';
+      ctx.beginPath();
+      ctx.moveTo(labelX + 2, sy);
+      ctx.lineTo(labelX + 6, sy);
+      ctx.stroke();
+      ctx.fillText(formatNumber(y), labelX, sy);
+    }
+
+    // 原点标注
+    if (origin.sx >= 0 && origin.sx <= w && origin.sy >= 0 && origin.sy <= h) {
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#9ca3af';
+      ctx.fillText('0', origin.sx - 4, origin.sy + 4);
+    }
+
+    // 轴标签
+    ctx.fillStyle = '#4b5563';
+    ctx.font = 'italic 13px serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('x', w - 10, Math.max(16, Math.min(h - 4, origin.sy - 6)));
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('y', Math.max(4, Math.min(w - 16, origin.sx + 6)), 10);
+  }
+}
+
+function drawFunctionCurve(func, extraScope, progress) {
+  const w = canvas.clientWidth;
+  const samples = Math.min(1500, Math.max(500, w * 2));
+  const xMin = state.view.xMin;
+  const xMax = state.view.xMax;
+  const dx = (xMax - xMin) / samples;
+  const yRange = state.view.yMax - state.view.yMin;
+  const drawXMax = xMin + (xMax - xMin) * progress;
+
+  ctx.strokeStyle = func.color;
+  ctx.lineWidth = 2.2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  ctx.beginPath();
+  let penDown = false;
+  let prevY = NaN;
+
+  for (let i = 0; i <= samples; i++) {
+    const x = xMin + i * dx;
+    if (x > drawXMax) break;
+    const y = evalFunction(func, x, extraScope);
+
+    if (isNaN(y) || !isFinite(y)) {
+      penDown = false;
+      prevY = y;
+      continue;
+    }
+
+    // 不连续检测
+    if (penDown && !isNaN(prevY) && isFinite(prevY)) {
+      if (Math.abs(y - prevY) > yRange * 0.8) {
+        penDown = false;
+      }
+    }
+
+    // 裁剪到合理范围（避免画到无穷远）
+    const clampedY = Math.max(state.view.yMin - yRange, Math.min(state.view.yMax + yRange, y));
+    const { sx, sy } = worldToScreen(x, clampedY);
+
+    if (!penDown) {
+      ctx.moveTo(sx, sy);
+      penDown = true;
+    } else {
+      ctx.lineTo(sx, sy);
+    }
+    prevY = y;
+  }
+  ctx.stroke();
+
+  // 函数标签（在曲线右端）
+  if (progress >= 0.95) {
+    const labelX = Math.min(drawXMax, xMax) - dx * 5;
+    const labelY = evalFunction(func, labelX, extraScope);
+    if (!isNaN(labelY) && isFinite(labelY)) {
+      const { sx, sy } = worldToScreen(labelX, labelY);
+      if (sx >= 0 && sx <= w && sy >= 0 && sy <= canvas.clientHeight) {
+        ctx.fillStyle = func.color;
+        ctx.font = '600 12px JetBrains Mono, monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        const label = func.expr.length > 18 ? func.expr.substring(0, 16) + '…' : func.expr;
+        // 背景标签
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(250, 248, 245, 0.8)';
+        ctx.fillRect(sx - tw - 6, sy - 18, tw + 8, 16);
+        ctx.fillStyle = func.color;
+        ctx.fillText(label, sx - 2, sy - 4);
+      }
+    }
+  }
+}
+
+function drawFunctionValues(extraScope) {
+  const xStep = getGridSpacing(state.view.xMax - state.view.xMin);
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  state.functions.forEach(func => {
+    if (!func.visible || !func.compiled) return;
+    const xStart = Math.ceil(state.view.xMin / xStep) * xStep;
+    for (let x = xStart; x <= state.view.xMax; x += xStep) {
+      if (Math.abs(x) < xStep * 0.01) continue;
+      const y = evalFunction(func, x, extraScope);
+      if (isNaN(y) || !isFinite(y)) continue;
+      const { sx, sy } = worldToScreen(x, y);
+      if (sy < 10 || sy > canvas.clientHeight - 10) continue;
+      const label = formatNumber(y, 1);
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(250, 248, 245, 0.8)';
+      ctx.fillRect(sx - tw / 2 - 3, sy - 16, tw + 6, 14);
+      ctx.fillStyle = func.color;
+      ctx.fillText(label, sx, sy - 4);
+    }
+  });
+}
+
+function drawZeros() {
+  state.specialPoints.zeros.forEach(z => {
+    const { sx, sy } = worldToScreen(z.x, 0);
+    ctx.fillStyle = COLOR_ZERO;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+}
+
+function drawExtrema() {
+  state.specialPoints.vertices.forEach(v => {
+    const { sx, sy } = worldToScreen(v.x, v.y);
+    ctx.fillStyle = COLOR_VERTEX;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+}
+
+function drawIntersections() {
+  state.specialPoints.intersections.forEach(p => {
+    const { sx, sy } = worldToScreen(p.x, p.y);
+    ctx.fillStyle = COLOR_INTERSECT;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+}
+
+function drawTangentLine(extraScope) {
+  const func = state.functions.find(f => f.visible && f.compiled);
+  if (!func) return;
+  const tp = state.tangentPoint;
+  const x = tp.x;
+  const y = evalFunction(func, x, extraScope);
+  if (isNaN(y)) return;
+  const slope = derivative(func, x, extraScope);
+  if (isNaN(slope)) return;
+
+  const xRange = state.view.xMax - state.view.xMin;
+  const x1 = x - xRange * 0.5;
+  const x2 = x + xRange * 0.5;
+  const y1 = y - slope * xRange * 0.5;
+  const y2 = y + slope * xRange * 0.5;
+  const p1 = worldToScreen(x1, y1);
+  const p2 = worldToScreen(x2, y2);
+
+  // 切线
+  ctx.strokeStyle = COLOR_TANGENT;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(p1.sx, p1.sy);
+  ctx.lineTo(p2.sx, p2.sy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 切点
+  const { sx, sy } = worldToScreen(x, y);
+  ctx.fillStyle = COLOR_TANGENT;
+  ctx.beginPath();
+  ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 斜率标注
+  ctx.fillStyle = '#374151';
+  ctx.font = '600 12px JetBrains Mono, monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  const label = `f'(x) = ${formatNumber(slope, 3)}`;
+  const tw = ctx.measureText(label).width;
+  ctx.fillStyle = 'rgba(250, 248, 245, 0.85)';
+  ctx.fillRect(sx + 8, sy + 8, tw + 10, 18);
+  ctx.fillStyle = COLOR_TANGENT;
+  ctx.fillText(label, sx + 13, sy + 11);
+}
+
+function drawIntegralArea(extraScope) {
+  const func = state.functions.find(f => f.visible && f.compiled);
+  if (!func) return;
+  const { a, b } = state.integralRange;
+  const xMin = Math.min(a, b);
+  const xMax = Math.max(a, b);
+  if (xMax - xMin < 1e-6) return;
+
+  const origin = worldToScreen(0, 0);
+  const samples = 300;
+  const dx = (xMax - xMin) / samples;
+
+  ctx.fillStyle = COLOR_INTEGRAL;
+  ctx.beginPath();
+  let started = false;
+  for (let i = 0; i <= samples; i++) {
+    const x = xMin + i * dx;
+    const y = evalFunction(func, x, extraScope);
+    if (isNaN(y)) continue;
+    const { sx, sy } = worldToScreen(x, y);
+    if (!started) {
+      const { sx: sx0 } = worldToScreen(x, 0);
+      ctx.moveTo(sx0, origin.sy);
+      ctx.lineTo(sx, sy);
+      started = true;
+    } else {
+      ctx.lineTo(sx, sy);
+    }
+  }
+  const { sx: sxEnd } = worldToScreen(xMax, 0);
+  ctx.lineTo(sxEnd, origin.sy);
+  ctx.closePath();
+  ctx.fill();
+
+  // 积分值标注
+  const integral = numericalIntegral(func, xMin, xMax, extraScope);
+  const midX = (xMin + xMax) / 2;
+  const midY = evalFunction(func, midX, extraScope);
+  const { sx, sy } = worldToScreen(midX, midY / 2);
+
+  ctx.fillStyle = '#1e40af';
+  ctx.font = '600 13px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const label = `∫ = ${formatNumber(integral, 3)}`;
+  const tw = ctx.measureText(label).width;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+  ctx.fillRect(sx - tw / 2 - 6, sy - 10, tw + 12, 20);
+  ctx.fillStyle = '#1e40af';
+  ctx.fillText(label, sx, sy);
+}
+
+function drawHoverIndicator(extraScope) {
+  const func = state.functions[state.hover.funcIndex];
+  if (!func || !func.compiled) return;
+  const x = state.hover.x;
+  const y = evalFunction(func, x, extraScope);
+  if (isNaN(y)) return;
+
+  const { sx, sy } = worldToScreen(x, y);
+
+  // 十字线
+  ctx.strokeStyle = 'rgba(194, 65, 12, 0.25)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(sx, 0);
+  ctx.lineTo(sx, canvas.clientHeight);
+  ctx.moveTo(0, sy);
+  ctx.lineTo(canvas.clientWidth, sy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 焦点圆
+  ctx.fillStyle = func.color;
+  ctx.beginPath();
+  ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function updateInfoPanel(extraScope) {
+  const panel = document.getElementById('infoPanel');
+  const coordEl = document.getElementById('infoCoord');
+  const slopeEl = document.getElementById('infoSlope');
+  const dividerEl = document.getElementById('infoDivider');
+  const pointsEl = document.getElementById('infoPoints');
+
+  if (state.hover.active && state.hover.funcIndex >= 0) {
+    const func = state.functions[state.hover.funcIndex];
+    const x = state.hover.x;
+    const y = evalFunction(func, x, extraScope);
+    const slope = derivative(func, x, extraScope);
+    panel.classList.remove('empty');
+    coordEl.innerHTML = `x = <span>${formatNumber(x)}</span>　y = <span>${formatNumber(y)}</span>`;
+    slopeEl.textContent = `f'(x) = ${formatNumber(slope, 3)}　${func.color === FUNC_COLORS[0] ? '蓝' : func.color === FUNC_COLORS[1] ? '紫' : '橙'}色曲线`;
+  } else {
+    panel.classList.add('empty');
+    coordEl.textContent = '移动鼠标查看坐标';
+    slopeEl.textContent = '';
+  }
+
+  // 特殊点信息
+  let pointsHTML = '';
+  const { xMin, xMax } = state.view;
+  const visibleZeros = state.specialPoints.zeros.filter(z => z.x >= xMin && z.x <= xMax);
+  const visibleVertices = state.specialPoints.vertices.filter(v => v.x >= xMin && v.x <= xMax);
+  const visibleIntersections = state.specialPoints.intersections.filter(p => p.x >= xMin && p.x <= xMax);
+
+  if (state.display.zeros && visibleZeros.length > 0) {
+    pointsHTML += `<div class="info-section"><div class="info-section-title">零点 (${visibleZeros.length})</div>`;
+    visibleZeros.slice(0, 5).forEach(z => {
+      pointsHTML += `<div class="info-point"><div class="info-dot" style="background:${COLOR_ZERO}"></div>x = ${formatNumber(z.x)}</div>`;
+    });
+    if (visibleZeros.length > 5) pointsHTML += `<div class="info-point" style="color:var(--text-faint)">…共 ${visibleZeros.length} 个</div>`;
+    pointsHTML += '</div>';
+  }
+  if (state.display.vertices && visibleVertices.length > 0) {
+    pointsHTML += `<div class="info-section"><div class="info-section-title">极值点 (${visibleVertices.length})</div>`;
+    visibleVertices.slice(0, 5).forEach(v => {
+      pointsHTML += `<div class="info-point"><div class="info-dot" style="background:${COLOR_VERTEX}"></div>(${formatNumber(v.x)}, ${formatNumber(v.y)})</div>`;
+    });
+    if (visibleVertices.length > 5) pointsHTML += `<div class="info-point" style="color:var(--text-faint)">…共 ${visibleVertices.length} 个</div>`;
+    pointsHTML += '</div>';
+  }
+  if (state.display.intersections && visibleIntersections.length > 0) {
+    pointsHTML += `<div class="info-section"><div class="info-section-title">交点 (${visibleIntersections.length})</div>`;
+    visibleIntersections.slice(0, 5).forEach(p => {
+      pointsHTML += `<div class="info-point"><div class="info-dot" style="background:${COLOR_INTERSECT}"></div>(${formatNumber(p.x)}, ${formatNumber(p.y)})</div>`;
+    });
+    if (visibleIntersections.length > 5) pointsHTML += `<div class="info-point" style="color:var(--text-faint)">…共 ${visibleIntersections.length} 个</div>`;
+    pointsHTML += '</div>';
+  }
+
+  pointsEl.innerHTML = pointsHTML;
+  dividerEl.style.display = pointsHTML ? 'block' : 'none';
+}
+
+// ---- 动画 ----
+function getAnimationScope() {
+  if (!state.animation.playing) return {};
+  const t = state.animation.t;
+  switch (state.animation.type) {
+    case 'parabola-shift': return { b: -5 + t * 10 };
+    case 'amplitude': return { a: 0.5 + t * 2.5 };
+    case 'frequency': return { k: 0.5 + t * 4.5 };
+    default: return {};
+  }
+}
+
+function startAnimation() {
+  const type = document.getElementById('animSelect').value;
+  if (type === 'none') { showHint('请先选择动画类型'); return; }
+
+  state.animation.type = type;
+  state.animation.playing = true;
+  state.animation.t = 0;
+
+  // 设置动画所需的函数表达式
+  if (type === 'parabola-shift') {
+    state.functions[0].expr = 'x^2 + b*x';
+    state.functions[0].visible = true;
+    state.functions[1].visible = false;
+    state.functions[2].visible = false;
+    compileFunction(0);
+  } else if (type === 'amplitude') {
+    state.functions[0].expr = 'a*sin(x)';
+    state.functions[0].visible = true;
+    state.functions[1].visible = false;
+    state.functions[2].visible = false;
+    compileFunction(0);
+  } else if (type === 'frequency') {
+    state.functions[0].expr = 'sin(k*x)';
+    state.functions[0].visible = true;
+    state.functions[1].visible = false;
+    state.functions[2].visible = false;
+    compileFunction(0);
+  } else if (type === 'tangent-scan') {
+    state.display.tangent = true;
+    updateOptUI();
+  }
+
+  rebuildFunctionRows();
+  updateAnimButton();
+  animationLoop();
+}
+
+function stopAnimation() {
+  state.animation.playing = false;
+  if (state.animation.rafId) cancelAnimationFrame(state.animation.rafId);
+  if (state.animation.type === 'tangent-scan') {
+    state.display.tangent = false;
+    state.tangentPoint = null;
+    updateOptUI();
+  }
+  if (state.animation.type === 'curve-grow') {
+    render();
+  }
+  updateAnimButton();
+}
+
+function animationLoop() {
+  if (!state.animation.playing) return;
+
+  const speed = state.animation.speed;
+  state.animation.t += 0.003 * speed;
+  if (state.animation.t >= 1) state.animation.t = 0;
+
+  if (state.animation.type === 'tangent-scan') {
+    const func = state.functions.find(f => f.visible && f.compiled);
+    if (func) {
+      const xRange = state.view.xMax - state.view.xMin;
+      state.tangentPoint = { x: state.view.xMin + xRange * state.animation.t };
+    }
+  }
+
+  render();
+  state.animation.rafId = requestAnimationFrame(animationLoop);
+}
+
+function updateAnimButton() {
+  const btn = document.getElementById('animBtn');
+  const icon = document.getElementById('animIcon');
+  const text = document.getElementById('animText');
+  if (state.animation.playing) {
+    btn.classList.add('playing');
+    icon.textContent = '❚❚';
+    text.textContent = '停止动画';
+  } else {
+    btn.classList.remove('playing');
+    icon.textContent = '▶';
+    text.textContent = '播放动画';
+  }
+}
+
+// ---- UI 构建 ----
+const QUICK_FUNCTIONS = [
+  { label: '一次', expr: '2*x + 1' },
+  { label: '二次', expr: 'x^2 - 4*x + 3' },
+  { label: '三次', expr: 'x^3 - 3*x' },
+  { label: '指数', expr: '2^x' },
+  { label: '对数', expr: 'log2(x)' },
+  { label: '正弦', expr: 'sin(x)' },
+  { label: '余弦', expr: 'cos(x)' },
+  { label: '绝对值', expr: 'abs(x)' },
+  { label: '根号', expr: 'sqrt(x)' },
+];
+
+const DISPLAY_OPTIONS = [
+  { key: 'grid', label: '网格线' },
+  { key: 'axisLabels', label: '坐标刻度' },
+  { key: 'functionValues', label: '函数标注' },
+  { key: 'zeros', label: '零点标记' },
+  { key: 'vertices', label: '顶点标记' },
+  { key: 'intersections', label: '交点标记' },
+  { key: 'tangent', label: '切线工具' },
+  { key: 'integral', label: '积分面积' },
+];
+
+const PRESETS = [
+  {
+    name: '标准抛物线', tag: 'y = x²',
+    funcs: [{ expr: 'x^2', visible: true }, { visible: false }, { visible: false }],
+    view: { xMin: -10, xMax: 10, yMin: -2, yMax: 12 }
+  },
+  {
+    name: '求零点与顶点', tag: 'y = x²-4x+3',
+    funcs: [{ expr: 'x^2 - 4*x + 3', visible: true }, { visible: false }, { visible: false }],
+    view: { xMin: -2, xMax: 6, yMin: -3, yMax: 8 }
+  },
+  {
+    name: '指数 vs 对数', tag: '反函数',
+    funcs: [{ expr: '2^x', visible: true }, { expr: 'log2(x)', visible: true }, { visible: false }],
+    view: { xMin: -5, xMax: 8, yMin: -3, yMax: 10 }
+  },
+  {
+    name: '正弦曲线', tag: 'y = sin(x)',
+    funcs: [{ expr: 'sin(x)', visible: true }, { visible: false }, { visible: false }],
+    view: { xMin: -8, xMax: 8, yMin: -2, yMax: 2 }
+  },
+  {
+    name: '增长速度对比', tag: 'x² x³ 2ˣ',
+    funcs: [{ expr: 'x^2', visible: true }, { expr: 'x^3', visible: true }, { expr: '2^x', visible: true }],
+    view: { xMin: -3, xMax: 5, yMin: -5, yMax: 30 }
+  },
+  {
+    name: '绝对值翻折', tag: '|x| |x²-4|',
+    funcs: [{ expr: 'abs(x)', visible: true }, { expr: 'abs(x^2 - 4)', visible: true }, { visible: false }],
+    view: { xMin: -5, xMax: 5, yMin: -1, yMax: 10 }
+  },
+];
+
+function buildFunctionRows() {
+  const container = document.getElementById('funcRows');
+  container.innerHTML = '';
+  state.functions.forEach((func, i) => {
+    const row = document.createElement('div');
+    row.className = 'func-row';
+
+    const dot = document.createElement('div');
+    dot.className = 'func-dot' + (func.visible ? '' : ' inactive');
+    dot.style.background = func.color;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'func-input-wrap';
+    const prefix = document.createElement('span');
+    prefix.className = 'func-prefix';
+    prefix.textContent = `f${i + 1}=`;
+    const input = document.createElement('input');
+    input.className = 'func-input' + (func.error ? ' error' : '');
+    input.type = 'text';
+    input.value = func.expr;
+    input.placeholder = i === 0 ? '输入表达式…' : '（可选）';
+    input.addEventListener('input', () => {
+      state.functions[i].expr = input.value;
+      compileFunction(i);
+      input.className = 'func-input' + (func.error ? ' error' : '');
+      dot.className = 'func-dot' + (func.visible && func.compiled ? '' : ' inactive');
+      // 更新错误提示
+      const errDiv = row.querySelector('.func-error');
+      if (func.error && func.expr.trim()) {
+        if (errDiv) errDiv.textContent = '⚠ ' + func.error;
+        else {
+          const e = document.createElement('div');
+          e.className = 'func-error';
+          e.textContent = '⚠ ' + func.error;
+          row.appendChild(e);
+        }
+      } else {
+        if (errDiv) errDiv.remove();
+      }
+      render();
+    });
+    wrap.appendChild(prefix);
+    wrap.appendChild(input);
+
+    const toggle = document.createElement('button');
+    toggle.className = 'func-toggle' + (func.visible ? ' active' : '');
+    toggle.innerHTML = func.visible ? '●' : '○';
+    toggle.title = func.visible ? '隐藏' : '显示';
+    toggle.addEventListener('click', () => {
+      state.functions[i].visible = !state.functions[i].visible;
+      if (state.functions[i].visible && !state.functions[i].compiled) {
+        compileFunction(i);
+      }
+      rebuildFunctionRows();
+      render();
+    });
+
+    row.appendChild(dot);
+    row.appendChild(wrap);
+    row.appendChild(toggle);
+
+    if (func.error && func.expr.trim()) {
+      const errDiv = document.createElement('div');
+      errDiv.className = 'func-error';
+      errDiv.textContent = '⚠ ' + func.error;
+      row.appendChild(errDiv);
+    }
+
+    container.appendChild(row);
+  });
+}
+
+function rebuildFunctionRows() { buildFunctionRows(); }
+
+function buildQuickButtons() {
+  const grid = document.getElementById('quickGrid');
+  grid.innerHTML = '';
+  QUICK_FUNCTIONS.forEach(q => {
+    const btn = document.createElement('button');
+    btn.className = 'quick-btn';
+    btn.textContent = q.label;
+    btn.addEventListener('click', () => {
+      // 找到第一个可用的函数槽
+      let idx = state.functions.findIndex(f => f.visible);
+      if (idx === -1) idx = 0;
+      state.functions[idx].expr = q.expr;
+      state.functions[idx].visible = true;
+      compileFunction(idx);
+      rebuildFunctionRows();
+      render();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function buildDisplayOptions() {
+  const grid = document.getElementById('optGrid');
+  grid.innerHTML = '';
+  DISPLAY_OPTIONS.forEach(opt => {
+    const label = document.createElement('label');
+    label.className = 'opt-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = state.display[opt.key];
+    cb.addEventListener('change', () => {
+      state.display[opt.key] = cb.checked;
+      if (opt.key === 'tangent' && !cb.checked) state.tangentPoint = null;
+      if (opt.key === 'integral' && !cb.checked) state.integralRange = null;
+      render();
+    });
+    const check = document.createElement('span');
+    check.className = 'opt-check';
+    const text = document.createElement('span');
+    text.className = 'opt-label';
+    text.textContent = opt.label;
+    label.appendChild(cb);
+    label.appendChild(check);
+    label.appendChild(text);
+    grid.appendChild(label);
+  });
+}
+
+function updateOptUI() {
+  document.querySelectorAll('#optGrid input[type=checkbox]').forEach((cb, i) => {
+    cb.checked = state.display[DISPLAY_OPTIONS[i].key];
+  });
+}
+
+function buildPresets() {
+  const list = document.getElementById('presetList');
+  list.innerHTML = '';
+  PRESETS.forEach((preset, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.innerHTML = `<span>${preset.name}</span><span class="preset-tag">${preset.tag}</span>`;
+    btn.addEventListener('click', () => loadPreset(i));
+    list.appendChild(btn);
+  });
+}
+
+function loadPreset(index) {
+  const preset = PRESETS[index];
+  preset.funcs.forEach((f, i) => {
+    if (f.expr !== undefined) {
+      state.functions[i].expr = f.expr;
+      compileFunction(i);
+    }
+    state.functions[i].visible = f.visible;
+  });
+  state.view = { ...preset.view };
+  state.tangentPoint = null;
+  state.integralRange = null;
+  // 更新范围输入
+  document.getElementById('xMinInput').value = state.view.xMin;
+  document.getElementById('xMaxInput').value = state.view.xMax;
+  document.getElementById('yMinInput').value = state.view.yMin;
+  document.getElementById('yMaxInput').value = state.view.yMax;
+  rebuildFunctionRows();
+  render();
+}
+
+// ---- 事件处理 ----
+function showHint(msg, duration = 2000) {
+  const hint = document.getElementById('statusHint');
+  hint.textContent = msg;
+  hint.classList.add('show');
+  clearTimeout(hint._timer);
+  hint._timer = setTimeout(() => hint.classList.remove('show'), duration);
+}
+
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+}
+
+function onCanvasMouseDown(e) {
+  e.preventDefault();
+  const pos = getCanvasPos(e);
+
+  // 切线工具：点击设置切点
+  if (state.display.tangent) {
+    const world = screenToWorld(pos.x, pos.y);
+    const func = state.functions.find(f => f.visible && f.compiled);
+    if (func) {
+      state.tangentPoint = { x: world.x };
+      render();
+      return;
+    }
+  }
+
+  // 积分工具：两次点击设置范围
+  if (state.display.integral) {
+    const world = screenToWorld(pos.x, pos.y);
+    if (state.integralClickStep === 0) {
+      state.integralRange = { a: world.x, b: world.x };
+      state.integralClickStep = 1;
+      showHint('点击第二个点设置积分上限');
+      render();
+    } else {
+      state.integralRange.b = world.x;
+      state.integralClickStep = 0;
+      showHint('积分面积: ∫ = ' + formatNumber(
+        numericalIntegral(
+          state.functions.find(f => f.visible && f.compiled),
+          Math.min(state.integralRange.a, state.integralRange.b),
+          Math.max(state.integralRange.a, state.integralRange.b)
+        ), 3));
+      render();
+    }
+    return;
+  }
+
+  // 拖动平移
+  state.drag.active = true;
+  state.drag.startX = pos.x;
+  state.drag.startY = pos.y;
+  state.drag.viewStart = { ...state.view };
+  canvas.classList.add('dragging');
+}
+
+function onCanvasMouseMove(e) {
+  const pos = getCanvasPos(e);
+
+  if (state.drag.active) {
+    // 平移
+    const dx = pos.x - state.drag.startX;
+    const dy = pos.y - state.drag.startY;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const xRange = state.drag.viewStart.xMax - state.drag.viewStart.xMin;
+    const yRange = state.drag.viewStart.yMax - state.drag.viewStart.yMin;
+    state.view.xMin = state.drag.viewStart.xMin - dx / w * xRange;
+    state.view.xMax = state.drag.viewStart.xMax - dx / w * xRange;
+    state.view.yMin = state.drag.viewStart.yMin + dy / h * yRange;
+    state.view.yMax = state.drag.viewStart.yMax + dy / h * yRange;
+    updateRangeInputs();
+    render();
+    return;
+  }
+
+  // 悬停
+  const world = screenToWorld(pos.x, pos.y);
+  state.hover.active = true;
+  state.hover.x = world.x;
+  state.hover.y = world.y;
+
+  // 找最近的函数
+  let bestIdx = -1;
+  let bestDist = Infinity;
+  state.functions.forEach((func, i) => {
+    if (!func.visible || !func.compiled) return;
+    const fy = evalFunction(func, world.x);
+    if (isNaN(fy)) return;
+    const dist = Math.abs(fy - world.y);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIdx = i;
+    }
+  });
+
+  // 只有当鼠标足够接近某条曲线时才显示
+  const yRange = state.view.yMax - state.view.yMin;
+  if (bestDist < yRange * 0.15) {
+    state.hover.funcIndex = bestIdx;
+  } else {
+    // 如果没有接近的曲线，仍然显示坐标但不高亮
+    state.hover.funcIndex = bestIdx >= 0 ? bestIdx : -1;
+  }
+
+  render();
+}
+
+function onCanvasMouseUp() {
+  state.drag.active = false;
+  canvas.classList.remove('dragging');
+}
+
+function onCanvasMouseLeave() {
+  state.drag.active = false;
+  state.hover.active = false;
+  canvas.classList.remove('dragging');
+  render();
+}
+
+function onWheel(e) {
+  e.preventDefault();
+  const pos = getCanvasPos(e);
+  const world = screenToWorld(pos.x, pos.y);
+  const factor = e.deltaY > 0 ? 1.12 : 0.89;
+
+  state.view.xMin = world.x + (state.view.xMin - world.x) * factor;
+  state.view.xMax = world.x + (state.view.xMax - world.x) * factor;
+  state.view.yMin = world.y + (state.view.yMin - world.y) * factor;
+  state.view.yMax = world.y + (state.view.yMax - world.y) * factor;
+
+  updateRangeInputs();
+  render();
+}
+
+// 触摸事件
+let touchState = { mode: 'none', startDist: 0, startView: null };
+
+function onTouchStart(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    onCanvasMouseDown(e);
+  } else if (e.touches.length === 2) {
+    state.drag.active = false;
+    const t1 = e.touches[0], t2 = e.touches[1];
+    touchState.mode = 'pinch';
+    touchState.startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    touchState.startView = { ...state.view };
+  }
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  if (e.touches.length === 1 && touchState.mode !== 'pinch') {
+    onCanvasMouseMove(e);
+  } else if (e.touches.length === 2 && touchState.mode === 'pinch') {
+    const t1 = e.touches[0], t2 = e.touches[1];
+    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    const factor = touchState.startDist / dist;
+    const rect = canvas.getBoundingClientRect();
+    const cx = (t1.clientX + t2.clientX) / 2 - rect.left;
+    const cy = (t1.clientY + t2.clientY) / 2 - rect.top;
+    const world = screenToWorld(cx, cy);
+    state.view.xMin = world.x + (touchState.startView.xMin - world.x) * factor;
+    state.view.xMax = world.x + (touchState.startView.xMax - world.x) * factor;
+    state.view.yMin = world.y + (touchState.startView.yMin - world.y) * factor;
+    state.view.yMax = world.y + (touchState.startView.yMax - world.y) * factor;
+    updateRangeInputs();
+    render();
+  }
+}
+
+function onTouchEnd(e) {
+  if (e.touches.length === 0) {
+    touchState.mode = 'none';
+    state.drag.active = false;
+  }
+}
+
+function updateRangeInputs() {
+  document.getElementById('xMinInput').value = Math.round(state.view.xMin * 10) / 10;
+  document.getElementById('xMaxInput').value = Math.round(state.view.xMax * 10) / 10;
+  document.getElementById('yMinInput').value = Math.round(state.view.yMin * 10) / 10;
+  document.getElementById('yMaxInput').value = Math.round(state.view.yMax * 10) / 10;
+}
+
+// ---- 初始化 ----
+function init() {
+  // 编译初始函数
+  state.functions.forEach((_, i) => compileFunction(i));
+
+  // 构建UI
+  buildFunctionRows();
+  buildQuickButtons();
+  buildDisplayOptions();
+  buildPresets();
+
+  // 范围输入
+  ['xMin', 'xMax', 'yMin', 'yMax'].forEach(key => {
+    document.getElementById(key + 'Input').addEventListener('change', (e) => {
+      state.view[key] = parseFloat(e.target.value);
+      if (state.view.xMax <= state.view.xMin) state.view.xMax = state.view.xMin + 1;
+      if (state.view.yMax <= state.view.yMin) state.view.yMax = state.view.yMin + 1;
+      render();
+    });
+  });
+
+  // 重置视图
+  document.getElementById('resetViewBtn').addEventListener('click', () => {
+    state.view = { xMin: -10, xMax: 10, yMin: -8, yMax: 12 };
+    updateRangeInputs();
+    render();
+  });
+
+  // 动画
+  document.getElementById('animSpeed').addEventListener('input', (e) => {
+    state.animation.speed = parseInt(e.target.value);
+    document.getElementById('animSpeedVal').textContent = e.target.value + 'x';
+  });
+  document.getElementById('animBtn').addEventListener('click', () => {
+    if (state.animation.playing) stopAnimation();
+    else startAnimation();
+  });
+  document.getElementById('animSelect').addEventListener('change', (e) => {
+    if (e.target.value === 'none' && state.animation.playing) stopAnimation();
+  });
+
+  // 工具栏
+  document.getElementById('toolHome').addEventListener('click', () => {
+    state.view = { xMin: -10, xMax: 10, yMin: -8, yMax: 12 };
+    updateRangeInputs();
+    render();
+  });
+  document.getElementById('toolZoomIn').addEventListener('click', () => {
+    const cx = (state.view.xMin + state.view.xMax) / 2;
+    const cy = (state.view.yMin + state.view.yMax) / 2;
+    state.view.xMin = cx + (state.view.xMin - cx) * 0.7;
+    state.view.xMax = cx + (state.view.xMax - cx) * 0.7;
+    state.view.yMin = cy + (state.view.yMin - cy) * 0.7;
+    state.view.yMax = cy + (state.view.yMax - cy) * 0.7;
+    updateRangeInputs();
+    render();
+  });
+  document.getElementById('toolZoomOut').addEventListener('click', () => {
+    const cx = (state.view.xMin + state.view.xMax) / 2;
+    const cy = (state.view.yMin + state.view.yMax) / 2;
+    state.view.xMin = cx + (state.view.xMin - cx) * 1.4;
+    state.view.xMax = cx + (state.view.xMax - cx) * 1.4;
+    state.view.yMin = cy + (state.view.yMin - cy) * 1.4;
+    state.view.yMax = cy + (state.view.yMax - cy) * 1.4;
+    updateRangeInputs();
+    render();
+  });
+
+  // 移动端侧边栏切换
+  document.getElementById('mobileToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+
+  // Canvas事件
+  canvas.addEventListener('mousedown', onCanvasMouseDown);
+  canvas.addEventListener('mousemove', onCanvasMouseMove);
+  canvas.addEventListener('mouseup', onCanvasMouseUp);
+  canvas.addEventListener('mouseleave', onCanvasMouseLeave);
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  canvas.addEventListener('touchend', onTouchEnd);
+
+  // 窗口大小
+  window.addEventListener('resize', resizeCanvas);
+
+  // 键盘快捷键
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (state.animation.playing) stopAnimation();
+      else startAnimation();
+    }
+    if (e.code === 'KeyR') {
+      state.view = { xMin: -10, xMax: 10, yMin: -8, yMax: 12 };
+      updateRangeInputs();
+      render();
+    }
+  });
+
+  // 初始渲染
+  resizeCanvas();
+  showHint('拖动平移 · 滚轮缩放 · 空格键播放动画', 3000);
+}
+
+// 等待math.js加载
+if (typeof math !== 'undefined') {
+  init();
+} else {
+  window.addEventListener('load', () => {
+    if (typeof math !== 'undefined') init();
+    else {
+      document.getElementById('infoPanel').innerHTML = '<div style="color:var(--accent-history)">⚠ 数学库加载失败，请检查网络连接</div>';
+    }
+  });
+}
+</script>
+</body>
+</html>

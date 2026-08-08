@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>正四棱锥线面角 · 立体几何 3D 可视化</title>
+<title>正四棱锥线面角立体几何 3D 可视化 · 景礴</title>
 
 <!-- MathJax 配置 -->
 <script>
@@ -557,7 +557,7 @@
             </div>
             <div class="ctrl-row">
               <span class="lbl">自动旋转</span>
-              <label class="switch"><input type="checkbox" id="toggle-autorotate"><span class="slider"></span></label>
+              <label class="switch"><input type="checkbox" id="toggle-autorotate" checked><span class="slider"></span></label>
             </div>
             <button class="reset-btn" id="reset-view">重置视角</button>
           </div>
@@ -629,6 +629,8 @@ controls.dampingFactor = 0.08;
 controls.target.copy(TARGET_INIT);
 controls.minDistance = 3;
 controls.maxDistance = 16;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.2;
 
 /* 光照 */
 scene.add(new THREE.AmbientLight(0xffffff, 0.55));

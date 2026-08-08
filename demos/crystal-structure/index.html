@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>晶体结构 3D 探索 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%; overflow: hidden;
+  background: #0d1117; color: #e5e5e5;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+#canvasContainer {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+}
+
+/* ============ Navbar ============ */
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: rgba(13, 17, 23, 0.6);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.nav-left, .nav-right { display: flex; align-items: center; gap: 14px; }
+.nav-center {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-serif); font-size: 15px; font-weight: 700;
+  color: #f0f0f0; letter-spacing: 0.02em; white-space: nowrap;
+}
+.back-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: #8b8b8b; text-decoration: none; font-size: 13px; font-weight: 500;
+  transition: color 0.15s;
+}
+.back-link:hover { color: #fff; }
+.back-link svg { width: 16px; height: 16px; }
+.nav-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.1); }
+.nav-logo {
+  font-family: var(--font-serif); font-size: 16px; font-weight: 700;
+  color: #c2410c; text-decoration: none;
+}
+.tag-chem {
+  font-size: 11px; padding: 3px 8px; border-radius: 4px;
+  background: rgba(217, 119, 6, 0.15); color: #f59e0b;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+.nav-download {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; padding: 5px 12px; border-radius: 5px;
+  background: rgba(255,255,255,0.06); color: #ccc; text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.08); transition: all 0.15s;
+}
+.nav-download:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav-download svg { width: 14px; height: 14px; }
+
+/* ============ Right Panel ============ */
+.right-panel {
+  position: fixed; top: 72px; right: 16px; z-index: 50;
+  width: 248px; max-height: calc(100vh - 140px);
+  background: rgba(13, 17, 23, 0.75);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px; padding: 14px;
+  overflow-y: auto; transition: transform 0.3s ease;
+}
+.right-panel::-webkit-scrollbar { width: 4px; }
+.right-panel::-webkit-scrollbar-track { background: transparent; }
+.right-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+.panel-title {
+  font-size: 11px; font-weight: 600; color: #8b8b8b;
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+}
+.crystal-category {
+  font-size: 10px; color: #6b6b6b; margin: 10px 0 5px;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.crystal-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px solid transparent; margin-bottom: 3px; transition: all 0.15s;
+}
+.crystal-item:hover { background: rgba(255,255,255,0.04); }
+.crystal-item.active {
+  background: rgba(0, 229, 255, 0.08);
+  border-color: rgba(0, 229, 255, 0.2);
+}
+.crystal-item-name { font-size: 13px; color: #d0d0d0; font-weight: 500; }
+.crystal-item.active .crystal-item-name { color: #00E5FF; }
+.crystal-item-formula {
+  font-family: var(--font-mono); font-size: 11px; color: #6b6b6b;
+}
+
+.legend-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+.legend-items { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #a0a0a0; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+.info-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+.info-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 4px 0; font-size: 12px;
+}
+.info-label { color: #6b6b6b; }
+.info-value { color: #d0d0d0; font-family: var(--font-mono); }
+.info-desc {
+  font-size: 12px; color: #8b8b8b; line-height: 1.5;
+  margin-top: 8px; padding: 8px 10px;
+  background: rgba(255,255,255,0.03); border-radius: 5px;
+}
+
+/* ============ Bottom Bar ============ */
+.bottom-bar {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 50;
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(13, 17, 23, 0.75);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px; padding: 6px;
+}
+.mode-group { display: flex; gap: 2px; }
+.mode-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 12px; border: none; border-radius: 6px;
+  background: transparent; color: #8b8b8b; cursor: pointer;
+  font-size: 12px; font-family: var(--font-sans); transition: all 0.15s;
+}
+.mode-btn:hover { background: rgba(255,255,255,0.04); color: #ccc; }
+.mode-btn.active {
+  background: rgba(0, 229, 255, 0.1); color: #00E5FF;
+}
+.mode-btn svg { width: 15px; height: 15px; }
+.bar-divider { width: 1px; height: 22px; background: rgba(255,255,255,0.08); margin: 0 4px; }
+
+.expand-group, .clip-group { display: flex; gap: 2px; }
+.expand-btn, .clip-btn {
+  padding: 7px 10px; border: none; border-radius: 6px;
+  background: transparent; color: #8b8b8b; cursor: pointer;
+  font-size: 11px; font-family: var(--font-mono); transition: all 0.15s;
+}
+.expand-btn:hover, .clip-btn:hover { background: rgba(255,255,255,0.04); color: #ccc; }
+.expand-btn.active, .clip-btn.active {
+  background: rgba(0, 229, 255, 0.1); color: #00E5FF;
+}
+
+/* ============ Floating Controls ============ */
+.float-left {
+  position: fixed; left: 16px; bottom: 16px; z-index: 50;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.float-right {
+  position: fixed; right: 16px; bottom: 72px; z-index: 50;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.icon-btn {
+  width: 38px; height: 38px; border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px; background: rgba(13, 17, 23, 0.75);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  color: #8b8b8b; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: all 0.15s;
+}
+.icon-btn:hover { color: #fff; border-color: rgba(255,255,255,0.15); }
+.icon-btn.active { color: #00E5FF; border-color: rgba(0, 229, 255, 0.25); }
+.icon-btn svg { width: 18px; height: 18px; }
+
+/* ============ Clip Panel ============ */
+.clip-panel {
+  position: fixed; left: 16px; bottom: 72px; z-index: 49;
+  width: 200px; background: rgba(13, 17, 23, 0.85);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px;
+  padding: 12px; display: none;
+}
+.clip-panel.show { display: block; }
+.clip-axis-group { display: flex; gap: 4px; margin-bottom: 10px; }
+.clip-axis-btn {
+  flex: 1; padding: 6px; border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 5px; background: transparent; color: #8b8b8b;
+  cursor: pointer; font-size: 12px; font-family: var(--font-mono); transition: all 0.15s;
+}
+.clip-axis-btn:hover { color: #ccc; }
+.clip-axis-btn.active { background: rgba(0,229,255,0.1); color: #00E5FF; border-color: rgba(0,229,255,0.2); }
+.clip-slider-wrap { display: flex; align-items: center; gap: 8px; }
+.clip-slider {
+  flex: 1; -webkit-appearance: none; appearance: none; height: 4px;
+  background: rgba(255,255,255,0.1); border-radius: 2px; outline: none;
+}
+.clip-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: #00E5FF; cursor: pointer;
+}
+.clip-slider::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%; border: none;
+  background: #00E5FF; cursor: pointer;
+}
+.clip-value { font-family: var(--font-mono); font-size: 11px; color: #8b8b8b; min-width: 28px; text-align: right; }
+
+/* ============ Scene Hint ============ */
+.scene-hint {
+  position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%);
+  z-index: 40; font-size: 11px; color: rgba(139, 139, 139, 0.6);
+  pointer-events: none; letter-spacing: 0.05em;
+}
+
+/* ============ Loading ============ */
+.loading {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 200; font-family: var(--font-serif); font-size: 14px;
+  color: #8b8b8b; letter-spacing: 0.1em; transition: opacity 0.4s;
+}
+.loading.hidden { opacity: 0; pointer-events: none; }
+
+/* ============ Coordination Label ============ */
+.coord-label {
+  position: fixed; z-index: 60; padding: 6px 12px;
+  background: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 6px; backdrop-filter: blur(10px); pointer-events: none;
+  font-size: 12px; color: #00E5FF; display: none;
+  transform: translate(-50%, -100%); margin-top: -8px;
+}
+.coord-label.show { display: block; }
+.coord-label-element { font-weight: 600; font-size: 13px; }
+.coord-label-cn { font-family: var(--font-mono); font-size: 11px; color: #8b8b8b; margin-top: 2px; }
+
+/* ============ Mobile ============ */
+@media (max-width: 768px) {
+  .nav-center { display: none; }
+  .right-panel {
+    width: calc(100% - 32px); top: auto; bottom: 64px; right: 16px;
+    max-height: 200px;
+  }
+  .right-panel.collapsed { transform: translateY(calc(100% + 80px)); }
+  .bottom-bar { flex-wrap: wrap; max-width: calc(100% - 32px); justify-content: center; }
+  .scene-hint { display: none; }
+  .float-left { bottom: 72px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<header class="demo-navbar immersive" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">化学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">晶体结构 3D 探索</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-chem">化学</span>
+      <a href="/skills/jingbo-edu-3d-micro-structure-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- 3D Canvas -->
+<div id="canvasContainer"></div>
+
+<!-- Loading -->
+<div class="loading" id="loading">正在构建晶体结构</div>
+
+<!-- Right Panel -->
+<aside class="right-panel" id="rightPanel">
+  <div class="panel-title">晶体结构</div>
+  <div id="crystalList"></div>
+  <div class="legend-section">
+    <div class="panel-title" style="margin-bottom:8px;">图例</div>
+    <div class="legend-items" id="legendItems"></div>
+  </div>
+  <div class="info-section" id="infoSection"></div>
+</aside>
+
+<!-- Clip Panel -->
+<div class="clip-panel" id="clipPanel">
+  <div class="panel-title" style="margin-bottom:8px;">剖切平面</div>
+  <div class="clip-axis-group">
+    <button class="clip-axis-btn active" data-axis="x">X 轴</button>
+    <button class="clip-axis-btn" data-axis="y">Y 轴</button>
+    <button class="clip-axis-btn" data-axis="z">Z 轴</button>
+  </div>
+  <div class="clip-slider-wrap">
+    <input type="range" class="clip-slider" id="clipSlider" min="0" max="100" value="50" />
+    <span class="clip-value" id="clipValue">0.50</span>
+  </div>
+</div>
+
+<!-- Floating Left -->
+<div class="float-left">
+  <button class="icon-btn active" id="spinBtn" title="自动旋转">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+  </button>
+  <button class="icon-btn" id="resetBtn" title="重置视角">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+  </button>
+  <button class="icon-btn" id="clipToggleBtn" title="剖切">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>
+  </button>
+</div>
+
+<!-- Floating Right -->
+<div class="float-right">
+  <button class="icon-btn" id="fullscreenBtn" title="全屏">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+  </button>
+</div>
+
+<!-- Bottom Bar -->
+<div class="bottom-bar">
+  <div class="mode-group">
+    <button class="mode-btn active" data-mode="ball-stick">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><line x1="8" y1="16" x2="16" y2="8"/></svg>
+      <span>球棍</span>
+    </button>
+    <button class="mode-btn" data-mode="space-filling">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/></svg>
+      <span>空间填充</span>
+    </button>
+    <button class="mode-btn" data-mode="wireframe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="2"/><line x1="2" y1="8.5" x2="22" y2="15.5"/><line x1="22" y1="8.5" x2="2" y2="15.5"/></svg>
+      <span>线框</span>
+    </button>
+  </div>
+  <div class="bar-divider"></div>
+  <div class="expand-group">
+    <button class="expand-btn active" data-expand="1">1×1</button>
+    <button class="expand-btn" data-expand="2">2×2</button>
+    <button class="expand-btn" data-expand="3">3×3</button>
+  </div>
+</div>
+
+<!-- Scene Hint -->
+<div class="scene-hint">拖拽旋转 · 滚轮缩放 · 点击原子查看配位</div>
+
+<!-- Coordination Label -->
+<div class="coord-label" id="coordLabel">
+  <div class="coord-label-element" id="coordElement"></div>
+  <div class="coord-label-cn" id="coordCN"></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   一、晶体结构数据
+   ============================================================ */
+const CRYSTALS = {
+  sc: {
+    name: '简单立方', nameEn: 'Simple Cubic', formula: 'Po',
+    category: '金属晶体',
+    latticeType: 'cubic',
+    params: { a: 3.36, b: 3.36, c: 3.36, alpha: 90, beta: 90, gamma: 90 },
+    spaceGroup: 'Pm-3m', cn: 6, atomsPerCell: 1,
+    packing: '52%', examples: '钋(Po)',
+    desc: '原子位于立方体8个顶点，是最简单的晶体结构。空间利用率仅52%，配位数为6。',
+    basis: [{ pos: [0,0,0], el: 'Po', color: 0xA8A8A8, r: 0.16, type: 'metal' }],
+    bondDist: 1.0, bondTol: 0.05
+  },
+  bcc: {
+    name: '体心立方', nameEn: 'Body-Centered Cubic', formula: 'Fe',
+    category: '金属晶体',
+    latticeType: 'cubic',
+    params: { a: 2.87, b: 2.87, c: 2.87, alpha: 90, beta: 90, gamma: 90 },
+    spaceGroup: 'Im-3m', cn: 8, atomsPerCell: 2,
+    packing: '68%', examples: '铁(α-Fe)、钨(W)、铬(Cr)',
+    desc: '除8个顶点外，立方体中心还有1个原子。每个原子被8个最近邻原子包围，空间利用率68%。',
+    basis: [
+      { pos: [0,0,0], el: 'Fe', color: 0xB0B0B0, r: 0.16, type: 'metal' },
+      { pos: [0.5,0.5,0.5], el: 'Fe', color: 0xB0B0B0, r: 0.16, type: 'metal' }
+    ],
+    bondDist: 0.866, bondTol: 0.03
+  },
+  fcc: {
+    name: '面心立方', nameEn: 'Face-Centered Cubic', formula: 'Cu',
+    category: '金属晶体',
+    latticeType: 'cubic',
+    params: { a: 3.61, b: 3.61, c: 3.61, alpha: 90, beta: 90, gamma: 90 },
+    spaceGroup: 'Fm-3m', cn: 12, atomsPerCell: 4,
+    packing: '74%', examples: '铜(Cu)、金(Au)、银(Ag)、铝(Al)',
+    desc: '8个顶点+6个面心，共4个原子/晶胞。属于最密堆积，配位数12，空间利用率74%。',
+    basis: [
+      { pos: [0,0,0], el: 'Cu', color: 0xB87333, r: 0.16, type: 'metal' },
+      { pos: [0.5,0.5,0], el: 'Cu', color: 0xB87333, r: 0.16, type: 'metal' },
+      { pos: [0.5,0,0.5], el: 'Cu', color: 0xB87333, r: 0.16, type: 'metal' },
+      { pos: [0,0.5,0.5], el: 'Cu', color: 0xB87333, r: 0.16, type: 'metal' }
+    ],
+    bondDist: 0.707, bondTol: 0.03
+  },
+  hcp: {
+    name: '六方最密堆积', nameEn: 'Hexagonal Close-Packed', formula: 'Mg',
+    category: '金属晶体',
+    latticeType: 'hexagonal',
+    params: { a: 3.21, b: 3.21, c: 5.21, alpha: 90, beta: 90, gamma: 120 },
+    spaceGroup: 'P6₃/mmc', cn: 12, atomsPerCell: 2,
+    packing: '74%', examples: '镁(Mg)、锌(Zn)、钛(Ti)',
+    desc: 'ABAB堆积方式，与FCC同为最密堆积，配位数12，空间利用率74%。区别在于层间堆叠顺序不同。',
+    basis: [
+      { pos: [0,0,0], el: 'Mg', color: 0xC8C8C8, r: 0.16, type: 'metal' },
+      { pos: [2/3,1/3,0.5], el: 'Mg', color: 0xC8C8C8, r: 0.16, type: 'metal' }
+    ],
+    bondDist: 1.0, bondTol: 0.05, cRatio: 1.633
+  },
+  diamond: {
+    name: '金刚石', nameEn: 'Diamond', formula: 'C',
+    category: '原子晶体',
+    latticeType: 'cubic',
+    params: { a: 3.57, b: 3.57, c: 3.57, alpha: 90, beta: 90, gamma: 90 },
+    spaceGroup: 'Fd-3m', cn: 4, atomsPerCell: 8,
+    packing: '34%', examples: '金刚石(C)、硅(Si)、锗(Ge)',
+    desc: '碳原子以sp³杂化形成正四面体结构，每个原子与4个最近邻原子以共价键结合。硬度极高。',
+    basis: [
+      { pos: [0,0,0], el: 'C', color: 0x404040, r: 0.12, type: 'nonmetal' },
+      { pos: [0.5,0.5,0], el: 'C', color: 0x404040, r: 0.12, type: 'nonmetal' },
+      { pos: [0.5,0,0.5], el: 'C', color: 0x404040, r: 0.12, type: 'nonmetal' },
+      { pos: [0,0.5,0.5], el: 'C', color: 0x404040, r: 0.12, type: 'nonmetal' },
+      { pos: [0.25,0.25,0.25], el: 'C', color: 0x505050, r: 0.12, type: 'nonmetal' },
+      { pos: [0.75,0.75,0.25], el: 'C', color: 0x505050, r: 0.12, type: 'nonmetal' },
+      { pos: [0.75,0.25,0.75], el: 'C', color: 0x505050, r: 0.12, type: 'nonmetal' },
+      { pos: [0.25,0.75,0.75], el: 'C', color: 0x505050, r: 0.12, type: 'nonmetal' }
+    ],
+    bondDist: 0.433, bondTol: 0.02
+  },
+  nacl: {
+    name: '氯化钠型', nameEn: 'NaCl (Rock Salt)', formula: 'NaCl',
+    category: '离子晶体',
+    latticeType: 'cubic',
+    params: { a: 5.64, b: 5.64, c: 5.64, alpha: 90, beta: 90, gamma: 90 },
+    spaceGroup: 'Fm-3m', cn: 6, atomsPerCell: 8,
+    packing: '—', examples: 'NaCl、KCl、MgO、CaO',
+    desc: 'Na⁺和Cl⁻各自构成FCC晶格，相互穿插。每个离子被6个异号离子包围，配位数6。',
+    basis: [
+      { pos: [0,0,0], el: 'Cl⁻', color: 0x1FE01F, r: 0.22, type: 'anion' },
+      { pos: [0.5,0.5,0], el: 'Cl⁻', color: 0x1FE01F, r: 0.22, type: 'anion' },
+      { pos: [0.5,0,0.5], el: 'Cl⁻', color: 0x1FE01F, r: 0.22, type: 'anion' },
+      { pos: [0,0.5,0.5], el: 'Cl⁻', color: 0x1FE01F, r: 0.22, type: 'anion' },
+      { pos: [0.5,0,0], el: 'Na⁺', color: 0xC8C8C8, r: 0.15, type: 'cation' },
+      { pos: [0,0.5,0], el: 'Na⁺', color: 0xC8C8C8, r: 0.15, type: 'cation' },
+      { pos: [0,0,0.5], el: 'Na⁺', color: 0xC8C8C8, r: 0.15, type: 'cation' },
+      { pos: [0.5,0.5,0.5], el: 'Na⁺', color: 0xC8C8C8, r: 0.15, type: 'cation' }
+    ],
+    bondDist: 0.5, bondTol: 0.03
+  },
+  cscl: {
+    name: '氯化铯型', nameEn: 'CsCl', formula: 'CsCl',
+    category: '离子晶体',
+    latticeType: 'cubic',
+    params: { a: 4.12, b: 4.12, c: 4.12, alpha: 90, beta: 90, gamma: 90 },
+    spaceGroup: 'Pm-3m', cn: 8, atomsPerCell: 2,
+    packing: '—', examples: 'CsCl、CsBr、CsI、TlCl',
+    desc: 'Cs⁺位于立方体中心，Cl⁻位于顶点。每个离子被8个异号离子包围，配位数8。',
+    basis: [
+      { pos: [0,0,0], el: 'Cl⁻', color: 0x1FE01F, r: 0.22, type: 'anion' },
+      { pos: [0.5,0.5,0.5], el: 'Cs⁺', color: 0xFFD700, r: 0.25, type: 'cation' }
+    ],
+    bondDist: 0.866, bondTol: 0.03
+  },
+  zns: {
+    name: '闪锌矿型', nameEn: 'Zinc Blende (ZnS)', formula: 'ZnS',
+    category: '离子晶体',
+    latticeType: 'cubic',
+    params: { a: 5.41, b: 5.41, c: 5.41, alpha: 90, beta: 90, gamma: 90 },
+    spaceGroup: 'F-43m', cn: 4, atomsPerCell: 8,
+    packing: '—', examples: 'ZnS、GaAs、GaP、InSb',
+    desc: 'S²⁻构成FCC晶格，Zn²⁺占据半数四面体空隙。每个离子被4个异号离子包围，配位数4。',
+    basis: [
+      { pos: [0,0,0], el: 'S²⁻', color: 0xFFFF30, r: 0.20, type: 'anion' },
+      { pos: [0.5,0.5,0], el: 'S²⁻', color: 0xFFFF30, r: 0.20, type: 'anion' },
+      { pos: [0.5,0,0.5], el: 'S²⁻', color: 0xFFFF30, r: 0.20, type: 'anion' },
+      { pos: [0,0.5,0.5], el: 'S²⁻', color: 0xFFFF30, r: 0.20, type: 'anion' },
+      { pos: [0.25,0.25,0.25], el: 'Zn²⁺', color: 0x7B9FCB, r: 0.15, type: 'cation' },
+      { pos: [0.75,0.75,0.25], el: 'Zn²⁺', color: 0x7B9FCB, r: 0.15, type: 'cation' },
+      { pos: [0.75,0.25,0.75], el: 'Zn²⁺', color: 0x7B9FCB, r: 0.15, type: 'cation' },
+      { pos: [0.25,0.75,0.75], el: 'Zn²⁺', color: 0x7B9FCB, r: 0.15, type: 'cation' }
+    ],
+    bondDist: 0.433, bondTol: 0.02
+  },
+  caf2: {
+    name: '萤石型', nameEn: 'Fluorite (CaF₂)', formula: 'CaF₂',
+    category: '离子晶体',
+    latticeType: 'cubic',
+    params: { a: 5.46, b: 5.46, c: 5.46, alpha: 90, beta: 90, gamma: 90 },
+    spaceGroup: 'Fm-3m', cn: 8, atomsPerCell: 12,
+    packing: '—', examples: 'CaF₂、UO₂、ThO₂',
+    desc: 'Ca²⁺构成FCC晶格，F⁻占据全部8个四面体空隙。Ca²⁺配位数为8，F⁻配位数为4。',
+    basis: [
+      { pos: [0,0,0], el: 'Ca²⁺', color: 0xB87333, r: 0.18, type: 'cation' },
+      { pos: [0.5,0.5,0], el: 'Ca²⁺', color: 0xB87333, r: 0.18, type: 'cation' },
+      { pos: [0.5,0,0.5], el: 'Ca²⁺', color: 0xB87333, r: 0.18, type: 'cation' },
+      { pos: [0,0.5,0.5], el: 'Ca²⁺', color: 0xB87333, r: 0.18, type: 'cation' },
+      { pos: [0.25,0.25,0.25], el: 'F⁻', color: 0x90E050, r: 0.12, type: 'anion' },
+      { pos: [0.75,0.25,0.25], el: 'F⁻', color: 0x90E050, r: 0.12, type: 'anion' },
+      { pos: [0.25,0.75,0.25], el: 'F⁻', color: 0x90E050, r: 0.12, type: 'anion' },
+      { pos: [0.75,0.75,0.25], el: 'F⁻', color: 0x90E050, r: 0.12, type: 'anion' },
+      { pos: [0.25,0.25,0.75], el: 'F⁻', color: 0x90E050, r: 0.12, type: 'anion' },
+      { pos: [0.75,0.25,0.75], el: 'F⁻', color: 0x90E050, r: 0.12, type: 'anion' },
+      { pos: [0.25,0.75,0.75], el: 'F⁻', color: 0x90E050, r: 0.12, type: 'anion' },
+      { pos: [0.75,0.75,0.75], el: 'F⁻', color: 0x90E050, r: 0.12, type: 'anion' }
+    ],
+    bondDist: 0.433, bondTol: 0.02
+  }
+};
+
+/* ============================================================
+   二、状态变量
+   ============================================================ */
+let scene, camera, renderer, controls;
+let crystalGroup = null, highlightGroup = null;
+let raycaster, pointer;
+let allAtomData = [];  // { mesh, basis, cartPos, fracPos }
+let allMaterials = [];
+let fadeMaterials = []; // [{ mat, targetOp }] 入场动画用
+let clippingPlanes = [];
+let currentKey = 'fcc';
+let currentMode = 'ball-stick';
+let currentExpand = 1;
+let isClipping = false;
+let clipAxis = 'x';
+let clipVal = 0.5;
+let isSpinning = true;
+let selectedIdx = -1;
+let entryAnimating = false;
+let entryFrames = 0;
+const ENTRY_DURATION = 45;
+
+/* ============================================================
+   三、工具函数
+   ============================================================ */
+
+// 生成晶胞内所有原子（含边界）
+function generateCellAtoms(crystal) {
+  const atoms = [];
+  const seen = new Set();
+  for (const b of crystal.basis) {
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const p = [b.pos[0]+dx, b.pos[1]+dy, b.pos[2]+dz];
+          if (p[0] >= -0.001 && p[0] <= 1.001 &&
+              p[1] >= -0.001 && p[1] <= 1.001 &&
+              p[2] >= -0.001 && p[2] <= 1.001) {
+            const key = p.map(v => v.toFixed(3)).join(',');
+            if (!seen.has(key)) {
+              seen.add(key);
+              atoms.push({ ...b, pos: p.map(v => Math.min(1, Math.max(0, v))) });
+            }
+          }
+        }
+      }
+    }
+  }
+  return atoms;
+}
+
+// 分数坐标 → 笛卡尔坐标
+function fracToCart(frac, latticeType, cRatio) {
+  if (latticeType === 'hexagonal') {
+    const c = cRatio || 1.633;
+    return [
+      frac[0] - 0.5 * frac[1],
+      frac[1] * Math.sqrt(3) / 2,
+      frac[2] * c
+    ];
+  }
+  return [frac[0], frac[1], frac[2]];
+}
+
+// 计算键
+function computeBonds(atoms, cartPos, bondDist, tol) {
+  const bonds = [];
+  const maxDist = bondDist + tol;
+  const maxDistSq = maxDist * maxDist;
+  for (let i = 0; i < atoms.length; i++) {
+    for (let j = i + 1; j < atoms.length; j++) {
+      const dx = cartPos[j][0] - cartPos[i][0];
+      const dy = cartPos[j][1] - cartPos[i][1];
+      const dz = cartPos[j][2] - cartPos[i][2];
+      const distSq = dx*dx + dy*dy + dz*dz;
+      if (distSq < maxDistSq && distSq > 0.001) {
+        bonds.push({ a: i, b: j, dist: Math.sqrt(distSq) });
+      }
+    }
+  }
+  return bonds;
+}
+
+// 最小镜像距离计算配位邻居
+function findCoordinationNeighbors(atomIdx, allAtoms, crystal, expand) {
+  const target = allAtoms[atomIdx];
+  const cRatio = crystal.cRatio || 1;
+  const neighbors = [];
+  const maxDist = crystal.bondDist + crystal.bondTol;
+  const maxDistSq = maxDist * maxDist;
+  const seen = new Set();
+
+  for (let i = 0; i < allAtoms.length; i++) {
+    if (i === atomIdx) continue;
+    const other = allAtoms[i];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const offCart = fracToCart([dx, dy, dz], crystal.latticeType, cRatio);
+          const cx = other.cartPos[0] + offCart[0];
+          const cy = other.cartPos[1] + offCart[1];
+          const cz = other.cartPos[2] + offCart[2];
+          const ddx = cx - target.cartPos[0];
+          const ddy = cy - target.cartPos[1];
+          const ddz = cz - target.cartPos[2];
+          const dSq = ddx*ddx + ddy*ddy + ddz*ddz;
+          if (dSq < maxDistSq && dSq > 0.001) {
+            const key = i + '_' + dx + '_' + dy + '_' + dz;
+            if (!seen.has(key)) {
+              seen.add(key);
+              neighbors.push({ atomIdx: i, pos: [cx, cy, cz], atom: other });
+            }
+          }
+        }
+      }
+    }
+  }
+  return neighbors;
+}
+
+/* ============================================================
+   四、Three.js 初始化
+   ============================================================ */
+function initThree() {
+  const container = document.getElementById('canvasContainer');
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0d1117);
+  scene.fog = new THREE.Fog(0x0d1117, 6, 20);
+
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+  camera.position.set(2.2, 1.6, 2.2);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.localClippingEnabled = true;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  container.appendChild(renderer.domElement);
+
+  // 光照
+  const ambient = new THREE.AmbientLight(0x4a5060, 0.4);
+  scene.add(ambient);
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  keyLight.position.set(5, 8, 5);
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0x6080a0, 0.5);
+  fillLight.position.set(-5, 3, -3);
+  scene.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0x00E5FF, 0.3);
+  rimLight.position.set(0, -3, -5);
+  scene.add(rimLight);
+
+  const topLight = new THREE.PointLight(0xffd0a0, 0.5, 15);
+  topLight.position.set(0, 5, 0);
+  scene.add(topLight);
+
+  // 环境贴图（用于金属反射）
+  try {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    // 创建简单渐变环境
+    const envScene = new THREE.Scene();
+    const geo = new THREE.SphereGeometry(50, 32, 32);
+    const mat = new THREE.MeshBasicMaterial({ side: THREE.BackSide });
+    const canvas = document.createElement('canvas');
+    canvas.width = 512; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, '#1a2030');
+    grad.addColorStop(0.5, '#0d1117');
+    grad.addColorStop(1, '#080a10');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 256);
+    // 添加几个亮点模拟环境光
+    ctx.fillStyle = 'rgba(255,240,200,0.3)';
+    ctx.beginPath(); ctx.arc(120, 60, 40, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(100,180,255,0.15)';
+    ctx.beginPath(); ctx.arc(380, 80, 50, 0, Math.PI*2); ctx.fill();
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    mat.map = tex;
+    envScene.add(new THREE.Mesh(geo, mat));
+    const envRT = pmrem.fromScene(envScene, 0.04);
+    scene.environment = envRT.texture;
+    pmrem.dispose();
+  } catch(e) { /* fallback: use lights only */ }
+
+  // 网格参考面
+  const grid = new THREE.GridHelper(12, 24, 0x1a2030, 0x131820);
+  grid.position.y = -2;
+  grid.material.transparent = true;
+  grid.material.opacity = 0.3;
+  scene.add(grid);
+
+  // OrbitControls
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 0.8;
+  controls.maxDistance = 12;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.4;
+  controls.target.set(0, 0, 0);
+
+  // Raycaster
+  raycaster = new THREE.Raycaster();
+  pointer = new THREE.Vector2();
+
+  // 事件
+  renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('click', onPointerClick);
+  window.addEventListener('resize', onResize);
+}
+
+/* ============================================================
+   五、晶体构建
+   ============================================================ */
+function getMaterialForAtom(atom, mode) {
+  const radius = mode === 'space-filling' ? atom.r
+               : mode === 'wireframe' ? atom.r * 0.25
+               : atom.r * 0.5;
+
+  const props = {
+    metal: { metalness: 0.85, roughness: 0.25 },
+    cation: { metalness: 0.6, roughness: 0.3 },
+    anion: { metalness: 0.3, roughness: 0.2 },
+    nonmetal: { metalness: 0.05, roughness: 0.05 }
+  };
+  const p = props[atom.type] || props.metal;
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: atom.color,
+    metalness: p.metalness,
+    roughness: p.roughness,
+    envMapIntensity: 1.2,
+    emissive: 0x000000,
+    emissiveIntensity: 0
+  });
+
+  // 金刚石碳原子特殊处理
+  if (atom.el === 'C' && atom.type === 'nonmetal') {
+    mat.transparent = true;
+    mat.opacity = 0.92;
+    mat.envMapIntensity = 1.8;
+  }
+
+  allMaterials.push(mat);
+  return { material: mat, radius };
+}
+
+function loadCrystal(key) {
+  currentKey = key;
+  clearCrystal();
+
+  const crystal = CRYSTALS[key];
+  const cellAtoms = generateCellAtoms(crystal);
+  const expandOffset = (currentExpand - 1) / 2;
+  const centerFrac = [0.5 + expandOffset, 0.5 + expandOffset, 0.5 + expandOffset];
+  const center = fracToCart(centerFrac, crystal.latticeType, crystal.cRatio || 1);
+
+  crystalGroup = new THREE.Group();
+  allAtomData = [];
+  allMaterials = [];
+
+  const sphereGeo = new THREE.SphereGeometry(1, 24, 16);
+
+  // 生成原子（含去重）
+  const seenPos = new Set();
+  for (let n = 0; n < currentExpand; n++) {
+    for (let m = 0; m < currentExpand; m++) {
+      for (let l = 0; l < currentExpand; l++) {
+        for (const atom of cellAtoms) {
+          const fracPos = [
+            atom.pos[0] + n,
+            atom.pos[1] + m,
+            atom.pos[2] + l
+          ];
+          // 去重：跳过与已有原子相同位置的原子
+          const posKey = fracPos.map(v => v.toFixed(3)).join(',');
+          if (seenPos.has(posKey)) continue;
+          seenPos.add(posKey);
+
+          const cart = fracToCart(fracPos, crystal.latticeType, crystal.cRatio || 1);
+          cart[0] -= center[0];
+          cart[1] -= center[1];
+          cart[2] -= center[2];
+
+          const { material, radius } = getMaterialForAtom(atom, currentMode);
+          const mesh = new THREE.Mesh(sphereGeo, material);
+          mesh.scale.setScalar(radius);
+          mesh.position.set(cart[0], cart[1], cart[2]);
+          mesh.userData.atomIdx = allAtomData.length;
+
+          // 入场动画初始位置
+          const offAngle = Math.random() * Math.PI * 2;
+          const offR = 1.5 + Math.random() * 1;
+          mesh.userData.targetPos = [cart[0], cart[1], cart[2]];
+          mesh.userData.startPos = [
+            cart[0] + Math.cos(offAngle) * offR,
+            cart[1] + (Math.random() - 0.5) * 2,
+            cart[2] + Math.sin(offAngle) * offR
+          ];
+          mesh.position.set(...mesh.userData.startPos);
+
+          crystalGroup.add(mesh);
+          allAtomData.push({
+            mesh, basis: atom, cartPos: cart, fracPos,
+            radius, material
+          });
+        }
+      }
+    }
+  }
+
+  // 生成键
+  const cartPositions = allAtomData.map(a => a.cartPos);
+  const bonds = computeBonds(allAtomData.map(a => a.basis), cartPositions, crystal.bondDist, crystal.bondTol);
+
+  if (currentMode !== 'space-filling') {
+    const bondRadius = currentMode === 'wireframe' ? 0.006 : 0.012;
+    const bondMat = new THREE.MeshStandardMaterial({
+      color: 0x00BCD4,
+      metalness: 0.3,
+      roughness: 0.4,
+      transparent: true,
+      opacity: currentMode === 'wireframe' ? 0.25 : 0.4
+    });
+    allMaterials.push(bondMat);
+
+    const bondGeo = new THREE.CylinderGeometry(1, 1, 1, 6);
+
+    for (const bond of bonds) {
+      const p1 = allAtomData[bond.a].cartPos;
+      const p2 = allAtomData[bond.b].cartPos;
+      const v1 = new THREE.Vector3(...p1);
+      const v2 = new THREE.Vector3(...p2);
+      const dir = new THREE.Vector3().subVectors(v2, v1);
+      const len = dir.length();
+      if (len < 0.001) continue;
+
+      const mesh = new THREE.Mesh(bondGeo, bondMat);
+      mesh.scale.set(bondRadius, len, bondRadius);
+      mesh.position.copy(v1).add(v2).multiplyScalar(0.5);
+      mesh.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        dir.clone().normalize()
+      );
+      mesh.userData.isBond = true;
+      crystalGroup.add(mesh);
+    }
+  }
+
+  // 晶胞边框
+  createCellEdges(crystal, center);
+
+  scene.add(crystalGroup);
+
+  // 高亮组
+  highlightGroup = new THREE.Group();
+  scene.add(highlightGroup);
+
+  // 应用剖切
+  updateClipping();
+
+  // 入场动画：保存所有材质目标透明度并初始化为0
+  fadeMaterials = allMaterials.map(mat => {
+    const targetOp = mat.opacity;
+    mat.transparent = true;
+    mat.opacity = 0;
+    return { mat, targetOp };
+  });
+
+  entryAnimating = true;
+  entryFrames = 0;
+
+  // 更新UI
+  updateInfoPanel(key);
+  updateLegend(key);
+  updateCrystalList();
+
+  // 隐藏loading
+  document.getElementById('loading').classList.add('hidden');
+}
+
+function createCellEdges(crystal, center) {
+  const cRatio = crystal.cRatio || 1;
+  const corners = [
+    [0,0,0], [1,0,0], [1,1,0], [0,1,0],
+    [0,0,1], [1,0,1], [1,1,1], [0,1,1]
+  ];
+  const edges = [
+    [0,1],[1,2],[2,3],[3,0],
+    [4,5],[5,6],[6,7],[7,4],
+    [0,4],[1,5],[2,6],[3,7]
+  ];
+
+  const positions = [];
+  for (let i = 0; i < currentExpand; i++) {
+    for (let j = 0; j < currentExpand; j++) {
+      for (let k = 0; k < currentExpand; k++) {
+        const cartCorners = corners.map(c => {
+          const fc = [c[0]+i, c[1]+j, c[2]+k];
+          const cart = fracToCart(fc, crystal.latticeType, cRatio);
+          return new THREE.Vector3(cart[0]-center[0], cart[1]-center[1], cart[2]-center[2]);
+        });
+        for (const [a, b] of edges) {
+          positions.push(cartCorners[a].x, cartCorners[a].y, cartCorners[a].z);
+          positions.push(cartCorners[b].x, cartCorners[b].y, cartCorners[b].z);
+        }
+      }
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  const mat = new THREE.LineBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: currentMode === 'wireframe' ? 0.35 : 0.15
+  });
+  allMaterials.push(mat);
+  const lines = new THREE.LineSegments(geo, mat);
+  crystalGroup.add(lines);
+}
+
+function clearCrystal() {
+  if (crystalGroup) {
+    crystalGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+    });
+    scene.remove(crystalGroup);
+    crystalGroup = null;
+  }
+  if (highlightGroup) {
+    highlightGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+    });
+    scene.remove(highlightGroup);
+    highlightGroup = null;
+  }
+  allAtomData = [];
+  allMaterials = [];
+  fadeMaterials = [];
+  selectedIdx = -1;
+  document.getElementById('coordLabel').classList.remove('show');
+}
+
+/* ============================================================
+   六、显示模式
+   ============================================================ */
+function setDisplayMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+  loadCrystal(currentKey);
+}
+
+/* ============================================================
+   七、扩展
+   ============================================================ */
+function setExpansion(n) {
+  currentExpand = n;
+  document.querySelectorAll('.expand-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.expand) === n);
+  });
+  loadCrystal(currentKey);
+
+  // 调整相机距离
+  const dist = n === 1 ? 2.2 : n === 2 ? 3.8 : 5.5;
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  camera.position.copy(controls.target).add(dir.multiplyScalar(dist));
+  controls.update();
+}
+
+/* ============================================================
+   八、剖切
+   ============================================================ */
+function updateClipping() {
+  if (!isClipping) {
+    clippingPlanes = [];
+  } else {
+    const size = currentExpand;
+    const worldVal = clipVal * size - size / 2;
+    let normal;
+    if (clipAxis === 'x') normal = new THREE.Vector3(-1, 0, 0);
+    else if (clipAxis === 'y') normal = new THREE.Vector3(0, -1, 0);
+    else normal = new THREE.Vector3(0, 0, -1);
+    clippingPlanes = [new THREE.Plane(normal, worldVal)];
+  }
+  for (const mat of allMaterials) {
+    mat.clippingPlanes = clippingPlanes.length ? clippingPlanes : null;
+  }
+}
+
+/* ============================================================
+   九、交互
+   ============================================================ */
+function onPointerMove(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  if (!crystalGroup || entryAnimating) return;
+
+  raycaster.setFromCamera(pointer, camera);
+  const meshes = allAtomData.map(a => a.mesh);
+  const hits = raycaster.intersectObjects(meshes, false);
+
+  // 恢复hover状态
+  for (const a of allAtomData) {
+    if (a.mesh.userData.atomIdx !== selectedIdx) {
+      a.material.emissive.setHex(0x000000);
+      a.material.emissiveIntensity = 0;
+    }
+  }
+
+  if (hits.length > 0) {
+    const idx = hits[0].object.userData.atomIdx;
+    if (idx !== selectedIdx) {
+      const atom = allAtomData[idx];
+      atom.material.emissive.setHex(0x00E5FF);
+      atom.material.emissiveIntensity = 0.3;
+    }
+    renderer.domElement.style.cursor = 'pointer';
+  } else {
+    renderer.domElement.style.cursor = 'grab';
+  }
+}
+
+function onPointerClick(event) {
+  if (!crystalGroup || entryAnimating) return;
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(pointer, camera);
+  const meshes = allAtomData.map(a => a.mesh);
+  const hits = raycaster.intersectObjects(meshes, false);
+
+  if (hits.length > 0) {
+    const idx = hits[0].object.userData.atomIdx;
+    highlightCoordination(idx);
+  } else {
+    clearHighlight();
+  }
+}
+
+function highlightCoordination(atomIdx) {
+  clearHighlight();
+  selectedIdx = atomIdx;
+  const atom = allAtomData[atomIdx];
+  const crystal = CRYSTALS[currentKey];
+
+  // 高亮选中原子
+  atom.material.emissive.setHex(0x00E5FF);
+  atom.material.emissiveIntensity = 0.5;
+
+  // 寻找配位邻居
+  const neighbors = findCoordinationNeighbors(atomIdx, allAtomData, crystal, currentExpand);
+
+  // 高亮邻居
+  for (const n of neighbors) {
+    const nAtom = allAtomData[n.atomIdx];
+    if (nAtom) {
+      nAtom.material.emissive.setHex(0x00E5FF);
+      nAtom.material.emissiveIntensity = 0.25;
+    }
+  }
+
+  // 画配位连线
+  const linePositions = [];
+  for (const n of neighbors) {
+    linePositions.push(...atom.cartPos);
+    linePositions.push(...n.pos);
+  }
+
+  if (linePositions.length > 0) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+    const mat = new THREE.LineBasicMaterial({
+      color: 0x00E5FF,
+      transparent: true,
+      opacity: 0.6
+    });
+    const lines = new THREE.LineSegments(geo, mat);
+    highlightGroup.add(lines);
+  }
+
+  // 画邻居的ghost原子（周期镜像）
+  for (const n of neighbors) {
+    const exists = allAtomData[n.atomIdx];
+    if (exists) {
+      const dist = Math.sqrt(
+        (n.pos[0] - exists.cartPos[0])**2 +
+        (n.pos[1] - exists.cartPos[1])**2 +
+        (n.pos[2] - exists.cartPos[2])**2
+      );
+      if (dist > 0.01) {
+        // 这是周期镜像，画ghost
+        const ghostGeo = new THREE.SphereGeometry(1, 16, 12);
+        const ghostMat = new THREE.MeshStandardMaterial({
+          color: n.atom.basis.color,
+          metalness: 0.3,
+          roughness: 0.3,
+          transparent: true,
+          opacity: 0.3,
+          emissive: 0x00E5FF,
+          emissiveIntensity: 0.1
+        });
+        const ghost = new THREE.Mesh(ghostGeo, ghostMat);
+        ghost.scale.setScalar(n.atom.radius * 0.4);
+        ghost.position.set(...n.pos);
+        highlightGroup.add(ghost);
+      }
+    }
+  }
+
+  // 显示标签
+  const label = document.getElementById('coordLabel');
+  const labelEl = document.getElementById('coordElement');
+  const labelCN = document.getElementById('coordCN');
+  labelEl.textContent = atom.basis.el;
+  labelCN.textContent = `配位数: ${neighbors.length}`;
+  label.classList.add('show');
+
+  // 更新标签位置
+  updateCoordLabel(atom);
+}
+
+function clearHighlight() {
+  if (selectedIdx >= 0 && allAtomData[selectedIdx]) {
+    allAtomData[selectedIdx].material.emissive.setHex(0x000000);
+    allAtomData[selectedIdx].material.emissiveIntensity = 0;
+  }
+  for (const a of allAtomData) {
+    a.material.emissive.setHex(0x000000);
+    a.material.emissiveIntensity = 0;
+  }
+  if (highlightGroup) {
+    highlightGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+    while (highlightGroup.children.length > 0) {
+      highlightGroup.remove(highlightGroup.children[0]);
+    }
+  }
+  selectedIdx = -1;
+  document.getElementById('coordLabel').classList.remove('show');
+}
+
+function updateCoordLabel(atom) {
+  const label = document.getElementById('coordLabel');
+  const v = new THREE.Vector3(...atom.cartPos);
+  v.project(camera);
+  const rect = renderer.domElement.getBoundingClientRect();
+  const x = (v.x * 0.5 + 0.5) * rect.width + rect.left;
+  const y = (-v.y * 0.5 + 0.5) * rect.height + rect.top;
+  label.style.left = x + 'px';
+  label.style.top = y + 'px';
+}
+
+/* ============================================================
+   十、UI 构建
+   ============================================================ */
+function buildCrystalList() {
+  const list = document.getElementById('crystalList');
+  const categories = {};
+  for (const [key, c] of Object.entries(CRYSTALS)) {
+    if (!categories[c.category]) categories[c.category] = [];
+    categories[c.category].push({ key, ...c });
+  }
+
+  let html = '';
+  for (const [cat, items] of Object.entries(categories)) {
+    html += `<div class="crystal-category">${cat}</div>`;
+    for (const item of items) {
+      html += `
+        <div class="crystal-item ${item.key === currentKey ? 'active' : ''}" data-key="${item.key}">
+          <span class="crystal-item-name">${item.name}</span>
+          <span class="crystal-item-formula">${item.formula}</span>
+        </div>`;
+    }
+  }
+  list.innerHTML = html;
+
+  list.querySelectorAll('.crystal-item').forEach(el => {
+    el.addEventListener('click', () => {
+      loadCrystal(el.dataset.key);
+    });
+  });
+}
+
+function updateCrystalList() {
+  document.querySelectorAll('.crystal-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.key === currentKey);
+  });
+}
+
+function updateInfoPanel(key) {
+  const c = CRYSTALS[key];
+  const section = document.getElementById('infoSection');
+  section.innerHTML = `
+    <div class="panel-title" style="margin-bottom:8px;">晶体信息</div>
+    <div class="info-row"><span class="info-label">化学式</span><span class="info-value">${c.formula}</span></div>
+    <div class="info-row"><span class="info-label">空间群</span><span class="info-value">${c.spaceGroup}</span></div>
+    <div class="info-row"><span class="info-label">配位数</span><span class="info-value">${c.cn}</span></div>
+    <div class="info-row"><span class="info-label">原子数/晶胞</span><span class="info-value">${c.atomsPerCell}</span></div>
+    <div class="info-row"><span class="info-label">空间利用率</span><span class="info-value">${c.packing}</span></div>
+    <div class="info-row"><span class="info-label">晶胞参数 a</span><span class="info-value">${c.params.a} Å</span></div>
+    ${c.latticeType === 'hexagonal' ? `<div class="info-row"><span class="info-label">晶胞参数 c</span><span class="info-value">${c.params.c} Å</span></div>` : ''}
+    <div class="info-desc">${c.desc}</div>
+  `;
+}
+
+function updateLegend(key) {
+  const c = CRYSTALS[key];
+  const elements = {};
+  for (const b of c.basis) {
+    if (!elements[b.el]) elements[b.el] = b.color;
+  }
+  const container = document.getElementById('legendItems');
+  let html = '';
+  for (const [el, color] of Object.entries(elements)) {
+    const hex = '#' + color.toString(16).padStart(6, '0');
+    html += `<div class="legend-item"><span class="legend-dot" style="background:${hex}"></span>${el}</div>`;
+  }
+  container.innerHTML = html;
+}
+
+/* ============================================================
+   十一、动画循环
+   ============================================================ */
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  // 入场动画
+  if (entryAnimating && crystalGroup) {
+    entryFrames++;
+    const t = Math.min(1, entryFrames / ENTRY_DURATION);
+    const eased = easeOutCubic(t);
+    for (const a of allAtomData) {
+      const sp = a.mesh.userData.startPos;
+      const tp = a.mesh.userData.targetPos;
+      a.mesh.position.set(
+        sp[0] + (tp[0] - sp[0]) * eased,
+        sp[1] + (tp[1] - sp[1]) * eased,
+        sp[2] + (tp[2] - sp[2]) * eased
+      );
+    }
+    for (const fm of fadeMaterials) {
+      fm.mat.opacity = fm.targetOp * eased;
+    }
+    if (t >= 1) {
+      entryAnimating = false;
+      for (const fm of fadeMaterials) {
+        fm.mat.transparent = fm.targetOp < 1;
+        fm.mat.opacity = fm.targetOp;
+      }
+    }
+  }
+
+  // 更新配位标签位置
+  if (selectedIdx >= 0 && allAtomData[selectedIdx]) {
+    updateCoordLabel(allAtomData[selectedIdx]);
+  }
+
+  // 自转
+  controls.autoRotate = isSpinning && !entryAnimating;
+  controls.update();
+
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   十二、事件处理
+   ============================================================ */
+function onResize() {
+  const container = document.getElementById('canvasContainer');
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+function setupUI() {
+  // 模式切换
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => setDisplayMode(btn.dataset.mode));
+  });
+
+  // 扩展切换
+  document.querySelectorAll('.expand-btn').forEach(btn => {
+    btn.addEventListener('click', () => setExpansion(parseInt(btn.dataset.expand)));
+  });
+
+  // 自动旋转
+  document.getElementById('spinBtn').addEventListener('click', () => {
+    isSpinning = !isSpinning;
+    document.getElementById('spinBtn').classList.toggle('active', isSpinning);
+  });
+
+  // 重置视角
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    const dist = currentExpand === 1 ? 2.2 : currentExpand === 2 ? 3.8 : 5.5;
+    camera.position.set(dist * 0.7, dist * 0.5, dist * 0.7);
+    controls.target.set(0, 0, 0);
+    controls.update();
+    clearHighlight();
+  });
+
+  // 剖切切换
+  document.getElementById('clipToggleBtn').addEventListener('click', () => {
+    isClipping = !isClipping;
+    document.getElementById('clipToggleBtn').classList.toggle('active', isClipping);
+    document.getElementById('clipPanel').classList.toggle('show', isClipping);
+    updateClipping();
+  });
+
+  // 剖切轴
+  document.querySelectorAll('.clip-axis-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      clipAxis = btn.dataset.axis;
+      document.querySelectorAll('.clip-axis-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateClipping();
+    });
+  });
+
+  // 剖切位置
+  document.getElementById('clipSlider').addEventListener('input', (e) => {
+    clipVal = parseInt(e.target.value) / 100;
+    document.getElementById('clipValue').textContent = clipVal.toFixed(2);
+    updateClipping();
+  });
+
+  // 全屏
+  document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+}
+
+/* ============================================================
+   十三、初始化
+   ============================================================ */
+function init() {
+  initThree();
+  buildCrystalList();
+  setupUI();
+  loadCrystal(currentKey);
+  animate();
+
+  // 移动端面板折叠
+  if (window.innerWidth <= 768) {
+    document.getElementById('rightPanel').classList.add('collapsed');
+    document.getElementById('rightPanel').addEventListener('click', function() {
+      this.classList.toggle('collapsed');
+    });
+  }
+}
+
+init();
+</script>
+</body>
+</html>

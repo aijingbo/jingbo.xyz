@@ -1,0 +1,2407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>微积分的本质：极限与导数 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css">
+<link rel="stylesheet" href="/assets/css/demo-framework.css">
+<style>
+/* ===== 微积分 Demo 专属样式 ===== */
+:root {
+  --cal-purple: #6d28d9;
+  --cal-purple-light: #8b5cf6;
+  --cal-purple-soft: rgba(109, 40, 217, 0.1);
+  --cal-purple-glow: rgba(109, 40, 217, 0.3);
+  --cal-coral: #f43f5e;
+  --cal-coral-soft: rgba(244, 63, 94, 0.1);
+  --cal-coral-glow: rgba(244, 63, 94, 0.3);
+  --cal-gray: #94a3b8;
+  --cal-axis: #334155;
+  --cal-fill: rgba(109, 40, 217, 0.08);
+  --cal-glass: rgba(109, 40, 217, 0.06);
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--bg);
+}
+
+/* ===== 杂志布局 ===== */
+.magazine-layout {
+  display: grid;
+  grid-template-columns: 38% 62%;
+  gap: var(--spacer-48);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--spacer-48) var(--spacer-32);
+  min-height: calc(100vh - 64px);
+}
+
+body.has-info-bar .magazine-layout {
+  padding-bottom: calc(var(--spacer-48) + 52px);
+}
+
+/* ===== 左侧文章区 ===== */
+.article-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-24);
+}
+
+.article-header { display: flex; flex-direction: column; gap: var(--spacer-12); }
+
+.article-kicker {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  letter-spacing: 0.12em;
+  color: var(--cal-purple);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.article-title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-h1);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.article-subtitle {
+  font-size: var(--fs-body);
+  color: var(--text-muted);
+  line-height: var(--lh-relaxed);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+.article-body { display: flex; flex-direction: column; gap: var(--spacer-16); }
+
+.article-body p {
+  font-size: var(--fs-body);
+  line-height: 1.85;
+  color: var(--text);
+}
+
+.article-body p.lead {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--cal-purple);
+}
+
+.article-body strong { color: var(--cal-purple); font-weight: 600; }
+.article-body em { color: var(--cal-coral); font-style: italic; font-weight: 500; }
+
+/* ===== 步骤指示器 ===== */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-12);
+  margin: var(--spacer-8) 0;
+}
+
+.step-dots { display: flex; gap: 10px; }
+
+.step-dot {
+  width: 10px; height: 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--border);
+  transition: all var(--duration-base) var(--ease);
+  cursor: pointer;
+}
+
+.step-dot.active {
+  background-color: var(--cal-purple);
+  transform: scale(1.3);
+  box-shadow: 0 0 0 4px var(--cal-purple-soft);
+}
+
+.step-dot.completed { background-color: var(--cal-purple-light); opacity: 0.5; }
+
+.step-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.step-nav {
+  display: flex;
+  gap: var(--spacer-12);
+  margin-top: var(--spacer-8);
+}
+
+.step-nav .btn { flex: 1; }
+
+/* 覆盖按钮颜色 */
+.step-nav .btn-primary {
+  background-color: var(--cal-purple);
+  border-color: var(--cal-purple);
+}
+.step-nav .btn-primary:hover {
+  background-color: #5b21b6;
+  box-shadow: 0 4px 16px var(--cal-purple-glow);
+}
+
+/* ===== 步骤内容 ===== */
+.step-content {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.4s var(--ease);
+  min-height: 320px;
+}
+
+.step-content.fade-out { opacity: 0; transform: translateY(10px); }
+.step-content.fade-in { opacity: 0; transform: translateY(-10px); }
+
+/* ===== 定理/公式高亮框 ===== */
+.theorem-box {
+  background: linear-gradient(135deg, var(--cal-purple-soft), rgba(109, 40, 217, 0.04));
+  border: 1px solid rgba(109, 40, 217, 0.15);
+  border-radius: var(--radius-card);
+  padding: var(--spacer-20);
+  margin: var(--spacer-16) 0;
+}
+
+.theorem-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--cal-purple);
+  margin-bottom: var(--spacer-8);
+}
+
+.theorem-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+/* ===== 证明步骤块 ===== */
+.proof-step {
+  display: flex;
+  gap: var(--spacer-16);
+  margin: var(--spacer-12) 0;
+  padding: var(--spacer-16);
+  background-color: var(--surface-muted);
+  border-radius: var(--radius);
+}
+
+.proof-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background-color: var(--cal-purple);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.proof-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.proof-text strong { color: var(--cal-coral); }
+
+/* ===== 右侧可视化区 ===== */
+.visual-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-16);
+}
+
+.visual-wrapper {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+}
+
+.visual-wrapper canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.visual-caption {
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+  font-family: var(--font-serif);
+  padding: var(--spacer-8) var(--spacer-16);
+}
+
+/* ===== 可视化内控件 ===== */
+.viz-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-16);
+  padding: var(--spacer-12) var(--spacer-20);
+  background-color: var(--surface-muted);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.viz-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+  flex: 1;
+}
+
+.viz-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.viz-slider-label {
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.viz-slider-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  color: var(--cal-purple);
+}
+
+.viz-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+.viz-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--cal-purple);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.15s;
+}
+
+.viz-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+.viz-slider::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--cal-purple);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* ===== 函数选择器 ===== */
+.func-selector {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.func-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-tiny);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  white-space: nowrap;
+}
+
+.func-btn:hover { border-color: var(--cal-purple-light); color: var(--cal-purple); }
+
+.func-btn.active {
+  background: var(--cal-purple);
+  border-color: var(--cal-purple);
+  color: white;
+}
+
+/* ===== 数据浮窗 ===== */
+.viz-data-overlay {
+  position: absolute;
+  top: var(--spacer-16);
+  right: var(--spacer-16);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--spacer-12) var(--spacer-16);
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  min-width: 140px;
+}
+
+.data-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.data-label { font-size: var(--fs-tiny); color: var(--text-muted); font-weight: 500; }
+.data-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--cal-purple);
+}
+.data-value.coral { color: var(--cal-coral); }
+
+/* ===== 自动播放按钮 ===== */
+.autoplay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+}
+
+.autoplay-btn:hover { color: var(--cal-purple); border-color: var(--cal-purple-light); }
+.autoplay-btn.playing { background: var(--cal-purple-soft); color: var(--cal-purple); border-color: var(--cal-purple-light); }
+.autoplay-btn svg { width: 12px; height: 12px; }
+
+/* ===== 公式推导行 ===== */
+.formula-derivation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--spacer-16);
+  background-color: var(--surface-muted);
+  border-radius: var(--radius);
+  margin: var(--spacer-12) 0;
+}
+
+.formula-line {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.4s var(--ease);
+}
+
+.formula-line.visible { opacity: 1; transform: translateX(0); }
+.formula-line.highlight { background: var(--cal-coral-soft); color: var(--cal-coral); font-weight: 600; }
+.formula-line.final {
+  background: var(--cal-purple-soft);
+  color: var(--cal-purple);
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .magazine-layout {
+    grid-template-columns: 1fr;
+    gap: var(--spacer-32);
+  }
+}
+
+@media (max-width: 768px) {
+  .magazine-layout {
+    padding: var(--spacer-24) var(--spacer-16);
+  }
+  .viz-data-overlay {
+    top: 8px; right: 8px;
+    padding: 8px 12px;
+    min-width: 100px;
+  }
+  .viz-controls { padding: var(--spacer-8) var(--spacer-12); }
+  .viz-slider-group { min-width: 100px; }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">微积分的本质：极限与导数</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-math">数学</span>
+      <a href="/skills/jingbo-edu-math-magazine-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="article-side">
+        <div class="article-header">
+          <div class="article-kicker">MATHEMATICS · 微积分本质</div>
+          <h1 class="article-title">把无穷缩小到一点<br>曲线就变成了直线</h1>
+          <p class="article-subtitle">从芝诺悖论到导数定义，用几何直觉重新理解微积分。</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="step-indicator">
+          <div class="step-dots" id="stepDots">
+            <div class="step-dot active" data-step="0"></div>
+            <div class="step-dot" data-step="1"></div>
+            <div class="step-dot" data-step="2"></div>
+            <div class="step-dot" data-step="3"></div>
+            <div class="step-dot" data-step="4"></div>
+            <div class="step-dot" data-step="5"></div>
+          </div>
+          <span class="step-label" id="stepLabel">第 1 / 6 步</span>
+          <button class="autoplay-btn" id="autoplayBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>自动播放</span>
+          </button>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="article-body">
+          <div class="step-content" id="stepContent"></div>
+        </div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="step-nav">
+          <button class="btn btn-secondary" id="prevBtn"><span>←</span> 上一步</button>
+          <button class="btn btn-primary" id="nextBtn">下一步 <span>→</span></button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="visual-side">
+        <div class="visual-wrapper" id="visualWrapper">
+          <canvas id="demoCanvas" width="800" height="520"></canvas>
+          <div class="viz-data-overlay" id="dataOverlay" style="display:none;"></div>
+        </div>
+        <p class="visual-caption" id="visualCaption">图 1 · 芝诺悖论：阿基里斯追乌龟</p>
+        <!-- 动态控件区 -->
+        <div class="viz-controls" id="vizControls" style="display:none;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">calculus-essence</span>
+    <span class="demo-tech-tag">Canvas</span>
+    <span class="demo-tech-tag">纯 JS</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-math-magazine-lecture-v0.1.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   微积分的本质：极限与导数
+   杂志讲解型 · 6 步交互可视化
+   ============================================================ */
+
+// ====== 全局配置 ======
+const COLORS = {
+  purple: '#6d28d9',
+  purpleLight: '#8b5cf6',
+  purpleSoft: 'rgba(109, 40, 217, 0.08)',
+  coral: '#f43f5e',
+  coralSoft: 'rgba(244, 63, 94, 0.1)',
+  gray: '#94a3b8',
+  axis: '#334155',
+  grid: 'rgba(51, 65, 85, 0.06)',
+  bg: '#ffffff',
+  text: '#1a1a1a',
+  textMuted: '#6b6b6b',
+  surface: '#f3efe9'
+};
+
+const canvas = document.getElementById('demoCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+
+// ====== 步骤内容数据 ======
+const steps = [
+  {
+    title: '芝诺悖论——无穷的困惑',
+    content: `
+      <p class="lead">古希腊哲学家芝诺提出了一个困扰人类两千年的悖论：阿基里斯永远追不上乌龟。</p>
+      <p>阿基里斯让乌龟先跑一段距离，然后开始追赶。当他跑到乌龟刚才的位置时，乌龟又往前走了一点。当他再追到那个新位置时，乌龟又走了更远……这个过程似乎可以无限分割下去。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">极限的直觉</div>
+        <div class="theorem-text">
+          但数学告诉我们：无穷多个越来越小的距离相加，<strong>总和可以是有限的</strong>。<br>
+          1/2 + 1/4 + 1/8 + 1/16 + … = 1
+        </div>
+      </div>
+      <p>这就是<strong>极限</strong>的核心——无限趋近，但不必真正到达。微积分的全部秘密，都藏在这个"无穷"之中。</p>
+    `
+  },
+  {
+    title: '把曲线放大——微观真相',
+    content: `
+      <p class="lead">导数的核心直觉：如果你把一条曲线放得足够大，它看起来就像一条直线。</p>
+      <p>就像地球是圆的，但我们看到的地面是平的——因为我们太小了。这个简单的观察，是微分学的全部秘密。</p>
+      <div class="proof-step">
+        <div class="proof-num">1</div>
+        <div class="proof-text">拖动滑块，增大放大倍数，观察曲线在放大镜内逐渐"变直"。</div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">2</div>
+        <div class="proof-text">当放大到极限时，曲线几乎与<strong>切线</strong>重合——这就是"局部线性"。</div>
+      </div>
+      <p>这个"局部线性"的洞见，让我们能把复杂的曲线问题转化为简单的直线问题——这就是微分学的力量。</p>
+    `
+  },
+  {
+    title: '从割线到切线——极限诞生',
+    content: `
+      <p class="lead">更精确地描述刚才的观察：让两个点无限靠近，割线就变成了切线。</p>
+      <p>在曲线上取两个点 A 和 B，画一条<em>割线</em>。让 B 沿着曲线向 A 靠近，割线会逐渐"旋转"，最终变成<em>切线</em>。这个"无限接近"的过程就是极限。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">导数的几何意义</div>
+        <div class="theorem-text">
+          切线的斜率 = 函数在该点的导数<br>
+          <strong>f'(x) = lim<sub>h→0</sub> [f(x+h) - f(x)] / h</strong>
+        </div>
+      </div>
+      <p>拖动 h 滑块，观察割线斜率如何随着 B 靠近 A 而趋近于一个固定值——那就是导数。</p>
+    `
+  },
+  {
+    title: '导数的定义——公式说清楚',
+    content: `
+      <p class="lead">把几何直觉写成数学公式，左右联动理解代数与几何的对应。</p>
+      <div class="formula-derivation" id="formulaArea">
+        <div class="formula-line" data-line="0">差商 = [f(x+h) - f(x)] / h</div>
+        <div class="formula-line" data-line="1">以 f(x) = x² 为例：</div>
+        <div class="formula-line" data-line="2">= [(x+h)² - x²] / h</div>
+        <div class="formula-line" data-line="3">= [x² + 2xh + h² - x²] / h</div>
+        <div class="formula-line" data-line="4">= (2xh + h²) / h</div>
+        <div class="formula-line" data-line="5">= 2x + h</div>
+        <div class="formula-line final" data-line="6">当 h → 0 时，f'(x) = 2x</div>
+      </div>
+      <p>拖动 h 滑块：左侧割线斜率变化，右侧公式中的 h 同步变化。两边同时趋近于导数值 <strong>2x</strong>——几何与代数在此握手。</p>
+    `
+  },
+  {
+    title: '瞬时变化率——物理意义',
+    content: `
+      <p class="lead">导数不只是几何概念，它更是描述变化的语言。</p>
+      <p>如果 f(t) 是位置函数，那么 f'(t) 就是速度——<em>瞬时速度</em>。在此之前，人们只能计算平均速度；有了导数，我们才能精确描述"某一时刻的速度"。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">牛顿的洞见</div>
+        <div class="theorem-text">
+          位置 s(t) → 速度 v(t) = s'(t) → 加速度 a(t) = v'(t)<br>
+          <strong>导数的导数，描述运动的运动。</strong>
+        </div>
+      </div>
+      <p>点击"播放运动"，观察物体在上方运动的同时，位置图上的点同步移动，切线斜率——即瞬时速度——实时变化。</p>
+    `
+  },
+  {
+    title: '导数的世界——无处不在',
+    content: `
+      <p class="lead">从物理到经济，从生物到工程，导数无处不在。</p>
+      <p>最优化问题是导数最经典的应用：函数的极值点处，导数为零，切线水平。切换不同函数，观察原函数与导数函数的关系。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">常见导数</div>
+        <div class="theorem-text">
+          xⁿ → nxⁿ⁻¹ &nbsp;|&nbsp; sin(x) → cos(x) &nbsp;|&nbsp; eˣ → eˣ<br>
+          <strong>exˣ 的导数等于自身——这就是自然增长的密码。</strong>
+        </div>
+      </div>
+      <p>下方的小互动：拖动滑块找到利润最大值，当切线水平、导数等于 0 时——你找到了最优解。</p>
+    `
+  }
+];
+
+// ====== 步骤导航逻辑 ======
+let currentStep = 0;
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDots = document.querySelectorAll('.step-dot');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const visualCaption = document.getElementById('visualCaption');
+const dataOverlay = document.getElementById('dataOverlay');
+const vizControls = document.getElementById('vizControls');
+const autoplayBtn = document.getElementById('autoplayBtn');
+
+let autoplayTimer = null;
+let isAutoplaying = false;
+
+const captions = [
+  '图 1 · 芝诺悖论：阿基里斯追乌龟——无穷级数收敛',
+  '图 2 · 放大镜下的曲线：局部线性',
+  '图 3 · 从割线到切线：极限过程',
+  '图 4 · 几何与代数联动：导数定义',
+  '图 5 · 瞬时速度：位置-时间图的切线',
+  '图 6 · 导数的世界：函数切换与最优化'
+];
+
+function updateStep(step) {
+  currentStep = step;
+  const s = steps[step];
+
+  stepContent.classList.add('fade-out');
+  setTimeout(() => {
+    stepContent.innerHTML = `<h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">${s.title}</h3>${s.content}`;
+    stepContent.classList.remove('fade-out');
+    stepContent.classList.add('fade-in');
+    setTimeout(() => stepContent.classList.remove('fade-in'), 400);
+  }, 200);
+
+  stepLabel.textContent = `第 ${step + 1} / ${steps.length} 步`;
+  visualCaption.textContent = captions[step];
+
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === step) dot.classList.add('active');
+    else if (i < step) dot.classList.add('completed');
+  });
+
+  prevBtn.disabled = step === 0;
+  prevBtn.style.opacity = step === 0 ? '0.5' : '1';
+  prevBtn.style.cursor = step === 0 ? 'not-allowed' : 'pointer';
+
+  nextBtn.innerHTML = step === steps.length - 1
+    ? '完成 ✓'
+    : '下一步 <span>→</span>';
+
+  // 清理上一步的动画
+  cleanupStep();
+
+  // 渲染当前步骤
+  renderStep(step);
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) updateStep(currentStep - 1);
+});
+
+nextBtn.addEventListener('click', () => {
+  if (currentStep < steps.length - 1) updateStep(currentStep + 1);
+});
+
+stepDots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const s = parseInt(dot.dataset.step);
+    if (s !== currentStep) updateStep(s);
+  });
+});
+
+// ====== 自动播放 ======
+autoplayBtn.addEventListener('click', () => {
+  if (isAutoplaying) {
+    stopAutoplay();
+  } else {
+    startAutoplay();
+  }
+});
+
+function startAutoplay() {
+  isAutoplaying = true;
+  autoplayBtn.classList.add('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg><span>暂停</span>';
+  autoplayTimer = setInterval(() => {
+    if (currentStep < steps.length - 1) {
+      updateStep(currentStep + 1);
+    } else {
+      stopAutoplay();
+    }
+  }, 9000);
+}
+
+function stopAutoplay() {
+  isAutoplaying = false;
+  autoplayBtn.classList.remove('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>自动播放</span>';
+  if (autoplayTimer) clearInterval(autoplayTimer);
+  autoplayTimer = null;
+}
+
+// ====== 导航栏滚动 ======
+window.addEventListener('scroll', () => {
+  document.getElementById('demoNavbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ============================================================
+//  通用绘图工具函数
+// ============================================================
+
+function clearCanvas() {
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawGrid(x0, y0, xRange, yRange, xScale, yScale) {
+  ctx.strokeStyle = COLORS.grid;
+  ctx.lineWidth = 1;
+
+  // 竖线
+  const xStart = Math.floor((x0 - xRange * xScale) / (xScale)) * xScale;
+  for (let x = xStart; x <= x0 + xRange * xScale; x += xScale) {
+    const px = x0 + x * xScale;
+    if (px >= 0 && px <= W) {
+      ctx.beginPath();
+      ctx.moveTo(px, 0);
+      ctx.lineTo(px, H);
+      ctx.stroke();
+    }
+  }
+
+  // 横线
+  const yStart = Math.floor((y0 - yRange * yScale) / (yScale)) * yScale;
+  for (let y = yStart; y <= y0 + yRange * yScale; y += yScale) {
+    const py = y0 - y * yScale;
+    if (py >= 0 && py <= H) {
+      ctx.beginPath();
+      ctx.moveTo(0, py);
+      ctx.lineTo(W, py);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawAxes(x0, y0, xScale, yScale, xLabel, yLabel) {
+  ctx.strokeStyle = COLORS.axis;
+  ctx.lineWidth = 1.5;
+  ctx.fillStyle = COLORS.axis;
+  ctx.font = '12px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  // X 轴
+  ctx.beginPath();
+  ctx.moveTo(0, y0);
+  ctx.lineTo(W, y0);
+  ctx.stroke();
+
+  // Y 轴
+  ctx.beginPath();
+  ctx.moveTo(x0, 0);
+  ctx.lineTo(x0, H);
+  ctx.stroke();
+
+  // 箭头
+  ctx.beginPath();
+  ctx.moveTo(W - 10, y0 - 5);
+  ctx.lineTo(W - 2, y0);
+  ctx.lineTo(W - 10, y0 + 5);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(x0 - 5, 10);
+  ctx.lineTo(x0, 2);
+  ctx.lineTo(x0 + 5, 10);
+  ctx.stroke();
+
+  // 标签
+  if (xLabel) {
+    ctx.font = 'italic 14px serif';
+    ctx.fillText(xLabel, W - 20, y0 + 8);
+  }
+  if (yLabel) {
+    ctx.save();
+    ctx.translate(x0 - 14, 20);
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+  }
+}
+
+// 函数定义
+const FUNCTIONS = {
+  'x²': { fn: x => x * x, deriv: x => 2 * x, label: 'x²', dLabel: '2x' },
+  'x³': { fn: x => x * x * x, deriv: x => 3 * x * x, label: 'x³', dLabel: '3x²' },
+  'sin(x)': { fn: x => Math.sin(x), deriv: x => Math.cos(x), label: 'sin(x)', dLabel: 'cos(x)' },
+  'eˣ': { fn: x => Math.exp(x), deriv: x => Math.exp(x), label: 'eˣ', dLabel: 'eˣ' }
+};
+
+// 当前步骤的动画帧 ID 和状态
+let animationId = null;
+let stepState = {};
+
+function cleanupStep() {
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+  dataOverlay.style.display = 'none';
+  dataOverlay.innerHTML = '';
+  vizControls.style.display = 'none';
+  vizControls.innerHTML = '';
+  stepState = {};
+}
+
+// ============================================================
+//  步骤渲染入口
+// ============================================================
+function renderStep(step) {
+  clearCanvas();
+  switch (step) {
+    case 0: renderZeno(); break;
+    case 1: renderMagnify(); break;
+    case 2: renderSecantTangent(); break;
+    case 3: renderDerivativeDef(); break;
+    case 4: renderPhysicsMotion(); break;
+    case 5: renderApplications(); break;
+  }
+}
+
+// ============================================================
+//  Step 1: 芝诺悖论——阿基里斯追乌龟
+// ============================================================
+function renderZeno() {
+  stepState = {
+    progress: 0,
+    segments: 8,
+    achillesSpeed: 2,
+    achillesPos: 0,
+    tortoisePos: 200,
+    segmentIndex: 0,
+    segmentProgress: 0
+  };
+
+  const cx = 80;
+  const trackY = H * 0.55;
+  const trackEnd = W - 60;
+
+  // 目标距离比例
+  const totalDist = 400;
+  const positions = [0];
+  let acc = 0;
+  let gap = 200;
+  for (let i = 0; i < 10; i++) {
+    acc += gap;
+    positions.push(acc);
+    gap *= 0.5;
+  }
+
+  function draw() {
+    clearCanvas();
+
+    // 标题
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 16px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('阿基里斯追乌龟 — 无穷级数收敛', 30, 20);
+
+    // 跑道
+    ctx.strokeStyle = COLORS.axis;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, trackY);
+    ctx.lineTo(trackEnd, trackY);
+    ctx.stroke();
+
+    // 刻度标记
+    ctx.fillStyle = COLORS.textMuted;
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    // 绘制每个阶段的位置标记
+    for (let i = 0; i <= 7; i++) {
+      const px = cx + positions[i] * ((trackEnd - cx) / totalDist);
+      ctx.strokeStyle = COLORS.gray;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(px, trackY - 40);
+      ctx.lineTo(px, trackY + 40);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 位置编号
+      ctx.fillStyle = COLORS.textMuted;
+      ctx.font = '10px monospace';
+      ctx.fillText(`P${i}`, px, trackY + 30);
+
+      // 距离值
+      ctx.fillStyle = COLORS.purple;
+      ctx.font = '10px monospace';
+      const dist = positions[i].toFixed(0);
+      ctx.fillText(`${dist}`, px, trackY + 44);
+    }
+
+    // 阿基里斯当前位置
+    const achillesX = cx + stepState.achillesPos * ((trackEnd - cx) / totalDist);
+    // 乌龟当前位置
+    const tortoiseX = cx + stepState.tortoisePos * ((trackEnd - cx) / totalDist);
+
+    // 阿基里斯追过的路径（紫色填充）
+    ctx.fillStyle = COLORS.purpleSoft;
+    ctx.fillRect(cx, trackY - 3, achillesX - cx, 6);
+
+    // 绘制阿基里斯（圆形 + 标签）
+    ctx.fillStyle = COLORS.purple;
+    ctx.beginPath();
+    ctx.arc(achillesX, trackY - 22, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = '600 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('A', achillesX, trackY - 22);
+
+    // 绘制乌龟（圆形 + 标签）
+    ctx.fillStyle = COLORS.coral;
+    ctx.beginPath();
+    ctx.arc(tortoiseX, trackY + 22, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = '600 8px sans-serif';
+    ctx.fillText('T', tortoiseX, trackY + 22);
+
+    // 连接线
+    ctx.strokeStyle = COLORS.gray;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(achillesX, trackY - 10);
+    ctx.lineTo(tortoiseX, trackY + 12);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 距离差
+    const gap = stepState.tortoisePos - stepState.achillesPos;
+    ctx.fillStyle = COLORS.coral;
+    ctx.font = '600 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    if (gap > 1) {
+      const midX = (achillesX + tortoiseX) / 2;
+      ctx.fillText(`差距 ${gap.toFixed(1)}`, midX, trackY - 45);
+    }
+
+    // 底部：级数求和可视化
+    const sumY = H - 80;
+    ctx.fillStyle = COLORS.textMuted;
+    ctx.font = '12px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('无穷级数求和：', 30, sumY - 20);
+
+    // 级数条形图
+    let barX = 150;
+    const barMaxWidth = W - 180;
+    let barAccum = 0;
+    const fractions = [0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625];
+
+    for (let i = 0; i < fractions.length; i++) {
+      const barW = fractions[i] * barMaxWidth;
+      const isPassed = stepState.segmentIndex > i || (stepState.segmentIndex === i && stepState.segmentProgress > 0.5);
+
+      ctx.fillStyle = isPassed ? COLORS.purple : COLORS.purpleSoft;
+      ctx.fillRect(barX, sumY, barW, 24);
+
+      ctx.strokeStyle = COLORS.bg;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, sumY, barW, 24);
+
+      // 标签
+      ctx.fillStyle = isPassed ? 'white' : COLORS.purple;
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (barW > 30) {
+        ctx.fillText(`1/${Math.pow(2, i+1)}`, barX + barW / 2, sumY + 12);
+      }
+
+      barAccum += fractions[i];
+      barX += barW;
+    }
+
+    // 总和
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 13px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`= ${barAccum.toFixed(4)}…`, barX + 8, sumY + 12);
+
+    // 总和趋近 1 的说明
+    ctx.fillStyle = COLORS.coral;
+    ctx.font = 'italic 12px serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText('→ 1（收敛）', W - 30, sumY - 20);
+  }
+
+  function animate() {
+    // 更新位置
+    const s = stepState;
+    if (s.segmentIndex < 7) {
+      const segStart_achilles = positions[s.segmentIndex];
+      const segStart_tortoise = positions[s.segmentIndex + 1] || positions[s.segmentIndex] + 5;
+      const segEnd = positions[s.segmentIndex + 1] || segStart_achilles + 1;
+
+      s.segmentProgress += 0.008;
+      if (s.segmentProgress >= 1) {
+        s.segmentProgress = 0;
+        s.segmentIndex++;
+        s.achillesPos = segEnd;
+        s.tortoisePos = segEnd + (segEnd - segStart_achilles) * 0.5;
+      } else {
+        s.achillesPos = segStart_achilles + (segEnd - segStart_achilles) * s.segmentProgress;
+        s.tortoisePos = segStart_tortoise + (segEnd - segStart_tortoise) * s.segmentProgress * 0.5;
+        if (s.tortoisePos < s.achillesPos + 5) {
+          s.tortoisePos = s.achillesPos + (segEnd - segStart_achilles) * 0.5 * (1 - s.segmentProgress) + 5;
+        }
+      }
+    } else {
+      // 重置
+      s.segmentIndex = 0;
+      s.segmentProgress = 0;
+      s.achillesPos = 0;
+      s.tortoisePos = 200;
+    }
+
+    draw();
+    animationId = requestAnimationFrame(animate);
+  }
+
+  draw();
+  animationId = requestAnimationFrame(animate);
+}
+
+// ============================================================
+//  Step 2: 放大镜——曲线的微观真相
+// ============================================================
+function renderMagnify() {
+  stepState = {
+    zoom: 1,
+    maxZoom: 50,
+    func: FUNCTIONS['x²'],
+    centerX: 1.5,
+    magnifierX: W * 0.28,
+    magnifierY: H * 0.55,
+    magnifierR: 90
+  };
+
+  const cx = W * 0.28;
+  const cy = H * 0.65;
+  const xScale = 40;
+  const yScale = 40;
+
+  function draw() {
+    clearCanvas();
+
+    const s = stepState;
+    const fn = s.func.fn;
+
+    // 左侧：原函数图
+    ctx.save();
+    ctx.translate(0, 0);
+
+    // 网格
+    drawGrid(cx, cy, 6, 6, xScale, yScale);
+
+    // 坐标轴
+    drawAxes(cx, cy, xScale, yScale, 'x', 'y');
+
+    // 曲线
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    let first = true;
+    for (let px = 0; px <= W * 0.52; px++) {
+      const x = (px - cx) / xScale;
+      const y = fn(x);
+      const py = cy - y * yScale;
+      if (py >= -50 && py <= H + 50) {
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    // 切点
+    const tx = s.centerX;
+    const ty = fn(tx);
+    const tpx = cx + tx * xScale;
+    const tpy = cy - ty * yScale;
+
+    // 切线（在原图中）
+    const slope = s.func.deriv(tx);
+    ctx.strokeStyle = COLORS.coral;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    const tlx = tx - 2;
+    const trx = tx + 2;
+    ctx.moveTo(cx + tlx * xScale, cy - (ty + slope * (tlx - tx)) * yScale);
+    ctx.lineTo(cx + trx * xScale, cy - (ty + slope * (trx - tx)) * yScale);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 切点标记
+    ctx.fillStyle = COLORS.coral;
+    ctx.beginPath();
+    ctx.arc(tpx, tpy, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = COLORS.textMuted;
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`A(${tx.toFixed(1)}, ${ty.toFixed(1)})`, tpx + 8, tpy - 6);
+
+    ctx.restore();
+
+    // ====== 放大镜区域（右侧） ======
+    const magCx = W * 0.72;
+    const magCy = H * 0.45;
+    const magR = 130;
+
+    // 放大镜背景
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(magCx, magCy, magR, 0, Math.PI * 2);
+    ctx.clip();
+
+    // 放大镜内背景
+    ctx.fillStyle = '#fdfcfa';
+    ctx.fillRect(magCx - magR, magCy - magR, magR * 2, magR * 2);
+
+    // 放大后的网格
+    const zoomedScale = xScale * s.zoom;
+    const zoomedYScale = yScale * s.zoom;
+    ctx.strokeStyle = 'rgba(109, 40, 217, 0.08)';
+    ctx.lineWidth = 1;
+
+    const gridStep = s.zoom > 10 ? 0.1 : (s.zoom > 3 ? 0.2 : 0.5);
+    const gridPxStep = gridStep * zoomedScale;
+
+    for (let gx = tx % gridStep; ; gx += gridStep) {
+      const px = magCx + (gx - tx) * zoomedScale;
+      if (px > magCx + magR) break;
+      if (px >= magCx - magR) {
+        ctx.beginPath();
+        ctx.moveTo(px, magCy - magR);
+        ctx.lineTo(px, magCy + magR);
+        ctx.stroke();
+      }
+      if (gx <= 0) break;
+    }
+    // 竖线向左
+    for (let gx = tx - (tx % gridStep); ; gx -= gridStep) {
+      const px = magCx + (gx - tx) * zoomedScale;
+      if (px < magCx - magR) break;
+      if (px <= magCx + magR) {
+        ctx.beginPath();
+        ctx.moveTo(px, magCy - magR);
+        ctx.lineTo(px, magCy + magR);
+        ctx.stroke();
+      }
+    }
+
+    // 横线
+    for (let gy = ty % gridStep; ; gy += gridStep) {
+      const py = magCy - (gy - ty) * zoomedYScale;
+      if (py < magCy - magR) break;
+      if (py <= magCy + magR) {
+        ctx.beginPath();
+        ctx.moveTo(magCx - magR, py);
+        ctx.lineTo(magCx + magR, py);
+        ctx.stroke();
+      }
+      if (gy >= ty + 3) break;
+    }
+    for (let gy = ty - (ty % gridStep); ; gy -= gridStep) {
+      const py = magCy - (gy - ty) * zoomedYScale;
+      if (py > magCy + magR) break;
+      if (py >= magCy - magR) {
+        ctx.beginPath();
+        ctx.moveTo(magCx - magR, py);
+        ctx.lineTo(magCx + magR, py);
+        ctx.stroke();
+      }
+    }
+
+    // 中心十字
+    ctx.strokeStyle = COLORS.axis;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(magCx - magR, magCy);
+    ctx.lineTo(magCx + magR, magCy);
+    ctx.moveTo(magCx, magCy - magR);
+    ctx.lineTo(magCx, magCy + magR);
+    ctx.stroke();
+
+    // 放大后的曲线
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    first = true;
+    for (let px = magCx - magR; px <= magCx + magR; px++) {
+      const x = tx + (px - magCx) / zoomedScale;
+      const y = fn(x);
+      const py = magCy - (y - ty) * zoomedYScale;
+      if (py >= magCy - magR && py <= magCy + magR) {
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    // 放大后的切线
+    ctx.strokeStyle = COLORS.coral;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(magCx - magR, magCy - slope * (tx - tx) * zoomedYScale);
+    // 切线 y = ty + slope * (x - tx)  =>  py = magCy - (y - ty) * zoomedYScale
+    const slopeEndLeft = magCy - (slope * (-magR / zoomedScale)) * zoomedYScale;
+    const slopeEndRight = magCy - (slope * (magR / zoomedScale)) * zoomedYScale;
+    ctx.moveTo(magCx - magR, slopeEndLeft);
+    ctx.lineTo(magCx + magR, slopeEndRight);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 切点
+    ctx.fillStyle = COLORS.coral;
+    ctx.beginPath();
+    ctx.arc(magCx, magCy, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // 放大镜边框（玻璃质感）
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(magCx, magCy, magR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 玻璃高光
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(magCx, magCy, magR - 3, -Math.PI * 0.85, -Math.PI * 0.55);
+    ctx.stroke();
+
+    // 放大镜手柄
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    const handleAngle = Math.PI * 0.75;
+    const handleStart = magR + 5;
+    const handleEnd = magR + 30;
+    ctx.moveTo(magCx + Math.cos(handleAngle) * handleStart, magCy + Math.sin(handleAngle) * handleStart);
+    ctx.lineTo(magCx + Math.cos(handleAngle) * handleEnd, magCy + Math.sin(handleAngle) * handleEnd);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+
+    // 标签
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 13px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('原函数 y = x²', 20, 20);
+
+    ctx.fillStyle = COLORS.coral;
+    ctx.font = '600 13px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`放大 ${s.zoom.toFixed(1)}×`, magCx, magCy + magR + 16);
+
+    // 底部说明
+    ctx.fillStyle = COLORS.textMuted;
+    ctx.font = 'italic 12px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    if (s.zoom < 3) {
+      ctx.fillText('放大镜中，曲线仍有明显弧度', W / 2, H - 12);
+    } else if (s.zoom < 15) {
+      ctx.fillText('继续放大，曲线越来越接近直线…', W / 2, H - 12);
+    } else {
+      ctx.fillStyle = COLORS.coral;
+      ctx.font = 'italic 13px serif';
+      ctx.fillText('局部线性：在足够小的尺度上，曲线 = 直线', W / 2, H - 12);
+    }
+  }
+
+  // 控件
+  vizControls.style.display = 'flex';
+  vizControls.innerHTML = `
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">放大倍数</span>
+        <span class="viz-slider-value" id="zoomVal">1.0×</span>
+      </div>
+      <input type="range" class="viz-slider" id="zoomSlider" min="1" max="50" step="0.5" value="1">
+    </div>
+  `;
+
+  const zoomSlider = document.getElementById('zoomSlider');
+  const zoomVal = document.getElementById('zoomVal');
+  zoomSlider.addEventListener('input', (e) => {
+    stepState.zoom = parseFloat(e.target.value);
+    zoomVal.textContent = stepState.zoom.toFixed(1) + '×';
+    draw();
+  });
+
+  draw();
+}
+
+// ============================================================
+//  Step 3: 从割线到切线
+// ============================================================
+function renderSecantTangent() {
+  stepState = {
+    h: 2.0,
+    xA: 1.5,
+    func: FUNCTIONS['x²'],
+    dragging: false
+  };
+
+  const cx = W * 0.5;
+  const cy = H * 0.7;
+  const xScale = 50;
+  const yScale = 50;
+
+  function draw() {
+    clearCanvas();
+    const s = stepState;
+    const fn = s.func.fn;
+    const deriv = s.func.deriv;
+
+    // 网格和坐标轴
+    drawGrid(cx, cy, 6, 5, xScale / 2, yScale / 2);
+    drawAxes(cx, cy, xScale, yScale, 'x', 'y');
+
+    // 曲线
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    let first = true;
+    for (let px = 0; px <= W; px++) {
+      const x = (px - cx) / xScale;
+      const y = fn(x);
+      const py = cy - y * yScale;
+      if (py >= -50 && py <= H + 50) {
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    // 点 A（固定，可拖动）
+    const xA = s.xA;
+    const yA = fn(xA);
+    const pxA = cx + xA * xScale;
+    const pyA = cy - yA * yScale;
+
+    // 点 B（移动，B = A + h）
+    const xB = xA + s.h;
+    const yB = fn(xB);
+    const pxB = cx + xB * xScale;
+    const pyB = cy - yB * yScale;
+
+    // 割线 AB
+    ctx.strokeStyle = COLORS.gray;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    // 延长割线
+    const secantSlope = (yB - yA) / (xB - xA);
+    const extL = 1.5;
+    const secantX1 = xA - extL;
+    const secantY1 = yA + secantSlope * (secantX1 - xA);
+    const secantX2 = xB + extL;
+    const secantY2 = yB + secantSlope * (secantX2 - xB);
+    ctx.moveTo(cx + secantX1 * xScale, cy - secantY1 * yScale);
+    ctx.lineTo(cx + secantX2 * xScale, cy - secantY2 * yScale);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 切线（当 h 很小时显示）
+    const tangentSlope = deriv(xA);
+    const tangentVisible = Math.abs(s.h) < 0.5;
+    if (tangentVisible) {
+      ctx.strokeStyle = COLORS.coral;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      const tx1 = xA - 2;
+      const ty1 = yA + tangentSlope * (tx1 - xA);
+      const tx2 = xA + 2;
+      const ty2 = yA + tangentSlope * (tx2 - xA);
+      ctx.moveTo(cx + tx1 * xScale, cy - ty1 * yScale);
+      ctx.lineTo(cx + tx2 * xScale, cy - ty2 * yScale);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Δx 和 Δy 标注
+    if (Math.abs(s.h) > 0.1) {
+      ctx.strokeStyle = COLORS.gray;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+
+      // 水平线 Δx
+      ctx.beginPath();
+      ctx.moveTo(pxA, pyA);
+      ctx.lineTo(pxB, pyA);
+      ctx.stroke();
+
+      // 垂直线 Δy
+      ctx.beginPath();
+      ctx.moveTo(pxB, pyA);
+      ctx.lineTo(pxB, pyB);
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+
+      // Δx 标签
+      ctx.fillStyle = COLORS.gray;
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`Δx=${s.h.toFixed(2)}`, (pxA + pxB) / 2, pyA + 6);
+
+      // Δy 标签
+      ctx.textAlign = 'left';
+      ctx.fillText(`Δy=${(yB - yA).toFixed(2)}`, pxB + 6, (pyA + pyB) / 2);
+    }
+
+    // 点 A
+    ctx.fillStyle = COLORS.purple;
+    ctx.beginPath();
+    ctx.arc(pxA, pyA, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = '600 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('A', pxA, pyA);
+
+    // 点 B
+    if (Math.abs(s.h) > 0.01) {
+      ctx.fillStyle = COLORS.coral;
+      ctx.beginPath();
+      ctx.arc(pxB, pyB, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.fillText('B', pxB, pyB);
+    }
+
+    // 标题和说明
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 14px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('y = x² 的割线与切线', 20, 20);
+
+    // 底部信息
+    ctx.fillStyle = COLORS.text;
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    const secantVal = secantSlope.toFixed(4);
+    const tangentVal = tangentSlope.toFixed(4);
+    ctx.fillText(`割线斜率 = ${secantVal}`, 20, H - 40);
+
+    ctx.fillStyle = COLORS.coral;
+    ctx.fillText(`切线斜率 (导数) = ${tangentVal}`, 20, H - 22);
+
+    ctx.fillStyle = COLORS.textMuted;
+    ctx.font = 'italic 11px serif';
+    ctx.fillText(`h = ${s.h.toFixed(3)}`, 20, H - 58);
+  }
+
+  // 数据浮窗
+  dataOverlay.style.display = 'flex';
+  dataOverlay.innerHTML = `
+    <div class="data-row"><span class="data-label">h (间距)</span><span class="data-value" id="ovH">${stepState.h.toFixed(3)}</span></div>
+    <div class="data-row"><span class="data-label">割线斜率</span><span class="data-value" id="ovSecant">—</span></div>
+    <div class="data-row"><span class="data-label">切线斜率</span><span class="data-value coral" id="ovTangent">—</span></div>
+    <div class="data-row"><span class="data-label">差值</span><span class="data-value" id="ovDiff">—</span></div>
+  `;
+
+  function updateOverlay() {
+    const s = stepState;
+    const fn = s.func.fn;
+    const deriv = s.func.deriv;
+    const yA = fn(s.xA);
+    const yB = fn(s.xA + s.h);
+    const secant = (yB - yA) / s.h;
+    const tangent = deriv(s.xA);
+
+    document.getElementById('ovH').textContent = s.h.toFixed(3);
+    document.getElementById('ovSecant').textContent = secant.toFixed(4);
+    document.getElementById('ovTangent').textContent = tangent.toFixed(4);
+    document.getElementById('ovDiff').textContent = Math.abs(secant - tangent).toFixed(4);
+  }
+
+  // 控件
+  vizControls.style.display = 'flex';
+  vizControls.innerHTML = `
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">h（间距）</span>
+        <span class="viz-slider-value" id="hVal">${stepState.h.toFixed(3)}</span>
+      </div>
+      <input type="range" class="viz-slider" id="hSlider" min="0.001" max="3" step="0.001" value="${stepState.h}">
+    </div>
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">点 A 位置 x</span>
+        <span class="viz-slider-value" id="xAVal">${stepState.xA.toFixed(2)}</span>
+      </div>
+      <input type="range" class="viz-slider" id="xASlider" min="0.2" max="2.5" step="0.05" value="${stepState.xA}">
+    </div>
+  `;
+
+  const hSlider = document.getElementById('hSlider');
+  const hValEl = document.getElementById('hVal');
+  const xASlider = document.getElementById('xASlider');
+  const xAValEl = document.getElementById('xAVal');
+
+  hSlider.addEventListener('input', (e) => {
+    stepState.h = parseFloat(e.target.value);
+    hValEl.textContent = stepState.h.toFixed(3);
+    draw();
+    updateOverlay();
+  });
+
+  xASlider.addEventListener('input', (e) => {
+    stepState.xA = parseFloat(e.target.value);
+    xAValEl.textContent = stepState.xA.toFixed(2);
+    draw();
+    updateOverlay();
+  });
+
+  draw();
+  updateOverlay();
+}
+
+// ============================================================
+//  Step 4: 导数定义——几何与代数联动
+// ============================================================
+function renderDerivativeDef() {
+  stepState = {
+    h: 1.5,
+    xA: 1.5,
+    func: FUNCTIONS['x²'],
+    formulaProgress: 0
+  };
+
+  const cx = W * 0.32;
+  const cy = H * 0.65;
+  const xScale = 40;
+  const yScale = 40;
+
+  function draw() {
+    clearCanvas();
+    const s = stepState;
+    const fn = s.func.fn;
+    const deriv = s.func.deriv;
+
+    // ====== 左半：几何视图 ======
+    // 网格
+    drawGrid(cx, cy, 5, 5, xScale / 2, yScale / 2);
+    drawAxes(cx, cy, xScale, yScale, 'x', 'y');
+
+    // 曲线
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    let first = true;
+    for (let px = 0; px <= W * 0.55; px++) {
+      const x = (px - cx) / xScale;
+      const y = fn(x);
+      const py = cy - y * yScale;
+      if (py >= -50 && py <= H + 50) {
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    // 点 A 和 B
+    const xA = s.xA;
+    const yA = fn(xA);
+    const pxA = cx + xA * xScale;
+    const pyA = cy - yA * yScale;
+
+    const xB = xA + s.h;
+    const yB = fn(xB);
+    const pxB = cx + xB * xScale;
+    const pyB = cy - yB * yScale;
+
+    // 割线
+    ctx.strokeStyle = COLORS.gray;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    const secantSlope = (yB - yA) / s.h;
+    ctx.moveTo(cx + (xA - 1) * xScale, cy - (yA + secantSlope * (-1)) * yScale);
+    ctx.lineTo(cx + (xB + 1) * xScale, cy - (yB + secantSlope * 1) * yScale);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 切线
+    const tangentSlope = deriv(xA);
+    ctx.strokeStyle = COLORS.coral;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(cx + (xA - 1.5) * xScale, cy - (yA + tangentSlope * (-1.5)) * yScale);
+    ctx.lineTo(cx + (xA + 1.5) * xScale, cy - (yA + tangentSlope * 1.5) * yScale);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 点 A
+    ctx.fillStyle = COLORS.purple;
+    ctx.beginPath();
+    ctx.arc(pxA, pyA, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 点 B
+    if (Math.abs(s.h) > 0.01) {
+      ctx.fillStyle = COLORS.coral;
+      ctx.beginPath();
+      ctx.arc(pxB, pyB, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 标签
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 12px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('几何视角', 20, 20);
+
+    ctx.fillStyle = COLORS.textMuted;
+    ctx.font = '11px monospace';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`割线斜率: ${secantSlope.toFixed(3)}`, 20, H - 24);
+    ctx.fillStyle = COLORS.coral;
+    ctx.fillText(`切线斜率: ${tangentSlope.toFixed(3)} (= 导数)`, 20, H - 8);
+
+    // ====== 右半：代数推导 ======
+    const algX = W * 0.58;
+    const algY = 60;
+
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 12px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('代数推导', algX, 20);
+
+    // 分割线
+    ctx.strokeStyle = COLORS.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.55, 40);
+    ctx.lineTo(W * 0.55, H - 20);
+    ctx.stroke();
+
+    // 代数步骤（逐行显示，根据 h 值确定进度）
+    const lines = [
+      { text: `[f(x+h) - f(x)] / h`, y: algY, highlight: false },
+      { text: `= [(x+h)² - x²] / h`, y: algY + 40 },
+      { text: `= [x² + 2xh + h² - x²] / h`, y: algY + 80 },
+      { text: `= (2xh + h²) / h`, y: algY + 120 },
+      { text: `= 2x + h`, y: algY + 160, highlight: true },
+      { text: `h → 0 时: f'(x) = 2x`, y: algY + 210, final: true }
+    ];
+
+    // 根据 h 值确定显示到第几行
+    const progress = Math.max(0, 1 - s.h / 3);
+    const visibleLines = Math.ceil(progress * lines.length);
+
+    lines.forEach((line, i) => {
+      const visible = i < visibleLines || s.h < 0.01;
+      if (visible) {
+        ctx.globalAlpha = visible ? 1 : 0.3;
+        ctx.font = line.final ? '700 16px monospace' : (line.highlight ? '600 14px monospace' : '14px monospace');
+        ctx.fillStyle = line.final ? COLORS.purple : (line.highlight ? COLORS.coral : COLORS.text);
+        ctx.fillText(line.text, algX + 10, line.y);
+        ctx.globalAlpha = 1;
+      }
+    });
+
+    // 当前 h 值代入显示
+    if (s.h > 0.01) {
+      ctx.fillStyle = COLORS.textMuted;
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      const currentVal = 2 * s.xA + s.h;
+      ctx.fillText(`当前: 2(${s.xA}) + ${s.h.toFixed(3)} = ${currentVal.toFixed(3)}`, algX + 10, algY + 250);
+    } else {
+      ctx.fillStyle = COLORS.coral;
+      ctx.font = 'italic 700 14px serif';
+      ctx.fillText(`✓ h → 0: f'(${s.xA}) = ${(2 * s.xA).toFixed(2)}`, algX + 10, algY + 250);
+    }
+
+    // 联动指示
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath();
+    // 从割线到差商公式的连线
+    ctx.moveTo(pxB, pyB);
+    ctx.bezierCurveTo(pxB + 50, pyB, W * 0.5, algY + 20, algX, algY + 20);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 数据浮窗
+  dataOverlay.style.display = 'flex';
+  dataOverlay.innerHTML = `
+    <div class="data-row"><span class="data-label">h</span><span class="data-value" id="ovH">${stepState.h.toFixed(3)}</span></div>
+    <div class="data-row"><span class="data-label">2x + h</span><span class="data-value" id="ovApprox">${(2 * stepState.xA + stepState.h).toFixed(3)}</span></div>
+    <div class="data-row"><span class="data-label">f'(x) = 2x</span><span class="data-value coral" id="ovExact">${(2 * stepState.xA).toFixed(3)}</span></div>
+  `;
+
+  function updateOverlay() {
+    document.getElementById('ovH').textContent = stepState.h.toFixed(3);
+    document.getElementById('ovApprox').textContent = (2 * stepState.xA + stepState.h).toFixed(3);
+    document.getElementById('ovExact').textContent = (2 * stepState.xA).toFixed(3);
+  }
+
+  // 控件
+  vizControls.style.display = 'flex';
+  vizControls.innerHTML = `
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">h（差商间距）</span>
+        <span class="viz-slider-value" id="hVal">${stepState.h.toFixed(3)}</span>
+      </div>
+      <input type="range" class="viz-slider" id="hSlider" min="0.001" max="3" step="0.001" value="${stepState.h}">
+    </div>
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">x 位置</span>
+        <span class="viz-slider-value" id="xVal">${stepState.xA.toFixed(2)}</span>
+      </div>
+      <input type="range" class="viz-slider" id="xSlider" min="0.5" max="2.5" step="0.05" value="${stepState.xA}">
+    </div>
+  `;
+
+  document.getElementById('hSlider').addEventListener('input', (e) => {
+    stepState.h = parseFloat(e.target.value);
+    document.getElementById('hVal').textContent = stepState.h.toFixed(3);
+    draw();
+    updateOverlay();
+  });
+
+  document.getElementById('xSlider').addEventListener('input', (e) => {
+    stepState.xA = parseFloat(e.target.value);
+    document.getElementById('xVal').textContent = stepState.xA.toFixed(2);
+    draw();
+    updateOverlay();
+  });
+
+  draw();
+  updateOverlay();
+}
+
+// ============================================================
+//  Step 5: 瞬时变化率——物理意义
+// ============================================================
+function renderPhysicsMotion() {
+  stepState = {
+    t: 1.5,
+    playing: false,
+    animTime: 0
+  };
+
+  // 位置函数 s(t) = 0.5 * t² （匀加速运动）
+  const sFn = t => 0.5 * t * t;
+  const vFn = t => t; // 速度 = 导数 = t
+  const aFn = t => 1; // 加速度 = 导数的导数 = 1
+
+  // 上方：运动场景
+  const trackY = 70;
+  const trackStart = 60;
+  const trackEnd = W - 60;
+
+  // 中间：位置-时间图
+  const ptCx = W * 0.5;
+  const ptCy = H * 0.68;
+  const ptXScale = 50;
+  const ptYScale = 30;
+
+  // 右下：速度-时间图
+  const vtCx = W * 0.82;
+  const vtCy = H * 0.68;
+  const vtXScale = 50;
+  const vtYScale = 50;
+
+  const maxT = 4;
+
+  function draw() {
+    clearCanvas();
+    const s = stepState;
+    const t = s.t;
+
+    // ====== 上方：运动场景 ======
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 12px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('运动场景：匀加速运动 s(t) = ½t²', 20, 20);
+
+    // 跑道
+    ctx.strokeStyle = COLORS.axis;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(trackStart, trackY);
+    ctx.lineTo(trackEnd, trackY);
+    ctx.stroke();
+
+    // 刻度
+    ctx.fillStyle = COLORS.textMuted;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = 0; i <= 8; i++) {
+      const x = trackStart + (trackEnd - trackStart) * (i / 8);
+      ctx.strokeStyle = COLORS.axis;
+      ctx.beginPath();
+      ctx.moveTo(x, trackY - 4);
+      ctx.lineTo(x, trackY + 4);
+      ctx.stroke();
+      ctx.fillText(i.toString(), x, trackY + 8);
+    }
+    ctx.fillText('s', trackEnd + 12, trackY);
+
+    // 物体位置（按 s(t) 映射到跑道）
+    const maxS = sFn(maxT);
+    const objX = trackStart + (trackEnd - trackStart) * (sFn(t) / maxS);
+
+    // 运动轨迹
+    ctx.fillStyle = COLORS.purpleSoft;
+    ctx.fillRect(trackStart, trackY - 3, objX - trackStart, 6);
+
+    // 物体
+    ctx.fillStyle = COLORS.coral;
+    ctx.beginPath();
+    ctx.arc(objX, trackY - 15, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = '600 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('●', objX, trackY - 15);
+
+    // 时间和位置标注
+    ctx.fillStyle = COLORS.coral;
+    ctx.font = '600 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`t=${t.toFixed(2)}s  s=${sFn(t).toFixed(2)}m`, objX, trackY - 30);
+
+    // ====== 中间：位置-时间图 ======
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 11px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('位置-时间图 s(t)', 20, 100);
+
+    // 网格
+    drawGrid(ptCx, ptCy, 5, 4, ptXScale / 2, ptYScale / 2);
+    drawAxes(ptCx, ptCy, ptXScale, ptYScale, 't', 's');
+
+    // 位置曲线
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    first = true;
+    for (let px = 0; px <= W * 0.6; px++) {
+      const tt = (px - ptCx) / ptXScale;
+      if (tt < 0 || tt > maxT) continue;
+      const ss = sFn(tt);
+      const py = ptCy - ss * ptYScale;
+      if (py >= 100 && py <= H - 20) {
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    // 当前点
+    const curX = ptCx + t * ptXScale;
+    const curY = ptCy - sFn(t) * ptYScale;
+
+    // 切线（速度）
+    const vel = vFn(t);
+    ctx.strokeStyle = COLORS.coral;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(ptCx + (t - 1) * ptXScale, ptCy - (sFn(t) - vel * 1) * ptYScale);
+    ctx.lineTo(ptCx + (t + 1) * ptXScale, ptCy - (sFn(t) + vel * 1) * ptYScale);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 当前点标记
+    ctx.fillStyle = COLORS.coral;
+    ctx.beginPath();
+    ctx.arc(curX, curY, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 切线斜率标注
+    ctx.fillStyle = COLORS.coral;
+    ctx.font = '600 10px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`v = s'(t) = ${vel.toFixed(2)} m/s`, curX + 10, curY - 8);
+
+    // ====== 右下：速度-时间图 ======
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 11px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('速度-时间图 v(t)', W * 0.62, 100);
+
+    // 网格
+    drawGrid(vtCx, vtCy, 5, 4, vtXScale / 2, vtYScale / 2);
+    drawAxes(vtCx, vtCy, vtXScale, vtYScale, 't', 'v');
+
+    // 速度曲线（直线）
+    ctx.strokeStyle = COLORS.coral;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(vtCx, vtCy);
+    ctx.lineTo(vtCx + maxT * vtXScale, vtCy - vFn(maxT) * vtYScale);
+    ctx.stroke();
+
+    // 当前点
+    const vtX = vtCx + t * vtXScale;
+    const vtY = vtCy - vel * vtYScale;
+
+    // 投影线
+    ctx.strokeStyle = COLORS.gray;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(vtX, vtY);
+    ctx.lineTo(vtX, vtCy);
+    ctx.moveTo(vtX, vtY);
+    ctx.lineTo(vtCx, vtY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = COLORS.coral;
+    ctx.beginPath();
+    ctx.arc(vtX, vtY, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = COLORS.text;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`v=${vel.toFixed(2)}`, vtX + 8, vtY - 14);
+
+    // 加速度标注
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = 'italic 11px serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`a = v'(t) = ${aFn(t).toFixed(1)} m/s²`, W - 20, H - 8);
+  }
+
+  // 数据浮窗
+  dataOverlay.style.display = 'flex';
+  dataOverlay.innerHTML = `
+    <div class="data-row"><span class="data-label">时间 t</span><span class="data-value" id="ovT">—</span></div>
+    <div class="data-row"><span class="data-label">位置 s(t)</span><span class="data-value" id="ovS">—</span></div>
+    <div class="data-row"><span class="data-label">速度 v=s'(t)</span><span class="data-value coral" id="ovV">—</span></div>
+    <div class="data-row"><span class="data-label">加速度 a=v'(t)</span><span class="data-value" id="ovA">—</span></div>
+  `;
+
+  function updateOverlay() {
+    document.getElementById('ovT').textContent = stepState.t.toFixed(2) + 's';
+    document.getElementById('ovS').textContent = sFn(stepState.t).toFixed(2) + 'm';
+    document.getElementById('ovV').textContent = vFn(stepState.t).toFixed(2) + 'm/s';
+    document.getElementById('ovA').textContent = aFn(stepState.t).toFixed(1) + 'm/s²';
+  }
+
+  // 控件
+  vizControls.style.display = 'flex';
+  vizControls.innerHTML = `
+    <div class="viz-slider-group">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">时间 t</span>
+        <span class="viz-slider-value" id="tVal">${stepState.t.toFixed(2)}s</span>
+      </div>
+      <input type="range" class="viz-slider" id="tSlider" min="0" max="${maxT}" step="0.01" value="${stepState.t}">
+    </div>
+    <button class="func-btn ${stepState.playing ? 'active' : ''}" id="playMotionBtn" style="min-width:100px;">
+      ${stepState.playing ? '⏸ 暂停' : '▶ 播放运动'}
+    </button>
+  `;
+
+  document.getElementById('tSlider').addEventListener('input', (e) => {
+    stepState.t = parseFloat(e.target.value);
+    document.getElementById('tVal').textContent = stepState.t.toFixed(2) + 's';
+    draw();
+    updateOverlay();
+  });
+
+  document.getElementById('playMotionBtn').addEventListener('click', () => {
+    stepState.playing = !stepState.playing;
+    const btn = document.getElementById('playMotionBtn');
+    btn.textContent = stepState.playing ? '⏸ 暂停' : '▶ 播放运动';
+    btn.classList.toggle('active', stepState.playing);
+    if (stepState.playing) {
+      stepState.animTime = stepState.t;
+      animateMotion();
+    }
+  });
+
+  function animateMotion() {
+    if (!stepState.playing) return;
+    stepState.animTime += 0.016;
+    if (stepState.animTime > maxT) {
+      stepState.animTime = 0;
+    }
+    stepState.t = stepState.animTime;
+    document.getElementById('tSlider').value = stepState.t;
+    document.getElementById('tVal').textContent = stepState.t.toFixed(2) + 's';
+    draw();
+    updateOverlay();
+    animationId = requestAnimationFrame(animateMotion);
+  }
+
+  draw();
+  updateOverlay();
+}
+
+// ============================================================
+//  Step 6: 导数的世界——应用与最优化
+// ============================================================
+function renderApplications() {
+  stepState = {
+    funcKey: 'x²',
+    func: FUNCTIONS['x²'],
+    optX: 2.5,
+    showDeriv: true
+  };
+
+  // 上半：函数 + 导数对比图
+  const cx = W * 0.5;
+  const cy = H * 0.45;
+  const xScale = 40;
+  const yScale = 40;
+
+  // 下半：最优化互动
+  const optCy = H * 0.82;
+  const optCx = W * 0.5;
+  const optXScale = 50;
+  const optYScale = 15;
+
+  function draw() {
+    clearCanvas();
+    const s = stepState;
+    const fn = s.func.fn;
+    const deriv = s.func.deriv;
+
+    // ====== 上半：函数 + 导数图 ======
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 12px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`原函数 ${s.func.label} 与导数 ${s.func.dLabel}`, 20, 20);
+
+    // 网格
+    drawGrid(cx, cy, 5, 4, xScale / 2, yScale / 2);
+    drawAxes(cx, cy, xScale, yScale, 'x', 'y');
+
+    // 根据 sin 和 exp 调整 yScale
+    let yS = yScale;
+    let dyS = yScale;
+    if (s.funcKey === 'sin(x)') { yS = 60; dyS = 60; }
+    if (s.funcKey === 'eˣ') { yS = 20; dyS = 20; }
+    if (s.funcKey === 'x³') { yS = 12; dyS = 10; }
+
+    // 原函数曲线
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    let first = true;
+    const xMin = s.funcKey === 'eˣ' ? -2 : -3;
+    const xMax = s.funcKey === 'eˣ' ? 2 : 3;
+    for (let px = 0; px <= W; px++) {
+      const x = (px - cx) / xScale;
+      if (x < xMin || x > xMax) continue;
+      const y = fn(x);
+      const py = cy - y * yS;
+      if (py >= 40 && py <= H * 0.7) {
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    // 导数曲线
+    ctx.strokeStyle = COLORS.coral;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    first = true;
+    for (let px = 0; px <= W; px++) {
+      const x = (px - cx) / xScale;
+      if (x < xMin || x > xMax) continue;
+      const y = deriv(x);
+      const py = cy - y * dyS;
+      if (py >= 40 && py <= H * 0.7) {
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 图例
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '12px serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`— f(x) = ${s.func.label}`, W - 20, 30);
+    ctx.fillStyle = COLORS.coral;
+    ctx.fillText(`-- f'(x) = ${s.func.dLabel}`, W - 20, 48);
+
+    // 切线（在 x=1 处）
+    const demoX = 1;
+    if (demoX >= xMin && demoX <= xMax) {
+      const demoY = fn(demoX);
+      const demoSlope = deriv(demoX);
+      const dpx = cx + demoX * xScale;
+      const dpy = cy - demoY * yS;
+
+      ctx.strokeStyle = COLORS.coral;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(cx + (demoX - 1) * xScale, cy - (demoY - demoSlope * 1) * yS);
+      ctx.lineTo(cx + (demoX + 1) * xScale, cy - (demoY + demoSlope * 1) * yS);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = COLORS.coral;
+      ctx.beginPath();
+      ctx.arc(dpx, dpy, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = COLORS.coral;
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`f'(${demoX})=${demoSlope.toFixed(2)}`, dpx + 8, dpy - 6);
+    }
+
+    // ====== 下半：最优化互动 ======
+    const optTopY = H * 0.58;
+    ctx.strokeStyle = COLORS.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(20, optTopY);
+    ctx.lineTo(W - 20, optTopY);
+    ctx.stroke();
+
+    ctx.fillStyle = COLORS.purple;
+    ctx.font = '600 12px serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('最优化：拖动滑块找到利润最大值', 20, optTopY + 8);
+
+    // 利润函数：P(x) = -x² + 6x - 5 (max at x=3, P=4)
+    const pFn = x => -x * x + 6 * x - 5;
+    const pDeriv = x => -2 * x + 6;
+    const optMaxX = 3;
+    const optMaxP = pFn(optMaxX);
+
+    // 网格
+    drawGrid(optCx, optCy, 5, 3, optXScale / 2, optYScale * 2);
+    drawAxes(optCx, optCy, optXScale, optYScale, '产量 x', '利润 P');
+
+    // 利润曲线
+    ctx.strokeStyle = COLORS.purple;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    first = true;
+    for (let px = 0; px <= W; px++) {
+      const x = (px - optCx) / optXScale;
+      if (x < 0 || x > 6) continue;
+      const p = pFn(x);
+      const py = optCy - p * optYScale;
+      if (py >= optTopY + 30 && py <= H - 10) {
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    // 当前点
+    const optX = s.optX;
+    const optP = pFn(optX);
+    const optSlope = pDeriv(optX);
+    const opx = optCx + optX * optXScale;
+    const opy = optCy - optP * optYScale;
+
+    // 切线
+    ctx.strokeStyle = COLORS.coral;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(optCx + (optX - 1) * optXScale, optCy - (optP - optSlope * 1) * optYScale);
+    ctx.lineTo(optCx + (optX + 1) * optXScale, optCy - (optP + optSlope * 1) * optYScale);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 点
+    ctx.fillStyle = COLORS.coral;
+    ctx.beginPath();
+    ctx.arc(opx, opy, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = '600 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('●', opx, opy);
+
+    // 标注
+    ctx.fillStyle = COLORS.coral;
+    ctx.font = '600 10px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`P'(${optX.toFixed(1)})=${optSlope.toFixed(1)}`, opx + 10, opy - 8);
+
+    // 是否找到最优解
+    if (Math.abs(optSlope) < 0.3) {
+      ctx.fillStyle = COLORS.purple;
+      ctx.font = '700 14px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText('✓ 找到最优解！导数 = 0，切线水平', W / 2, H - 30);
+    } else {
+      ctx.fillStyle = COLORS.textMuted;
+      ctx.font = 'italic 12px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const hint = optSlope > 0 ? '导数 > 0，增加产量试试 →' : '← 导数 < 0，减少产量试试';
+      ctx.fillText(hint, W / 2, H - 30);
+    }
+  }
+
+  // 数据浮窗
+  dataOverlay.style.display = 'flex';
+  dataOverlay.innerHTML = `
+    <div class="data-row"><span class="data-label">f(x)</span><span class="data-value" id="ovF">—</span></div>
+    <div class="data-row"><span class="data-label">f'(x)</span><span class="data-value coral" id="ovD">—</span></div>
+    <div class="data-row"><span class="data-label">利润 P</span><span class="data-value" id="ovP">—</span></div>
+    <div class="data-row"><span class="data-label">P'(x)</span><span class="data-value coral" id="ovPD">—</span></div>
+  `;
+
+  function updateOverlay() {
+    const demoX = 1;
+    document.getElementById('ovF').textContent = stepState.func.fn(demoX).toFixed(2);
+    document.getElementById('ovD').textContent = stepState.func.deriv(demoX).toFixed(2);
+    const pFn = x => -x * x + 6 * x - 5;
+    const pDeriv = x => -2 * x + 6;
+    document.getElementById('ovP').textContent = pFn(stepState.optX).toFixed(2);
+    document.getElementById('ovPD').textContent = pDeriv(stepState.optX).toFixed(2);
+  }
+
+  // 控件：函数选择器 + 优化滑块
+  vizControls.style.display = 'flex';
+  vizControls.innerHTML = `
+    <div class="func-selector">
+      <button class="func-btn active" data-fn="x²">x²</button>
+      <button class="func-btn" data-fn="x³">x³</button>
+      <button class="func-btn" data-fn="sin(x)">sin(x)</button>
+      <button class="func-btn" data-fn="eˣ">eˣ</button>
+    </div>
+    <div class="viz-slider-group" style="min-width:160px;">
+      <div class="viz-slider-header">
+        <span class="viz-slider-label">产量 x（找最大利润）</span>
+        <span class="viz-slider-value" id="optVal">${stepState.optX.toFixed(1)}</span>
+      </div>
+      <input type="range" class="viz-slider" id="optSlider" min="0" max="6" step="0.1" value="${stepState.optX}">
+    </div>
+  `;
+
+  document.querySelectorAll('.func-btn[data-fn]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.func-btn[data-fn]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      stepState.funcKey = btn.dataset.fn;
+      stepState.func = FUNCTIONS[stepState.funcKey];
+      draw();
+      updateOverlay();
+    });
+  });
+
+  document.getElementById('optSlider').addEventListener('input', (e) => {
+    stepState.optX = parseFloat(e.target.value);
+    document.getElementById('optVal').textContent = stepState.optX.toFixed(1);
+    draw();
+    updateOverlay();
+  });
+
+  draw();
+  updateOverlay();
+}
+
+// ====== 初始化 ======
+updateStep(0);
+</script>
+
+</body>
+</html>

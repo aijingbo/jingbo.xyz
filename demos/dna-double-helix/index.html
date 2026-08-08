@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>DNA 双螺旋结构探索 · 景礴</title>
+  <link rel="stylesheet" href="/assets/css/design-system.css" />
+  <link rel="stylesheet" href="/assets/css/demo-framework.css" />
+  <style>
+    :root {
+      --bg: #0a0a0c;
+      --bg-glass: rgba(14, 14, 18, 0.62);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: rgba(255, 255, 255, 0.92);
+      --text-dim: rgba(255, 255, 255, 0.48);
+      --accent: #00E5FF;
+      --accent-glow: rgba(0, 229, 255, 0.25);
+      --radius: 10px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: radial-gradient(ellipse at 50% 45%, #16161e 0%, #0a0a0c 55%, #050507 100%);
+      overflow: hidden;
+      font-family: -apple-system, 'PingFang SC', 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      color: var(--text);
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #canvas-container { position: fixed; inset: 0; }
+    #canvas-container canvas { display: block; }
+
+    .glass {
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px) saturate(1.3);
+      -webkit-backdrop-filter: blur(20px) saturate(1.3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    /* ===== Mode Switch Panel (moved from top bar) ===== */
+    #mode-panel {
+      position: fixed;
+      top: 80px;
+      right: 12px;
+      padding: 8px 10px;
+      z-index: 10;
+    }
+
+    .mode-buttons { display: flex; gap: 4px; }
+    .mode-buttons button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+    .mode-buttons button:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+    .mode-buttons button.active {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ===== Legend ===== */
+    #legend {
+      position: fixed;
+      top: 80px; left: 12px;
+      padding: 14px 16px;
+      z-index: 10;
+      font-size: 12px;
+      max-width: 200px;
+    }
+
+    .legend-title {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .legend-item .dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 10px 0;
+    }
+
+    .legend-fact {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 3px;
+      line-height: 1.5;
+    }
+
+    /* ===== Bottom Controls ===== */
+    #bottom-controls {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+    }
+
+    .ctrl-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      padding: 5px 9px;
+      border-radius: 6px;
+      transition: all 0.25s ease;
+    }
+    .ctrl-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .ctrl-btn.active { color: var(--accent); }
+    .ctrl-btn svg { width: 15px; height: 15px; fill: currentColor; }
+
+    .slider-group { display: flex; align-items: center; gap: 6px; }
+    .slider-group label { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 70px; height: 3px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px; height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--accent-glow);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 12px; height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 6px var(--accent-glow);
+    }
+
+    /* ===== Info Panel ===== */
+    #info-panel {
+      position: fixed;
+      top: 50%; right: 12px;
+      transform: translateY(-50%) translateX(calc(100% + 24px));
+      width: 290px;
+      padding: 22px;
+      z-index: 10;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #info-panel.visible { transform: translateY(-50%) translateX(0); }
+
+    .close-btn {
+      position: absolute;
+      top: 10px; right: 14px;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+    }
+    .close-btn:hover { color: var(--text); }
+
+    .info-content h3 { font-size: 17px; margin-bottom: 3px; line-height: 1.3; }
+    .info-content .en-name { font-size: 11px; color: var(--text-dim); margin-bottom: 14px; letter-spacing: 0.5px; }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .info-row .label { color: var(--text-dim); }
+    .info-row .value { color: var(--text); font-weight: 500; }
+
+    .info-desc {
+      margin-top: 14px;
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: var(--text-dim);
+    }
+
+    /* ===== Sequence Bar ===== */
+    #sequence-bar {
+      position: fixed;
+      bottom: 62px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 16px;
+      z-index: 10;
+      font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: center;
+    }
+
+    .seq-row { display: flex; gap: 6px; align-items: center; }
+    .seq-label { color: var(--text-dim); font-size: 10px; min-width: 16px; }
+    .seq-base {
+      width: 18px;
+      text-align: center;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 4px;
+      padding: 1px 0;
+    }
+    .seq-base:hover { background: rgba(255,255,255,0.06); }
+    .seq-base.active {
+      transform: scale(1.35);
+      box-shadow: 0 0 10px currentColor;
+      background: rgba(255,255,255,0.08);
+    }
+
+    /* ===== Hint ===== */
+    #hint {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, calc(-50% + 140px));
+      font-size: 13px;
+      color: var(--text-dim);
+      z-index: 5;
+      pointer-events: none;
+      letter-spacing: 1px;
+      animation: hintFade 7s ease forwards;
+    }
+    @keyframes hintFade {
+      0%, 25% { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+
+    /* ===== Loader ===== */
+    #loader {
+      position: fixed; inset: 0;
+      background: #0a0a0c;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.8s ease;
+    }
+    #loader.hidden { opacity: 0; pointer-events: none; }
+
+    .loader-spinner {
+      width: 36px; height: 36px;
+      border: 2px solid rgba(79, 195, 247, 0.15);
+      border-top-color: #4FC3F7;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+      .mode-buttons button { padding: 4px 8px; font-size: 11px; }
+      #legend { font-size: 11px; padding: 10px 12px; max-width: 160px; top: 80px; }
+      #mode-panel { top: 72px; right: 8px; padding: 6px 8px; }
+      #info-panel {
+        top: auto; bottom: 70px; right: 8px; left: 8px;
+        width: auto; max-height: 45vh; overflow-y: auto;
+        transform: translateY(calc(100% + 24px));
+      }
+      #info-panel.visible { transform: translateY(0); }
+      #sequence-bar { display: none; }
+      .ctrl-btn span { display: none; }
+      input[type="range"] { width: 50px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="loader">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">正在构建 DNA 分子模型</div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <header class="demo-navbar immersive" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">生物</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">DNA 双螺旋结构探索</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-bio">生物</span>
+      <a href="/skills/jingbo-edu-3d-bio-structure-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- 模式切换浮动面板 -->
+  <div id="mode-panel" class="glass">
+    <div class="mode-buttons">
+      <button data-mode="ball-stick" class="active">球棍模型</button>
+      <button data-mode="space-filling">空间填充</button>
+      <button data-mode="backbone">骨架模型</button>
+    </div>
+  </div>
+
+  <div id="legend" class="glass">
+    <div class="legend-title">碱基图例</div>
+    <div class="legend-item"><span class="dot" style="background:#4FC3F7;box-shadow:0 0 6px #4FC3F7"></span>糖-磷酸骨架</div>
+    <div class="legend-item"><span class="dot" style="background:#26A69A;box-shadow:0 0 6px #26A69A"></span>腺嘌呤 A</div>
+    <div class="legend-item"><span class="dot" style="background:#FF7043;box-shadow:0 0 6px #FF7043"></span>胸腺嘧啶 T</div>
+    <div class="legend-item"><span class="dot" style="background:#FFD54F;box-shadow:0 0 6px #FFD54F"></span>胞嘧啶 C</div>
+    <div class="legend-item"><span class="dot" style="background:#AB47BC;box-shadow:0 0 6px #AB47BC"></span>鸟嘌呤 G</div>
+    <div class="legend-divider"></div>
+    <div class="legend-title">结构参数</div>
+    <div class="legend-fact">右手螺旋 · 螺距 3.4 nm</div>
+    <div class="legend-fact">每圈 10 对 · 间距 0.34 nm</div>
+    <div class="legend-fact">反向平行双链</div>
+    <div class="legend-fact">A=T (2 氢键) · G≡C (3 氢键)</div>
+  </div>
+
+  <div id="sequence-bar" class="glass">
+    <div class="seq-row" id="seq-row-1"></div>
+    <div class="seq-row" id="seq-row-2"></div>
+  </div>
+
+  <div id="bottom-controls">
+    <div class="control-group glass">
+      <button id="play-pause" class="ctrl-btn active" title="播放/暂停">
+        <svg id="icon-pause" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+        <svg id="icon-play" viewBox="0 0 24 24" style="display:none"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="slider-group">
+        <label>速度</label>
+        <input type="range" id="speed-slider" min="0" max="100" value="30">
+      </div>
+    </div>
+    <div class="control-group glass">
+      <button id="clip-toggle" class="ctrl-btn" title="剖切模式">
+        <svg viewBox="0 0 24 24"><path d="M3 3h18v2H3V3zm0 16h18v2H3v-2zm6-4h2V9H9v6zm4 0h2V9h-2v6zm4 0h2V9h-2v6z"/></svg>
+        <span>剖切</span>
+      </button>
+      <div class="slider-group" id="clip-control" style="display:none">
+        <input type="range" id="clip-slider" min="-100" max="100" value="0">
+      </div>
+      <button id="fullscreen-btn" class="ctrl-btn" title="全屏">
+        <svg viewBox="0 0 24 24"><path d="M3 3h6v2H5v4H3V3zm12 0h6v6h-2V5h-4V3zM3 15h2v4h4v2H3v-6zm16 0h2v6h-6v-2h4v-4z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="info-panel" class="glass">
+    <button class="close-btn" id="close-info">×</button>
+    <div class="info-content"></div>
+  </div>
+
+  <div id="hint">拖拽旋转 · 滚轮缩放 · 点击碱基查看详情</div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+    // ==================== CONFIGURATION ====================
+    const DNA = {
+      basePairs: 20,
+      rise: 1.0,
+      radius: 3.0,
+      twist: Math.PI / 5,
+      strandOffset: Math.PI * 0.78,
+      backboneRadius: 0.32,
+      bondRadius: 0.04,
+      backboneConnRadius: 0.07,
+    };
+
+    const SEQ_1 = 'ATGCATCGATGCATCGATGC';
+    const SEQ_2 = 'TACGTAGCTACGTAGCTACG';
+
+    const BASE_INFO = {
+      A: { name: '腺嘌呤', en: 'Adenine', type: '嘌呤（双环）', pair: 'T', pairName: '胸腺嘧啶', bonds: 2, color: 0x26A69A, hex: '#26A69A',
+           desc: '嘌呤型碱基，含双环结构。与胸腺嘧啶（T）通过两条氢键配对，形成 A-T 碱基对。A-T 配对键能较低，在 DNA 复制和转录时较易解链。' },
+      T: { name: '胸腺嘧啶', en: 'Thymine', type: '嘧啶（单环）', pair: 'A', pairName: '腺嘌呤', bonds: 2, color: 0xFF7043, hex: '#FF7043',
+           desc: '嘧啶型碱基，含单环结构。与腺嘌呤（A）通过两条氢键配对。胸腺嘧啶是 DNA 特有碱基（RNA 中为尿嘧啶 U），可吸收紫外线保护遗传信息。' },
+      C: { name: '胞嘧啶', en: 'Cytosine', type: '嘧啶（单环）', pair: 'G', pairName: '鸟嘌呤', bonds: 3, color: 0xFFD54F, hex: '#FFD54F',
+           desc: '嘧啶型碱基，含单环结构。与鸟嘌呤（G）通过三条氢键配对。G-C 配对键能较高，使富含 G-C 的 DNA 区域结构更加稳定。' },
+      G: { name: '鸟嘌呤', en: 'Guanine', type: '嘌呤（双环）', pair: 'C', pairName: '胞嘧啶', bonds: 3, color: 0xAB47BC, hex: '#AB47BC',
+           desc: '嘌呤型碱基，含双环结构。与胞嘧啶（C）通过三条氢键配对。G-C 三氢键使 DNA 双螺旋在 G-C 含量高的区域更稳定，影响解链温度。' },
+    };
+
+    const BACKBONE_COLOR = 0x4FC3F7;
+    const HIGHLIGHT_COLOR = 0x00E5FF;
+
+    // ==================== GLOBALS ====================
+    let scene, camera, renderer, composer, controls, clock;
+    let dnaGroup, basePairGroups = [];
+    let clipPlane, clipRing;
+    let raycaster;
+    let selectedPair = null;
+    let autoRotate = true;
+    let rotationSpeed = 0.3;
+    let entranceProgress = 0;
+    const entranceDuration = 2.5;
+    let isDragging = false;
+    let clipEnabled = false;
+    let currentMode = 'ball-stick';
+    let pointerDownPos = null;
+
+    // ==================== INITIALIZATION ====================
+    function init() {
+      clock = new THREE.Clock();
+      setupScene();
+      setupLighting();
+      createBackgroundParticles();
+      buildDNA();
+      setupClipping();
+      setupControls();
+      setupRaycaster();
+      setupUI();
+      setupEventListeners();
+      animate();
+      // Hide loader
+      setTimeout(() => {
+        document.getElementById('loader').classList.add('hidden');
+      }, 300);
+    }
+
+    // ==================== SCENE ====================
+    function setupScene() {
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+      camera.position.set(0, 0, 35);
+
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance',
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      renderer.localClippingEnabled = true;
+      renderer.setClearColor(0x000000, 0);
+      document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+      // Post-processing
+      composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        0.65,  // strength
+        0.4,   // radius
+        0.2    // threshold
+      );
+      composer.addPass(bloomPass);
+      composer.addPass(new OutputPass());
+    }
+
+    // ==================== LIGHTING ====================
+    function setupLighting() {
+      scene.add(new THREE.AmbientLight(0x1a2a3a, 0.6));
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      dirLight.position.set(5, 10, 8);
+      scene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0x4a6a9a, 0.25);
+      fillLight.position.set(-8, -3, -5);
+      scene.add(fillLight);
+
+      const point1 = new THREE.PointLight(0x4FC3F7, 0.8, 40);
+      point1.position.set(6, 4, 6);
+      scene.add(point1);
+
+      const point2 = new THREE.PointLight(0xAB47BC, 0.4, 35);
+      point2.position.set(-6, -2, 4);
+      scene.add(point2);
+
+      const hemi = new THREE.HemisphereLight(0x335577, 0x110011, 0.3);
+      scene.add(hemi);
+    }
+
+    // ==================== BACKGROUND PARTICLES ====================
+    function createBackgroundParticles() {
+      const count = 350;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+
+      for (let i = 0; i < count; i++) {
+        const r = 25 + Math.random() * 45;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        positions[i * 3 + 2] = r * Math.cos(phi);
+
+        const c = new THREE.Color();
+        c.setHSL(0.54 + Math.random() * 0.08, 0.4, 0.25 + Math.random() * 0.25);
+        colors[i * 3] = c.r;
+        colors[i * 3 + 1] = c.g;
+        colors[i * 3 + 2] = c.b;
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const mat = new THREE.PointsMaterial({
+        size: 0.12,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.35,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
+        depthWrite: false,
+      });
+
+      const particles = new THREE.Points(geo, mat);
+      particles.userData.isBackground = true;
+      scene.add(particles);
+    }
+
+    // ==================== HELPER: CYLINDER BETWEEN TWO POINTS ====================
+    function createBond(start, end, radius, material, segments = 8) {
+      const dir = new THREE.Vector3().subVectors(end, start);
+      const len = dir.length();
+      if (len < 0.001) return new THREE.Mesh(new THREE.BufferGeometry(), material);
+
+      const geo = new THREE.CylinderGeometry(radius, radius, len, segments);
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.position.copy(start).add(end).multiplyScalar(0.5);
+
+      const up = new THREE.Vector3(0, 1, 0);
+      const norm = dir.clone().normalize();
+      if (norm.distanceTo(up) > 0.001) {
+        mesh.quaternion.setFromUnitVectors(up, norm);
+      }
+      return mesh;
+    }
+
+    // ==================== DNA CONSTRUCTION ====================
+    function buildDNA() {
+      dnaGroup = new THREE.Group();
+
+      const sphereGeo = new THREE.SphereGeometry(DNA.backboneRadius, 14, 10);
+      const baseGeo = new THREE.SphereGeometry(0.42, 18, 14);
+      baseGeo.scale(0.75, 0.2, 0.5);
+
+      const halfHeight = (DNA.basePairs - 1) * DNA.rise / 2;
+
+      for (let i = 0; i < DNA.basePairs; i++) {
+        const pairGroup = new THREE.Group();
+        pairGroup.scale.setScalar(0);
+        pairGroup.userData.index = i;
+
+        const angle = i * DNA.twist;
+        const y = i * DNA.rise - halfHeight;
+        const base1 = SEQ_1[i];
+        const base2 = SEQ_2[i];
+        const info1 = BASE_INFO[base1];
+        const info2 = BASE_INFO[base2];
+
+        // Backbone positions
+        const pos1 = new THREE.Vector3(DNA.radius * Math.cos(angle), y, DNA.radius * Math.sin(angle));
+        const pos2 = new THREE.Vector3(
+          DNA.radius * Math.cos(angle + DNA.strandOffset),
+          y,
+          DNA.radius * Math.sin(angle + DNA.strandOffset)
+        );
+
+        // Backbone spheres
+        const mat1 = new THREE.MeshPhongMaterial({
+          color: BACKBONE_COLOR, emissive: BACKBONE_COLOR, emissiveIntensity: 0.25,
+          shininess: 80, specular: 0xffffff, transparent: true, opacity: 0.9, side: THREE.DoubleSide,
+        });
+        const mat2 = mat1.clone();
+
+        const sph1 = new THREE.Mesh(sphereGeo, mat1);
+        sph1.position.copy(pos1);
+        sph1.userData = { type: 'backbone-sphere', strand: 1, index: i, base: base1 };
+
+        const sph2 = new THREE.Mesh(sphereGeo, mat2);
+        sph2.position.copy(pos2);
+        sph2.userData = { type: 'backbone-sphere', strand: 2, index: i, base: base2 };
+
+        pairGroup.add(sph1, sph2);
+
+        // Backbone connections to previous
+        if (i > 0) {
+          const prevAngle = (i - 1) * DNA.twist;
+          const prevY = (i - 1) * DNA.rise - halfHeight;
+          const prevPos1 = new THREE.Vector3(DNA.radius * Math.cos(prevAngle), prevY, DNA.radius * Math.sin(prevAngle));
+          const prevPos2 = new THREE.Vector3(
+            DNA.radius * Math.cos(prevAngle + DNA.strandOffset), prevY,
+            DNA.radius * Math.sin(prevAngle + DNA.strandOffset)
+          );
+
+          const connMat = new THREE.MeshPhongMaterial({
+            color: BACKBONE_COLOR, emissive: BACKBONE_COLOR, emissiveIntensity: 0.15,
+            shininess: 60, transparent: true, opacity: 0.7, side: THREE.DoubleSide,
+          });
+          const conn1 = createBond(prevPos1, pos1, DNA.backboneConnRadius, connMat.clone(), 8);
+          const conn2 = createBond(prevPos2, pos2, DNA.backboneConnRadius, connMat.clone(), 8);
+          conn1.userData = { type: 'backbone-conn', strand: 1 };
+          conn2.userData = { type: 'backbone-conn', strand: 2 };
+          pairGroup.add(conn1, conn2);
+        }
+
+        // Base inner positions (toward center)
+        const innerR = DNA.radius * 0.18;
+        const inner1 = new THREE.Vector3(innerR * Math.cos(angle), y, innerR * Math.sin(angle));
+        const inner2 = new THREE.Vector3(
+          innerR * Math.cos(angle + DNA.strandOffset), y,
+          innerR * Math.sin(angle + DNA.strandOffset)
+        );
+
+        // Base meshes
+        const baseMat1 = new THREE.MeshPhongMaterial({
+          color: info1.color, emissive: info1.color, emissiveIntensity: 0.35,
+          shininess: 60, transparent: true, opacity: 0.93, side: THREE.DoubleSide,
+        });
+        const baseMat2 = new THREE.MeshPhongMaterial({
+          color: info2.color, emissive: info2.color, emissiveIntensity: 0.35,
+          shininess: 60, transparent: true, opacity: 0.93, side: THREE.DoubleSide,
+        });
+
+        const baseMid1 = new THREE.Vector3().lerpVectors(pos1, inner1, 0.5);
+        const baseMid2 = new THREE.Vector3().lerpVectors(pos2, inner2, 0.5);
+
+        const bm1 = new THREE.Mesh(baseGeo, baseMat1);
+        bm1.position.copy(baseMid1);
+        bm1.lookAt(0, y, 0);
+        bm1.userData = { type: 'base', strand: 1, index: i, base: base1 };
+
+        const bm2 = new THREE.Mesh(baseGeo.clone(), baseMat2);
+        bm2.position.copy(baseMid2);
+        bm2.lookAt(0, y, 0);
+        bm2.userData = { type: 'base', strand: 2, index: i, base: base2 };
+
+        pairGroup.add(bm1, bm2);
+
+        // Hydrogen bonds
+        const numBonds = info1.bonds;
+        const bondDir = new THREE.Vector3().subVectors(inner2, inner1).normalize();
+        const perpDir = new THREE.Vector3(-bondDir.z, 0, bondDir.x).normalize();
+
+        const hBondMat = new THREE.MeshBasicMaterial({
+          color: 0xffffff, transparent: true, opacity: 0.4,
+          blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+        });
+
+        for (let b = 0; b < numBonds; b++) {
+          const offset = (b - (numBonds - 1) / 2) * 0.13;
+          const bStart = inner1.clone().addScaledVector(perpDir, offset);
+          const bEnd = inner2.clone().addScaledVector(perpDir, offset);
+          const bond = createBond(bStart, bEnd, DNA.bondRadius, hBondMat.clone(), 6);
+          bond.userData = { type: 'bond', index: i };
+          pairGroup.add(bond);
+        }
+
+        // Store refs for highlight & animation
+        pairGroup.userData.bm1 = bm1;
+        pairGroup.userData.bm2 = bm2;
+        pairGroup.userData.sph1 = sph1;
+        pairGroup.userData.sph2 = sph2;
+        pairGroup.userData.origEmissiveBase = 0.35;
+        pairGroup.userData.origEmissiveBackbone = 0.25;
+
+        // Apply clipping planes to all materials
+        pairGroup.traverse(child => {
+          if (child.material) {
+            child.material.clippingPlanes = [];
+          }
+        });
+
+        basePairGroups.push(pairGroup);
+        dnaGroup.add(pairGroup);
+      }
+
+      scene.add(dnaGroup);
+    }
+
+    // ==================== CLIPPING PLANE ====================
+    function setupClipping() {
+      clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 20);
+
+      // Visual ring at clip position
+      const ringGeo = new THREE.TorusGeometry(DNA.radius + 1.2, 0.025, 8, 64);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: HIGHLIGHT_COLOR, transparent: true, opacity: 0.4,
+        blending: THREE.AdditiveBlending,
+      });
+      clipRing = new THREE.Mesh(ringGeo, ringMat);
+      clipRing.rotation.x = Math.PI / 2;
+      clipRing.visible = false;
+      scene.add(clipRing);
+    }
+
+    function toggleClipping(enabled) {
+      clipEnabled = enabled;
+      const planes = enabled ? [clipPlane] : [];
+
+      basePairGroups.forEach(pg => {
+        pg.traverse(child => {
+          if (child.material) {
+            child.material.clippingPlanes = planes;
+          }
+        });
+      });
+
+      clipRing.visible = enabled;
+      document.getElementById('clip-control').style.display = enabled ? 'flex' : 'none';
+      document.getElementById('clip-toggle').classList.toggle('active', enabled);
+
+      if (enabled) updateClipPosition(0);
+    }
+
+    function updateClipPosition(value) {
+      // value: -100 to 100, map to DNA height range
+      const halfH = (DNA.basePairs - 1) * DNA.rise / 2;
+      const y = (value / 100) * halfH * 1.1;
+      clipPlane.constant = y;
+      clipRing.position.y = y;
+    }
+
+    // ==================== ORBIT CONTROLS ====================
+    function setupControls() {
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.minDistance = 8;
+      controls.maxDistance = 50;
+      controls.target.set(0, 0, 0);
+      controls.enablePan = false;
+
+      controls.addEventListener('start', () => { isDragging = true; });
+      controls.addEventListener('end', () => { isDragging = false; });
+    }
+
+    // ==================== RAYCASTER ====================
+    function setupRaycaster() {
+      raycaster = new THREE.Raycaster();
+    }
+
+    function getClickableMeshes() {
+      const meshes = [];
+      basePairGroups.forEach(pg => {
+        pg.traverse(child => {
+          if (child.userData.type === 'base' || child.userData.type === 'backbone-sphere') {
+            meshes.push(child);
+          }
+        });
+      });
+      return meshes;
+    }
+
+    function onPointerDown(event) {
+      pointerDownPos = { x: event.clientX, y: event.clientY };
+    }
+
+    function onPointerUp(event) {
+      if (!pointerDownPos) return;
+      const dx = event.clientX - pointerDownPos.x;
+      const dy = event.clientY - pointerDownPos.y;
+      pointerDownPos = null;
+      if (Math.sqrt(dx * dx + dy * dy) > 5) return; // was a drag
+
+      const mouse = new THREE.Vector2(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / window.innerHeight) * 2 + 1
+      );
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(getClickableMeshes());
+
+      if (intersects.length > 0) {
+        selectBasePair(intersects[0].object.userData.index);
+      } else {
+        selectBasePair(null);
+      }
+    }
+
+    // ==================== SELECTION & HIGHLIGHT ====================
+    function selectBasePair(index) {
+      // Reset previous
+      if (selectedPair !== null) {
+        const pg = basePairGroups[selectedPair];
+        pg.userData.bm1.material.emissiveIntensity = pg.userData.origEmissiveBase;
+        pg.userData.bm2.material.emissiveIntensity = pg.userData.origEmissiveBase;
+        document.querySelectorAll('.seq-base.active').forEach(el => el.classList.remove('active'));
+      }
+
+      if (index === null || index === selectedPair) {
+        selectedPair = null;
+        document.getElementById('info-panel').classList.remove('visible');
+        return;
+      }
+
+      selectedPair = index;
+      showInfoPanel(index);
+      document.querySelectorAll(`.seq-base[data-index="${index}"]`).forEach(el => el.classList.add('active'));
+    }
+
+    function showInfoPanel(index) {
+      const b1 = SEQ_1[index], b2 = SEQ_2[index];
+      const i1 = BASE_INFO[b1], i2 = BASE_INFO[b2];
+
+      document.querySelector('.info-content').innerHTML = `
+        <h3 style="color:${i1.hex}">${i1.name} (${b1}) <span style="color:rgba(255,255,255,0.4);font-size:14px">—</span> <span style="color:${i2.hex}">${i2.name} (${b2})</span></h3>
+        <div class="en-name">${i1.en} — ${i2.en}</div>
+        <div class="info-row"><span class="label">位置</span><span class="value">第 ${index + 1} 对碱基</span></div>
+        <div class="info-row"><span class="label">碱基类型</span><span class="value">${i1.type} / ${i2.type}</span></div>
+        <div class="info-row"><span class="label">配对方式</span><span class="value">${b1}=${b2}</span></div>
+        <div class="info-row"><span class="label">氢键数</span><span class="value">${i1.bonds} 条</span></div>
+        <div class="info-row"><span class="label">螺旋角度</span><span class="value">${(index * 36)}°</span></div>
+        <div class="info-desc">${i1.desc}</div>
+      `;
+      document.getElementById('info-panel').classList.add('visible');
+    }
+
+    // ==================== DISPLAY MODE ====================
+    function setDisplayMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-buttons button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+
+      basePairGroups.forEach(pg => {
+        pg.traverse(child => {
+          if (!child.material) return;
+          const t = child.userData.type;
+          if (mode === 'ball-stick') {
+            child.visible = true;
+            child.scale.setScalar(child.userData.baseScale || 1);
+          } else if (mode === 'space-filling') {
+            if (t === 'backbone-sphere') {
+              child.visible = true;
+              child.scale.setScalar(2.5);
+            } else {
+              child.visible = false;
+            }
+          } else if (mode === 'backbone') {
+            child.visible = (t === 'backbone-sphere' || t === 'backbone-conn');
+            child.scale.setScalar(1);
+          }
+        });
+      });
+    }
+
+    // ==================== UI ====================
+    function setupUI() {
+      // Sequence bar
+      const row1 = document.getElementById('seq-row-1');
+      const row2 = document.getElementById('seq-row-2');
+      row1.innerHTML = '<span class="seq-label">5\'</span>';
+      row2.innerHTML = '<span class="seq-label">3\'</span>';
+
+      for (let i = 0; i < SEQ_1.length; i++) {
+        const b1 = SEQ_1[i], b2 = SEQ_2[i];
+        const s1 = document.createElement('span');
+        s1.className = 'seq-base';
+        s1.textContent = b1;
+        s1.style.color = BASE_INFO[b1].hex;
+        s1.dataset.index = i;
+        s1.addEventListener('click', () => selectBasePair(i));
+        row1.appendChild(s1);
+
+        const s2 = document.createElement('span');
+        s2.className = 'seq-base';
+        s2.textContent = b2;
+        s2.style.color = BASE_INFO[b2].hex;
+        s2.dataset.index = i;
+        s2.addEventListener('click', () => selectBasePair(i));
+        row2.appendChild(s2);
+      }
+
+      const endLabel1 = document.createElement('span');
+      endLabel1.className = 'seq-label';
+      endLabel1.textContent = "3'";
+      row1.appendChild(endLabel1);
+
+      const endLabel2 = document.createElement('span');
+      endLabel2.className = 'seq-label';
+      endLabel2.textContent = "5'";
+      row2.appendChild(endLabel2);
+    }
+
+    // ==================== EVENT LISTENERS ====================
+    function setupEventListeners() {
+      // Play / Pause
+      document.getElementById('play-pause').addEventListener('click', () => {
+        autoRotate = !autoRotate;
+        document.getElementById('play-pause').classList.toggle('active', autoRotate);
+        document.getElementById('icon-pause').style.display = autoRotate ? '' : 'none';
+        document.getElementById('icon-play').style.display = autoRotate ? 'none' : '';
+      });
+
+      // Speed slider
+      document.getElementById('speed-slider').addEventListener('input', (e) => {
+        rotationSpeed = (e.target.value / 100) * 1.2;
+      });
+
+      // Display mode buttons
+      document.querySelectorAll('.mode-buttons button').forEach(btn => {
+        btn.addEventListener('click', () => setDisplayMode(btn.dataset.mode));
+      });
+
+      // Clip toggle
+      document.getElementById('clip-toggle').addEventListener('click', () => {
+        toggleClipping(!clipEnabled);
+      });
+
+      // Clip slider
+      document.getElementById('clip-slider').addEventListener('input', (e) => {
+        updateClipPosition(parseInt(e.target.value));
+      });
+
+      // Fullscreen
+      document.getElementById('fullscreen-btn').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      });
+
+      // Close info panel
+      document.getElementById('close-info').addEventListener('click', () => {
+        selectBasePair(null);
+      });
+
+      // Canvas pointer events
+      const canvas = renderer.domElement;
+      canvas.addEventListener('pointerdown', onPointerDown);
+      canvas.addEventListener('pointerup', onPointerUp);
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        switch (e.key) {
+          case ' ':
+            e.preventDefault();
+            document.getElementById('play-pause').click();
+            break;
+          case 'f': case 'F':
+            document.getElementById('fullscreen-btn').click();
+            break;
+          case 'c': case 'C':
+            document.getElementById('clip-toggle').click();
+            break;
+          case '1': setDisplayMode('ball-stick'); break;
+          case '2': setDisplayMode('space-filling'); break;
+          case '3': setDisplayMode('backbone'); break;
+          case 'Escape':
+            if (selectedPair !== null) selectBasePair(null);
+            break;
+        }
+      });
+
+      // Resize
+      window.addEventListener('resize', onResize);
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // ==================== EASING ====================
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+    function easeOutBack(t) {
+      const c1 = 1.70158, c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    }
+
+    // ==================== ANIMATION LOOP ====================
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.getElapsedTime();
+
+      // Entrance animation
+      if (entranceProgress < 1) {
+        entranceProgress = Math.min(1, entranceProgress + dt / entranceDuration);
+        const eased = easeOutCubic(entranceProgress);
+        const total = basePairGroups.length + 2;
+        const visible = eased * total;
+
+        basePairGroups.forEach((pg, i) => {
+          const pp = Math.max(0, Math.min(1, visible - i));
+          pg.scale.setScalar(easeOutBack(pp));
+        });
+
+        // Camera zoom-in during entrance
+        camera.position.z = 35 - (35 - 19) * eased;
+      }
+
+      // Auto rotation
+      if (autoRotate && !isDragging && entranceProgress >= 0.3) {
+        dnaGroup.rotation.y += rotationSpeed * dt;
+      }
+
+      // Background particle slow rotation
+      scene.children.forEach(child => {
+        if (child.userData.isBackground) {
+          child.rotation.y += 0.0003;
+        }
+      });
+
+      // Selected pair pulse
+      if (selectedPair !== null) {
+        const pulse = 0.5 + 0.35 * Math.sin(t * 3.5);
+        const pg = basePairGroups[selectedPair];
+        if (pg && pg.userData.bm1) {
+          pg.userData.bm1.material.emissiveIntensity = pulse;
+          pg.userData.bm2.material.emissiveIntensity = pulse;
+        }
+      }
+
+      // Clip ring subtle pulse
+      if (clipEnabled && clipRing) {
+        clipRing.material.opacity = 0.3 + 0.15 * Math.sin(t * 2);
+      }
+
+      controls.update();
+      composer.render();
+    }
+
+    // ==================== START ====================
+    try {
+      init();
+    } catch (err) {
+      console.error('Initialization error:', err);
+      document.getElementById('loader').innerHTML =
+        '<div style="color:#ff6b6b;font-size:14px;text-align:center;padding:20px">加载失败，请检查网络连接后刷新页面</div>';
+    }
+  </script>
+</body>
+</html>

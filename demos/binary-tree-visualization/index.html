@@ -1,0 +1,2383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>二叉树与数据结构可视化 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<style>
+  html, body { height: 100%; overflow: hidden; }
+
+  /* === App Layout === */
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100svh;
+  }
+
+  /* === Navbar === */
+  .navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacer-24);
+    height: 56px;
+    flex-shrink: 0;
+    background: rgba(250, 248, 245, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+  }
+  .navbar-left { display: flex; align-items: center; gap: var(--spacer-16); }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text-muted); text-decoration: none;
+    font-size: var(--fs-small); font-weight: 500;
+    transition: color var(--duration-fast) var(--ease);
+  }
+  .back-link:hover { color: var(--text); }
+  .navbar-logo {
+    font-family: var(--font-serif); font-size: 17px; font-weight: 700;
+    color: var(--text); text-decoration: none; letter-spacing: 0.02em;
+  }
+  .navbar-title {
+    font-family: var(--font-serif);
+    font-size: 15px; font-weight: 600; color: var(--text);
+  }
+  .navbar-right { display: flex; align-items: center; gap: var(--spacer-12); }
+
+  /* === Main === */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* === Sidebar === */
+  .sidebar {
+    width: 320px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-scroll {
+    flex: 1; overflow-y: auto;
+    padding: 16px 20px 24px;
+  }
+  .sidebar-scroll::-webkit-scrollbar { width: 5px; }
+  .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .ctrl-section {
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .ctrl-section:last-child { border-bottom: none; }
+  .ctrl-section h3 {
+    font-family: var(--font-sans);
+    font-size: 11px; font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+
+  /* === Tab Groups === */
+  .tab-group {
+    display: flex;
+    background: var(--surface-muted);
+    border-radius: var(--radius);
+    padding: 3px; gap: 2px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 12px; font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    white-space: nowrap;
+    font-family: var(--font-sans);
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    background: var(--surface);
+    color: var(--brand);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  /* === Input Group === */
+  .input-row {
+    display: flex; gap: 6px; margin-bottom: 8px;
+  }
+  .input-row input[type="number"] {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color var(--duration-fast) var(--ease);
+  }
+  .input-row input[type="number"]:focus {
+    border-color: var(--brand);
+  }
+  .input-row input[type="number"]::-webkit-inner-spin-button { opacity: 0.5; }
+
+  .op-btn {
+    padding: 7px 12px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    font-family: var(--font-sans);
+    white-space: nowrap;
+  }
+  .op-btn:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+  }
+  .op-btn:active { transform: scale(0.96); }
+  .op-btn.primary {
+    background: var(--brand); color: #fff; border-color: var(--brand);
+  }
+  .op-btn.primary:hover { background: var(--brand-hover); }
+  .op-btn.danger { color: #dc2626; border-color: var(--border); }
+  .op-btn.danger:hover { border-color: #dc2626; background: rgba(220,38,38,0.05); }
+  .op-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* === Slider Row === */
+  .slider-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .slider-row label {
+    font-size: 12px; color: var(--text-muted);
+    min-width: 48px; flex-shrink: 0;
+  }
+  .slider-row input[type="range"] {
+    flex: 1; height: 4px;
+    -webkit-appearance: none; appearance: none;
+    background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--brand); cursor: pointer; border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(194,65,12,0.3);
+  }
+  .slider-row input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--brand); cursor: pointer; border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(194,65,12,0.3);
+  }
+  .slider-val {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--text); min-width: 32px; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .range-row {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+  }
+  .range-row label {
+    font-size: 12px; color: var(--text-muted);
+  }
+  .range-row input[type="number"] {
+    width: 56px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    text-align: center;
+  }
+  .range-row input[type="number"]:focus { border-color: var(--brand); }
+
+  /* === Checkbox === */
+  .checkbox-group {
+    display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px;
+  }
+  .checkbox-group label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--text-muted); cursor: pointer;
+  }
+  .checkbox-group input[type="checkbox"] {
+    width: 14px; height: 14px; accent-color: var(--brand); cursor: pointer;
+  }
+
+  /* === Select === */
+  .select-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .select-row label {
+    font-size: 12px; color: var(--text-muted); min-width: 48px;
+  }
+  .select-row select {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+    font-family: var(--font-sans);
+  }
+
+  .btn-full {
+    width: 100%; padding: 8px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-muted);
+    color: var(--text);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease);
+    font-family: var(--font-sans);
+  }
+  .btn-full:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+  }
+
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  /* === Canvas Area === */
+  .canvas-area {
+    flex: 1; position: relative;
+    background: #faf8f5;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tree-canvas {
+    flex: 1; position: relative;
+    overflow: hidden;
+  }
+
+  #tree-svg {
+    width: 100%; height: 100%;
+    display: block;
+    cursor: grab;
+  }
+  #tree-svg:active { cursor: grabbing; }
+
+  /* === Info Panel === */
+  .info-panel {
+    position: absolute;
+    top: 16px; right: 16px;
+    display: flex; flex-direction: column;
+    gap: 6px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+    z-index: 10;
+    min-width: 140px;
+  }
+  .info-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 12px;
+  }
+  .info-label {
+    font-size: 10px; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .info-value {
+    font-family: var(--font-mono);
+    font-size: 15px; font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .info-value.accent { color: var(--brand); }
+
+  /* === Legend === */
+  .legend {
+    position: absolute;
+    top: 16px; left: 16px;
+    display: flex; flex-direction: column;
+    gap: 5px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+    z-index: 10;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* === Traversal Display === */
+  .traversal-bar {
+    flex-shrink: 0;
+    padding: 10px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px;
+    min-height: 48px;
+  }
+  .traversal-label {
+    font-size: 11px; font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .traversal-sequence {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    flex: 1; align-items: center;
+    min-height: 28px;
+  }
+  .seq-item {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; height: 28px;
+    padding: 0 6px;
+    font-family: var(--font-mono);
+    font-size: 12px; font-weight: 600;
+    border-radius: var(--radius);
+    background: var(--surface-muted);
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    transition: all 0.25s var(--ease);
+    animation: seqPop 0.3s var(--ease);
+  }
+  .seq-item.visited {
+    background: rgba(39,174,96,0.12);
+    color: #27ae60;
+    border-color: rgba(39,174,96,0.25);
+  }
+  .seq-item.current {
+    background: rgba(243,156,18,0.15);
+    color: #f39c12;
+    border-color: rgba(243,156,18,0.35);
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(243,156,18,0.2);
+  }
+  @keyframes seqPop {
+    0% { opacity: 0; transform: scale(0.5); }
+    60% { transform: scale(1.15); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* === Status Bar === */
+  .status-bar {
+    position: absolute;
+    bottom: 16px; left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 20px;
+    background: rgba(26,35,50,0.88);
+    color: #e2e8f0;
+    font-size: 12px;
+    border-radius: var(--radius-full);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    z-index: 10;
+    max-width: 80%;
+    text-align: center;
+    transition: opacity 0.3s var(--ease);
+    pointer-events: none;
+  }
+  .status-bar.hidden { opacity: 0; }
+
+  /* === Empty State === */
+  .empty-state {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--text-faint);
+    pointer-events: none;
+  }
+  .empty-state svg {
+    width: 64px; height: 64px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+  .empty-state p {
+    font-size: 14px;
+    color: var(--text-faint);
+  }
+
+  /* === SVG Node Styles === */
+  .node-group {
+    cursor: pointer;
+    transition: transform 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+  .node-group .node-circle {
+    transition: fill 0.3s var(--ease), stroke 0.3s var(--ease), r 0.3s var(--ease);
+  }
+  .node-group .node-text {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    user-select: none;
+  }
+  .node-group .node-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    text-anchor: middle;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.7;
+  }
+  .node-group.state-current .node-circle {
+    filter: drop-shadow(0 0 8px rgba(243,156,18,0.5));
+  }
+  .node-group.state-visited .node-circle {
+    filter: drop-shadow(0 0 6px rgba(39,174,96,0.4));
+  }
+  .node-group.entering {
+    animation: nodeEnter 0.4s var(--ease);
+  }
+  @keyframes nodeEnter {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  .node-group.entering .node-circle {
+    animation: circlePop 0.4s cubic-bezier(0.34, 1.5, 0.64, 1);
+  }
+  @keyframes circlePop {
+    0% { r: 0; }
+    100% { r: 22; }
+  }
+  .node-group.leaving {
+    animation: nodeLeave 0.3s var(--ease) forwards;
+  }
+  @keyframes nodeLeave {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .edge-path {
+    fill: none;
+    stroke: #cbd0d6;
+    stroke-width: 1.5;
+    transition: d 0.45s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s var(--ease), stroke-width 0.3s var(--ease);
+  }
+  .edge-path.highlighted {
+    stroke: #f39c12;
+    stroke-width: 2.5;
+  }
+
+  .edge-dot {
+    fill: #bdc3c7;
+    transition: fill 0.3s var(--ease);
+  }
+
+  /* === Breathing glow for current node === */
+  @keyframes breathGlow {
+    0%, 100% { filter: drop-shadow(0 0 4px rgba(243,156,18,0.4)); }
+    50% { filter: drop-shadow(0 0 12px rgba(243,156,18,0.7)); }
+  }
+  .node-group.state-current .node-circle {
+    animation: breathGlow 1.5s ease-in-out infinite;
+  }
+
+  /* === Responsive === */
+  @media (max-width: 768px) {
+    .main { flex-direction: column-reverse; }
+    .sidebar { width: 100%; height: 42%; border-right: none; border-top: 1px solid var(--border); }
+    .canvas-area { flex: 1; }
+    .info-panel { top: 8px; right: 8px; padding: 10px 14px; min-width: 120px; }
+    .legend { top: 8px; left: 8px; padding: 8px 10px; }
+  }
+</style>
+
+<style>
+.demo-navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 56px;
+  background: rgba(250, 248, 245, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  transition: background 300ms ease, border-color 300ms ease;
+}
+.demo-navbar.scrolled {
+  background: rgba(250, 248, 245, 0.96);
+  border-bottom-color: rgba(0,0,0,0.1);
+}
+.demo-nav-left { display: flex; align-items: center; gap: 12px; }
+.demo-nav-logo {
+  font-family: var(--nm-font-cn-serif, "Noto Serif SC", serif);
+  font-size: 17px; font-weight: 700; color: var(--text, #1c1714);
+  text-decoration: none; letter-spacing: 0.04em;
+}
+.demo-nav-divider {
+  width: 1px; height: 16px; background: rgba(0,0,0,0.12);
+}
+.demo-nav-subject {
+  font-size: 14px; color: var(--text-muted, #6b6258);
+  text-decoration: none; font-weight: 500;
+  transition: color 200ms ease;
+}
+.demo-nav-subject:hover { color: var(--brand, #c2410c); }
+.demo-nav-center {
+  font-size: 14px; font-weight: 600; color: var(--text, #1c1714);
+  text-align: center; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.demo-nav-right { display: flex; align-items: center; gap: 12px; }
+.demo-btn-download {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; font-size: 13px; font-weight: 500;
+  color: var(--brand, #c2410c); text-decoration: none;
+  border: 1px solid rgba(194, 65, 12, 0.2); border-radius: 6px;
+  transition: all 200ms ease;
+}
+.demo-btn-download:hover {
+  background: rgba(194, 65, 12, 0.06); border-color: rgba(194, 65, 12, 0.3);
+}
+.demo-btn-download svg { width: 14px; height: 14px; }
+.tag {
+  display: inline-block; padding: 3px 8px; font-size: 12px;
+  font-weight: 600; border-radius: 4px;
+}
+.tag-bio { background: rgba(5,150,105,0.1); color: #059669; }
+.tag-chem { background: rgba(217,119,6,0.1); color: #d97706; }
+.tag-geo { background: rgba(8,145,178,0.1); color: #0891b2; }
+.tag-physics { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.tag-math { background: rgba(194,65,12,0.1); color: #c2410c; }
+.tag-history { background: rgba(220,38,38,0.1); color: #dc2626; }
+.tag-cs { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.tag-art { background: rgba(236,72,153,0.1); color: #ec4899; }
+.tag-cross { background: rgba(107,114,128,0.1); color: #6b7280; }
+@media (max-width: 768px) {
+  .demo-nav-center { display: none; }
+  .demo-nav-right .tag { display: none; }
+  .demo-btn-download span { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Navbar -->
+  <header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">计算机</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">二叉树与数据结构可视化</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-cs">计算机</span>
+      <a href="/skills/jingbo-edu-cs-algorithm-viz-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-scroll">
+
+        <!-- Tree Type -->
+        <section class="ctrl-section">
+          <h3>树类型</h3>
+          <div class="tab-group" id="tree-type-tabs">
+            <button class="tab-btn active" data-type="bst">BST</button>
+            <button class="tab-btn" data-type="avl">AVL 树</button>
+            <button class="tab-btn" data-type="rb">红黑树</button>
+          </div>
+        </section>
+
+        <!-- Node Operations -->
+        <section class="ctrl-section">
+          <h3>节点操作</h3>
+          <div class="input-row">
+            <input type="number" id="node-input" placeholder="输入数值" min="1" max="999">
+            <button class="op-btn primary" id="btn-insert">插入</button>
+          </div>
+          <div class="input-row">
+            <button class="op-btn" id="btn-delete" style="flex:1">删除</button>
+            <button class="op-btn" id="btn-search" style="flex:1">查找</button>
+          </div>
+        </section>
+
+        <!-- Random Generate -->
+        <section class="ctrl-section">
+          <h3>随机生成</h3>
+          <div class="slider-row">
+            <label>数量</label>
+            <input type="range" id="rng-count" min="1" max="30" value="10">
+            <span class="slider-val" id="rng-count-val">10</span>
+          </div>
+          <div class="range-row">
+            <label>范围</label>
+            <input type="number" id="rng-min" value="1" min="1" max="50">
+            <span style="color:var(--text-faint)">—</span>
+            <input type="number" id="rng-max" value="99" min="50" max="200">
+          </div>
+          <button class="btn-full" id="btn-random">随机生成树</button>
+        </section>
+
+        <!-- Display Options -->
+        <section class="ctrl-section">
+          <h3>显示选项</h3>
+          <div class="checkbox-group">
+            <label><input type="checkbox" id="opt-height"> 高度</label>
+            <label><input type="checkbox" id="opt-balance"> 平衡因子</label>
+            <label><input type="checkbox" id="opt-subtree"> 子树大小</label>
+          </div>
+          <div class="select-row">
+            <label>布局</label>
+            <select id="opt-layout">
+              <option value="compact">紧凑</option>
+              <option value="standard" selected>标准</option>
+              <option value="spacious">宽松</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- Animation Speed -->
+        <section class="ctrl-section">
+          <h3>动画速度</h3>
+          <div class="tab-group" id="speed-tabs">
+            <button class="tab-btn" data-speed="0.25">0.25x</button>
+            <button class="tab-btn" data-speed="0.5">0.5x</button>
+            <button class="tab-btn active" data-speed="1">1x</button>
+            <button class="tab-btn" data-speed="2">2x</button>
+            <button class="tab-btn" data-speed="4">4x</button>
+          </div>
+        </section>
+
+        <!-- Traversal -->
+        <section class="ctrl-section">
+          <h3>遍历演示</h3>
+          <div class="tab-group" id="traversal-tabs" style="margin-bottom:10px">
+            <button class="tab-btn" data-trav="preorder">前序</button>
+            <button class="tab-btn active" data-trav="inorder">中序</button>
+            <button class="tab-btn" data-trav="postorder">后序</button>
+            <button class="tab-btn" data-trav="levelorder">层序</button>
+          </div>
+          <div class="input-row">
+            <button class="op-btn" id="btn-play" style="flex:1">▶ 播放</button>
+            <button class="op-btn" id="btn-step-fwd" style="flex:1">⏭ 单步</button>
+          </div>
+          <div class="input-row">
+            <button class="op-btn" id="btn-step-back" style="flex:1">⏮ 回退</button>
+            <button class="op-btn" id="btn-reset-trav" style="flex:1">↺ 重置</button>
+          </div>
+        </section>
+
+        <!-- Presets -->
+        <section class="ctrl-section">
+          <h3>预设场景</h3>
+          <div class="preset-grid">
+            <button class="op-btn" data-preset="1">BST 基本操作</button>
+            <button class="op-btn" data-preset="2">AVL 旋转演示</button>
+            <button class="op-btn" data-preset="3">红黑树插入</button>
+            <button class="op-btn" data-preset="4">遍历对比</button>
+            <button class="op-btn" data-preset="5">最坏情况</button>
+            <button class="op-btn danger" id="btn-clear">清空树</button>
+          </div>
+        </section>
+
+      </div>
+    </aside>
+
+    <!-- Canvas Area -->
+    <div class="canvas-area">
+      <div class="tree-canvas" id="tree-canvas">
+        <svg id="tree-svg" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="grad-normal" cx="35%" cy="30%">
+              <stop offset="0%" stop-color="#6b8ec5"/>
+              <stop offset="100%" stop-color="#4a6fa5"/>
+            </radialGradient>
+            <radialGradient id="grad-current" cx="35%" cy="30%">
+              <stop offset="0%" stop-color="#fbb040"/>
+              <stop offset="100%" stop-color="#f39c12"/>
+            </radialGradient>
+            <radialGradient id="grad-path" cx="35%" cy="30%">
+              <stop offset="0%" stop-color="#9fcde8"/>
+              <stop offset="100%" stop-color="#7fb3d5"/>
+            </radialGradient>
+            <radialGradient id="grad-visited" cx="35%" cy="30%">
+              <stop offset="0%" stop-color="#3dc770"/>
+              <stop offset="100%" stop-color="#27ae60"/>
+            </radialGradient>
+            <radialGradient id="grad-rb-red" cx="35%" cy="30%">
+              <stop offset="0%" stop-color="#ef6b62"/>
+              <stop offset="100%" stop-color="#e74c3c"/>
+            </radialGradient>
+            <radialGradient id="grad-rb-black" cx="35%" cy="30%">
+              <stop offset="0%" stop-color="#3d556e"/>
+              <stop offset="100%" stop-color="#2c3e50"/>
+            </radialGradient>
+            <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+              <feOffset dx="0" dy="2"/>
+              <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <g id="edges-group"></g>
+          <g id="nodes-group"></g>
+        </svg>
+
+        <!-- Legend -->
+        <div class="legend" id="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#4a6fa5"></div>普通节点</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>当前操作</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7fb3d5"></div>查找路径</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>已遍历</div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel" id="info-panel">
+          <div class="info-row">
+            <span class="info-label">节点数</span>
+            <span class="info-value" id="info-count">0</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">树高度</span>
+            <span class="info-value" id="info-height">0</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">平衡状态</span>
+            <span class="info-value" id="info-balanced">—</span>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="4" r="2"/>
+            <circle cx="6" cy="12" r="2"/>
+            <circle cx="18" cy="12" r="2"/>
+            <circle cx="3" cy="20" r="2"/>
+            <circle cx="9" cy="20" r="2"/>
+            <line x1="12" y1="6" x2="6" y2="10"/>
+            <line x1="12" y1="6" x2="18" y2="10"/>
+            <line x1="6" y1="14" x2="3" y2="18"/>
+            <line x1="6" y1="14" x2="9" y2="18"/>
+          </svg>
+          <p>树为空，请插入节点或使用随机生成</p>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar hidden" id="status-bar">就绪</div>
+      </div>
+
+      <!-- Traversal Bar -->
+      <div class="traversal-bar">
+        <span class="traversal-label" id="trav-label">遍历序列</span>
+        <div class="traversal-sequence" id="trav-sequence"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   Utility
+   ============================================================ */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+const delay = (ms) => new Promise(r => setTimeout(r, ms));
+const NS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs = {}) => {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+};
+
+/* ============================================================
+   TreeNode
+   ============================================================ */
+let _nodeIdCounter = 0;
+class TreeNode {
+  constructor(value) {
+    this.value = value;
+    this.left = null;
+    this.right = null;
+    this.parent = null;
+    this.height = 1;
+    this.color = 'red';
+    this._id = ++_nodeIdCounter;
+    this._px = 0;
+    this._py = 0;
+  }
+}
+
+/* ============================================================
+   BST
+   ============================================================ */
+class BST {
+  constructor() { this.root = null; this.size = 0; }
+
+  insert(value) {
+    if (this._findNode(value)) return false;
+    const node = new TreeNode(value);
+    if (!this.root) { this.root = node; this.size++; return true; }
+    let cur = this.root;
+    while (true) {
+      if (value < cur.value) {
+        if (!cur.left) { cur.left = node; node.parent = cur; break; }
+        cur = cur.left;
+      } else {
+        if (!cur.right) { cur.right = node; node.parent = cur; break; }
+        cur = cur.right;
+      }
+    }
+    this.size++;
+    return true;
+  }
+
+  delete(value) {
+    const node = this._findNode(value);
+    if (!node) return false;
+    this._deleteNode(node);
+    this.size--;
+    return true;
+  }
+
+  _deleteNode(node) {
+    let replace, child, parent;
+    if (!node.left || !node.right) {
+      replace = node;
+    } else {
+      replace = this._minNode(node.right);
+    }
+    child = replace.left || replace.right;
+    parent = replace.parent;
+    if (child) child.parent = parent;
+    if (!parent) {
+      this.root = child;
+    } else {
+      if (parent.left === replace) parent.left = child;
+      else parent.right = child;
+    }
+    if (replace !== node) {
+      node.value = replace.value;
+    }
+    if (!this.root) this.root = null;
+  }
+
+  _minNode(node) {
+    while (node.left) node = node.left;
+    return node;
+  }
+
+  _findNode(value) {
+    let cur = this.root;
+    while (cur) {
+      if (value === cur.value) return cur;
+      cur = value < cur.value ? cur.left : cur.right;
+    }
+    return null;
+  }
+
+  search(value) {
+    const path = [];
+    let cur = this.root;
+    while (cur) {
+      path.push(cur);
+      if (value === cur.value) return { found: true, path };
+      cur = value < cur.value ? cur.left : cur.right;
+    }
+    return { found: false, path };
+  }
+
+  insertPath(value) {
+    const path = [];
+    if (!this.root) return path;
+    let cur = this.root;
+    while (cur) {
+      path.push(cur);
+      if (value === cur.value) return path;
+      cur = value < cur.value ? cur.left : cur.right;
+    }
+    return path;
+  }
+
+  preorder() {
+    const r = [];
+    const walk = (n) => { if (!n) return; r.push(n); walk(n.left); walk(n.right); };
+    walk(this.root);
+    return r;
+  }
+  inorder() {
+    const r = [];
+    const walk = (n) => { if (!n) return; walk(n.left); r.push(n); walk(n.right); };
+    walk(this.root);
+    return r;
+  }
+  postorder() {
+    const r = [];
+    const walk = (n) => { if (!n) return; walk(n.left); walk(n.right); r.push(n); };
+    walk(this.root);
+    return r;
+  }
+  levelorder() {
+    if (!this.root) return [];
+    const r = [], q = [this.root];
+    while (q.length) { const n = q.shift(); r.push(n); if (n.left) q.push(n.left); if (n.right) q.push(n.right); }
+    return r;
+  }
+
+  getHeight(node = this.root) {
+    if (!node) return 0;
+    return 1 + Math.max(this.getHeight(node.left), this.getHeight(node.right));
+  }
+
+  getBalanceFactor(node) {
+    if (!node) return 0;
+    return this.getHeight(node.left) - this.getHeight(node.right);
+  }
+
+  getSubtreeSize(node = this.root) {
+    if (!node) return 0;
+    return 1 + this.getSubtreeSize(node.left) + this.getSubtreeSize(node.right);
+  }
+
+  isBalanced(node = this.root) {
+    if (!node) return true;
+    const bf = Math.abs(this.getBalanceFactor(node));
+    return bf <= 1 && this.isBalanced(node.left) && this.isBalanced(node.right);
+  }
+
+  getAllNodes() {
+    const r = [];
+    const walk = (n) => { if (!n) return; r.push(n); walk(n.left); walk(n.right); };
+    walk(this.root);
+    return r;
+  }
+
+  clear() { this.root = null; this.size = 0; }
+}
+
+/* ============================================================
+   AVL Tree
+   ============================================================ */
+class AVLTree extends BST {
+  constructor() {
+    super();
+    this.rotationLog = [];
+  }
+
+  _height(node) { return node ? node.height : 0; }
+  _bf(node) { return node ? this._height(node.left) - this._height(node.right) : 0; }
+  _updateHeight(node) {
+    node.height = 1 + Math.max(this._height(node.left), this._height(node.right));
+  }
+
+  _rotateLeft(node) {
+    this.rotationLog.push({ type: 'left', value: node.value });
+    const r = node.right;
+    node.right = r.left;
+    if (r.left) r.left.parent = node;
+    r.parent = node.parent;
+    if (!node.parent) this.root = r;
+    else if (node === node.parent.left) node.parent.left = r;
+    else node.parent.right = r;
+    r.left = node;
+    node.parent = r;
+    this._updateHeight(node);
+    this._updateHeight(r);
+    return r;
+  }
+
+  _rotateRight(node) {
+    this.rotationLog.push({ type: 'right', value: node.value });
+    const l = node.left;
+    node.left = l.right;
+    if (l.right) l.right.parent = node;
+    l.parent = node.parent;
+    if (!node.parent) this.root = l;
+    else if (node === node.parent.right) node.parent.right = l;
+    else node.parent.left = l;
+    l.right = node;
+    node.parent = l;
+    this._updateHeight(node);
+    this._updateHeight(l);
+    return l;
+  }
+
+  _rebalance(node) {
+    while (node) {
+      this._updateHeight(node);
+      const bf = this._bf(node);
+      if (bf > 1) {
+        if (this._bf(node.left) < 0) {
+          this._rotateLeft(node.left);
+        }
+        node = this._rotateRight(node);
+      } else if (bf < -1) {
+        if (this._bf(node.right) > 0) {
+          this._rotateRight(node.right);
+        }
+        node = this._rotateLeft(node);
+      }
+      node = node.parent;
+    }
+  }
+
+  insert(value) {
+    this.rotationLog = [];
+    if (this._findNode(value)) return false;
+    const node = new TreeNode(value);
+    if (!this.root) { this.root = node; this.size++; return true; }
+    let cur = this.root;
+    while (true) {
+      if (value < cur.value) {
+        if (!cur.left) { cur.left = node; node.parent = cur; break; }
+        cur = cur.left;
+      } else {
+        if (!cur.right) { cur.right = node; node.parent = cur; break; }
+        cur = cur.right;
+      }
+    }
+    this.size++;
+    this._rebalance(node.parent);
+    return true;
+  }
+
+  delete(value) {
+    this.rotationLog = [];
+    const node = this._findNode(value);
+    if (!node) return false;
+    const startRebalance = node.parent;
+    this._deleteNode(node);
+    this.size--;
+    this._rebalance(startRebalance || this.root);
+    return true;
+  }
+
+  _deleteNode(node) {
+    let replace, child;
+    if (!node.left || !node.right) {
+      replace = node;
+    } else {
+      replace = this._minNode(node.right);
+    }
+    child = replace.left || replace.right;
+    const parent = replace.parent;
+    if (child) child.parent = parent;
+    if (!parent) this.root = child;
+    else if (parent.left === replace) parent.left = child;
+    else parent.right = child;
+    if (replace !== node) node.value = replace.value;
+  }
+}
+
+/* ============================================================
+   Red-Black Tree
+   ============================================================ */
+class RBTree extends BST {
+  constructor() {
+    super();
+    this.rotationLog = [];
+    this.colorLog = [];
+  }
+
+  _isRed(node) { return node && node.color === 'red'; }
+  _isBlack(node) { return !node || node.color === 'black'; }
+
+  _setColor(node, color) {
+    if (node) {
+      if (node.color !== color) this.colorLog.push({ value: node.value, color });
+      node.color = color;
+    }
+  }
+
+  _rotateLeft(node) {
+    this.rotationLog.push({ type: 'left', value: node.value });
+    const r = node.right;
+    node.right = r.left;
+    if (r.left) r.left.parent = node;
+    r.parent = node.parent;
+    if (!node.parent) this.root = r;
+    else if (node === node.parent.left) node.parent.left = r;
+    else node.parent.right = r;
+    r.left = node;
+    node.parent = r;
+  }
+
+  _rotateRight(node) {
+    this.rotationLog.push({ type: 'right', value: node.value });
+    const l = node.left;
+    node.left = l.right;
+    if (l.right) l.right.parent = node;
+    l.parent = node.parent;
+    if (!node.parent) this.root = l;
+    else if (node === node.parent.right) node.parent.right = l;
+    else node.parent.left = l;
+    l.right = node;
+    node.parent = l;
+  }
+
+  insert(value) {
+    this.rotationLog = [];
+    this.colorLog = [];
+    if (this._findNode(value)) return false;
+    const node = new TreeNode(value);
+    node.color = 'red';
+    if (!this.root) {
+      this.root = node;
+      node.color = 'black';
+      this.colorLog.push({ value: node.value, color: 'black' });
+      this.size++;
+      return true;
+    }
+    let cur = this.root;
+    while (true) {
+      if (value < cur.value) {
+        if (!cur.left) { cur.left = node; node.parent = cur; break; }
+        cur = cur.left;
+      } else {
+        if (!cur.right) { cur.right = node; node.parent = cur; break; }
+        cur = cur.right;
+      }
+    }
+    this.size++;
+    this._insertFixup(node);
+    return true;
+  }
+
+  _insertFixup(node) {
+    while (node.parent && this._isRed(node.parent)) {
+      const gp = node.parent.parent;
+      if (!gp) break;
+      if (node.parent === gp.left) {
+        const uncle = gp.right;
+        if (this._isRed(uncle)) {
+          this._setColor(node.parent, 'black');
+          this._setColor(uncle, 'black');
+          this._setColor(gp, 'red');
+          node = gp;
+        } else {
+          if (node === node.parent.right) {
+            node = node.parent;
+            this._rotateLeft(node);
+          }
+          this._setColor(node.parent, 'black');
+          this._setColor(gp, 'red');
+          this._rotateRight(gp);
+        }
+      } else {
+        const uncle = gp.left;
+        if (this._isRed(uncle)) {
+          this._setColor(node.parent, 'black');
+          this._setColor(uncle, 'black');
+          this._setColor(gp, 'red');
+          node = gp;
+        } else {
+          if (node === node.parent.left) {
+            node = node.parent;
+            this._rotateRight(node);
+          }
+          this._setColor(node.parent, 'black');
+          this._setColor(gp, 'red');
+          this._rotateLeft(gp);
+        }
+      }
+    }
+    this._setColor(this.root, 'black');
+  }
+
+  delete(value) {
+    this.rotationLog = [];
+    this.colorLog = [];
+    const node = this._findNode(value);
+    if (!node) return false;
+
+    let y = node;
+    let yOriginalColor = y.color;
+    let x, xParent, xIsLeft;
+
+    if (!node.left) {
+      x = node.right;
+      xParent = node.parent;
+      xIsLeft = node.parent ? (node.parent.left === node) : false;
+      this._transplant(node, node.right);
+    } else if (!node.right) {
+      x = node.left;
+      xParent = node.parent;
+      xIsLeft = node.parent ? (node.parent.left === node) : false;
+      this._transplant(node, node.left);
+    } else {
+      y = this._minNode(node.right);
+      yOriginalColor = y.color;
+      x = y.right;
+      if (y.parent === node) {
+        xParent = y;
+        xIsLeft = false;
+      } else {
+        xParent = y.parent;
+        xIsLeft = true;
+        this._transplant(y, y.right);
+        y.right = node.right;
+        y.right.parent = y;
+      }
+      this._transplant(node, y);
+      y.left = node.left;
+      y.left.parent = y;
+      y.color = node.color;
+    }
+
+    this.size--;
+
+    if (yOriginalColor === 'black') {
+      this._deleteFixup(x, xParent, xIsLeft);
+    }
+    return true;
+  }
+
+  _transplant(u, v) {
+    if (!u.parent) this.root = v;
+    else if (u === u.parent.left) u.parent.left = v;
+    else u.parent.right = v;
+    if (v) v.parent = u.parent;
+  }
+
+  _deleteFixup(x, parent, isLeft) {
+    while (x !== this.root && this._isBlack(x)) {
+      if (isLeft) {
+        let w = parent.right;
+        if (this._isRed(w)) {
+          this._setColor(w, 'black');
+          this._setColor(parent, 'red');
+          this._rotateLeft(parent);
+          w = parent.right;
+        }
+        if (this._isBlack(w.left) && this._isBlack(w.right)) {
+          this._setColor(w, 'red');
+          x = parent;
+          parent = x.parent;
+          if (parent) isLeft = (parent.left === x);
+        } else {
+          if (this._isBlack(w.right)) {
+            this._setColor(w.left, 'black');
+            this._setColor(w, 'red');
+            this._rotateRight(w);
+            w = parent.right;
+          }
+          this._setColor(w, parent.color);
+          this._setColor(parent, 'black');
+          this._setColor(w.right, 'black');
+          this._rotateLeft(parent);
+          x = this.root;
+          break;
+        }
+      } else {
+        let w = parent.left;
+        if (this._isRed(w)) {
+          this._setColor(w, 'black');
+          this._setColor(parent, 'red');
+          this._rotateRight(parent);
+          w = parent.left;
+        }
+        if (this._isBlack(w.right) && this._isBlack(w.left)) {
+          this._setColor(w, 'red');
+          x = parent;
+          parent = x.parent;
+          if (parent) isLeft = (parent.left === x);
+        } else {
+          if (this._isBlack(w.left)) {
+            this._setColor(w.right, 'black');
+            this._setColor(w, 'red');
+            this._rotateLeft(w);
+            w = parent.left;
+          }
+          this._setColor(w, parent.color);
+          this._setColor(parent, 'black');
+          this._setColor(w.left, 'black');
+          this._rotateRight(parent);
+          x = this.root;
+          break;
+        }
+      }
+    }
+    this._setColor(x, 'black');
+  }
+
+  getBalanceFactor(node) { return 0; }
+}
+
+/* ============================================================
+   Layout
+   ============================================================ */
+function calculateLayout(root, opts) {
+  const { nodeSpacing, levelHeight } = opts;
+  if (!root) return { nodes: [], edges: [], width: 0, height: 0 };
+  let pos = 0;
+  const nodes = [];
+  const edges = [];
+
+  function inorder(node, depth) {
+    if (!node) return;
+    inorder(node.left, depth + 1);
+    node._layoutX = pos++;
+    node._depth = depth;
+    nodes.push(node);
+    inorder(node.right, depth + 1);
+  }
+  inorder(root, 0);
+
+  function center(node) {
+    if (!node) return;
+    center(node.left);
+    center(node.right);
+    if (node.left && node.right) {
+      node._layoutX = (node.left._layoutX + node.right._layoutX) / 2;
+    }
+    if (node.left) edges.push({ parent: node, child: node.left });
+    if (node.right) edges.push({ parent: node, child: node.right });
+  }
+  center(root);
+
+  const maxX = Math.max(...nodes.map(n => n._layoutX));
+  const maxY = Math.max(...nodes.map(n => n._depth));
+
+  nodes.forEach(n => {
+    n._px = n._layoutX * nodeSpacing;
+    n._py = n._depth * levelHeight;
+  });
+
+  return {
+    nodes,
+    edges,
+    width: (maxX + 1) * nodeSpacing,
+    height: (maxY + 1) * levelHeight
+  };
+}
+
+/* ============================================================
+   Renderer
+   ============================================================ */
+class TreeRenderer {
+  constructor(svg, canvas) {
+    this.svg = svg;
+    this.canvas = canvas;
+    this.edgesG = $('#edges-group');
+    this.nodesG = $('#nodes-group');
+    this.nodeEls = new Map();
+    this.edgeEls = new Map();
+    this.treeType = 'bst';
+    this.showHeight = false;
+    this.showBalance = false;
+    this.showSubtree = false;
+    this.tree = null;
+    this.nodeRadius = 22;
+  }
+
+  setTreeType(type) { this.treeType = type; }
+
+  render(tree, animate = true) {
+    this.tree = tree;
+    const opts = this._getLayoutOpts();
+    const layout = calculateLayout(tree.root, opts);
+    this._currentLayout = layout;
+
+    // SVG viewBox auto-fit
+    this._fitViewBox(layout);
+
+    // Track old node positions for animation
+    const oldPositions = new Map();
+    this.nodeEls.forEach((el, id) => {
+      const g = el.group;
+      const m = g.getAttribute('transform');
+      if (m) {
+        const match = m.match(/translate\(([-\d.]+),\s*([-\d.]+)\)/);
+        if (match) oldPositions.set(id, { x: parseFloat(match[1]), y: parseFloat(match[2]) });
+      }
+    });
+
+    // Edges
+    const currentEdgeIds = new Set();
+    layout.edges.forEach(edge => {
+      const id = `${edge.parent._id}-${edge.child._id}`;
+      currentEdgeIds.add(id);
+      let pathEl = this.edgeEls.get(id);
+      if (!pathEl) {
+        pathEl = svgEl('path', { class: 'edge-path', d: '' });
+        this.edgesG.appendChild(pathEl);
+        this.edgeEls.set(id, pathEl);
+      }
+      pathEl.setAttribute('d', this._edgePath(edge.parent, edge.child));
+    });
+    // Remove stale edges
+    this.edgeEls.forEach((el, id) => {
+      if (!currentEdgeIds.has(id)) {
+        el.remove();
+        this.edgeEls.delete(id);
+      }
+    });
+
+    // Nodes
+    const currentNodeIds = new Set(layout.nodes.map(n => n._id));
+    layout.nodes.forEach(node => {
+      currentNodeIds.add(node._id);
+      let el = this.nodeEls.get(node._id);
+      if (!el) {
+        // New node
+        const g = svgEl('g', { class: 'node-group entering' });
+        const circle = svgEl('circle', {
+          class: 'node-circle',
+          r: this.nodeRadius,
+          cx: 0, cy: 0,
+          filter: 'url(#drop-shadow)'
+        });
+        const text = svgEl('text', { class: 'node-text', x: 0, y: 0 });
+        text.textContent = node.value;
+        g.appendChild(circle);
+        g.appendChild(text);
+
+        // Sub text (height/balance/subtree)
+        const sub = svgEl('text', { class: 'node-sub', x: 0, y: this.nodeRadius + 12 });
+        g.appendChild(sub);
+
+        g.setAttribute('transform', `translate(${node._px}, ${node._py})`);
+        this.nodesG.appendChild(g);
+        el = { group: g, circle, text, sub };
+        this.nodeEls.set(node._id, el);
+
+        // Remove entering class after animation
+        setTimeout(() => g.classList.remove('entering'), 450);
+
+        // Click handler
+        g.addEventListener('click', () => {
+          if (this.onNodeClick) this.onNodeClick(node.value);
+        });
+      } else {
+        // Existing node - update position
+        el.group.setAttribute('transform', `translate(${node._px}, ${node._py})`);
+        el.text.textContent = node.value;
+      }
+
+      // Update colors
+      this._updateNodeColor(el, node);
+      // Update sub text
+      this._updateSubText(el, node);
+    });
+
+    // Remove stale nodes
+    this.nodeEls.forEach((el, id) => {
+      if (!currentNodeIds.has(id)) {
+        el.group.classList.add('leaving');
+        setTimeout(() => {
+          el.group.remove();
+          this.nodeEls.delete(id);
+        }, 300);
+      }
+    });
+
+    // Update edge positions (after node positions are set)
+    this._updateAllEdges(layout);
+  }
+
+  _updateAllEdges(layout) {
+    layout.edges.forEach(edge => {
+      const id = `${edge.parent._id}-${edge.child._id}`;
+      const el = this.edgeEls.get(id);
+      if (el) el.setAttribute('d', this._edgePath(edge.parent, edge.child));
+    });
+  }
+
+  _edgePath(parent, child) {
+    const x1 = parent._px, y1 = parent._py;
+    const x2 = child._px, y2 = child._py;
+    const my = (y1 + y2) / 2;
+    return `M ${x1} ${y1 + this.nodeRadius} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2 - this.nodeRadius}`;
+  }
+
+  _updateNodeColor(el, node) {
+    let gradId;
+    // Check state classes
+    if (el.group.classList.contains('state-current')) {
+      gradId = 'url(#grad-current)';
+    } else if (el.group.classList.contains('state-visited')) {
+      gradId = 'url(#grad-visited)';
+    } else if (el.group.classList.contains('state-path')) {
+      gradId = 'url(#grad-path)';
+    } else {
+      // Default color based on tree type
+      if (this.treeType === 'rb') {
+        gradId = node.color === 'red' ? 'url(#grad-rb-red)' : 'url(#grad-rb-black)';
+      } else {
+        gradId = 'url(#grad-normal)';
+      }
+    }
+    el.circle.setAttribute('fill', gradId);
+    // Text color
+    el.text.setAttribute('fill', '#ffffff');
+  }
+
+  _updateSubText(el, node) {
+    const parts = [];
+    if (this.showHeight) parts.push(`h${this.tree.getHeight(node)}`);
+    if (this.showBalance && this.treeType !== 'rb') parts.push(`bf${this.tree.getBalanceFactor(node)}`);
+    if (this.showSubtree) parts.push(`n${this.tree.getSubtreeSize(node)}`);
+    el.sub.textContent = parts.join(' · ');
+    el.sub.setAttribute('fill', this.treeType === 'rb' && node.color === 'black' ? '#5a6c7d' : '#6b7c8d');
+  }
+
+  _getLayoutOpts() {
+    const layout = $('#opt-layout').value;
+    if (layout === 'compact') return { nodeSpacing: 44, levelHeight: 60 };
+    if (layout === 'spacious') return { nodeSpacing: 72, levelHeight: 100 };
+    return { nodeSpacing: 56, levelHeight: 80 };
+  }
+
+  _fitViewBox(layout) {
+    if (!layout.nodes.length) return;
+    const padding = 50;
+    const w = Math.max(layout.width + padding * 2, 400);
+    const h = layout.height + padding * 2 + 20;
+    this.svg.setAttribute('viewBox', `${-padding} ${-padding} ${w} ${h}`);
+    this.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  }
+
+  // === Highlight methods ===
+  highlightNode(nodeId, state) {
+    const el = this.nodeEls.get(nodeId);
+    if (!el) return;
+    // Remove other state classes
+    el.group.classList.remove('state-current', 'state-visited', 'state-path');
+    if (state) el.group.classList.add(`state-${state}`);
+    // Update color
+    const node = this._findNodeById(nodeId);
+    if (node) this._updateNodeColor(el, node);
+  }
+
+  _findNodeById(id) {
+    if (!this.tree || !this.tree.root) return null;
+    const stack = [this.tree.root];
+    while (stack.length) {
+      const n = stack.pop();
+      if (n._id === id) return n;
+      if (n.left) stack.push(n.left);
+      if (n.right) stack.push(n.right);
+    }
+    return null;
+  }
+
+  clearHighlights() {
+    this.nodeEls.forEach((el) => {
+      el.group.classList.remove('state-current', 'state-visited', 'state-path');
+      const node = this._findNodeById(el.group._nodeId);
+    });
+    // Re-render to restore colors
+    if (this.tree) this.render(this.tree, false);
+  }
+
+  clearAllState() {
+    this.nodeEls.forEach((el) => {
+      el.group.classList.remove('state-current', 'state-visited', 'state-path');
+    });
+    // Restore colors
+    this.nodeEls.forEach((el, id) => {
+      const node = this._findNodeById(id);
+      if (node) this._updateNodeColor(el, node);
+    });
+  }
+
+  setNodeState(nodeId, state) {
+    const el = this.nodeEls.get(nodeId);
+    if (!el) return;
+    el.group.classList.remove('state-current', 'state-visited', 'state-path');
+    if (state) {
+      el.group.classList.add(`state-${state}`);
+    }
+    const node = this._findNodeById(nodeId);
+    if (node) this._updateNodeColor(el, node);
+  }
+
+  setEdgeHighlight(parentId, childId, on) {
+    const id = `${parentId}-${childId}`;
+    const el = this.edgeEls.get(id);
+    if (el) {
+      if (on) el.classList.add('highlighted');
+      else el.classList.remove('highlighted');
+    }
+  }
+
+  clearEdgeHighlights() {
+    this.edgeEls.forEach(el => el.classList.remove('highlighted'));
+  }
+}
+
+/* ============================================================
+   App Controller
+   ============================================================ */
+class App {
+  constructor() {
+    this.svg = $('#tree-svg');
+    this.canvas = $('#tree-canvas');
+    this.renderer = new TreeRenderer(this.svg, this.canvas);
+    this.treeType = 'bst';
+    this.tree = new BST();
+    this.speed = 1;
+    this.isAnimating = false;
+    this.traversalType = 'inorder';
+    this.traversalSeq = [];
+    this.travIndex = -1;
+    this.isPlaying = false;
+    this.playTimer = null;
+
+    this.renderer.setTreeType('bst');
+    this.renderer.tree = this.tree;
+  }
+
+  init() {
+    this._bindEvents();
+    this._updateInfo();
+    this._showStatus('就绪 — 请插入节点或使用随机生成');
+  }
+
+  _bindEvents() {
+    // Tree type tabs
+    $('#tree-type-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn || this.isAnimating) return;
+      $$('#tree-type-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      this._switchTreeType(btn.dataset.type);
+    });
+
+    // Insert / Delete / Search
+    $('#btn-insert').addEventListener('click', () => this._doInsert());
+    $('#btn-delete').addEventListener('click', () => this._doDelete());
+    $('#btn-search').addEventListener('click', () => this._doSearch());
+    $('#node-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this._doInsert();
+    });
+
+    // Random generate
+    $('#rng-count').addEventListener('input', (e) => {
+      $('#rng-count-val').textContent = e.target.value;
+    });
+    $('#btn-random').addEventListener('click', () => this._doRandom());
+
+    // Display options
+    $('#opt-height').addEventListener('change', () => this._updateDisplay());
+    $('#opt-balance').addEventListener('change', () => this._updateDisplay());
+    $('#opt-subtree').addEventListener('change', () => this._updateDisplay());
+    $('#opt-layout').addEventListener('change', () => this._render());
+
+    // Speed tabs
+    $('#speed-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      $$('#speed-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      this.speed = parseFloat(btn.dataset.speed);
+    });
+
+    // Traversal tabs
+    $('#traversal-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn || this.isAnimating) return;
+      $$('#traversal-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      this.traversalType = btn.dataset.trav;
+      this._resetTraversal();
+    });
+
+    // Traversal controls
+    $('#btn-play').addEventListener('click', () => this._togglePlay());
+    $('#btn-step-fwd').addEventListener('click', () => this._stepForward());
+    $('#btn-step-back').addEventListener('click', () => this._stepBackward());
+    $('#btn-reset-trav').addEventListener('click', () => this._resetTraversal());
+
+    // Presets
+    $$('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => this._runPreset(parseInt(btn.dataset.preset)));
+    });
+
+    // Clear
+    $('#btn-clear').addEventListener('click', () => {
+      if (this.isAnimating) return;
+      this._clearTree();
+    });
+
+    // SVG pan
+    this._bindPan();
+  }
+
+  _bindPan() {
+    let isPanning = false;
+    let startX = 0, startY = 0;
+    let vbStart = [0, 0, 0, 0];
+    this.svg.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.node-group')) return;
+      isPanning = true;
+      startX = e.clientX; startY = e.clientY;
+      const vb = this.svg.getAttribute('viewBox').split(' ').map(Number);
+      vbStart = vb;
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      const rect = this.svg.getBoundingClientRect();
+      const scaleX = vbStart[2] / rect.width;
+      const scaleY = vbStart[3] / rect.height;
+      const dx = (e.clientX - startX) * scaleX;
+      const dy = (e.clientY - startY) * scaleY;
+      this.svg.setAttribute('viewBox', `${vbStart[0] - dx} ${vbStart[1] - dy} ${vbStart[2]} ${vbStart[3]}`);
+    });
+    window.addEventListener('mouseup', () => { isPanning = false; });
+  }
+
+  // === Tree Type ===
+  _switchTreeType(type) {
+    this.treeType = type;
+    this.renderer.setTreeType(type);
+    const values = this.tree.inorder().map(n => n.value);
+    if (type === 'bst') this.tree = new BST();
+    else if (type === 'avl') this.tree = new AVLTree();
+    else this.tree = new RBTree();
+    this.renderer.tree = this.tree;
+    values.forEach(v => this.tree.insert(v));
+    this._render();
+    this._updateInfo();
+    this._updateLegend();
+    this._showStatus(`已切换至 ${type === 'bst' ? '二叉搜索树' : type === 'avl' ? 'AVL 平衡树' : '红黑树'}`);
+  }
+
+  _updateLegend() {
+    const legend = $('#legend');
+    if (this.treeType === 'rb') {
+      legend.innerHTML = `
+        <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div>红色节点</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2c3e50"></div>黑色节点</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>当前操作</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>已遍历</div>
+      `;
+    } else {
+      legend.innerHTML = `
+        <div class="legend-item"><div class="legend-dot" style="background:#4a6fa5"></div>普通节点</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>当前操作</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7fb3d5"></div>查找路径</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>已遍历</div>
+      `;
+    }
+  }
+
+  // === Operations ===
+  async _doInsert() {
+    if (this.isAnimating) return;
+    const input = $('#node-input');
+    const value = parseInt(input.value);
+    if (isNaN(value)) { this._showStatus('请输入有效数值'); return; }
+
+    this.isAnimating = true;
+    this._stopPlay();
+    this.renderer.clearAllState();
+
+    // Animate search path
+    const path = this.tree.insertPath(value);
+    for (let i = 0; i < path.length; i++) {
+      this.renderer.setNodeState(path[i]._id, 'path');
+      if (i > 0) this.renderer.setEdgeHighlight(path[i-1]._id, path[i]._id, true);
+      this._showStatus(`比较 ${value} 与 ${path[i].value} → ${value < path[i].value ? '向左' : value > path[i].value ? '向右' : '已存在'}`);
+      await delay(300 / this.speed);
+    }
+
+    // Check duplicate
+    if (this.tree._findNode(value)) {
+      this._showStatus(`节点 ${value} 已存在`);
+      await delay(600 / this.speed);
+      this.renderer.clearAllState();
+      this.isAnimating = false;
+      return;
+    }
+
+    // Perform insert
+    this._showStatus(`插入节点 ${value}`);
+    this.tree.insert(value);
+    this._render();
+
+    // Wait for animation
+    await delay(450 / this.speed);
+
+    // Show rotation info for AVL
+    if (this.treeType === 'avl' && this.tree.rotationLog.length > 0) {
+      const rotations = this.tree.rotationLog.map(r => `${r.type === 'left' ? '左旋' : '右旋'}(${r.value})`).join(', ');
+      this._showStatus(`AVL 重平衡: ${rotations}`);
+      await delay(800 / this.speed);
+    }
+
+    // Show color changes for RB tree
+    if (this.treeType === 'rb' && this.tree.colorLog.length > 0) {
+      this._showStatus(`红黑树调整: ${this.tree.colorLog.length} 次颜色变更${this.tree.rotationLog.length > 0 ? ', ' + this.tree.rotationLog.length + ' 次旋转' : ''}`);
+      await delay(800 / this.speed);
+    }
+
+    this.renderer.clearAllState();
+    this._updateInfo();
+    this._showStatus(`已插入节点 ${value}`);
+    this.isAnimating = false;
+    input.value = '';
+  }
+
+  async _doDelete() {
+    if (this.isAnimating) return;
+    const input = $('#node-input');
+    const value = parseInt(input.value);
+    if (isNaN(value)) { this._showStatus('请输入有效数值'); return; }
+
+    this.isAnimating = true;
+    this._stopPlay();
+    this.renderer.clearAllState();
+
+    // Animate search path
+    const result = this.tree.search(value);
+    for (let i = 0; i < result.path.length; i++) {
+      this.renderer.setNodeState(result.path[i]._id, 'path');
+      if (i > 0) this.renderer.setEdgeHighlight(result.path[i-1]._id, result.path[i]._id, true);
+      this._showStatus(`查找 ${value}: 比较 ${result.path[i].value}`);
+      await delay(300 / this.speed);
+    }
+
+    if (!result.found) {
+      this._showStatus(`节点 ${value} 不存在`);
+      await delay(600 / this.speed);
+      this.renderer.clearAllState();
+      this.isAnimating = false;
+      return;
+    }
+
+    // Highlight target node
+    const targetNode = result.path[result.path.length - 1];
+    this.renderer.setNodeState(targetNode._id, 'current');
+    this._showStatus(`删除节点 ${value}`);
+    await delay(400 / this.speed);
+
+    // Perform delete
+    this.tree.delete(value);
+    this.renderer.clearAllState();
+    this._render();
+
+    await delay(450 / this.speed);
+
+    if (this.treeType === 'avl' && this.tree.rotationLog.length > 0) {
+      const rotations = this.tree.rotationLog.map(r => `${r.type === 'left' ? '左旋' : '右旋'}(${r.value})`).join(', ');
+      this._showStatus(`AVL 重平衡: ${rotations}`);
+      await delay(800 / this.speed);
+    }
+
+    if (this.treeType === 'rb' && (this.tree.colorLog.length > 0 || this.tree.rotationLog.length > 0)) {
+      this._showStatus(`红黑树调整: ${this.tree.colorLog.length} 次颜色变更, ${this.tree.rotationLog.length} 次旋转`);
+      await delay(800 / this.speed);
+    }
+
+    this._updateInfo();
+    this._showStatus(`已删除节点 ${value}`);
+    this.isAnimating = false;
+    input.value = '';
+  }
+
+  async _doSearch() {
+    if (this.isAnimating) return;
+    const input = $('#node-input');
+    const value = parseInt(input.value);
+    if (isNaN(value)) { this._showStatus('请输入有效数值'); return; }
+
+    this.isAnimating = true;
+    this._stopPlay();
+    this.renderer.clearAllState();
+    this.renderer.clearEdgeHighlights();
+
+    const result = this.tree.search(value);
+    for (let i = 0; i < result.path.length; i++) {
+      if (i > 0) {
+        this.renderer.setNodeState(result.path[i-1]._id, 'path');
+        this.renderer.setEdgeHighlight(result.path[i-1]._id, result.path[i]._id, true);
+      }
+      this.renderer.setNodeState(result.path[i]._id, 'current');
+      const comparison = value === result.path[i].value ? '找到!' : value < result.path[i].value ? '向左子树' : '向右子树';
+      this._showStatus(`查找 ${value}: ${result.path[i].value} → ${comparison}`);
+      await delay(500 / this.speed);
+    }
+
+    if (result.found) {
+      this._showStatus(`找到节点 ${value}!`);
+    } else {
+      this._showStatus(`节点 ${value} 不存在于树中`);
+    }
+
+    await delay(1000 / this.speed);
+    this.renderer.clearAllState();
+    this.renderer.clearEdgeHighlights();
+    this.isAnimating = false;
+  }
+
+  async _doRandom() {
+    if (this.isAnimating) return;
+    this.isAnimating = true;
+    this._stopPlay();
+    this._clearTree(false);
+
+    const count = parseInt($('#rng-count').value);
+    const min = parseInt($('#rng-min').value);
+    const max = parseInt($('#rng-max').value);
+
+    const values = [];
+    const used = new Set();
+    while (values.length < count) {
+      const v = Math.floor(Math.random() * (max - min + 1)) + min;
+      if (!used.has(v)) { used.add(v); values.push(v); }
+    }
+
+    this._showStatus(`随机生成 ${count} 个节点...`);
+
+    for (const v of values) {
+      this.tree.insert(v);
+      this._render();
+      this._updateInfo();
+      await delay(150 / this.speed);
+    }
+
+    this._showStatus(`已生成 ${count} 个节点的${this.treeType === 'bst' ? '二叉搜索树' : this.treeType === 'avl' ? 'AVL 树' : '红黑树'}`);
+    this.isAnimating = false;
+  }
+
+  // === Traversal ===
+  _calculateTraversal() {
+    switch (this.traversalType) {
+      case 'preorder': return this.tree.preorder();
+      case 'inorder': return this.tree.inorder();
+      case 'postorder': return this.tree.postorder();
+      case 'levelorder': return this.tree.levelorder();
+      default: return [];
+    }
+  }
+
+  _resetTraversal() {
+    this._stopPlay();
+    this.travIndex = -1;
+    this.traversalSeq = this._calculateTraversal();
+    this.renderer.clearAllState();
+    this._renderTraversalDisplay();
+    const names = { preorder: '前序', inorder: '中序', postorder: '后序', levelorder: '层序' };
+    $('#trav-label').textContent = `${names[this.traversalType]}遍历序列`;
+    this._showStatus(`${names[this.traversalType]}遍历已重置，点击播放或单步执行`);
+  }
+
+  _stepForward() {
+    if (this.isAnimating && !this.isPlaying) return;
+    if (!this.traversalSeq.length) this.traversalSeq = this._calculateTraversal();
+    if (this.travIndex >= this.traversalSeq.length - 1) {
+      this._showStatus('遍历已完成');
+      this._stopPlay();
+      return;
+    }
+
+    // Mark current as visited
+    if (this.travIndex >= 0) {
+      this.renderer.setNodeState(this.traversalSeq[this.travIndex]._id, 'visited');
+    }
+
+    this.travIndex++;
+    this.renderer.setNodeState(this.traversalSeq[this.travIndex]._id, 'current');
+    this._renderTraversalDisplay();
+    this._showStatus(`遍历到节点 ${this.traversalSeq[this.travIndex].value} (${this.travIndex + 1}/${this.traversalSeq.length})`);
+  }
+
+  _stepBackward() {
+    if (this.isAnimating && !this.isPlaying) return;
+    if (this.travIndex < 0) return;
+
+    // Current node back to normal
+    this.renderer.setNodeState(this.traversalSeq[this.travIndex]._id, null);
+    this.travIndex--;
+
+    if (this.travIndex >= 0) {
+      this.renderer.setNodeState(this.traversalSeq[this.travIndex]._id, 'current');
+    }
+
+    this._renderTraversalDisplay();
+    if (this.travIndex >= 0) {
+      this._showStatus(`回退到节点 ${this.traversalSeq[this.travIndex].value} (${this.travIndex + 1}/${this.traversalSeq.length})`);
+    } else {
+      this._showStatus('已回退到起点');
+    }
+  }
+
+  _togglePlay() {
+    if (this.isPlaying) {
+      this._stopPlay();
+    } else {
+      this._startPlay();
+    }
+  }
+
+  _startPlay() {
+    if (this.isAnimating) return;
+    if (!this.traversalSeq.length) this.traversalSeq = this._calculateTraversal();
+    if (this.travIndex >= this.traversalSeq.length - 1) {
+      this._resetTraversal();
+    }
+    this.isPlaying = true;
+    $('#btn-play').textContent = '⏸ 暂停';
+    this._playLoop();
+  }
+
+  async _playLoop() {
+    while (this.isPlaying && this.travIndex < this.traversalSeq.length - 1) {
+      this._stepForward();
+      await delay(600 / this.speed);
+    }
+    if (this.travIndex >= this.traversalSeq.length - 1) {
+      this.isPlaying = false;
+      $('#btn-play').textContent = '▶ 播放';
+      this._showStatus('遍历完成');
+    }
+  }
+
+  _stopPlay() {
+    this.isPlaying = false;
+    $('#btn-play').textContent = '▶ 播放';
+  }
+
+  _renderTraversalDisplay() {
+    const container = $('#trav-sequence');
+    container.innerHTML = '';
+    for (let i = 0; i < this.traversalSeq.length; i++) {
+      const item = document.createElement('span');
+      item.className = 'seq-item';
+      if (i < this.travIndex) item.classList.add('visited');
+      else if (i === this.travIndex) item.classList.add('current');
+      item.textContent = this.traversalSeq[i].value;
+      container.appendChild(item);
+    }
+  }
+
+  // === Presets ===
+  async _runPreset(n) {
+    if (this.isAnimating) return;
+    this.isAnimating = true;
+    this._stopPlay();
+    this._clearTree(false);
+
+    switch (n) {
+      case 1: await this._preset1(); break;
+      case 2: await this._preset2(); break;
+      case 3: await this._preset3(); break;
+      case 4: await this._preset4(); break;
+      case 5: await this._preset5(); break;
+    }
+
+    this._updateInfo();
+    this.isAnimating = false;
+  }
+
+  async _preset1() {
+    // BST basic operations: insert 5 nodes, then delete root
+    this._switchTreeTypeSilent('bst');
+    this._showStatus('预设1: BST 基本操作演示');
+    await delay(500);
+
+    const values = [50, 30, 70, 20, 40];
+    for (const v of values) {
+      this._showStatus(`插入节点 ${v}`);
+      this.tree.insert(v);
+      this._render();
+      this._updateInfo();
+      await delay(400 / this.speed);
+    }
+
+    await delay(600 / this.speed);
+    this._showStatus('删除根节点 50');
+    this.tree.delete(50);
+    this._render();
+    this._updateInfo();
+    await delay(500 / this.speed);
+    this._showStatus('BST 基本操作演示完成');
+  }
+
+  async _preset2() {
+    // AVL rotation demo: trigger all 4 rotation types
+    this._switchTreeTypeSilent('avl');
+    this._showStatus('预设2: AVL 旋转演示');
+    await delay(500);
+
+    // LL case: 30, 20, 10
+    this._showStatus('LL 型 → 右旋: 插入 30, 20, 10');
+    for (const v of [30, 20, 10]) {
+      this.tree.insert(v);
+      this._render();
+      this._updateInfo();
+      await delay(400 / this.speed);
+    }
+    await delay(500 / this.speed);
+
+    // RR case: 40, 50
+    this._showStatus('RR 型 → 左旋: 插入 40, 50');
+    for (const v of [40, 50]) {
+      this.tree.insert(v);
+      this._render();
+      this._updateInfo();
+      await delay(400 / this.speed);
+    }
+    await delay(500 / this.speed);
+
+    // RL case: 45 (triggers right-left rotation)
+    this._showStatus('RL 型 → 右左旋: 插入 45');
+    this.tree.insert(45);
+    this._render();
+    this._updateInfo();
+    await delay(500 / this.speed);
+
+    // LR case: 25, 22 (triggers left-right rotation)
+    this._showStatus('LR 型 → 左右旋: 插入 25, 22');
+    for (const v of [25, 22]) {
+      this.tree.insert(v);
+      this._render();
+      this._updateInfo();
+      await delay(400 / this.speed);
+    }
+
+    await delay(500 / this.speed);
+    this._showStatus('AVL 四种旋转演示完成 — 树始终保持平衡');
+  }
+
+  async _preset3() {
+    // Red-black tree insert demo
+    this._switchTreeTypeSilent('rb');
+    this._showStatus('预设3: 红黑树插入演示');
+    await delay(500);
+
+    const values = [41, 38, 31, 12, 19, 8];
+    for (const v of values) {
+      this._showStatus(`插入节点 ${v}`);
+      this.tree.insert(v);
+      this._render();
+      this._updateInfo();
+      await delay(500 / this.speed);
+
+      if (this.tree.colorLog.length > 0 || this.tree.rotationLog.length > 0) {
+        const parts = [];
+        if (this.tree.colorLog.length) parts.push(`${this.tree.colorLog.length} 次变色`);
+        if (this.tree.rotationLog.length) parts.push(`${this.tree.rotationLog.length} 次旋转`);
+        this._showStatus(`插入 ${v}: ${parts.join(', ')}`);
+        await delay(600 / this.speed);
+      }
+    }
+
+    await delay(500 / this.speed);
+    this._showStatus('红黑树插入演示完成 — 注意红黑性质始终保持');
+  }
+
+  async _preset4() {
+    // Traversal comparison: build a tree, then show all 4 traversals
+    this._switchTreeTypeSilent('bst');
+    this._showStatus('预设4: 遍历对比演示');
+    await delay(400);
+
+    const values = [50, 30, 70, 20, 40, 60, 80];
+    for (const v of values) {
+      this.tree.insert(v);
+      this._render();
+      this._updateInfo();
+      await delay(200 / this.speed);
+    }
+
+    await delay(500 / this.speed);
+    const types = [
+      { key: 'preorder', name: '前序', desc: '根→左→右' },
+      { key: 'inorder', name: '中序', desc: '左→根→右' },
+      { key: 'postorder', name: '后序', desc: '左→右→根' },
+      { key: 'levelorder', name: '层序', desc: '逐层访问' }
+    ];
+
+    for (const t of types) {
+      this.traversalType = t.key;
+      this.traversalSeq = this._calculateTraversal();
+      this.travIndex = -1;
+      $$('#traversal-tabs .tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.trav === t.key);
+      });
+      $('#trav-label').textContent = `${t.name}遍历序列 (${t.desc})`;
+      this._showStatus(`${t.name}遍历 (${t.desc})`);
+      this.renderer.clearAllState();
+
+      // Auto-play
+      while (this.travIndex < this.traversalSeq.length - 1) {
+        this._stepForward();
+        await delay(500 / this.speed);
+      }
+      await delay(800 / this.speed);
+    }
+
+    this._showStatus('四种遍历方式对比演示完成');
+  }
+
+  async _preset5() {
+    // Worst case: sorted insertion into BST
+    this._switchTreeTypeSilent('bst');
+    this._showStatus('预设5: 最坏情况 — 有序插入导致退化为链表');
+    await delay(500);
+
+    const values = [1, 2, 3, 4, 5, 6, 7];
+    for (const v of values) {
+      this.tree.insert(v);
+      this._render();
+      this._updateInfo();
+      this._showStatus(`插入 ${v} — 树高度: ${this.tree.getHeight()}`);
+      await delay(400 / this.speed);
+    }
+
+    await delay(500 / this.speed);
+    this._showStatus(`BST 退化为链表! 高度=${this.tree.getHeight()}, 而平衡树高度仅为 ${Math.ceil(Math.log2(values.length + 1))}`);
+
+    await delay(1200 / this.speed);
+
+    // Switch to AVL to show difference
+    this._showStatus('切换至 AVL 树对比...');
+    await delay(600 / this.speed);
+    this._switchTreeTypeSilent('avl');
+    for (const v of values) {
+      this.tree.insert(v);
+      this._render();
+      this._updateInfo();
+      this._showStatus(`AVL 插入 ${v} — 树高度: ${this.tree.getHeight()}`);
+      await delay(400 / this.speed);
+    }
+
+    this._showStatus(`AVL 树始终保持平衡! 高度=${this.tree.getHeight()}`);
+  }
+
+  _switchTreeTypeSilent(type) {
+    this.treeType = type;
+    this.renderer.setTreeType(type);
+    if (type === 'bst') this.tree = new BST();
+    else if (type === 'avl') this.tree = new AVLTree();
+    else this.tree = new RBTree();
+    this.renderer.tree = this.tree;
+    this._clearTree(false);
+
+    // Update tab UI
+    $$('#tree-type-tabs .tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.type === type);
+    });
+    this._updateLegend();
+  }
+
+  // === Helper Methods ===
+  _clearTree(updateInfo = true) {
+    this._stopPlay();
+    this.tree.clear();
+    this.renderer.nodeEls.forEach(el => el.group.remove());
+    this.renderer.nodeEls.clear();
+    this.renderer.edgeEls.forEach(el => el.remove());
+    this.renderer.edgeEls.clear();
+    this.traversalSeq = [];
+    this.travIndex = -1;
+    this._renderTraversalDisplay();
+    if (updateInfo) {
+      this._updateInfo();
+      this._showStatus('树已清空');
+    }
+  }
+
+  _render() {
+    this.renderer.render(this.tree, true);
+    $('#empty-state').style.display = this.tree.root ? 'none' : 'block';
+  }
+
+  _updateDisplay() {
+    this.renderer.showHeight = $('#opt-height').checked;
+    this.renderer.showBalance = $('#opt-balance').checked;
+    this.renderer.showSubtree = $('#opt-subtree').checked;
+    this._render();
+  }
+
+  _updateInfo() {
+    $('#info-count').textContent = this.tree.size;
+    const height = this.tree.getHeight();
+    $('#info-height').textContent = height;
+    const balanced = this.tree.isBalanced();
+    const balEl = $('#info-balanced');
+    if (this.treeType === 'avl' || this.treeType === 'rb') {
+      balEl.textContent = '平衡';
+      balEl.classList.add('accent');
+    } else if (balanced) {
+      balEl.textContent = '平衡';
+      balEl.classList.remove('accent');
+    } else {
+      balEl.textContent = '不平衡';
+      balEl.classList.add('accent');
+    }
+    $('#empty-state').style.display = this.tree.root ? 'none' : 'block';
+  }
+
+  _showStatus(msg) {
+    const bar = $('#status-bar');
+    bar.textContent = msg;
+    bar.classList.remove('hidden');
+    clearTimeout(this._statusTimer);
+    this._statusTimer = setTimeout(() => {
+      if (!this.isAnimating && !this.isPlaying) bar.classList.add('hidden');
+    }, 3000);
+  }
+}
+
+/* ============================================================
+   Init
+   ============================================================ */
+const app = new App();
+app.init();
+
+// Auto-generate initial tree for demonstration
+setTimeout(async () => {
+  const values = [50, 30, 70, 20, 40, 60, 80, 10, 25];
+  for (const v of values) {
+    app.tree.insert(v);
+    app._render();
+    app._updateInfo();
+    await delay(120);
+  }
+  app._showStatus('提示: 试试插入、删除、查找或遍历演示');
+}, 300);
+
+</script>
+</body>
+</html>

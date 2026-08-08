@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>红军长征路线图 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@400;500;600;700&family=ZCOOL+XiaoWei&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   红军长征路线图 — 专属样式
+   革命史诗 × 时空叙事 × 黄土暖调
+   ============================================================ */
+
+:root {
+  /* 长征配色 */
+  --lm-red: #8B0000;
+  --lm-red-bright: #D32F2F;
+  --lm-red-dark: #6B0000;
+  --lm-gray: #555555;
+  --lm-paper: #EDE4D3;
+  --lm-paper-light: #F5EFE2;
+  --lm-paper-dark: #E0D5C0;
+  --lm-text: #2A2520;
+  --lm-text-muted: #7A7066;
+  --lm-border: #D4C9B5;
+  --lm-gold: #C9982B;
+  --lm-gold-soft: rgba(201, 152, 43, 0.15);
+  --lm-river: #1A5276;
+  --lm-snow: #8BA8B9;
+  --lm-grass: #556B2F;
+
+  /* 字体 */
+  --lm-font-cal: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+  --lm-font-serif: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+  --lm-font-sans: 'Noto Sans SC', -apple-system, sans-serif;
+  --lm-font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--lm-font-sans);
+  background: var(--lm-paper);
+  color: var(--lm-text);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ---------- 牛皮纸纹理 ---------- */
+.paper-texture {
+  background-color: var(--lm-paper);
+  background-image:
+    radial-gradient(circle at 20% 60%, rgba(139, 0, 0, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 80% 30%, rgba(201, 152, 43, 0.025) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* ---------- 入场动画 ---------- */
+.lm-entry {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lm-paper);
+  transition: opacity 1.2s ease;
+}
+.lm-entry.hidden { opacity: 0; pointer-events: none; }
+
+.lm-entry-star {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  opacity: 0;
+  animation: lm-star-appear 1.5s ease forwards;
+}
+.lm-entry-star svg { width: 100%; height: 100%; }
+@keyframes lm-star-appear {
+  0% { opacity: 0; transform: scale(0.2) rotate(-180deg); filter: blur(20px); }
+  60% { opacity: 1; transform: scale(1.15) rotate(0deg); filter: blur(0); }
+  100% { opacity: 0.9; transform: scale(1) rotate(0deg); }
+}
+
+.lm-entry-pulse {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 2px solid var(--lm-red-bright);
+  opacity: 0;
+  animation: lm-pulse 2s ease-out 1s infinite;
+}
+@keyframes lm-pulse {
+  0% { opacity: 0.5; transform: scale(0.3); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+.lm-entry-text {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  margin-top: 130px;
+  opacity: 0;
+  animation: lm-text-fade 1.5s ease 1s forwards;
+}
+@keyframes lm-text-fade {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.lm-entry-title {
+  font-family: var(--lm-font-cal);
+  font-size: clamp(30px, 4.5vw, 44px);
+  color: var(--lm-red);
+  letter-spacing: 0.2em;
+  line-height: 1.4;
+}
+.lm-entry-sub {
+  font-family: var(--lm-font-serif);
+  font-size: 14px;
+  color: var(--lm-text-muted);
+  margin-top: 12px;
+  letter-spacing: 0.15em;
+}
+
+/* ---------- 导航栏 ---------- */
+.demo-navbar {
+  background-color: rgba(237, 228, 211, 0.88) !important;
+  border-bottom: 1px solid var(--lm-border) !important;
+}
+.demo-navbar.scrolled {
+  background-color: rgba(237, 228, 211, 0.95) !important;
+}
+.demo-nav-logo { font-family: var(--lm-font-serif); }
+
+/* ---------- 主体布局 ---------- */
+.framework-narrative {
+  background: var(--lm-paper) !important;
+  background-image:
+    radial-gradient(circle at 20% 60%, rgba(139, 0, 0, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 80% 30%, rgba(201, 152, 43, 0.025) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E") !important;
+}
+
+.framework-narrative .narrative-main {
+  grid-template-columns: 68% 32% !important;
+}
+
+/* ---------- 地图区域 ---------- */
+.narrative-map-area {
+  background: var(--lm-paper-light) !important;
+  border-right: 1px solid var(--lm-border) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  background: var(--lm-paper);
+  z-index: 1;
+}
+
+/* Leaflet 底图暖色滤镜 */
+.leaflet-tile-pane {
+  filter: sepia(0.35) brightness(1.06) contrast(0.9) saturate(0.55) hue-rotate(-5deg);
+}
+
+.leaflet-container {
+  background: var(--lm-paper) !important;
+  font-family: var(--lm-font-sans) !important;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid var(--lm-border) !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(42, 37, 32, 0.1) !important;
+}
+.leaflet-control-zoom a {
+  background: rgba(245, 239, 226, 0.92) !important;
+  color: var(--lm-text) !important;
+  border-bottom: 1px solid var(--lm-border) !important;
+  font-family: var(--lm-font-serif) !important;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--lm-paper-dark) !important;
+  color: var(--lm-red) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(237, 228, 211, 0.7) !important;
+  color: var(--lm-text-muted) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a {
+  color: var(--lm-gold) !important;
+}
+
+/* ---------- 地图标记点 ---------- */
+.lm-marker-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+.lm-marker {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lm-marker-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lm-marker-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lm-marker.future .lm-marker-icon {
+  opacity: 0.35;
+  transform: scale(0.75);
+  color: var(--lm-border);
+}
+
+.lm-marker.past .lm-marker-icon {
+  opacity: 0.75;
+  transform: scale(0.9);
+  color: var(--lm-red);
+}
+
+.lm-marker.active .lm-marker-icon {
+  opacity: 1;
+  transform: scale(1.25);
+  color: var(--lm-red-bright);
+  filter: drop-shadow(0 2px 8px rgba(139, 0, 0, 0.4));
+}
+
+.lm-marker.active::before {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--lm-red-bright);
+  opacity: 0;
+  animation: lm-marker-pulse 2s ease-out infinite;
+}
+@keyframes lm-marker-pulse {
+  0% { opacity: 0.6; transform: scale(0.5); }
+  100% { opacity: 0; transform: scale(2); }
+}
+
+.lm-marker-label {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--lm-font-serif);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lm-text);
+  background: rgba(237, 228, 211, 0.92);
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--lm-border);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.lm-marker.active .lm-marker-label,
+.lm-marker.past .lm-marker-label {
+  opacity: 1;
+}
+.lm-marker.active .lm-marker-label {
+  color: #fff;
+  background: var(--lm-red);
+  border-color: var(--lm-red-dark);
+  font-weight: 700;
+}
+
+/* ---------- 地图装饰角花 ---------- */
+.lm-corner-deco {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.2;
+}
+.lm-corner-deco svg { display: block; }
+.lm-corner-tl { top: 80px; left: 16px; }
+.lm-corner-br { bottom: 16px; right: 16px; transform: rotate(180deg); }
+
+/* ---------- 地图标题水印 ---------- */
+.lm-map-title {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  z-index: 10;
+  text-align: right;
+  pointer-events: none;
+  opacity: 0.12;
+}
+.lm-map-title-main {
+  font-family: var(--lm-font-cal);
+  font-size: 28px;
+  color: var(--lm-red);
+  letter-spacing: 0.15em;
+  line-height: 1.3;
+}
+.lm-map-title-sub {
+  font-family: var(--lm-font-serif);
+  font-size: 12px;
+  color: var(--lm-text-muted);
+  margin-top: 4px;
+  letter-spacing: 0.1em;
+}
+
+/* ---------- 地图图例 ---------- */
+.lm-legend {
+  position: absolute;
+  bottom: 24px;
+  right: 20px;
+  z-index: 20;
+  background: rgba(245, 239, 226, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--lm-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 16px rgba(42, 37, 32, 0.08);
+}
+.lm-legend-title {
+  font-family: var(--lm-font-serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--lm-text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.1em;
+}
+.lm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--lm-text);
+  margin-bottom: 4px;
+}
+.lm-legend-item:last-child { margin-bottom: 0; }
+.lm-legend-line {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+}
+.lm-legend-star {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lm-legend-star svg { width: 100%; height: 100%; }
+
+/* ---------- 信息卡片 ---------- */
+.narrative-info-card {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  z-index: 20;
+  max-width: 400px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--lm-border) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 40px rgba(42, 37, 32, 0.12) !important;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lm-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--lm-border);
+  background: linear-gradient(180deg, rgba(237, 228, 211, 0.5), transparent);
+}
+
+.lm-card-date-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.narrative-info-year {
+  font-family: var(--lm-font-serif) !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: var(--lm-red) !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  letter-spacing: 0.02em;
+}
+
+.lm-card-phase {
+  font-family: var(--lm-font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--lm-gold);
+  background: var(--lm-gold-soft);
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.lm-card-type-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--lm-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(139, 0, 0, 0.25);
+}
+.lm-card-type-badge svg { width: 20px; height: 20px; }
+
+.lm-card-body {
+  padding: 14px 22px 16px;
+}
+
+.lm-card-place {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--lm-font-sans);
+  font-size: 12px;
+  color: var(--lm-text-muted);
+  margin-bottom: 6px;
+}
+.lm-card-place svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+.narrative-info-title {
+  font-family: var(--lm-font-serif) !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--lm-text) !important;
+  margin-bottom: 8px !important;
+  line-height: 1.3;
+}
+
+.narrative-info-desc {
+  font-size: 13px !important;
+  line-height: 1.7 !important;
+  color: var(--lm-text-muted) !important;
+}
+
+.lm-card-quote {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--lm-red);
+  background: rgba(139, 0, 0, 0.03);
+  border-radius: 0 6px 6px 0;
+}
+.lm-card-quote-text {
+  font-family: var(--lm-font-cal);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--lm-red-dark);
+  letter-spacing: 0.05em;
+}
+.lm-card-quote-source {
+  font-family: var(--lm-font-sans);
+  font-size: 10px;
+  color: var(--lm-text-muted);
+  margin-top: 4px;
+}
+
+.lm-card-stats {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--lm-border);
+}
+.lm-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lm-stat-label {
+  font-size: 10px;
+  color: var(--lm-text-muted);
+  letter-spacing: 0.1em;
+}
+.lm-stat-value {
+  font-family: var(--lm-font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lm-red);
+}
+.lm-stat-trend {
+  font-size: 10px;
+  color: var(--lm-text-muted);
+}
+
+/* ---------- 时间轴面板 ---------- */
+.narrative-timeline-panel {
+  background: rgba(255, 255, 255, 0.55) !important;
+}
+
+.narrative-timeline-header {
+  padding: 20px 24px 16px !important;
+  border-bottom: 1px solid var(--lm-border) !important;
+  background: linear-gradient(180deg, rgba(237, 228, 211, 0.5), transparent);
+}
+
+.narrative-timeline-title {
+  font-family: var(--lm-font-serif) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--lm-red) !important;
+}
+
+.narrative-timeline-subtitle {
+  font-family: var(--lm-font-serif) !important;
+  font-size: 12px !important;
+  color: var(--lm-text-muted) !important;
+  margin-top: 4px !important;
+  font-style: italic;
+}
+
+.lm-phase-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+.lm-phase-segment {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--lm-border);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+.lm-phase-segment.active {
+  background: var(--lm-red-bright);
+  box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.15);
+}
+.lm-phase-segment.past {
+  background: var(--lm-red);
+  opacity: 0.4;
+}
+
+.lm-phase-labels {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.lm-phase-label {
+  font-size: 9px;
+  color: var(--lm-text-muted);
+  text-align: center;
+  transition: color 0.3s ease;
+}
+.lm-phase-label.active {
+  color: var(--lm-red);
+  font-weight: 600;
+}
+
+/* ---------- 时间轴列表 ---------- */
+.narrative-timeline-list {
+  padding: 16px 20px !important;
+}
+
+.narrative-timeline-list::-webkit-scrollbar { width: 4px; }
+.narrative-timeline-list::-webkit-scrollbar-track { background: transparent; }
+.narrative-timeline-list::-webkit-scrollbar-thumb {
+  background: var(--lm-border);
+  border-radius: 2px;
+}
+.narrative-timeline-list::-webkit-scrollbar-thumb:hover {
+  background: var(--lm-paper-dark);
+}
+
+.narrative-timeline-list::before {
+  left: 29px !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 2px !important;
+  background: var(--lm-border) !important;
+}
+
+.timeline-event {
+  padding: 8px 0 !important;
+  gap: 14px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timeline-event-dot {
+  width: 12px !important;
+  height: 12px !important;
+  margin-left: 14px !important;
+  margin-top: 3px !important;
+  border: 2px solid var(--lm-border) !important;
+  background: #fff !important;
+  border-radius: 50% !important;
+  transition: all 0.3s ease !important;
+}
+
+.timeline-event.active .timeline-event-dot {
+  background: var(--lm-red-bright) !important;
+  border-color: var(--lm-red-bright) !important;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.18) !important;
+  transform: scale(1.15);
+}
+
+.timeline-event.past .timeline-event-dot {
+  background: var(--lm-red) !important;
+  border-color: var(--lm-red) !important;
+  opacity: 0.5;
+}
+
+.timeline-event-year {
+  font-family: var(--lm-font-mono) !important;
+  font-size: 11px !important;
+  color: var(--lm-text-muted) !important;
+}
+
+.timeline-event.active .timeline-event-year {
+  color: var(--lm-red) !important;
+}
+
+.timeline-event-title {
+  font-family: var(--lm-font-serif) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--lm-text) !important;
+}
+
+.timeline-event.active .timeline-event-title {
+  color: var(--lm-red) !important;
+}
+
+.timeline-event-desc {
+  font-size: 11px !important;
+  color: var(--lm-text-muted) !important;
+  line-height: 1.5 !important;
+}
+
+.timeline-event.active .timeline-event-desc {
+  max-height: 80px !important;
+}
+
+.lm-event-place {
+  font-family: var(--lm-font-sans);
+  font-size: 10px;
+  color: var(--lm-gold);
+  margin-top: 2px;
+}
+
+.lm-event-type-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.lm-event-type-icon svg { width: 100%; height: 100%; }
+.lm-event-type-icon svg path,
+.lm-event-type-icon svg polygon {
+  fill: currentColor;
+}
+
+/* ---------- 底部播放控件 ---------- */
+.narrative-timeline-footer {
+  padding: 14px 20px !important;
+  border-top: 1px solid var(--lm-border) !important;
+  background: rgba(237, 228, 211, 0.4);
+}
+
+.narrative-play-btn {
+  background: var(--lm-red) !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  color: #fff !important;
+  border: none !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--lm-font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+.narrative-play-btn:hover {
+  background: var(--lm-red-dark) !important;
+}
+
+.narrative-progress {
+  background: var(--lm-border) !important;
+}
+
+.narrative-progress-bar {
+  background: var(--lm-red-bright) !important;
+  transition: width 0.5s ease;
+}
+
+.demo-tech-tag {
+  background: rgba(201, 152, 43, 0.1) !important;
+  color: var(--lm-gold) !important;
+  border-color: var(--lm-border) !important;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1024px) {
+  .framework-narrative .narrative-main {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 58% 42% !important;
+  }
+  .narrative-map-area {
+    border-right: none !important;
+    border-bottom: 1px solid var(--lm-border) !important;
+  }
+  .narrative-info-card {
+    max-width: 320px;
+    bottom: 16px;
+    left: 16px;
+  }
+  .lm-legend { display: none; }
+  .lm-map-title { font-size: 20px; }
+}
+
+@media (max-width: 768px) {
+  .narrative-info-card {
+    left: 12px !important;
+    right: 12px !important;
+    max-width: none !important;
+    bottom: 12px !important;
+  }
+  .lm-card-body { padding: 12px 16px 14px; }
+  .lm-card-header { padding: 14px 16px 10px; }
+  .narrative-info-year { font-size: 20px !important; }
+  .narrative-info-title { font-size: 16px !important; }
+  .narrative-info-desc { font-size: 12px !important; }
+  .lm-card-quote-text { font-size: 13px; }
+  .lm-corner-deco { display: none; }
+  .lm-map-title { display: none; }
+  .narrative-timeline-list { padding: 12px 16px !important; }
+  .narrative-timeline-list::before { left: 25px !important; }
+  .timeline-event-dot { margin-left: 10px !important; }
+  .lm-card-stats { gap: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ====== 入场动画 ====== -->
+<div class="lm-entry" id="entryOverlay">
+  <div class="lm-entry-pulse"></div>
+  <div class="lm-entry-star">
+    <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="#D32F2F"/></svg>
+  </div>
+  <div class="lm-entry-text">
+    <div class="lm-entry-title">红军长征路线图</div>
+    <div class="lm-entry-sub">二万五千里 · 1934 — 1936</div>
+  </div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">历史</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">红军长征路线图</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-history">历史</span>
+      <a href="/skills/jingbo-edu-history-map-narrative-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体：左右分栏 ====== -->
+<div class="framework-narrative">
+  <div class="narrative-main">
+
+    <!-- ========== 左侧：地图区域 ========== -->
+    <div class="narrative-map-area">
+
+      <!-- 地图容器 -->
+      <div id="map"></div>
+
+      <!-- 标题水印 -->
+      <div class="lm-map-title">
+        <div class="lm-map-title-main">红军长征</div>
+        <div class="lm-map-title-sub">1934.10 — 1936.10</div>
+      </div>
+
+      <!-- 角花装饰 -->
+      <div class="lm-corner-deco lm-corner-tl">
+        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" stroke="#8B0000" stroke-width="1">
+          <path d="M5 5 L5 25 M5 5 L25 5" stroke-linecap="round"/>
+          <path d="M5 5 Q15 8 18 18" stroke-linecap="round" opacity="0.6"/>
+          <circle cx="8" cy="8" r="2" fill="#8B0000" opacity="0.3"/>
+          <polygon points="14,3 15.5,7 19.5,7 16.5,9.5 17.5,13.5 14,11 10.5,13.5 11.5,9.5 8.5,7 12.5,7" fill="#8B0000" opacity="0.4"/>
+        </svg>
+      </div>
+      <div class="lm-corner-deco lm-corner-br">
+        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" stroke="#8B0000" stroke-width="1">
+          <path d="M5 5 L5 25 M5 5 L25 5" stroke-linecap="round"/>
+          <path d="M5 5 Q15 8 18 18" stroke-linecap="round" opacity="0.6"/>
+          <circle cx="8" cy="8" r="2" fill="#8B0000" opacity="0.3"/>
+          <polygon points="14,3 15.5,7 19.5,7 16.5,9.5 17.5,13.5 14,11 10.5,13.5 11.5,9.5 8.5,7 12.5,7" fill="#8B0000" opacity="0.4"/>
+        </svg>
+      </div>
+
+      <!-- 图例 -->
+      <div class="lm-legend">
+        <div class="lm-legend-title">图例</div>
+        <div class="lm-legend-item">
+          <div class="lm-legend-star"><svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="#D32F2F"/></svg></div>
+          <span>重要事件</span>
+        </div>
+        <div class="lm-legend-item">
+          <div class="lm-legend-line" style="background:#D32F2F"></div>
+          <span>行军路线</span>
+        </div>
+        <div class="lm-legend-item">
+          <div class="lm-legend-line" style="background:#1A5276"></div>
+          <span>渡江路段</span>
+        </div>
+        <div class="lm-legend-item">
+          <div class="lm-legend-line" style="background:#8BA8B9"></div>
+          <span>翻越雪山</span>
+        </div>
+        <div class="lm-legend-item">
+          <div class="lm-legend-line" style="background:#556B2F"></div>
+          <span>穿越草地</span>
+        </div>
+      </div>
+
+      <!-- 信息卡片 -->
+      <div class="narrative-info-card" id="infoCard">
+        <div class="lm-card-header">
+          <div>
+            <div class="lm-card-date-row">
+              <div class="narrative-info-year" id="infoYear">1934.10</div>
+              <span class="lm-card-phase" id="infoPhase">战略转移</span>
+            </div>
+          </div>
+          <div class="lm-card-type-badge" id="infoTypeBadge"></div>
+        </div>
+        <div class="lm-card-body">
+          <div class="lm-card-place">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span id="infoPlace">瑞金</span>
+            <span id="infoModernPlace" style="color:var(--lm-text-muted);font-size:11px;margin-left:4px;"></span>
+          </div>
+          <div class="narrative-info-title" id="infoTitle">长征出发</div>
+          <div class="narrative-info-desc" id="infoDesc">事件描述</div>
+          <div class="lm-card-quote" id="infoQuote" style="display:none;">
+            <div class="lm-card-quote-text" id="infoQuoteText"></div>
+            <div class="lm-card-quote-source" id="infoQuoteSource"></div>
+          </div>
+          <div class="lm-card-stats">
+            <div class="lm-stat-item">
+              <div class="lm-stat-label">中央红军兵力</div>
+              <div class="lm-stat-value" id="infoTroops">8.6万</div>
+              <div class="lm-stat-trend" id="infoTroopsTrend"></div>
+            </div>
+            <div class="lm-stat-item">
+              <div class="lm-stat-label">累计行程</div>
+              <div class="lm-stat-value" id="infoMileage">0 里</div>
+              <div class="lm-stat-trend">约数</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========== 右侧：时间轴面板 ========== -->
+    <div class="narrative-timeline-panel">
+
+      <!-- 时间轴标题 -->
+      <div class="narrative-timeline-header">
+        <div class="narrative-timeline-title">万里长征</div>
+        <div class="narrative-timeline-subtitle">1934年10月 — 1936年10月 · 十二个关键节点</div>
+        <div class="lm-phase-bar" id="phaseBar"></div>
+        <div class="lm-phase-labels" id="phaseLabels"></div>
+      </div>
+
+      <!-- 时间轴事件列表 -->
+      <div class="narrative-timeline-list" id="timelineList"></div>
+
+      <!-- 底部播放控件 -->
+      <div class="narrative-timeline-footer">
+        <button class="narrative-play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="playLabel">播放</span>
+        </button>
+        <div class="narrative-progress">
+          <div class="narrative-progress-bar" id="progressBar" style="width:0%"></div>
+        </div>
+        <span class="demo-tech-tag" id="eventCounter">1 / 12</span>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 脚本 ====== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+/* ============================================================
+   红军长征路线图 — 主脚本
+   ============================================================ */
+
+// ====== SVG 图标定义 ======
+const ICONS = {
+  departure: '<svg viewBox="0 0 24 24"><path d="M6 3v18M6 3h13l-3 4 3 4H6" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  battle: '<svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="currentColor"/></svg>',
+  meeting: '<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h.01M15 11h.01" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  crossing: '<svg viewBox="0 0 24 24"><path d="M2 8c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2M2 14c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2M2 11c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>',
+  terrain: '<svg viewBox="0 0 24 24"><path d="M3 20l6-12 4 8 3-5 5 9z" fill="currentColor"/></svg>',
+  arrival: '<svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="currentColor"/></svg>'
+};
+
+// ====== 事件数据 ======
+const events = [
+  {
+    date: '1934.10', dateLabel: '1934年10月',
+    place: '瑞金', modernPlace: '今江西瑞金',
+    title: '长征出发', phase: '战略转移', phaseIdx: 0,
+    type: 'departure',
+    desc: '由于第五次反"围剿"失败，中共中央和中央红军（红一方面军）被迫实行战略转移。10月10日，中央红军主力8.6万人从江西瑞金、于都等地出发，踏上漫漫长征路。红军最初计划前往湘西与红二、红六军团会合，但这一意图很快被国民党军察觉，重兵围堵，长征初期形势极为严峻。',
+    quote: { text: '红军不怕远征难，万水千山只等闲', source: '— 毛泽东《七律·长征》' },
+    troops: 86000, troopsLabel: '8.6万', troopsTrend: '',
+    mileage: 0,
+    lat: 25.89, lng: 116.03, routeIdx: 0
+  },
+  {
+    date: '1934.11', dateLabel: '1934年11月',
+    place: '湘江', modernPlace: '今广西兴安·全州',
+    title: '血战湘江', phase: '战略转移', phaseIdx: 0,
+    type: 'battle',
+    desc: '中央红军在广西境内的湘江两岸与国民党军展开激战。这是长征中最惨烈的一战，红军将士浴血奋战，以惨重代价突破国民党军第四道封锁线。湘江战役后，中央红军从出发时的8.6万人锐减至3万余人。"三年不饮湘江水，十年不食湘江鱼"，湘江之役的惨痛损失，促使全党全军反思错误的军事路线。',
+    quote: null,
+    troops: 30000, troopsLabel: '3万', troopsTrend: '↓ 锐减5.6万',
+    mileage: 1500,
+    lat: 25.61, lng: 110.67, routeIdx: 5
+  },
+  {
+    date: '1935.01', dateLabel: '1935年1月',
+    place: '遵义', modernPlace: '今贵州遵义',
+    title: '遵义会议', phase: '遵义转折', phaseIdx: 1,
+    type: 'meeting',
+    desc: '中共中央政治局在遵义召开扩大会议，集中解决了当时最紧迫的军事问题和组织问题。会议批判了博古、李德的"左"倾军事错误，增选毛泽东为中央政治局常委，事实上确立了毛泽东在党中央和红军的领导地位。遵义会议是中国共产党历史上生死攸关的转折点，标志着党从幼年走向成熟。',
+    quote: null,
+    troops: 30000, troopsLabel: '3万', troopsTrend: '— 持平',
+    mileage: 3500,
+    lat: 27.69, lng: 106.93, routeIdx: 10
+  },
+  {
+    date: '1935.01', dateLabel: '1935年1—3月',
+    place: '川黔滇边', modernPlace: '赤水河流域',
+    title: '四渡赤水', phase: '遵义转折', phaseIdx: 1,
+    type: 'battle',
+    desc: '遵义会议后，毛泽东指挥中央红军在川黔滇边界的赤水河流域与国民党军展开机动灵活的运动战。红军四次渡过赤水河，声东击西，忽南忽北，调动敌人，创造战机，彻底摆脱了国民党军的围追堵截。四渡赤水是毛泽东军事指挥生涯的"得意之笔"，充分展现了运动战的精髓。',
+    quote: { text: '雄关漫道真如铁，而今迈步从头越', source: '— 毛泽东《忆秦娥·娄山关》' },
+    troops: 30000, troopsLabel: '3万', troopsTrend: '— 持平',
+    mileage: 5500,
+    lat: 28.40, lng: 106.10, routeIdx: 21
+  },
+  {
+    date: '1935.05', dateLabel: '1935年5月',
+    place: '金沙江', modernPlace: '今云南禄劝皎平渡',
+    title: '巧渡金沙江', phase: '突破天险', phaseIdx: 2,
+    type: 'crossing',
+    desc: '中央红军在云南禄劝县皎平渡等渡口，凭借7条小船，用了9天9夜，全部渡过金沙江。金沙江是长江上游的天然屏障，江水湍急，两岸悬崖峭壁。红军的顺利渡江，彻底跳出了国民党军数十万大军的包围圈，取得了战略转移中具有决定意义的胜利。"金沙水拍云崖暖"，正是这段历史的生动写照。',
+    quote: { text: '金沙水拍云崖暖', source: '— 毛泽东《七律·长征》' },
+    troops: 30000, troopsLabel: '3万', troopsTrend: '— 持平',
+    mileage: 7500,
+    lat: 25.50, lng: 102.30, routeIdx: 25
+  },
+  {
+    date: '1935.05', dateLabel: '1935年5月',
+    place: '安顺场', modernPlace: '今四川石棉',
+    title: '强渡大渡河', phase: '突破天险', phaseIdx: 2,
+    type: 'crossing',
+    desc: '红军先头部队在四川安顺场强渡大渡河。17名勇士乘一条木船，在激流和枪林弹雨中冲向对岸，击溃守敌，占领渡口。大渡河是太平天国石达开全军覆没之地，蒋介石企图让红军成为"石达开第二"。但红军仅以17人强渡成功，创造了战争奇迹。然而由于船只太少，大部队仍需另寻通路。',
+    quote: null,
+    troops: 30000, troopsLabel: '3万', troopsTrend: '— 持平',
+    mileage: 9000,
+    lat: 29.20, lng: 102.35, routeIdx: 29
+  },
+  {
+    date: '1935.05', dateLabel: '1935年5月',
+    place: '泸定桥', modernPlace: '今四川泸定',
+    title: '飞夺泸定桥', phase: '突破天险', phaseIdx: 2,
+    type: 'battle',
+    desc: '红四团以一昼夜急行军240里的惊人速度，赶到泸定桥西桥头。此时泸定桥的木板已被拆去大半，只剩下13根寒光闪闪的铁索。22名突击队勇士冒着枪林弹雨，攀踏着悬空的铁索向东桥头冲去，最终夺下泸定桥。飞夺泸定桥是长征中最具传奇色彩的战斗之一，"大渡桥横铁索寒"成为千古名句。',
+    quote: { text: '大渡桥横铁索寒', source: '— 毛泽东《七律·长征》' },
+    troops: 30000, troopsLabel: '3万', troopsTrend: '— 持平',
+    mileage: 9300,
+    lat: 29.91, lng: 102.23, routeIdx: 32
+  },
+  {
+    date: '1935.06', dateLabel: '1935年6月',
+    place: '夹金山', modernPlace: '今四川宝兴·懋功',
+    title: '翻越夹金山', phase: '雪山草地', phaseIdx: 3,
+    type: 'terrain',
+    desc: '中央红军翻越长征途中第一座大雪山——夹金山。夹金山海拔4000多米，终年积雪，空气稀薄，天气变幻无常。红军将士身着单衣，脚踏草鞋，在风雪中艰难跋涉，许多战士因高原反应、冻饿而牺牲在雪山上。翻过夹金山后，中央红军与红四方面军在懋功（今小金县）胜利会师，红军总兵力达到10万余人。',
+    quote: null,
+    troops: 30000, troopsLabel: '3万', troopsTrend: '↑ 会师后10万',
+    mileage: 10000,
+    lat: 30.70, lng: 102.70, routeIdx: 35
+  },
+  {
+    date: '1935.08', dateLabel: '1935年8月',
+    place: '松潘草地', modernPlace: '今四川若尔盖',
+    title: '过草地', phase: '雪山草地', phaseIdx: 3,
+    type: 'terrain',
+    desc: '红军穿越川西北的松潘草地（今若尔盖草原）。这是一片一望无际的沼泽地，没有道路，没有人烟，气候恶劣，阴雨连绵。战士们只能踩着草墩前行，稍有不慎就会陷入泥潭。粮食极度匮乏，战士们只能吃野菜、煮皮带。短短六七天的草地行军，无数红军将士长眠在这片茫茫泽国中。',
+    quote: null,
+    troops: 20000, troopsLabel: '约2万', troopsTrend: '↓ 大幅减员',
+    mileage: 12000,
+    lat: 33.50, lng: 103.00, routeIdx: 40
+  },
+  {
+    date: '1935.09', dateLabel: '1935年9月',
+    place: '腊子口', modernPlace: '今甘肃迭部',
+    title: '激战腊子口', phase: '胜利会师', phaseIdx: 4,
+    type: 'battle',
+    desc: '红军北上进入甘肃，在腊子口遭遇国民党军重兵把守。腊子口是岷山山脉的一个隘口，两侧是悬崖峭壁，中间是湍急的腊子河，有"一夫当关，万夫莫开"之势。红军战士从侧面攀崖迂回，正面强攻，最终突破天险腊子口，打开了北上陕甘的通道。"更喜岷山千里雪，三军过后尽开颜"。',
+    quote: { text: '更喜岷山千里雪，三军过后尽开颜', source: '— 毛泽东《七律·长征》' },
+    troops: 7000, troopsLabel: '约7千', troopsTrend: '↓ 草地后锐减',
+    mileage: 14000,
+    lat: 34.10, lng: 103.80, routeIdx: 43
+  },
+  {
+    date: '1935.10', dateLabel: '1935年10月',
+    place: '吴起镇', modernPlace: '今陕西吴起',
+    title: '到达陕北', phase: '胜利会师', phaseIdx: 4,
+    type: 'arrival',
+    desc: '中央红军（红一方面军）历时一年，纵横十一个省，行程二万五千里，终于到达陕北吴起镇，与陕北红军胜利会师。至此，中央红军的长征宣告结束。陕北成为中国革命的落脚点和新的出发点。"长征是宣言书，长征是宣传队，长征是播种机"，长征的胜利开启了中国革命的新局面。',
+    quote: { text: '不到长城非好汉', source: '— 毛泽东《清平乐·六盘山》' },
+    troops: 7000, troopsLabel: '约7千', troopsTrend: '— 持平',
+    mileage: 25000,
+    lat: 36.90, lng: 108.20, routeIdx: 49
+  },
+  {
+    date: '1936.10', dateLabel: '1936年10月',
+    place: '会宁', modernPlace: '今甘肃会宁',
+    title: '三大主力会师', phase: '胜利会师', phaseIdx: 4,
+    type: 'arrival',
+    desc: '红二、红四方面军历经艰难曲折，也到达甘肃会宁地区，与红一方面军胜利会师。至此，红军三大主力全部完成战略转移，长征宣告胜利结束。会宁会师是长征胜利的标志，也是中国革命从挫折走向胜利的转折点。长征锻造了伟大的长征精神，成为中国共产党和人民军队宝贵的精神财富。',
+    quote: { text: '红军不怕远征难，万水千山只等闲', source: '— 毛泽东《七律·长征》' },
+    troops: 30000, troopsLabel: '三大主力', troopsTrend: '↑ 胜利会师',
+    mileage: 25000,
+    lat: 35.70, lng: 105.10, routeIdx: 52
+  }
+];
+
+// ====== 阶段 ======
+const phases = [
+  { name: '战略转移', color: '#6B6B6B' },
+  { name: '遵义转折', color: '#8B0000' },
+  { name: '突破天险', color: '#1A5276' },
+  { name: '雪山草地', color: '#556B2F' },
+  { name: '胜利会师', color: '#C9982B' }
+];
+
+// ====== 路线详细路径 ======
+const routePath = [
+  [25.89, 116.03],  // 0: 瑞金 (E0)
+  [25.85, 115.00],
+  [25.90, 113.80],
+  [26.00, 112.50],
+  [25.75, 111.50],
+  [25.61, 110.67],  // 5: 湘江 (E1)
+  [26.20, 110.00],
+  [26.60, 109.20],
+  [27.00, 108.50],
+  [27.40, 107.60],
+  [27.69, 106.93],  // 10: 遵义 (E2)
+  [28.10, 106.70],
+  [28.40, 106.40],
+  [28.60, 106.10],
+  [28.50, 105.70],  // 一渡赤水 西渡
+  [28.30, 105.40],
+  [28.50, 105.90],  // 二渡赤水 东渡
+  [28.35, 106.40],
+  [28.50, 105.85],  // 三渡赤水 西渡
+  [28.45, 106.30],  // 四渡赤水 东渡
+  [28.00, 105.80],
+  [28.40, 106.10],  // 21: 四渡赤水事件点 (E3)
+  [27.30, 105.20],
+  [26.30, 103.80],
+  [25.80, 102.80],
+  [25.50, 102.30],  // 25: 金沙江 (E4)
+  [26.20, 102.30],
+  [27.50, 102.35],
+  [28.50, 102.35],
+  [29.20, 102.35],  // 29: 安顺场 (E5)
+  [29.55, 102.30],
+  [29.75, 102.25],
+  [29.91, 102.23],  // 32: 泸定桥 (E6)
+  [30.20, 102.35],
+  [30.50, 102.55],
+  [30.70, 102.70],  // 35: 夹金山 (E7)
+  [31.00, 102.75],
+  [31.70, 102.65],
+  [32.50, 102.80],
+  [33.10, 102.95],
+  [33.50, 103.00],  // 40: 松潘草地 (E8)
+  [33.80, 103.30],
+  [34.00, 103.60],
+  [34.10, 103.80],  // 43: 腊子口 (E9)
+  [34.50, 104.30],
+  [35.00, 105.20],
+  [35.50, 106.20],
+  [36.20, 107.30],
+  [36.60, 107.90],
+  [36.90, 108.20],  // 49: 吴起镇 (E10)
+  [36.50, 107.40],
+  [36.10, 106.30],
+  [35.70, 105.10],  // 52: 会宁 (E11)
+];
+
+// ====== 地形路段颜色 ======
+const TERRAIN_COLORS = {
+  normal: '#D32F2F',
+  river:  '#1A5276',
+  snow:   '#8BA8B9',
+  grass:  '#556B2F',
+  gold:   '#C9982B'
+};
+
+function getSegmentTerrain(fromEventIdx) {
+  if (fromEventIdx === 3) return 'river';   // 四渡赤水→金沙江
+  if (fromEventIdx === 5) return 'river';   // 安顺场→泸定桥
+  if (fromEventIdx === 6) return 'snow';    // 泸定桥→夹金山
+  if (fromEventIdx === 7) return 'grass';   // 夹金山→草地
+  if (fromEventIdx === 10) return 'gold';   // 吴起镇→会宁
+  return 'normal';
+}
+
+// ====== 状态 ======
+let currentEvent = 0;
+let isPlaying = false;
+let playTimer = null;
+let map, markers = [], routeLines = [], fullRouteLine, routeArrow;
+let isFlying = false;
+
+// ====== 初始化地图 ======
+function initMap() {
+  map = L.map('map', {
+    zoomControl: true,
+    attributionControl: true,
+    minZoom: 4,
+    maxZoom: 9,
+    zoomSnap: 0.5,
+    fadeAnimation: true,
+    zoomAnimation: true,
+    scrollWheelZoom: true
+  });
+
+  // 高德地图底图（国产瓦片，中文标注，加载快）
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    attribution: '© 高德地图',
+    subdomains: ['1', '2', '3', '4'],
+    maxZoom: 18
+  }).addTo(map);
+
+  // 适应所有事件边界
+  const bounds = L.latLngBounds(events.map(e => [e.lat, e.lng]));
+  map.fitBounds(bounds, { padding: [50, 50] });
+
+  // 全路径（淡色虚线背景）
+  fullRouteLine = L.polyline(routePath, {
+    color: '#8B0000',
+    weight: 2,
+    opacity: 0.12,
+    dashArray: '4 8',
+    lineCap: 'round'
+  }).addTo(map);
+
+  // 创建标记点
+  events.forEach((e, i) => {
+    const iconHtml = `<div class="lm-marker future" data-idx="${i}">
+      <div class="lm-marker-icon">${ICONS[e.type] || ICONS.battle}</div>
+      <div class="lm-marker-label">${e.title}</div>
+    </div>`;
+
+    const icon = L.divIcon({
+      className: 'lm-marker-wrapper',
+      html: iconHtml,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
+    });
+
+    const marker = L.marker([e.lat, e.lng], { icon }).addTo(map);
+    marker.on('click', () => selectEvent(i));
+    markers.push(marker);
+  });
+
+  map.on('movestart', () => { isFlying = true; });
+  map.on('moveend', () => { isFlying = false; });
+}
+
+// ====== 清除已走路线 ======
+function clearRouteLines() {
+  routeLines.forEach(l => map.removeLayer(l));
+  routeLines = [];
+}
+
+// ====== 更新已走路线（分段彩色） ======
+function updateRoute() {
+  clearRouteLines();
+
+  // 绘制从事件0到当前事件的所有路段
+  for (let seg = 0; seg < currentEvent; seg++) {
+    const startIdx = events[seg].routeIdx;
+    const endIdx = events[seg + 1].routeIdx;
+    const segCoords = routePath.slice(startIdx, endIdx + 1);
+    const terrain = getSegmentTerrain(seg);
+    const color = TERRAIN_COLORS[terrain];
+    const isLastSegment = (seg === currentEvent - 1);
+
+    const line = L.polyline(segCoords, {
+      color: color,
+      weight: isLastSegment ? 4.5 : 3.5,
+      opacity: isLastSegment ? 0.9 : 0.6,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+    routeLines.push(line);
+
+    // 最新路段的"绘制"动画
+    if (isLastSegment && line._path) {
+      const pathLen = line._path.getTotalLength ? line._path.getTotalLength() : 0;
+      if (pathLen > 0) {
+        line._path.style.strokeDasharray = pathLen;
+        line._path.style.strokeDashoffset = pathLen;
+        gsap.to(line._path, {
+          strokeDashoffset: 0,
+          duration: 0.8,
+          ease: 'power2.out'
+        });
+      }
+    }
+  }
+}
+
+// ====== 更新标记状态 ======
+function updateMarkers() {
+  markers.forEach((marker, i) => {
+    const el = marker.getElement();
+    if (!el) return;
+    const inner = el.querySelector('.lm-marker');
+    if (!inner) return;
+
+    inner.classList.remove('active', 'past', 'future');
+    if (i === currentEvent) {
+      inner.classList.add('active');
+    } else if (i < currentEvent) {
+      inner.classList.add('past');
+    } else {
+      inner.classList.add('future');
+    }
+  });
+}
+
+// ====== 构建时间轴 ======
+function buildTimeline() {
+  const list = document.getElementById('timelineList');
+  list.innerHTML = events.map((e, i) => `
+    <div class="timeline-event ${i === currentEvent ? 'active' : ''}" data-idx="${i}">
+      <div class="timeline-event-dot"></div>
+      <div class="timeline-event-content">
+        <div class="timeline-event-year">${e.dateLabel}</div>
+        <div class="timeline-event-title">${e.title}</div>
+        <div class="lm-event-place">${e.place}</div>
+        <div class="timeline-event-desc">${e.desc.substring(0, 55)}…</div>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.timeline-event').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      selectEvent(idx);
+    });
+  });
+}
+
+// ====== 构建阶段进度条 ======
+function buildPhaseBar() {
+  const bar = document.getElementById('phaseBar');
+  const labelsEl = document.getElementById('phaseLabels');
+
+  bar.innerHTML = phases.map((p, i) => {
+    const count = events.filter(e => e.phaseIdx === i).length;
+    return `<div class="lm-phase-segment" data-phase="${i}" style="flex:${count}" title="${p.name}"></div>`;
+  }).join('');
+
+  labelsEl.innerHTML = phases.map((p, i) => {
+    const count = events.filter(e => e.phaseIdx === i).length;
+    return `<div class="lm-phase-label" data-phase="${i}" style="flex:${count}">${p.name}</div>`;
+  }).join('');
+}
+
+// ====== 更新阶段进度条 ======
+function updatePhaseBar() {
+  const currentPhase = events[currentEvent].phaseIdx;
+  document.querySelectorAll('.lm-phase-segment').forEach((el, i) => {
+    el.classList.remove('active', 'past');
+    if (i === currentPhase) el.classList.add('active');
+    else if (i < currentPhase) el.classList.add('past');
+  });
+  document.querySelectorAll('.lm-phase-label').forEach((el, i) => {
+    el.classList.toggle('active', i === currentPhase);
+  });
+}
+
+// ====== 选中事件 ======
+function selectEvent(idx) {
+  currentEvent = idx;
+  const e = events[idx];
+
+  // 卡片切换动画
+  const card = document.getElementById('infoCard');
+  gsap.fromTo(card,
+    { opacity: 0.6, y: 8 },
+    { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+  );
+
+  // 更新信息卡片
+  document.getElementById('infoYear').textContent = e.date;
+  document.getElementById('infoPhase').textContent = e.phase;
+  document.getElementById('infoPlace').textContent = e.place;
+  document.getElementById('infoModernPlace').textContent = '· ' + e.modernPlace;
+  document.getElementById('infoTitle').textContent = e.title;
+  document.getElementById('infoDesc').textContent = e.desc;
+  document.getElementById('infoTypeBadge').innerHTML = ICONS[e.type] || ICONS.battle;
+
+  // 兵力与里程
+  document.getElementById('infoTroops').textContent = e.troopsLabel;
+  document.getElementById('infoTroopsTrend').textContent = e.troopsTrend;
+  document.getElementById('infoMileage').textContent = e.mileage > 0 ? e.mileage.toLocaleString() + ' 里' : '0 里';
+
+  // 诗词展示
+  const quoteEl = document.getElementById('infoQuote');
+  if (e.quote) {
+    quoteEl.style.display = 'block';
+    document.getElementById('infoQuoteText').textContent = e.quote.text;
+    document.getElementById('infoQuoteSource').textContent = e.quote.source;
+    gsap.fromTo(quoteEl,
+      { opacity: 0, x: -10 },
+      { opacity: 1, x: 0, duration: 0.5, delay: 0.2, ease: 'power2.out' }
+    );
+  } else {
+    quoteEl.style.display = 'none';
+  }
+
+  // 更新时间轴高亮
+  document.querySelectorAll('.timeline-event').forEach((el, i) => {
+    el.classList.remove('active', 'past');
+    if (i === idx) el.classList.add('active');
+    else if (i < idx) el.classList.add('past');
+  });
+
+  // 滚动到当前事件
+  const activeEl = document.querySelector('.timeline-event.active');
+  if (activeEl) {
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // 更新进度条
+  const progress = ((idx + 1) / events.length) * 100;
+  document.getElementById('progressBar').style.width = `${progress}%`;
+  document.getElementById('eventCounter').textContent = `${idx + 1} / ${events.length}`;
+
+  // 更新地图
+  updateMarkers();
+  updateRoute();
+  updatePhaseBar();
+
+  // 飞到当前位置
+  if (!isFlying) {
+    const zoom = Math.max(map.getZoom(), 5);
+    map.flyTo([e.lat, e.lng], zoom, {
+      duration: 1.2,
+      easeLinearity: 0.25
+    });
+  }
+}
+
+// ====== 播放控制 ======
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+  const label = document.getElementById('playLabel');
+
+  if (isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    label.textContent = '暂停';
+
+    playTimer = setInterval(() => {
+      let next = currentEvent + 1;
+      if (next >= events.length) {
+        next = 0;
+      }
+      selectEvent(next);
+    }, 5000);
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent = '播放';
+    clearInterval(playTimer);
+  }
+}
+
+// ====== 键盘导航 ======
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    if (currentEvent > 0) selectEvent(currentEvent - 1);
+  } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    if (currentEvent < events.length - 1) selectEvent(currentEvent + 1);
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    togglePlay();
+  }
+});
+
+// ====== 导航栏滚动 ======
+window.addEventListener('scroll', () => {
+  document.getElementById('demoNavbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  buildTimeline();
+  buildPhaseBar();
+
+  // 延迟选中第一个事件（等地图加载）
+  setTimeout(() => {
+    selectEvent(0);
+  }, 300);
+
+  // 播放按钮
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // 入场动画淡出
+  setTimeout(() => {
+    document.getElementById('entryOverlay').classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('entryOverlay').style.display = 'none';
+    }, 1200);
+  }, 2800);
+});
+</script>
+
+</body>
+</html>

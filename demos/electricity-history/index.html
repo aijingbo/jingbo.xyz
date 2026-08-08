@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>电的发现史 · 景礴</title>
+  <link rel="stylesheet" href="/assets/css/design-system.css">
+  <link rel="stylesheet" href="/assets/css/demo-framework.css">
+  <style>
+    /* ===== 电的发现史 Demo 专属样式 ===== */
+    :root {
+      --eh-primary: #1d4ed8;
+      --eh-primary-light: #3b82f6;
+      --eh-primary-dark: #1e3a8a;
+      --eh-primary-soft: rgba(29, 78, 216, 0.1);
+      --eh-accent: #d97706;
+      --eh-accent-light: #f59e0b;
+      --eh-accent-soft: rgba(217, 119, 6, 0.1);
+      --eh-cyan: #22d3ee;
+      --eh-red: #ef4444;
+      --eh-blue: #3b82f6;
+      --eh-purple: #8b5cf6;
+      --eh-bg: #faf8f5;
+      --eh-vintage: #5c4a32;
+      --eh-vintage-light: #8b7355;
+      --eh-vintage-bg: #f5efe3;
+      --eh-vintage-border: #c4b5a0;
+    }
+
+    body {
+      background: var(--eh-bg);
+      overflow-x: hidden;
+    }
+
+    /* 覆盖品牌色为电弧蓝 */
+    .magazine-kicker { color: var(--eh-primary); }
+    .magazine-step-dot.active {
+      background-color: var(--eh-primary);
+      box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15);
+    }
+    .magazine-step-dot.completed { background-color: var(--eh-accent); }
+    .magazine-theorem-box {
+      background: linear-gradient(135deg, rgba(29,78,216,0.04), rgba(217,119,6,0.06));
+      border-color: rgba(29,78,216,0.15);
+    }
+    .magazine-theorem-title { color: var(--eh-primary); }
+    .magazine-proof-num { background-color: var(--eh-primary); }
+    .btn-primary {
+      background-color: var(--eh-primary);
+      border-color: var(--eh-primary);
+    }
+    .btn-primary:hover {
+      background-color: var(--eh-primary-dark);
+    }
+    .demo-btn-download {
+      background-color: var(--eh-primary);
+    }
+    .demo-btn-download:hover {
+      background-color: var(--eh-primary-dark);
+    }
+
+    /* ===== 可视化容器 ===== */
+    .visual-container {
+      width: 100%;
+      min-height: 500px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacer-16);
+      position: relative;
+    }
+    .visual-container.fade-out { opacity: 0; transition: opacity 0.2s; }
+    .visual-container.fade-in { animation: vfadeIn 0.4s ease; }
+    @keyframes vfadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .visual-caption {
+      font-size: var(--fs-small);
+      color: var(--text-muted);
+      text-align: center;
+      font-style: italic;
+      font-family: var(--font-serif);
+      margin-top: var(--spacer-12);
+      padding: 0 var(--spacer-16);
+    }
+
+    /* ===== 自动播放按钮 ===== */
+    .autoplay-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .autoplay-btn:hover {
+      border-color: var(--eh-primary);
+      color: var(--eh-primary);
+    }
+    .autoplay-btn.playing {
+      background: var(--eh-primary);
+      border-color: var(--eh-primary);
+      color: #fff;
+    }
+    .autoplay-btn svg { width: 14px; height: 14px; }
+
+    /* ===== 步骤导航增强 ===== */
+    .magazine-step-indicator {
+      flex-wrap: wrap;
+    }
+
+    /* ===== 互动按钮通用 ===== */
+    .eh-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border: 1px solid var(--eh-primary);
+      border-radius: var(--radius);
+      background: var(--eh-primary);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .eh-btn:hover {
+      background: var(--eh-primary-dark);
+      border-color: var(--eh-primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.2);
+    }
+    .eh-btn:active { transform: translateY(0); }
+    .eh-btn.secondary {
+      background: var(--surface);
+      color: var(--eh-primary);
+    }
+    .eh-btn.secondary:hover {
+      background: var(--eh-primary-soft);
+    }
+    .eh-btn.accent {
+      background: var(--eh-accent);
+      border-color: var(--eh-accent);
+    }
+    .eh-btn.accent:hover {
+      background: #b45309;
+      border-color: #b45309;
+    }
+    .eh-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ===== SVG 通用样式 ===== */
+    .eh-svg { display: block; max-width: 100%; height: auto; }
+    .eh-svg-label {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      fill: var(--text-muted);
+    }
+    .eh-svg-label-sm {
+      font-family: var(--font-sans);
+      font-size: 10px;
+      fill: var(--text-muted);
+    }
+
+    /* ===== Step 1: 琥珀实验 ===== */
+    .amber-rod {
+      transition: filter 0.3s ease;
+    }
+    .amber-rod.charged {
+      filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.8));
+    }
+    .paper-piece {
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+    }
+    .spark-line {
+      stroke: var(--eh-cyan);
+      stroke-width: 1.5;
+      opacity: 0;
+      animation: sparkFlash 0.8s ease;
+    }
+    @keyframes sparkFlash {
+      0% { opacity: 0; }
+      30% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ===== Step 2: 风筝实验 ===== */
+    .lightning-bolt {
+      opacity: 0;
+    }
+    .lightning-bolt.flash {
+      animation: lightningFlash 0.6s ease;
+    }
+    @keyframes lightningFlash {
+      0% { opacity: 0; }
+      15% { opacity: 1; }
+      25% { opacity: 0.3; }
+      35% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .kite-spark {
+      opacity: 0;
+    }
+    .kite-spark.flash {
+      animation: kiteSparkFlash 0.6s ease 0.2s;
+    }
+    @keyframes kiteSparkFlash {
+      0% { opacity: 0; }
+      30% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .storm-cloud {
+      animation: cloudDrift 8s ease-in-out infinite alternate;
+    }
+    @keyframes cloudDrift {
+      from { transform: translateX(0); }
+      to { transform: translateX(10px); }
+    }
+
+    /* ===== Step 3: 伏特电堆 ===== */
+    .volta-layer {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .bulb-glow {
+      transition: opacity 0.3s ease, r 0.3s ease;
+    }
+    .voltage-display {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--eh-primary);
+    }
+
+    /* ===== Step 4: 电磁实验 ===== */
+    .compass-needle {
+      transform-origin: center;
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .galvanometer-needle {
+      transform-origin: center bottom;
+      transition: transform 0.3s ease;
+    }
+    .wire-current {
+      stroke-dasharray: 6 4;
+      animation: currentFlow 0.8s linear infinite;
+      animation-play-state: paused;
+    }
+    .wire-current.active {
+      animation-play-state: running;
+    }
+    @keyframes currentFlow {
+      to { stroke-dashoffset: -20; }
+    }
+    .magnet-drag {
+      cursor: grab;
+      transition: filter 0.2s ease;
+    }
+    .magnet-drag:active { cursor: grabbing; }
+    .magnet-drag:hover { filter: brightness(1.1); }
+
+    /* ===== Step 5: 麦克斯韦方程 ===== */
+    .maxwell-eq {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      transition: all 0.2s ease;
+    }
+    .maxwell-eq:hover {
+      border-color: var(--eh-primary);
+      box-shadow: 0 4px 16px rgba(29, 78, 216, 0.08);
+    }
+    .maxwell-eq-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--eh-primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .maxwell-eq-formula {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+    .maxwell-eq-name {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .maxwell-eq-diagram {
+      width: 50px;
+      height: 50px;
+      flex-shrink: 0;
+    }
+
+    /* ===== Step 6: 电流之战 ===== */
+    .dc-ac-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 100%;
+      max-width: 600px;
+    }
+    .dc-ac-card {
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      text-align: center;
+    }
+    .dc-ac-card.dc { border-top: 3px solid var(--eh-red); }
+    .dc-ac-card.ac { border-top: 3px solid var(--eh-accent); }
+    .dc-ac-card-title {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .dc-ac-card.dc .dc-ac-card-title { color: var(--eh-red); }
+    .dc-ac-card.ac .dc-ac-card-title { color: var(--eh-accent); }
+    .dc-ac-card-note {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    /* ===== 加载动画 ===== */
+    .arc-loader {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--eh-bg);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 24px;
+      transition: opacity 0.5s ease;
+    }
+    .arc-loader.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .arc-loader svg {
+      animation: arcPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes arcPulse {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.4)); }
+      50% { filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.8)); }
+    }
+    .arc-loader-text {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--eh-primary);
+      animation: textFadeIn 1.5s ease;
+    }
+    @keyframes textFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== 滑块拇指 ===== */
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--eh-primary);
+      cursor: pointer;
+      border: 2px solid var(--surface);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--eh-primary);
+      cursor: pointer;
+      border: 2px solid var(--surface);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    /* ===== 历史年代标记 ===== */
+    .era-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: var(--eh-accent-soft);
+      color: var(--eh-accent);
+      border-radius: var(--radius-full);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      margin-bottom: 8px;
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 768px) {
+      .visual-container { min-height: 360px; }
+      .maxwell-eq { flex-wrap: wrap; }
+      .maxwell-eq-diagram { display: none; }
+      .maxwell-eq-formula { font-size: 15px; }
+      .dc-ac-compare { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 加载动画 ====== -->
+<div class="arc-loader" id="arcLoader">
+  <svg width="60" height="60" viewBox="0 0 60 60">
+    <path d="M30 8 L20 30 L28 30 L18 52" stroke="none" fill="none"/>
+    <path d="M30 6 L18 28 L27 28 L15 54" stroke="#22d3ee" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="30" cy="6" r="3" fill="#22d3ee"/>
+    <circle cx="15" cy="54" r="3" fill="#1d4ed8"/>
+  </svg>
+  <div class="arc-loader-text">电的发现史</div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">物理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">电的发现史</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-physics">物理</span>
+      <a href="/skills/jingbo-edu-physics-astronomy-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="magazine-article">
+        <div class="magazine-article-header">
+          <div class="magazine-kicker">PHYSICS · 物理科学史</div>
+          <h1 class="magazine-title">电的发现史</h1>
+          <p class="magazine-subtitle">从古希腊的琥珀到特斯拉的交流电——人类用两千多年解锁了宇宙最神秘的力量。</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="magazine-step-indicator">
+          <div class="magazine-step-dots" id="stepDots">
+            <div class="magazine-step-dot active" data-step="0"></div>
+            <div class="magazine-step-dot" data-step="1"></div>
+            <div class="magazine-step-dot" data-step="2"></div>
+            <div class="magazine-step-dot" data-step="3"></div>
+            <div class="magazine-step-dot" data-step="4"></div>
+            <div class="magazine-step-dot" data-step="5"></div>
+          </div>
+          <span class="magazine-step-label" id="stepLabel">第 1 / 6 步</span>
+          <button class="autoplay-btn" id="autoplayBtn" title="自动播放">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="magazine-body">
+          <div class="magazine-step-content" id="stepContent"></div>
+        </div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="magazine-step-nav">
+          <button class="btn btn-secondary" id="prevBtn">
+            <span>←</span> 上一步
+          </button>
+          <button class="btn btn-primary" id="nextBtn">
+            下一步 <span>→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="magazine-visual">
+        <div class="magazine-visual-wrapper">
+          <div class="visual-container" id="visualContainer">
+            <!-- JS 动态渲染 -->
+          </div>
+        </div>
+        <p class="magazine-visual-caption" id="visualCaption"></p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">electricity-history</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">CSS Animation</span>
+    <span class="demo-tech-tag">JavaScript</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-physics-astronomy-lecture-v0.1.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   电的发现史 — 交互逻辑
+   ============================================================ */
+
+// ====== 步骤内容数据 ======
+const steps = [
+  {
+    era: '公元前 600 年 — 1745 年',
+    title: '琥珀与闪电——神秘的力量',
+    content: `
+      <p class="lead">公元前 600 年，希腊哲学家泰勒斯发现：摩擦过的琥珀能吸引轻小的羽毛和碎屑。"电"（electricity）这个词，正是来自希腊语的琥珀——<em>ēlektron</em>。</p>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">关键发现</div>
+        <div class="magazine-theorem-text">
+          琥珀摩擦后带有<strong>静电</strong>，可以吸引轻小物体。但两千年来，这只是一种新奇的游戏。1745 年，莱顿瓶的发明让人类第一次能够<strong>储存静电</strong>，为后续实验铺平了道路。
+        </div>
+      </div>
+      <p>人们用莱顿瓶做各种惊险的静电表演——手拉手放电、点燃酒精、电击飞鸟。但没有人知道：电到底是什么？天空中的闪电和琥珀里的静电，是不是同一种东西？</p>
+      <p style="color:var(--eh-accent);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">→ 点击右侧"摩擦"按钮，亲手重现这个两千年前的发现。</p>
+    `,
+    caption: '图 1 · 琥珀摩擦起电实验与莱顿瓶结构示意'
+  },
+  {
+    era: '1752 年',
+    title: '富兰克林与风筝——从天空引来的电',
+    content: `
+      <p class="lead">1752 年，本杰明·富兰克林在雷雨天放了一只风筝。风筝线末端的金属钥匙上，竟然迸出了电火花——<strong>闪电就是电！</strong></p>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">1</div>
+        <div class="magazine-proof-text">
+          富兰克林用丝绸手帕做风筝，风筝线上系了一根金属导线，末端挂一把铜钥匙。
+        </div>
+      </div>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">2</div>
+        <div class="magazine-proof-text">
+          雷云中的电荷沿湿风筝线传导至钥匙。当他将手指靠近钥匙时，火花跳跃——天空的电被"引"了下来。
+        </div>
+      </div>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">历史意义</div>
+        <div class="magazine-theorem-text">
+          富兰克林还提出了<strong>正电与负电</strong>的概念，以及<strong>电荷守恒定律</strong>。他的风筝实验让电学从魔术表演变成了一门真正的科学。
+        </div>
+      </div>
+      <p style="color:var(--eh-accent);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">→ 点击"引雷"按钮，重现那个改变历史的雷雨天。</p>
+    `,
+    caption: '图 2 · 富兰克林风筝实验场景与电路示意'
+  },
+  {
+    era: '1800 年',
+    title: '伏特的电池——持续电流的诞生',
+    content: `
+      <p class="lead">1800 年，意大利科学家亚历山德罗·伏特发明了<strong>伏特电堆</strong>——把锌片和铜片交替堆叠，中间用浸了盐水的纸板隔开，就能产生<strong>持续的电流</strong>。</p>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">为什么这很重要？</div>
+        <div class="magazine-theorem-text">
+          莱顿瓶只能释放瞬间的电火花，而伏特电堆提供了<strong>稳定的电源</strong>。这是人类第一次获得"动电"而非"静电"。电池的发明直接导致了电解、电化学、电报等一系列重大发现和发明。
+        </div>
+      </div>
+      <p>每一层锌-铜-盐水组合约产生 <strong>0.76V</strong> 的电压。堆叠越多层，电压越高。拖动右侧滑块，调节电堆层数，观察灯泡亮度的变化——你正在操控世界上第一块电池。</p>
+      <p style="color:var(--eh-accent);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">→ 拖动滑块调节层数（1—20层），点亮灯泡。</p>
+    `,
+    caption: '图 3 · 伏特电堆结构与电压-亮度关系'
+  },
+  {
+    era: '1820 — 1831 年',
+    title: '电生磁与磁生电——电磁统一的开端',
+    content: `
+      <p class="lead">1820 年，丹麦物理学家奥斯特在讲课时意外发现：通电导线旁边的磁针会偏转——<strong>电可以产生磁！</strong>随后安培深入研究，提出了安培定律。</p>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">→</div>
+        <div class="magazine-proof-text">
+          1831 年，法拉第反过来思考：磁能不能生电？他将磁铁插入线圈，电流计的指针动了——<strong>变化的磁场可以产生电流</strong>。这就是<strong>电磁感应</strong>。
+        </div>
+      </div>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">深远影响</div>
+        <div class="magazine-theorem-text">
+          电磁感应是<strong>发电机和变压器</strong>的基本原理。没有这个发现，就没有今天的电力系统。法拉第用一把磁铁和一个线圈，打开了电气化时代的大门。
+        </div>
+      </div>
+      <p style="color:var(--eh-accent);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">→ 上方：点击通电，观察磁针偏转；下方：拖动磁铁进出线圈，观察电流计。</p>
+    `,
+    caption: '图 4 · 奥斯特实验（上）与法拉第电磁感应实验（下）'
+  },
+  {
+    era: '1865 年',
+    title: '麦克斯韦——用方程书写宇宙的诗',
+    content: `
+      <p class="lead">1865 年，詹姆斯·麦克斯韦发表了一组方程，完美统一了电和磁。更惊人的是，他从方程中<strong>预言了电磁波的存在</strong>，并计算出电磁波的速度等于光速。</p>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">上帝书写的诗</div>
+        <div class="magazine-theorem-text">
+          麦克斯韦方程组被誉为"上帝书写的诗"。它告诉我们：光就是一种电磁波。电、磁、光，三者在此刻统一。这个预言在 20 年后被赫兹用实验证实。
+        </div>
+      </div>
+      <p>四个方程，简洁而优美地描述了电磁场的全部行为。右侧展示了四个方程及其几何图示，下方是电磁波传播的动画——电场（蓝色）与磁场（紫色）互相垂直，以光速向前传播。</p>
+      <p style="color:var(--eh-accent);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">→ 观察电磁波动画：电场与磁场交替激发，以光速传播。</p>
+    `,
+    caption: '图 5 · 麦克斯韦方程组与电磁波传播动画'
+  },
+  {
+    era: '1880s — 1900s',
+    title: '电流之战——电如何走进千家万户',
+    content: `
+      <p class="lead">19 世纪末，一场决定未来的"电流之战"爆发了：爱迪生的<strong>直流电（DC）</strong>对阵特斯拉与西屋公司的<strong>交流电（AC）</strong>。</p>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">DC</div>
+        <div class="magazine-proof-text">
+          爱迪生主张直流电，但直流电无法升压，传输距离仅约 1 公里，需要大量发电站。
+        </div>
+      </div>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">AC</div>
+        <div class="magazine-proof-text">
+          特斯拉的交流电可通过<strong>变压器</strong>升压远距离传输，再降压供给用户。爱迪生极力贬低交流电的危险性，甚至公开电死大象来制造恐惧。
+        </div>
+      </div>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">交流电的胜利</div>
+        <div class="magazine-theorem-text">
+          尽管爱迪生用尽手段，交流电凭借<strong>远距离输电优势</strong>最终胜出。1893 年芝加哥世博会，特斯拉的交流电点亮了数万盏灯泡，震撼世界。我们今天的电力世界，就是这场战争塑造的。
+        </div>
+      </div>
+      <p style="color:var(--eh-accent);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">→ 拖动距离滑块，对比直流电与交流电的传输损耗。</p>
+    `,
+    caption: '图 6 · 直流电与交流电系统对比及传输损耗'
+  }
+];
+
+// ====== 步骤导航逻辑 ======
+let currentStep = 0;
+let autoplayTimer = null;
+let isAutoplaying = false;
+const AUTOPLAY_INTERVAL = 8000;
+
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDots = document.querySelectorAll('.magazine-step-dot');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const autoplayBtn = document.getElementById('autoplayBtn');
+const visualContainer = document.getElementById('visualContainer');
+const visualCaption = document.getElementById('visualCaption');
+
+// 动画清理器
+let animationCleanup = null;
+
+function updateStep() {
+  // 清理上一步的动画
+  if (animationCleanup) {
+    animationCleanup();
+    animationCleanup = null;
+  }
+
+  stepContent.classList.add('fade-out');
+  visualContainer.classList.add('fade-out');
+
+  setTimeout(() => {
+    const step = steps[currentStep];
+    stepContent.innerHTML = `
+      <div class="era-badge">${step.era}</div>
+      <h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">${step.title}</h3>
+      ${step.content}
+    `;
+    stepContent.classList.remove('fade-out');
+    stepContent.classList.add('fade-in');
+    setTimeout(() => stepContent.classList.remove('fade-in'), 400);
+
+    visualCaption.textContent = step.caption;
+    visualContainer.classList.remove('fade-out');
+    visualContainer.classList.add('fade-in');
+    renderVisual(currentStep);
+    setTimeout(() => visualContainer.classList.remove('fade-in'), 400);
+  }, 200);
+
+  stepLabel.textContent = `第 ${currentStep + 1} / ${steps.length} 步`;
+
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === currentStep) dot.classList.add('active');
+    else if (i < currentStep) dot.classList.add('completed');
+  });
+
+  prevBtn.disabled = currentStep === 0;
+  prevBtn.style.opacity = currentStep === 0 ? '0.5' : '1';
+  prevBtn.style.cursor = currentStep === 0 ? 'not-allowed' : 'pointer';
+
+  nextBtn.innerHTML = currentStep === steps.length - 1
+    ? '完成 <span>✓</span>'
+    : '下一步 <span>→</span>';
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) { currentStep--; updateStep(); resetAutoplay(); }
+});
+
+nextBtn.addEventListener('click', () => {
+  if (currentStep < steps.length - 1) { currentStep++; updateStep(); resetAutoplay(); }
+  else { stopAutoplay(); }
+});
+
+stepDots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const step = parseInt(dot.dataset.step);
+    if (step !== currentStep) { currentStep = step; updateStep(); resetAutoplay(); }
+  });
+});
+
+// ====== 自动播放 ======
+function startAutoplay() {
+  isAutoplaying = true;
+  autoplayBtn.classList.add('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>';
+  autoplayTimer = setInterval(() => {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      updateStep();
+    } else {
+      currentStep = 0;
+      updateStep();
+    }
+  }, AUTOPLAY_INTERVAL);
+}
+
+function stopAutoplay() {
+  isAutoplaying = false;
+  autoplayBtn.classList.remove('playing');
+  autoplayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
+}
+
+function resetAutoplay() {
+  if (isAutoplaying) {
+    stopAutoplay();
+    startAutoplay();
+  }
+}
+
+autoplayBtn.addEventListener('click', () => {
+  if (isAutoplaying) stopAutoplay();
+  else startAutoplay();
+});
+
+// ====== 可视化渲染 ======
+function renderVisual(step) {
+  switch(step) {
+    case 0: renderStep1(); break;
+    case 1: renderStep2(); break;
+    case 2: renderStep3(); break;
+    case 3: renderStep4(); break;
+    case 4: renderStep5(); break;
+    case 5: renderStep6(); break;
+  }
+}
+
+/* ====== Step 1: 琥珀摩擦起电 ====== */
+function renderStep1() {
+  visualContainer.innerHTML = `
+    <div style="width:100%;max-width:480px;">
+      <!-- 琥珀实验 -->
+      <div style="text-align:center;margin-bottom:24px;">
+        <svg class="eh-svg" viewBox="0 0 400 200" id="amberSvg">
+          <!-- 琥珀棒 -->
+          <g id="amberRod" class="amber-rod">
+            <ellipse cx="200" cy="100" rx="80" ry="18" fill="#d97706" stroke="#92400e" stroke-width="2"/>
+            <ellipse cx="200" cy="96" rx="70" ry="8" fill="rgba(255,255,255,0.2)"/>
+            <text x="200" y="105" text-anchor="middle" class="eh-svg-label" fill="#fff" font-weight="600">琥珀 (ēlektron)</text>
+          </g>
+          <!-- 纸片 -->
+          <g id="paperPieces">
+            <rect class="paper-piece" x="60" y="80" width="8" height="8" fill="#e5ded4" transform="rotate(15 64 84)"/>
+            <rect class="paper-piece" x="80" y="120" width="6" height="10" fill="#e5ded4" transform="rotate(-20 83 125)"/>
+            <rect class="paper-piece" x="50" y="140" width="10" height="6" fill="#e5ded4" transform="rotate(30 55 143)"/>
+            <rect class="paper-piece" x="100" y="60" width="7" height="7" fill="#e5ded4" transform="rotate(-10 103 63)"/>
+            <rect class="paper-piece" x="340" y="80" width="8" height="8" fill="#e5ded4" transform="rotate(15 344 84)"/>
+            <rect class="paper-piece" x="320" y="120" width="6" height="10" fill="#e5ded4" transform="rotate(-20 323 125)"/>
+            <rect class="paper-piece" x="350" y="140" width="10" height="6" fill="#e5ded4" transform="rotate(30 355 143)"/>
+            <rect class="paper-piece" x="300" y="60" width="7" height="7" fill="#e5ded4" transform="rotate(-10 303 63)"/>
+          </g>
+          <!-- 火花线（摩擦时显示） -->
+          <g id="sparkLines" style="display:none;">
+            <line class="spark-line" x1="140" y1="100" x2="120" y2="90" style="animation-delay:0s;"/>
+            <line class="spark-line" x1="260" y1="100" x2="280" y2="90" style="animation-delay:0.1s;"/>
+            <line class="spark-line" x1="200" y1="82" x2="200" y2="70" style="animation-delay:0.2s;"/>
+          </g>
+        </svg>
+        <div style="margin-top:12px;">
+          <button class="eh-btn" id="rubBtn">摩擦琥珀</button>
+        </div>
+      </div>
+
+      <!-- 莱顿瓶 -->
+      <div style="border-top:1px dashed var(--border);padding-top:20px;">
+        <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:12px;font-family:var(--font-mono);letter-spacing:0.05em;">LEIDEN JAR · 莱顿瓶</div>
+        <svg class="eh-svg" viewBox="0 0 400 180" style="max-width:360px;margin:0 auto;display:block;">
+          <!-- 玻璃瓶 -->
+          <path d="M140 30 L140 140 Q140 160 160 160 L240 160 Q260 160 260 140 L260 30 Z"
+                fill="rgba(34,211,238,0.08)" stroke="#22d3ee" stroke-width="1.5"/>
+          <!-- 瓶口 -->
+          <ellipse cx="200" cy="30" rx="60" ry="8" fill="none" stroke="#22d3ee" stroke-width="1.5"/>
+          <!-- 外壁金属箔 -->
+          <path d="M148 50 L148 135 Q148 150 160 150 L240 150 Q252 150 252 135 L252 50"
+                fill="rgba(101,163,13,0.15)" stroke="#65a30d" stroke-width="1" stroke-dasharray="3 2"/>
+          <!-- 内壁金属箔 -->
+          <path d="M156 50 L156 130 Q156 142 164 142 L236 142 Q244 142 244 130 L244 50"
+                fill="rgba(239,68,68,0.1)" stroke="#ef4444" stroke-width="1" stroke-dasharray="3 2"/>
+          <!-- 金属链 -->
+          <line x1="200" y1="30" x2="200" y2="80" stroke="#a3a3a3" stroke-width="2"/>
+          <circle cx="200" cy="30" r="6" fill="#a3a3a3" stroke="#737373" stroke-width="1"/>
+          <!-- 金属杆顶部球 -->
+          <circle cx="200" cy="22" r="8" fill="#a3a3a3" stroke="#737373" stroke-width="1.5"/>
+          <!-- 标注线 -->
+          <line x1="200" y1="22" x2="290" y2="22" stroke="#a3a3a3" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <text x="295" y="25" class="eh-svg-label-sm">金属球（电极）</text>
+          <line x1="200" y1="55" x2="290" y2="55" stroke="#a3a3a3" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <text x="295" y="58" class="eh-svg-label-sm">金属链（导电）</text>
+          <line x1="244" y1="100" x2="310" y2="100" stroke="#a3a3a3" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <text x="315" y="103" class="eh-svg-label-sm" fill="#ef4444">内壁金属箔</text>
+          <line x1="148" y1="120" x2="80" y2="120" stroke="#a3a3a3" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <text x="20" y="123" class="eh-svg-label-sm" fill="#65a30d">外壁金属箔</text>
+          <line x1="140" y1="145" x2="80" y2="155" stroke="#a3a3a3" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <text x="20" y="158" class="eh-svg-label-sm" fill="#22d3ee">玻璃瓶（绝缘）</text>
+        </svg>
+      </div>
+    </div>
+  `;
+
+  let isCharged = false;
+  const rubBtn = document.getElementById('rubBtn');
+  const amberRod = document.getElementById('amberRod');
+  const sparkLines = document.getElementById('sparkLines');
+  const paperPieces = visualContainer.querySelectorAll('.paper-piece');
+
+  rubBtn.addEventListener('click', () => {
+    if (isCharged) {
+      // 放电：纸片回到原位
+      amberRod.classList.remove('charged');
+      sparkLines.style.display = 'none';
+      paperPieces.forEach(p => {
+        p.style.transform = '';
+        p.style.opacity = '1';
+      });
+      rubBtn.textContent = '摩擦琥珀';
+      isCharged = false;
+    } else {
+      // 充电：火花 + 纸片飞向琥珀
+      sparkLines.style.display = 'block';
+      setTimeout(() => { sparkLines.style.display = 'none'; }, 1000);
+
+      amberRod.classList.add('charged');
+      paperPieces.forEach((p, i) => {
+        const isLeft = parseFloat(p.getAttribute('x')) < 200;
+        const dx = isLeft ? 60 : -60;
+        const dy = (100 - parseFloat(p.getAttribute('y')) - 4) * 0.5;
+        setTimeout(() => {
+          p.style.transform = `translate(${dx}px, ${dy}px) rotate(${Math.random() * 360}deg)`;
+        }, i * 80);
+      });
+      rubBtn.textContent = '放电';
+      isCharged = true;
+    }
+  });
+}
+
+/* ====== Step 2: 富兰克林风筝实验 ====== */
+function renderStep2() {
+  visualContainer.innerHTML = `
+    <div style="width:100%;max-width:500px;text-align:center;">
+      <svg class="eh-svg" viewBox="0 0 400 350" id="kiteSvg">
+        <!-- 乌云 -->
+        <g class="storm-cloud">
+          <ellipse cx="100" cy="50" rx="50" ry="25" fill="#4b5563" opacity="0.85"/>
+          <ellipse cx="150" cy="40" rx="55" ry="28" fill="#374151" opacity="0.9"/>
+          <ellipse cx="200" cy="50" rx="50" ry="25" fill="#4b5563" opacity="0.85"/>
+          <ellipse cx="250" cy="45" rx="45" ry="22" fill="#374151" opacity="0.85"/>
+          <ellipse cx="300" cy="55" rx="40" ry="20" fill="#4b5563" opacity="0.8"/>
+        </g>
+        <!-- 闪电 -->
+        <path class="lightning-bolt" id="lightningBolt"
+              d="M195 75 L175 110 L190 110 L170 145 L200 100 L185 100 Z"
+              fill="#22d3ee" stroke="#fff" stroke-width="0.5"
+              filter="url(#lightGlow)"/>
+        <defs>
+          <filter id="lightGlow">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- 风筝 -->
+        <g id="kite" transform="translate(150, 100)">
+          <polygon points="0,0 30,-25 0,-50 -30,-25" fill="rgba(245,158,11,0.3)" stroke="#d97706" stroke-width="1.5"/>
+          <line x1="0" y1="0" x2="0" y2="-50" stroke="#d97706" stroke-width="0.5"/>
+          <line x1="-30" y1="-25" x2="30" y2="-25" stroke="#d97706" stroke-width="0.5"/>
+          <!-- 风筝尾巴 -->
+          <path d="M0 0 Q5 20 -3 40 Q5 60 -2 80" stroke="#d97706" stroke-width="1" fill="none"/>
+        </g>
+        <!-- 风筝线 -->
+        <line x1="150" y1="100" x2="140" y2="200" stroke="#6b6b6b" stroke-width="1" stroke-dasharray="3 2"/>
+        <!-- 金属导线段（风筝线下半部分） -->
+        <line x1="140" y1="200" x2="135" y2="260" stroke="#a3a3a3" stroke-width="2"/>
+        <!-- 钥匙 -->
+        <g transform="translate(130, 260)">
+          <circle cx="5" cy="0" r="6" fill="none" stroke="#d97706" stroke-width="2"/>
+          <rect x="3" y="6" width="4" height="20" fill="#d97706" rx="1"/>
+          <rect x="3" y="18" width="8" height="3" fill="#d97706" rx="1"/>
+          <rect x="3" y="23" width="6" height="3" fill="#d97706" rx="1"/>
+          <text x="20" y="15" class="eh-svg-label-sm">钥匙</text>
+        </g>
+        <!-- 火花 -->
+        <g class="kite-spark" id="kiteSpark" transform="translate(130, 260)">
+          <circle cx="5" cy="5" r="2" fill="#22d3ee"/>
+          <line x1="5" y1="5" x2="0" y2="15" stroke="#22d3ee" stroke-width="1.5"/>
+          <line x1="5" y1="5" x2="12" y2="12" stroke="#22d3ee" stroke-width="1.5"/>
+          <line x1="5" y1="5" x2="-2" y2="0" stroke="#22d3ee" stroke-width="1.5"/>
+          <line x1="5" y1="5" x2="10" y2="-5" stroke="#22d3ee" stroke-width="1.5"/>
+        </g>
+        <!-- 地面 -->
+        <line x1="0" y1="320" x2="400" y2="320" stroke="#e5ded4" stroke-width="2"/>
+        <!-- 莱顿瓶 -->
+        <g transform="translate(100, 290)">
+          <rect x="0" y="0" width="24" height="30" rx="2" fill="rgba(34,211,238,0.1)" stroke="#22d3ee" stroke-width="1"/>
+          <line x1="12" y1="0" x2="12" y2="-10" stroke="#a3a3a3" stroke-width="1.5"/>
+          <circle cx="12" cy="-12" r="3" fill="#a3a3a3"/>
+          <text x="35" y="20" class="eh-svg-label-sm">莱顿瓶</text>
+        </g>
+        <!-- 标注 -->
+        <text x="200" y="45" class="eh-svg-label-sm" fill="#9ca3af" text-anchor="middle">雷云（负电）</text>
+        <text x="200" y="335" class="eh-svg-label-sm" fill="#9ca3af" text-anchor="middle">→ 电路：云层 → 风筝 → 钥匙 → 莱顿瓶</text>
+      </svg>
+      <div style="margin-top:12px;">
+        <button class="eh-btn accent" id="lightningBtn">⚡ 点击引雷</button>
+      </div>
+    </div>
+  `;
+
+  const lightningBtn = document.getElementById('lightningBtn');
+  const lightningBolt = document.getElementById('lightningBolt');
+  const kiteSpark = document.getElementById('kiteSpark');
+
+  lightningBtn.addEventListener('click', () => {
+    lightningBolt.classList.remove('flash');
+    kiteSpark.classList.remove('flash');
+    void lightningBolt.offsetWidth;
+    lightningBolt.classList.add('flash');
+    kiteSpark.classList.add('flash');
+    lightningBtn.disabled = true;
+    lightningBtn.textContent = '⚡ 引雷中...';
+    setTimeout(() => {
+      lightningBtn.disabled = false;
+      lightningBtn.textContent = '⚡ 再次引雷';
+    }, 1500);
+  });
+}
+
+/* ====== Step 3: 伏特电堆 ====== */
+function renderStep3() {
+  visualContainer.innerHTML = `
+    <div style="width:100%;max-width:500px;text-align:center;">
+      <!-- 电压显示 -->
+      <div style="margin-bottom:16px;">
+        <span class="voltage-display" id="voltageDisplay">7.6 V</span>
+        <div style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono);">层数 × 0.76V</div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:center;gap:24px;">
+        <!-- 伏特电堆 -->
+        <svg class="eh-svg" viewBox="0 0 200 280" style="max-width:160px;" id="voltaSvg">
+          <g id="voltaStack" transform="translate(100, 270)">
+            <!-- 层会从下往上动态添加 -->
+          </g>
+          <!-- 导线 -->
+          <line x1="100" y1="20" x2="100" y2="10" stroke="#a3a3a3" stroke-width="1.5" id="topWire"/>
+          <line x1="100" y1="270" x2="100" y2="275" stroke="#a3a3a3" stroke-width="1.5"/>
+          <line x1="100" y1="10" x2="50" y2="10" stroke="#a3a3a3" stroke-width="1.5"/>
+          <line x1="100" y1="275" x2="50" y2="275" stroke="#a3a3a3" stroke-width="1.5"/>
+        </svg>
+
+        <!-- 灯泡 -->
+        <svg class="eh-svg" viewBox="0 0 100 140" style="max-width:100px;">
+          <!-- 光晕 -->
+          <circle class="bulb-glow" id="bulbGlow" cx="50" cy="45" r="30" fill="rgba(245,158,11,0)" />
+          <!-- 灯泡玻璃 -->
+          <path d="M35 45 Q35 20 50 20 Q65 20 65 45 L65 60 L35 60 Z"
+                fill="rgba(255,255,255,0.5)" stroke="#d1d5db" stroke-width="1.5"/>
+          <!-- 灯丝 -->
+          <path d="M42 55 Q45 40 50 45 Q55 50 58 35" stroke="#d97706" stroke-width="1.5" fill="none" id="bulbFilament"/>
+          <!-- 螺纹 -->
+          <rect x="38" y="60" width="24" height="4" fill="#a3a3a3" rx="1"/>
+          <rect x="38" y="65" width="24" height="4" fill="#737373" rx="1"/>
+          <rect x="38" y="70" width="24" height="4" fill="#a3a3a3" rx="1"/>
+          <rect x="40" y="75" width="20" height="6" fill="#525252" rx="1"/>
+          <!-- 底部触点 -->
+          <circle cx="50" cy="84" r="3" fill="#525252"/>
+          <!-- 导线连接 -->
+          <line x1="50" y1="84" x2="50" y2="100" stroke="#a3a3a3" stroke-width="1.5"/>
+          <line x1="50" y1="100" x2="20" y2="100" stroke="#a3a3a3" stroke-width="1.5"/>
+        </svg>
+      </div>
+
+      <!-- 滑块 -->
+      <div style="margin-top:24px;max-width:320px;margin-left:auto;margin-right:auto;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:12px;color:var(--text-muted);">电堆层数</span>
+          <span style="font-size:12px;color:var(--eh-primary);font-family:var(--font-mono);font-weight:600;" id="layerCount">10</span>
+        </div>
+        <input type="range" min="1" max="20" value="10" id="layerSlider"
+               style="width:100%;height:4px;border-radius:2px;background:var(--border);outline:none;-webkit-appearance:none;appearance:none;">
+        <div style="display:flex;justify-content:space-between;margin-top:4px;">
+          <span style="font-size:10px;color:var(--text-faint);">1</span>
+          <span style="font-size:10px;color:var(--text-faint);">20</span>
+        </div>
+      </div>
+
+      <!-- 图例 -->
+      <div style="margin-top:16px;display:flex;gap:16px;justify-content:center;font-size:11px;color:var(--text-muted);">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:8px;background:#71798a;border-radius:1px;"></span>锌片</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:4px;background:#e5ded4;border-radius:1px;"></span>盐水纸板</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:8px;background:#d97706;border-radius:1px;"></span>铜片</span>
+      </div>
+    </div>
+  `;
+
+  const layerSlider = document.getElementById('layerSlider');
+  const layerCount = document.getElementById('layerCount');
+  const voltageDisplay = document.getElementById('voltageDisplay');
+  const voltaStack = document.getElementById('voltaStack');
+  const bulbGlow = document.getElementById('bulbGlow');
+  const bulbFilament = document.getElementById('bulbFilament');
+
+  function updateVoltaStack(layers) {
+    let html = '';
+    for (let i = 0; i < layers; i++) {
+      const y = -i * 12;
+      // 锌片
+      html += `<rect x="-35" y="${y - 4}" width="70" height="6" fill="#71798a" rx="1" stroke="#52525b" stroke-width="0.5"/>`;
+      // 盐水纸板
+      html += `<rect x="-35" y="${y - 7}" width="70" height="3" fill="#e5ded4" rx="0.5"/>`;
+      // 铜片
+      html += `<rect x="-35" y="${y - 13}" width="70" height="6" fill="#d97706" rx="1" stroke="#92400e" stroke-width="0.5"/>`;
+    }
+    // 重新定位整个组
+    voltaStack.setAttribute('transform', `translate(100, ${270 - layers * 6})`);
+    voltaStack.innerHTML = html;
+  }
+
+  function updateBulb(voltage) {
+    // 电压 0.76V ~ 15.2V
+    const intensity = Math.min(1, voltage / 12);
+    const r = 20 + intensity * 25;
+    const opacity = intensity * 0.5;
+    bulbGlow.setAttribute('r', r);
+    bulbGlow.setAttribute('fill', `rgba(245,158,11,${opacity})`);
+    if (intensity > 0.1) {
+      bulbFilament.setAttribute('stroke', `rgba(255,${Math.round(140 + intensity * 100)},${Math.round(20 + intensity * 80)},1)`);
+      bulbFilament.setAttribute('stroke-width', 1.5 + intensity);
+    } else {
+      bulbFilament.setAttribute('stroke', '#d97706');
+      bulbFilament.setAttribute('stroke-width', 1.5);
+    }
+  }
+
+  function update(layers) {
+    layerCount.textContent = layers;
+    const voltage = (layers * 0.76).toFixed(1);
+    voltageDisplay.textContent = `${voltage} V`;
+    updateVoltaStack(layers);
+    updateBulb(layers * 0.76);
+    // 更新滑块填充
+    const pct = ((layers - 1) / 19) * 100;
+    layerSlider.style.background = `linear-gradient(to right, var(--eh-primary) 0%, var(--eh-primary) ${pct}%, var(--border) ${pct}%, var(--border) 100%)`;
+  }
+
+  layerSlider.addEventListener('input', (e) => {
+    update(parseInt(e.target.value));
+  });
+
+  // 初始化
+  update(10);
+}
+
+/* ====== Step 4: 电磁实验 ====== */
+function renderStep4() {
+  visualContainer.innerHTML = `
+    <div style="width:100%;max-width:500px;">
+      <!-- 上半区：奥斯特实验 -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:8px;font-family:var(--font-mono);letter-spacing:0.05em;">ØRSTED EXPERIMENT · 奥斯特实验</div>
+        <svg class="eh-svg" viewBox="0 0 400 140" style="max-width:400px;margin:0 auto;display:block;">
+          <!-- 导线 -->
+          <line x1="50" y1="50" x2="350" y2="50" stroke="#a3a3a3" stroke-width="3" id="oerstedWire"/>
+          <!-- 电流流动指示 -->
+          <line x1="50" y1="50" x2="350" y2="50" stroke="#22d3ee" stroke-width="2"
+                class="wire-current" id="wireCurrent" stroke-dasharray="6 4"/>
+          <!-- 电池 -->
+          <g transform="translate(20, 45)">
+            <rect x="0" y="0" width="24" height="10" fill="#d97706" rx="1"/>
+            <rect x="0" y="2" width="4" height="6" fill="#d97706"/>
+            <text x="12" y="-5" text-anchor="middle" class="eh-svg-label-sm">电池</text>
+          </g>
+          <line x1="20" y1="50" x2="20" y2="55" stroke="#a3a3a3" stroke-width="1.5"/>
+          <line x1="350" y1="50" x2="350" y2="55" stroke="#a3a3a3" stroke-width="1.5"/>
+          <line x1="20" y1="55" x2="350" y2="55" stroke="#a3a3a3" stroke-width="1.5" opacity="0"/>
+
+          <!-- 磁针 -->
+          <g transform="translate(200, 90)">
+            <circle cx="0" cy="0" r="18" fill="none" stroke="#e5ded4" stroke-width="1"/>
+            <g class="compass-needle" id="compassNeedle" transform="rotate(0)">
+              <polygon points="0,-15 4,0 0,3 -4,0" fill="#ef4444"/>
+              <polygon points="0,15 4,0 0,-3 -4,0" fill="#3b82f6"/>
+            </g>
+            <circle cx="0" cy="0" r="2.5" fill="#1a1a1a"/>
+            <text x="0" y="30" text-anchor="middle" class="eh-svg-label-sm">磁针</text>
+          </g>
+
+          <!-- 电流方向标注 -->
+          <text x="200" y="42" text-anchor="middle" class="eh-svg-label-sm" id="currentDirLabel" fill="#22d3ee" opacity="0">→ 电流方向</text>
+        </svg>
+        <div style="text-align:center;margin-top:8px;display:flex;gap:8px;justify-content:center;">
+          <button class="eh-btn" id="oerstedPowerBtn">通电</button>
+          <button class="eh-btn secondary" id="oerstedReverseBtn">切换方向</button>
+        </div>
+      </div>
+
+      <!-- 分隔线 -->
+      <div style="border-top:1px dashed var(--border);margin:8px 0;"></div>
+
+      <!-- 下半区：法拉第实验 -->
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:8px;font-family:var(--font-mono);letter-spacing:0.05em;">FARADAY EXPERIMENT · 法拉第电磁感应</div>
+        <svg class="eh-svg" viewBox="0 0 400 160" style="max-width:400px;margin:0 auto;display:block;" id="faradaySvg">
+          <!-- 线圈 -->
+          <g transform="translate(180, 80)">
+            <ellipse cx="0" cy="0" rx="10" ry="35" fill="none" stroke="#d97706" stroke-width="2"/>
+            <ellipse cx="8" cy="0" rx="10" ry="35" fill="none" stroke="#d97706" stroke-width="2"/>
+            <ellipse cx="16" cy="0" rx="10" ry="35" fill="none" stroke="#d97706" stroke-width="2"/>
+            <ellipse cx="24" cy="0" rx="10" ry="35" fill="none" stroke="#d97706" stroke-width="2"/>
+            <text x="12" y="50" text-anchor="middle" class="eh-svg-label-sm">线圈</text>
+          </g>
+
+          <!-- 磁铁（可拖动） -->
+          <g class="magnet-drag" id="faradayMagnet" transform="translate(80, 80)">
+            <rect x="-15" y="-30" width="30" height="30" fill="#ef4444" rx="2"/>
+            <text x="0" y="-12" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">N</text>
+            <rect x="-15" y="0" width="30" height="30" fill="#3b82f6" rx="2"/>
+            <text x="0" y="20" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">S</text>
+          </g>
+
+          <!-- 导线连接到电流计 -->
+          <line x1="210" y1="45" x2="320" y2="45" stroke="#a3a3a3" stroke-width="1"/>
+          <line x1="210" y1="115" x2="320" y2="115" stroke="#a3a3a3" stroke-width="1"/>
+
+          <!-- 电流计 -->
+          <g transform="translate(340, 80)">
+            <circle cx="0" cy="0" r="28" fill="#ffffff" stroke="#e5ded4" stroke-width="1.5"/>
+            <line x1="0" y1="-18" x2="0" y2="-14" stroke="#a3a3a3" stroke-width="1"/>
+            <line x1="0" y1="14" x2="0" y2="18" stroke="#a3a3a3" stroke-width="1"/>
+            <line x1="-14" y1="0" x2="-10" y2="0" stroke="#a3a3a3" stroke-width="1"/>
+            <line x1="10" y1="0" x2="14" y2="0" stroke="#a3a3a3" stroke-width="1"/>
+            <g class="galvanometer-needle" id="galvanometerNeedle" transform="rotate(0)">
+              <line x1="0" y1="0" x2="0" y2="-22" stroke="#1d4ed8" stroke-width="2"/>
+              <circle cx="0" cy="0" r="3" fill="#1d4ed8"/>
+            </g>
+            <text x="0" y="42" text-anchor="middle" class="eh-svg-label-sm">电流计</text>
+          </g>
+
+          <!-- 提示 -->
+          <text x="80" y="140" text-anchor="middle" class="eh-svg-label-sm" fill="#d97706">← 拖动磁铁 →</text>
+        </svg>
+      </div>
+    </div>
+  `;
+
+  // --- 奥斯特实验 ---
+  let isPowered = false;
+  let currentDirection = 1; // 1: right, -1: left
+  const oerstedPowerBtn = document.getElementById('oerstedPowerBtn');
+  const oerstedReverseBtn = document.getElementById('oerstedReverseBtn');
+  const wireCurrent = document.getElementById('wireCurrent');
+  const compassNeedle = document.getElementById('compassNeedle');
+  const currentDirLabel = document.getElementById('currentDirLabel');
+
+  function updateOersted() {
+    if (isPowered) {
+      wireCurrent.classList.add('active');
+      const angle = currentDirection > 0 ? 80 : -80;
+      compassNeedle.style.transform = `rotate(${angle}deg)`;
+      oerstedPowerBtn.textContent = '断电';
+      currentDirLabel.style.opacity = '1';
+      currentDirLabel.textContent = currentDirection > 0 ? '→ 电流方向' : '← 电流方向';
+    } else {
+      wireCurrent.classList.remove('active');
+      compassNeedle.style.transform = 'rotate(0deg)';
+      oerstedPowerBtn.textContent = '通电';
+      currentDirLabel.style.opacity = '0';
+    }
+  }
+
+  oerstedPowerBtn.addEventListener('click', () => {
+    isPowered = !isPowered;
+    updateOersted();
+  });
+
+  oerstedReverseBtn.addEventListener('click', () => {
+    if (!isPowered) return;
+    currentDirection *= -1;
+    updateOersted();
+  });
+
+  // --- 法拉第实验 ---
+  const faradaySvg = document.getElementById('faradaySvg');
+  const faradayMagnet = document.getElementById('faradayMagnet');
+  const galvanometerNeedle = document.getElementById('galvanometerNeedle');
+  let isDragging = false;
+  let dragStartX = 0;
+  let magnetX = 80;
+  let lastMagnetX = 80;
+  let galvanoAnimTimer = null;
+
+  function getSVGPoint(evt) {
+    const pt = faradaySvg.createSVGPoint();
+    const isTouch = evt.touches && evt.touches[0];
+    pt.x = isTouch ? evt.touches[0].clientX : evt.clientX;
+    pt.y = isTouch ? evt.touches[0].clientY : evt.clientY;
+    return pt.matrixTransform(faradaySvg.getScreenCTM().inverse());
+  }
+
+  function startDrag(evt) {
+    evt.preventDefault();
+    isDragging = true;
+    const pt = getSVGPoint(evt);
+    dragStartX = pt.x - magnetX;
+  }
+
+  function onDrag(evt) {
+    if (!isDragging) return;
+    evt.preventDefault();
+    const pt = getSVGPoint(evt);
+    const newX = Math.max(30, Math.min(160, pt.x - dragStartX));
+    const delta = newX - lastMagnetX;
+    lastMagnetX = newX;
+    magnetX = newX;
+    faradayMagnet.setAttribute('transform', `translate(${magnetX}, 80)`);
+
+    // 计算磁铁与线圈的距离影响
+    const coilCenterX = 192;
+    const dist = Math.abs(magnetX - coilCenterX);
+    const speed = Math.abs(delta);
+
+    // 距离越近、移动越快，电流越大
+    const intensity = Math.max(0, (1 - dist / 120) * Math.min(1, speed / 8));
+
+    // 方向：磁铁靠近线圈时电流为正，远离时为负
+    const direction = (magnetX < coilCenterX ? 1 : -1) * (delta > 0 ? 1 : -1);
+    const angle = direction * intensity * 60;
+
+    galvanometerNeedle.style.transform = `rotate(${angle}deg)`;
+
+    // 回零
+    clearTimeout(galvanoAnimTimer);
+    galvanoAnimTimer = setTimeout(() => {
+      galvanometerNeedle.style.transform = 'rotate(0deg)';
+    }, 300);
+  }
+
+  function endDrag() {
+    isDragging = false;
+    clearTimeout(galvanoAnimTimer);
+    galvanoAnimTimer = setTimeout(() => {
+      galvanometerNeedle.style.transform = 'rotate(0deg)';
+    }, 200);
+  }
+
+  faradayMagnet.addEventListener('mousedown', startDrag);
+  faradayMagnet.addEventListener('touchstart', startDrag, { passive: false });
+  faradaySvg.addEventListener('mousemove', onDrag);
+  faradaySvg.addEventListener('touchmove', onDrag, { passive: false });
+  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('touchend', endDrag);
+
+  // 清理函数
+  animationCleanup = () => {
+    document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('touchend', endDrag);
+    clearTimeout(galvanoAnimTimer);
+  };
+}
+
+/* ====== Step 5: 麦克斯韦方程组 ====== */
+function renderStep5() {
+  visualContainer.innerHTML = `
+    <div style="width:100%;max-width:500px;">
+      <!-- 方程组 -->
+      <div style="margin-bottom:20px;">
+        <div class="maxwell-eq">
+          <div class="maxwell-eq-num">1</div>
+          <svg class="maxwell-eq-diagram" viewBox="0 0 50 50">
+            <circle cx="18" cy="25" r="5" fill="#ef4444"/>
+            <text x="18" y="29" text-anchor="middle" fill="#fff" font-size="8" font-weight="700">+</text>
+            <circle cx="35" cy="25" r="5" fill="#3b82f6"/>
+            <text x="35" y="29" text-anchor="middle" fill="#fff" font-size="8" font-weight="700">−</text>
+            <line x1="23" y1="25" x2="30" y2="25" stroke="#ef4444" stroke-width="1" marker-end="url(#arrowR)"/>
+            <defs><marker id="arrowR" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4" fill="#ef4444"/></marker></defs>
+          </svg>
+          <div class="maxwell-eq-formula">∮ E · dA = Q / ε₀</div>
+          <div class="maxwell-eq-name">高斯电场定律</div>
+        </div>
+
+        <div class="maxwell-eq">
+          <div class="maxwell-eq-num">2</div>
+          <svg class="maxwell-eq-diagram" viewBox="0 0 50 50">
+            <ellipse cx="25" cy="25" rx="16" ry="8" fill="none" stroke="#8b5cf6" stroke-width="1.5"/>
+            <ellipse cx="25" cy="25" rx="16" ry="8" fill="none" stroke="#8b5cf6" stroke-width="1.5" transform="rotate(60 25 25)"/>
+            <ellipse cx="25" cy="25" rx="16" ry="8" fill="none" stroke="#8b5cf6" stroke-width="1.5" transform="rotate(120 25 25)"/>
+          </svg>
+          <div class="maxwell-eq-formula">∮ B · dA = 0</div>
+          <div class="maxwell-eq-name">高斯磁场定律</div>
+        </div>
+
+        <div class="maxwell-eq">
+          <div class="maxwell-eq-num">3</div>
+          <svg class="maxwell-eq-diagram" viewBox="0 0 50 50">
+            <path d="M10 35 Q25 10 40 35" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="3 2"/>
+            <line x1="15" y1="25" x2="20" y2="22" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrowB)"/>
+            <defs><marker id="arrowB" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4" fill="#3b82f6"/></marker></defs>
+          </svg>
+          <div class="maxwell-eq-formula">∮ E · dl = −dΦ_B / dt</div>
+          <div class="maxwell-eq-name">法拉第定律</div>
+        </div>
+
+        <div class="maxwell-eq">
+          <div class="maxwell-eq-num">4</div>
+          <svg class="maxwell-eq-diagram" viewBox="0 0 50 50">
+            <line x1="10" y1="25" x2="40" y2="25" stroke="#3b82f6" stroke-width="2"/>
+            <path d="M15 18 Q25 8 35 18" fill="none" stroke="#8b5cf6" stroke-width="1.5"/>
+            <path d="M15 32 Q25 42 35 32" fill="none" stroke="#8b5cf6" stroke-width="1.5"/>
+          </svg>
+          <div class="maxwell-eq-formula">∮ B · dl = μ₀(I + ε₀ dΦ_E/dt)</div>
+          <div class="maxwell-eq-name">安培-麦克斯韦定律</div>
+        </div>
+      </div>
+
+      <!-- 电磁波动画 -->
+      <div style="border-top:1px dashed var(--border);padding-top:16px;">
+        <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:8px;font-family:var(--font-mono);letter-spacing:0.05em;">ELECTROMAGNETIC WAVE · 电磁波传播</div>
+        <canvas id="emWaveCanvas" width="460" height="160" style="max-width:100%;display:block;margin:0 auto;border-radius:8px;background:var(--surface-muted);"></canvas>
+        <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;">
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:3px;background:#3b82f6;border-radius:1px;"></span>电场 E</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:3px;background:#8b5cf6;border-radius:1px;"></span>磁场 B</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:3px;background:#22d3ee;border-radius:1px;"></span>传播方向 →</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 电磁波动画
+  const canvas = document.getElementById('emWaveCanvas');
+  const ctx = canvas.getContext('2d');
+  let waveAnimId = null;
+  let phase = 0;
+
+  function drawWave() {
+    const w = canvas.width;
+    const h = canvas.height;
+    const midY = h / 2;
+    const amplitude = 35;
+    const wavelength = 80;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 传播方向箭头
+    ctx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    ctx.lineTo(w, midY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 电场 E (蓝色，垂直振荡)
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = 0; x <= w; x++) {
+      const y = midY - amplitude * Math.sin((x - phase) / wavelength * 2 * Math.PI);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // 电场填充
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.08)';
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    for (let x = 0; x <= w; x++) {
+      const y = midY - amplitude * Math.sin((x - phase) / wavelength * 2 * Math.PI);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, midY);
+    ctx.fill();
+
+    // 磁场 B (紫色，水平振荡，透视效果)
+    ctx.strokeStyle = '#8b5cf6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = 0; x <= w; x++) {
+      const wave = amplitude * Math.sin((x - phase) / wavelength * 2 * Math.PI);
+      const y = midY + wave * 0.3; // 透视压缩
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // 磁场垂直线（表示B方向）
+    ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+    ctx.lineWidth = 1;
+    for (let x = 20; x <= w; x += 20) {
+      const wave = amplitude * Math.sin((x - phase) / wavelength * 2 * Math.PI);
+      const y1 = midY - wave;
+      const y2 = midY + wave * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(x, midY);
+      ctx.lineTo(x, y2);
+      ctx.stroke();
+
+      // 电场垂直线
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.2)';
+      ctx.beginPath();
+      ctx.moveTo(x, midY);
+      ctx.lineTo(x, y1);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+    }
+
+    // 光速标注
+    ctx.fillStyle = 'rgba(34, 211, 238, 0.6)';
+    ctx.font = '11px monospace';
+    ctx.fillText('c = 3×10⁸ m/s →', w - 120, h - 8);
+
+    phase += 1.5;
+    waveAnimId = requestAnimationFrame(drawWave);
+  }
+
+  drawWave();
+
+  animationCleanup = () => {
+    if (waveAnimId) cancelAnimationFrame(waveAnimId);
+  };
+}
+
+/* ====== Step 6: 电流之战 ====== */
+function renderStep6() {
+  visualContainer.innerHTML = `
+    <div style="width:100%;max-width:500px;">
+      <!-- 系统对比 -->
+      <div class="dc-ac-compare">
+        <!-- DC -->
+        <div class="dc-ac-card dc">
+          <div class="dc-ac-card-title">直流电 DC</div>
+          <svg viewBox="0 0 160 80" style="width:100%;max-width:150px;margin:0 auto;display:block;">
+            <!-- 发电机 -->
+            <circle cx="20" cy="40" r="12" fill="none" stroke="#ef4444" stroke-width="2"/>
+            <text x="20" y="44" text-anchor="middle" font-size="9" fill="#ef4444" font-weight="700">G</text>
+            <!-- 电线 -->
+            <line x1="32" y1="35" x2="120" y2="35" stroke="#a3a3a3" stroke-width="1.5"/>
+            <line x1="32" y1="45" x2="120" y2="45" stroke="#a3a3a3" stroke-width="1.5"/>
+            <!-- 灯泡（用户端） -->
+            <circle cx="130" cy="40" r="8" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="1"/>
+            <path d="M126 38 Q130 33 134 38" stroke="#f59e0b" stroke-width="1" fill="none"/>
+          </svg>
+          <div class="dc-ac-card-note">无法升压，传输损耗大<br>每隔 ~1km 需建发电站</div>
+        </div>
+
+        <!-- AC -->
+        <div class="dc-ac-card ac">
+          <div class="dc-ac-card-title">交流电 AC</div>
+          <svg viewBox="0 0 160 80" style="width:100%;max-width:150px;margin:0 auto;display:block;">
+            <!-- 发电机 -->
+            <circle cx="12" cy="40" r="10" fill="none" stroke="#d97706" stroke-width="2"/>
+            <text x="12" y="44" text-anchor="middle" font-size="8" fill="#d97706" font-weight="700">G</text>
+            <!-- 升压变压器 -->
+            <g transform="translate(30, 30)">
+              <rect x="0" y="0" width="14" height="20" fill="none" stroke="#d97706" stroke-width="1.5" rx="2"/>
+              <line x1="3" y1="0" x2="3" y2="20" stroke="#d97706" stroke-width="0.5"/>
+              <line x1="7" y1="0" x2="7" y2="20" stroke="#d97706" stroke-width="0.5"/>
+              <line x1="11" y1="0" x2="11" y2="20" stroke="#d97706" stroke-width="0.5"/>
+            </g>
+            <!-- 高压输电线 -->
+            <line x1="44" y1="35" x2="110" y2="35" stroke="#d97706" stroke-width="1.5"/>
+            <line x1="44" y1="45" x2="110" y2="45" stroke="#d97706" stroke-width="1.5"/>
+            <text x="77" y="28" text-anchor="middle" font-size="8" fill="#d97706">高压</text>
+            <!-- 降压变压器 -->
+            <g transform="translate(110, 30)">
+              <rect x="0" y="0" width="14" height="20" fill="none" stroke="#d97706" stroke-width="1.5" rx="2"/>
+              <line x1="3" y1="0" x2="3" y2="20" stroke="#d97706" stroke-width="0.5"/>
+              <line x1="7" y1="0" x2="7" y2="20" stroke="#d97706" stroke-width="0.5"/>
+              <line x1="11" y1="0" x2="11" y2="20" stroke="#d97706" stroke-width="0.5"/>
+            </g>
+            <!-- 灯泡 -->
+            <circle cx="140" cy="40" r="8" fill="rgba(245,158,11,0.2)" stroke="#d97706" stroke-width="1"/>
+            <path d="M136 38 Q140 33 144 38" stroke="#f59e0b" stroke-width="1" fill="none"/>
+          </svg>
+          <div class="dc-ac-card-note">可升压远距离传输<br>数百公里仅少量损耗</div>
+        </div>
+      </div>
+
+      <!-- 波形对比 -->
+      <div style="margin-top:20px;border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--surface);">
+        <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:10px;font-family:var(--font-mono);letter-spacing:0.05em;">WAVEFORM · 波形对比</div>
+        <canvas id="waveCanvas" width="440" height="120" style="max-width:100%;display:block;margin:0 auto;"></canvas>
+      </div>
+
+      <!-- 距离滑块 -->
+      <div style="margin-top:16px;max-width:320px;margin-left:auto;margin-right:auto;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:12px;color:var(--text-muted);">传输距离</span>
+          <span style="font-size:12px;color:var(--eh-primary);font-family:var(--font-mono);font-weight:600;" id="distDisplay">10 km</span>
+        </div>
+        <input type="range" min="1" max="500" value="10" id="distSlider"
+               style="width:100%;height:4px;border-radius:2px;-webkit-appearance:none;appearance:none;outline:none;">
+        <!-- 损耗对比 -->
+        <div style="margin-top:12px;display:flex;gap:12px;">
+          <div style="flex:1;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);">
+            <div style="font-size:10px;color:var(--text-muted);">DC 损耗</div>
+            <div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--eh-red);" id="dcLoss">90%</div>
+          </div>
+          <div style="flex:1;padding:8px 12px;border-radius:8px;background:rgba(217,119,6,0.06);border:1px solid rgba(217,119,6,0.15);">
+            <div style="font-size:10px;color:var(--text-muted);">AC 损耗</div>
+            <div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--eh-accent);" id="acLoss">5%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const distSlider = document.getElementById('distSlider');
+  const distDisplay = document.getElementById('distDisplay');
+  const dcLoss = document.getElementById('dcLoss');
+  const acLoss = document.getElementById('acLoss');
+  const waveCanvas = document.getElementById('waveCanvas');
+  const wctx = waveCanvas.getContext('2d');
+  let waveAnimPhase = 0;
+  let waveAnimId = null;
+
+  function updateDist(val) {
+    distDisplay.textContent = `${val} km`;
+    // DC: 损耗随距离快速增长 (指数衰减)
+    const dcPct = Math.min(99, Math.round((1 - Math.exp(-val / 5)) * 100));
+    // AC: 高压传输，损耗很低
+    const acPct = Math.min(30, Math.round(val / 500 * 100 * 5));
+    dcLoss.textContent = `${dcPct}%`;
+    acLoss.textContent = `${acPct}%`;
+
+    // 更新滑块颜色
+    const pct = ((val - 1) / 499) * 100;
+    distSlider.style.background = `linear-gradient(to right, var(--eh-primary) 0%, var(--eh-primary) ${pct}%, var(--border) ${pct}%, var(--border) 100%)`;
+  }
+
+  function drawWaves() {
+    const w = waveCanvas.width;
+    const h = waveCanvas.height;
+    wctx.clearRect(0, 0, w, h);
+
+    // 网格
+    wctx.strokeStyle = 'rgba(0,0,0,0.04)';
+    wctx.lineWidth = 1;
+    for (let i = 0; i <= w; i += 40) {
+      wctx.beginPath(); wctx.moveTo(i, 0); wctx.lineTo(i, h); wctx.stroke();
+    }
+    for (let i = 0; i <= h; i += 30) {
+      wctx.beginPath(); wctx.moveTo(0, i); wctx.lineTo(w, i); wctx.stroke();
+    }
+
+    // 中心线
+    wctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    wctx.beginPath(); wctx.moveTo(0, h/2); wctx.lineTo(w, h/2); wctx.stroke();
+
+    // DC: 直线
+    wctx.strokeStyle = '#ef4444';
+    wctx.lineWidth = 2.5;
+    wctx.beginPath();
+    wctx.moveTo(0, h * 0.25);
+    wctx.lineTo(w, h * 0.25);
+    wctx.stroke();
+
+    // DC 标注
+    wctx.fillStyle = '#ef4444';
+    wctx.font = 'bold 12px sans-serif';
+    wctx.fillText('DC', 8, h * 0.25 - 8);
+
+    // AC: 正弦波
+    wctx.strokeStyle = '#d97706';
+    wctx.lineWidth = 2.5;
+    wctx.beginPath();
+    const acY = h * 0.72;
+    const amp = 22;
+    for (let x = 0; x <= w; x++) {
+      const y = acY - amp * Math.sin((x + waveAnimPhase) / 40 * Math.PI);
+      if (x === 0) wctx.moveTo(x, y);
+      else wctx.lineTo(x, y);
+    }
+    wctx.stroke();
+
+    // AC 标注
+    wctx.fillStyle = '#d97706';
+    wctx.fillText('AC', 8, acY - amp - 8);
+
+    waveAnimPhase += 2;
+    waveAnimId = requestAnimationFrame(drawWaves);
+  }
+
+  distSlider.addEventListener('input', (e) => {
+    updateDist(parseInt(e.target.value));
+  });
+
+  updateDist(10);
+  drawWaves();
+
+  animationCleanup = () => {
+    if (waveAnimId) cancelAnimationFrame(waveAnimId);
+  };
+}
+
+// ====== 导航栏滚动 ======
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 键盘导航 ======
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && currentStep > 0) {
+    currentStep--; updateStep(); resetAutoplay();
+  } else if (e.key === 'ArrowRight' && currentStep < steps.length - 1) {
+    currentStep++; updateStep(); resetAutoplay();
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    if (isAutoplaying) stopAutoplay(); else startAutoplay();
+  }
+});
+
+// ====== 初始化 ======
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('arcLoader').classList.add('hidden');
+  }, 800);
+  updateStep();
+});
+
+// 如果 load 已经触发
+if (document.readyState === 'complete') {
+  setTimeout(() => {
+    document.getElementById('arcLoader').classList.add('hidden');
+  }, 800);
+  updateStep();
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>圆锥截面 3D 交互可视化 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  html, body {
+    height: 100%; margin: 0; padding: 0; overflow: hidden;
+    background: #0f1115; color: #e5e5e5;
+    font-family: var(--font-sans);
+  }
+
+  /* ===== 导航栏 ===== */
+  .demo-navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 56px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    background: rgba(15, 17, 21, 0.55);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .nav-left { display: flex; align-items: center; gap: 12px; }
+  .nav-logo {
+    font-family: var(--font-serif); font-size: 17px; font-weight: 700;
+    color: #fff; text-decoration: none; letter-spacing: 0.04em;
+  }
+  .nav-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.12); }
+  .nav-subject {
+    font-size: 14px; color: #a3a3a3; text-decoration: none; font-weight: 500;
+    transition: color 200ms ease;
+  }
+  .nav-subject:hover { color: #fff; }
+  .nav-center {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-serif); font-size: 15px; font-weight: 600;
+    color: #e5e5e5; white-space: nowrap;
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .tag {
+    display: inline-block; padding: 3px 8px; font-size: 12px;
+    font-weight: 600; border-radius: 4px;
+    background: rgba(139, 92, 246, 0.12); color: #a78bfa;
+  }
+  .btn-download {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; font-size: 13px; font-weight: 500;
+    color: #c4b5fd; text-decoration: none;
+    border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 6px;
+    transition: all 200ms ease;
+  }
+  .btn-download:hover {
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.4);
+  }
+  .btn-download svg { width: 14px; height: 14px; }
+
+  /* ===== 画布 ===== */
+  #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+  #scene { display: block; width: 100%; height: 100%; }
+
+  /* ===== 加载层 ===== */
+  .loading-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    background: #0f1115; transition: opacity 0.8s ease;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loading-text {
+    font-family: var(--font-mono); font-size: 13px;
+    color: rgba(139, 92, 246, 0.5); letter-spacing: 0.15em;
+    animation: pulse-fade 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-fade { 0%,100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+
+  /* ===== 左侧信息面板 ===== */
+  .info-panel {
+    position: fixed; top: 72px; left: 20px; z-index: 50;
+    width: 250px; padding: 18px 20px;
+    background: rgba(15, 17, 21, 0.6);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+  }
+  .info-type-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 12px; font-size: 11px; font-weight: 600;
+    border-radius: 20px; margin-bottom: 12px;
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    color: #c4b5fd;
+  }
+  .info-type-badge .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #8B5CF6; box-shadow: 0 0 8px #8B5CF6;
+  }
+  .info-conic-name {
+    font-family: var(--font-serif); font-size: 24px; font-weight: 700;
+    color: #fff; margin-bottom: 4px;
+  }
+  .info-conic-en {
+    font-size: 12px; color: #6b6b6b; font-family: var(--font-mono);
+    margin-bottom: 14px; letter-spacing: 0.03em;
+  }
+  .info-formula {
+    font-family: 'Cambria Math', 'Times New Roman', Georgia, serif;
+    font-size: 16px; font-style: italic; text-align: center;
+    padding: 10px 14px; margin-bottom: 14px;
+    background: rgba(139, 92, 246, 0.06);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    border-radius: 8px; color: #c4b5fd;
+    letter-spacing: 0.02em;
+  }
+  .info-rows { display: flex; flex-direction: column; gap: 0; }
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: #6b6b6b; font-weight: 500; }
+  .info-value {
+    color: #e5e5e5; font-family: var(--font-mono); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .info-value.highlight { color: #c4b5fd; }
+
+  .info-legend {
+    margin-top: 12px; padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .legend-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: #a3a3a3;
+  }
+  .legend-swatch {
+    width: 14px; height: 3px; border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* ===== 右侧控制面板 ===== */
+  .control-panel {
+    position: fixed; top: 72px; right: 20px; z-index: 50;
+    width: 250px; padding: 18px 20px;
+    background: rgba(15, 17, 21, 0.6);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+  }
+  .panel-title {
+    font-family: var(--font-serif); font-size: 13px; font-weight: 600;
+    color: #e5e5e5; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title .panel-sub {
+    font-size: 10px; color: #6b6b6b; font-family: var(--font-mono); font-weight: 400;
+  }
+
+  .slider-block { margin-bottom: 14px; }
+  .slider-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .slider-name {
+    font-size: 12px; font-weight: 500; color: #a3a3a3;
+  }
+  .slider-name em {
+    font-family: 'Cambria Math', serif; font-style: italic; color: #c4b5fd;
+  }
+  .slider-val {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: #e5e5e5; font-variant-numeric: tabular-nums;
+  }
+  .slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px; border-radius: 2px; outline: none; cursor: pointer;
+    background: linear-gradient(to right, #8B5CF6 0%, #8B5CF6 var(--fill, 50%), rgba(255,255,255,0.1) var(--fill, 50%), rgba(255,255,255,0.1) 100%);
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%; cursor: pointer;
+    background: #8B5CF6; border: 2px solid #0f1115;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+    transition: transform 0.15s ease;
+  }
+  .slider::-webkit-slider-thumb:hover { transform: scale(1.25); }
+  .slider::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%; cursor: pointer;
+    background: #8B5CF6; border: 2px solid #0f1115;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+  }
+
+  .preset-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
+    margin-bottom: 14px;
+  }
+  .preset-btn {
+    padding: 8px 6px; font-size: 12px; font-weight: 500;
+    color: #a3a3a3; background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px;
+    cursor: pointer; transition: all 0.2s ease;
+    font-family: var(--font-sans); text-align: center;
+  }
+  .preset-btn:hover {
+    color: #e5e5e5; border-color: rgba(139, 92, 246, 0.3);
+    background: rgba(139, 92, 246, 0.06);
+  }
+  .preset-btn.active {
+    color: #c4b5fd; border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(139, 92, 246, 0.12);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+  }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0; font-size: 12px;
+  }
+  .toggle-label { color: #a3a3a3; font-weight: 500; }
+  .toggle-switch {
+    position: relative; width: 36px; height: 20px; border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1); cursor: pointer;
+    transition: background 0.25s ease;
+  }
+  .toggle-switch.on { background: rgba(139, 92, 246, 0.4); }
+  .toggle-switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%; background: #6b6b6b;
+    transition: all 0.25s ease;
+  }
+  .toggle-switch.on::after {
+    left: 18px; background: #8B5CF6; box-shadow: 0 0 6px rgba(139, 92, 246, 0.6);
+  }
+
+  .panel-divider {
+    height: 1px; background: rgba(255, 255, 255, 0.06);
+    margin: 10px 0;
+  }
+
+  /* ===== 浮动控件 ===== */
+  .float-left {
+    position: fixed; bottom: 76px; left: 24px; z-index: 50;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .float-right {
+    position: fixed; bottom: 76px; right: 24px; z-index: 50;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .icon-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1); color: #e5e5e5;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s ease; position: relative;
+  }
+  .icon-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2); transform: scale(1.05);
+  }
+  .icon-btn.active {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd;
+  }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .icon-btn .tooltip {
+    position: absolute; left: 100%; margin-left: 12px; top: 50%;
+    transform: translateY(-50%); white-space: nowrap;
+    padding: 4px 10px; font-size: 11px; color: #e5e5e5;
+    background: rgba(15, 17, 21, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 4px;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+  }
+  .icon-btn:hover .tooltip { opacity: 1; }
+
+  /* ===== 底部信息条 ===== */
+  .info-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    height: 52px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    background: rgba(15, 17, 21, 0.6);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .bar-left { display: flex; align-items: center; gap: 12px; }
+  .bar-title {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: #e5e5e5;
+  }
+  .tech-tag {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; font-size: 11px; font-weight: 500;
+    border-radius: 20px; background: rgba(255, 255, 255, 0.05);
+    color: #a3a3a3; border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .mode-switcher {
+    display: flex; align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px; padding: 3px;
+  }
+  .mode-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px; font-size: 12px; font-weight: 500;
+    color: #6b6b6b; background: none; border: none; border-radius: 20px;
+    cursor: pointer; transition: all 0.25s ease; font-family: var(--font-sans);
+  }
+  .mode-btn:hover { color: #a3a3a3; }
+  .mode-btn.active {
+    color: #c4b5fd; background: rgba(139, 92, 246, 0.12);
+  }
+  .mode-btn svg { width: 13px; height: 13px; }
+  .bar-right { display: flex; align-items: center; gap: 12px; }
+  .status-tag {
+    font-size: 11px; font-family: var(--font-mono); color: #6b6b6b;
+    transition: color 0.3s ease;
+  }
+  .status-tag.active { color: #c4b5fd; }
+
+  /* ===== 场景提示 ===== */
+  .scene-hint {
+    position: fixed; bottom: 64px; left: 50%; transform: translateX(-50%);
+    z-index: 40; color: rgba(255, 255, 255, 0.3);
+    font-size: 11px; font-family: var(--font-mono);
+    pointer-events: none; white-space: nowrap; letter-spacing: 0.05em;
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 900px) {
+    .nav-center { display: none; }
+    .info-panel { width: 200px; padding: 14px 16px; top: 68px; left: 12px; }
+    .control-panel { width: 200px; padding: 14px 16px; top: 68px; right: 12px; }
+    .info-conic-name { font-size: 20px; }
+    .info-formula { font-size: 14px; }
+    .preset-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .info-panel { display: none; }
+    .control-panel {
+      width: calc(100% - 24px); top: auto; bottom: 60px; right: 12px; left: 12px;
+      max-height: 240px; overflow-y: auto;
+    }
+    .float-left { bottom: 320px; }
+    .float-right { bottom: 320px; }
+    .bar-title { display: none; }
+    .btn-download span { display: none; }
+    .btn-download { padding: 7px 10px; }
+    .scene-hint { display: none; }
+    .mode-btn span { display: none; }
+    .mode-btn { padding: 5px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 加载层 -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-text">INITIALIZING CONE...</div>
+</div>
+
+<!-- 导航栏 -->
+<header class="demo-navbar">
+  <div class="nav-left">
+    <a href="/" class="nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="nav-subject">数学</a>
+    <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="nav-center">圆锥截面 3D 交互可视化</div>
+  <div class="nav-right">
+    <span class="tag">数学</span>
+    <a href="/skills/jingbo-edu-3d-math-geometry-v0.1.html" class="btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- 3D 画布 -->
+<div id="canvas-container">
+  <canvas id="scene"></canvas>
+</div>
+
+<!-- 左侧信息面板 -->
+<div class="info-panel" id="infoPanel">
+  <div class="info-type-badge">
+    <span class="dot"></span>
+    <span id="badgeText">当前截面</span>
+  </div>
+  <div class="info-conic-name" id="conicName">椭圆</div>
+  <div class="info-conic-en" id="conicEn">Ellipse</div>
+  <div class="info-formula" id="conicFormula">x²/a² + y²/b² = 1</div>
+  <div class="info-rows">
+    <div class="info-row">
+      <span class="info-label">离心率 e</span>
+      <span class="info-value highlight" id="valEccentricity">0.60</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">切割角 β</span>
+      <span class="info-value" id="valBeta">25.0°</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">锥半角 α</span>
+      <span class="info-value">45.0°</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">截面高度 h</span>
+      <span class="info-value" id="valHeight">1.50</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">截面类型</span>
+      <span class="info-value" id="valType">闭合曲线</span>
+    </div>
+  </div>
+  <div class="info-legend">
+    <div class="legend-row">
+      <span class="legend-swatch" style="background:#8B5CF6;box-shadow:0 0 6px #8B5CF6;"></span> 圆锥曲面（半透明）
+    </div>
+    <div class="legend-row">
+      <span class="legend-swatch" style="background:rgba(124,58,237,0.5);"></span> 切割平面
+    </div>
+    <div class="legend-row">
+      <span class="legend-swatch" style="background:#C4B5FD;box-shadow:0 0 8px #C4B5FD;"></span> 截面交线
+    </div>
+  </div>
+</div>
+
+<!-- 右侧控制面板 -->
+<div class="control-panel" id="controlPanel">
+  <div class="panel-title">
+    <span>切割参数</span>
+    <span class="panel-sub">CONE SECTION</span>
+  </div>
+
+  <div class="slider-block">
+    <div class="slider-header">
+      <span class="slider-name">切割角 <em>β</em></span>
+      <span class="slider-val" id="sliderBetaVal">25.0°</span>
+    </div>
+    <input type="range" class="slider" id="sliderBeta" min="0" max="75" step="0.5" value="25">
+  </div>
+
+  <div class="slider-block">
+    <div class="slider-header">
+      <span class="slider-name">截面高度 <em>h</em></span>
+      <span class="slider-val" id="sliderHeightVal">1.50</span>
+    </div>
+    <input type="range" class="slider" id="sliderHeight" min="0.3" max="4" step="0.05" value="1.5">
+  </div>
+
+  <div class="panel-divider"></div>
+
+  <div class="panel-title" style="font-size:12px; margin-bottom:8px;">
+    <span>预设截面</span>
+  </div>
+  <div class="preset-grid">
+    <button class="preset-btn" data-preset="circle">正圆</button>
+    <button class="preset-btn active" data-preset="ellipse">椭圆</button>
+    <button class="preset-btn" data-preset="parabola">抛物线</button>
+    <button class="preset-btn" data-preset="hyperbola">双曲线</button>
+  </div>
+
+  <div class="panel-divider"></div>
+
+  <div class="toggle-row">
+    <span class="toggle-label">显示切割平面</span>
+    <div class="toggle-switch on" id="togglePlane"></div>
+  </div>
+  <div class="toggle-row">
+    <span class="toggle-label">显示截面交线</span>
+    <div class="toggle-switch on" id="toggleCurve"></div>
+  </div>
+  <div class="toggle-row">
+    <span class="toggle-label">显示坐标轴</span>
+    <div class="toggle-switch on" id="toggleAxes"></div>
+  </div>
+  <div class="toggle-row">
+    <span class="toggle-label">剖切模式</span>
+    <div class="toggle-switch" id="toggleClip"></div>
+  </div>
+</div>
+
+<!-- 操作提示 -->
+<div class="scene-hint">拖拽旋转 · 滚轮缩放 · 调节滑块改变截面</div>
+
+<!-- 左下浮动控件 -->
+<div class="float-left">
+  <button class="icon-btn active" id="playPauseBtn">
+    <svg id="playIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    <span class="tooltip">自动旋转</span>
+  </button>
+  <button class="icon-btn" id="resetBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    <span class="tooltip">重置视角</span>
+  </button>
+</div>
+
+<!-- 右下浮动控件 -->
+<div class="float-right">
+  <button class="icon-btn" id="fullscreenBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+    <span class="tooltip">全屏</span>
+  </button>
+</div>
+
+<!-- 底部信息条 -->
+<footer class="info-bar">
+  <div class="bar-left">
+    <span class="bar-title">conic-section-3d</span>
+    <span class="tech-tag">Three.js</span>
+    <span class="tech-tag">WebGL</span>
+    <span class="tech-tag">圆锥曲线理论</span>
+  </div>
+  <div class="mode-switcher" id="modeSwitcher">
+    <button class="mode-btn active" data-mode="solid">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+      <span>实体</span>
+    </button>
+    <button class="mode-btn" data-mode="wireframe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>
+      <span>线框</span>
+    </button>
+    <button class="mode-btn" data-mode="transparent">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2v20"/></svg>
+      <span>透明</span>
+    </button>
+  </div>
+  <div class="bar-right">
+    <span class="status-tag" id="statusTag">就绪</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   常量
+   ============================================================ */
+const COLORS = {
+  cone: 0x8B5CF6,
+  coneEmissive: 0x7C3AED,
+  plane: 0x7C3AED,
+  curve: 0xC4B5FD,
+  curveGlow: 0x8B5CF6,
+  axis: 0x64748B,
+  bg: 0x0f1115,
+};
+
+const CONE_HEIGHT = 5;
+const CONE_RADIUS = 5;
+const CONE_HALF_ANGLE = Math.PI / 4; // 45°
+const MAX_CURVE_R = CONE_RADIUS * 1.15;
+
+/* ============================================================
+   状态
+   ============================================================ */
+const state = {
+  beta: 25 * Math.PI / 180,     // 切割角（弧度）
+  height: 1.5,                   // 截面高度
+  displayMode: 'solid',          // solid | wireframe | transparent
+  showPlane: true,
+  showCurve: true,
+  showAxes: true,
+  clipMode: false,
+  isPlaying: true,
+  entranceProgress: 0,
+};
+
+/* ============================================================
+   Three.js 全局
+   ============================================================ */
+let scene, camera, renderer, controls, clock;
+let coneGroup, coneTop, coneBottom, coneWireframe;
+let planeMesh, planeEdges;
+let curveGroup;
+let axesGroup, gridHelper;
+let bgStars;
+let clippingPlane;
+let raycaster, mouse;
+
+const container = document.getElementById('canvas-container');
+const canvas = document.getElementById('scene');
+
+/* ============================================================
+   场景初始化
+   ============================================================ */
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.localClippingEnabled = true;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(COLORS.bg);
+  scene.fog = new THREE.Fog(COLORS.bg, 15, 45);
+
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
+  camera.position.set(9, 5, 12);
+
+  controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 4;
+  controls.maxDistance = 35;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.5;
+  controls.target.set(0, 0, 0);
+
+  clock = new THREE.Clock();
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  setupLights();
+  setupBackground();
+  buildAxes();
+  buildCone();
+  buildPlane();
+  buildIntersectionCurve();
+}
+
+/* ============================================================
+   灯光
+   ============================================================ */
+function setupLights() {
+  scene.add(new THREE.AmbientLight(0x1a1a2e, 0.5));
+
+  // 主光源（紫罗兰色，从右上）
+  const keyLight = new THREE.DirectionalLight(0x8B5CF6, 0.8);
+  keyLight.position.set(6, 8, 4);
+  scene.add(keyLight);
+
+  // 补光（冷白色，从左下）
+  const fillLight = new THREE.DirectionalLight(0x6366f1, 0.4);
+  fillLight.position.set(-5, -3, 3);
+  scene.add(fillLight);
+
+  // 顶点光源（圆锥顶点处发光）
+  const apexLight = new THREE.PointLight(0x7C3AED, 0.8, 15);
+  apexLight.position.set(0, 0, 0);
+  apexLight.name = 'apexLight';
+  scene.add(apexLight);
+
+  // 截面交线光源
+  const curveLight = new THREE.PointLight(0xC4B5FD, 0.5, 12);
+  curveLight.position.set(0, 2, 0);
+  curveLight.name = 'curveLight';
+  scene.add(curveLight);
+}
+
+/* ============================================================
+   背景星尘
+   ============================================================ */
+function setupBackground() {
+  const starCount = 600;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(starCount * 3);
+  const col = new Float32Array(starCount * 3);
+
+  for (let i = 0; i < starCount; i++) {
+    const r = 20 + Math.random() * 25;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 2 - 1);
+    pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    pos[i * 3 + 2] = r * Math.cos(phi);
+
+    const hue = 0.7 + Math.random() * 0.1;
+    const c = new THREE.Color().setHSL(hue, 0.5, 0.3 + Math.random() * 0.3);
+    col[i * 3]     = c.r;
+    col[i * 3 + 1] = c.g;
+    col[i * 3 + 2] = c.b;
+  }
+
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size: 0.06, vertexColors: true, transparent: true,
+    opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+
+  bgStars = new THREE.Points(geo, mat);
+  scene.add(bgStars);
+}
+
+/* ============================================================
+   坐标轴 & 网格
+   ============================================================ */
+function buildAxes() {
+  axesGroup = new THREE.Group();
+
+  const axisLen = 7;
+  const axisMat = (color) => new THREE.LineBasicMaterial({
+    color, transparent: true, opacity: 0.3,
+  });
+
+  // Y 轴（圆锥轴线）
+  const yGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, -axisLen, 0),
+    new THREE.Vector3(0, axisLen, 0),
+  ]);
+  axesGroup.add(new THREE.Line(yGeo, axisMat(0x8B5CF6)));
+
+  // X 轴
+  const xGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-axisLen, 0, 0),
+    new THREE.Vector3(axisLen, 0, 0),
+  ]);
+  axesGroup.add(new THREE.Line(xGeo, axisMat(0x64748B)));
+
+  // Z 轴
+  const zGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, -axisLen),
+    new THREE.Vector3(0, 0, axisLen),
+  ]);
+  axesGroup.add(new THREE.Line(zGeo, axisMat(0x64748B)));
+
+  // 地面网格
+  gridHelper = new THREE.GridHelper(14, 14, 0x2a2a3a, 0x1a1a28);
+  gridHelper.position.y = -CONE_HEIGHT - 0.5;
+  gridHelper.material.transparent = true;
+  gridHelper.material.opacity = 0.3;
+
+  scene.add(axesGroup);
+  scene.add(gridHelper);
+}
+
+/* ============================================================
+   构建双圆锥
+   ============================================================ */
+function buildCone() {
+  coneGroup = new THREE.Group();
+  scene.add(coneGroup);
+
+  // 圆锥材质
+  const coneMaterial = new THREE.MeshPhysicalMaterial({
+    color: COLORS.cone,
+    emissive: COLORS.coneEmissive,
+    emissiveIntensity: 0.15,
+    metalness: 0.15,
+    roughness: 0.35,
+    transparent: true,
+    opacity: 0.18,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  // 上圆锥（顶点在原点，底面朝上）
+  const topGeo = new THREE.ConeGeometry(CONE_RADIUS, CONE_HEIGHT, 64, 1, true);
+  topGeo.translate(0, CONE_HEIGHT / 2, 0);
+  topGeo.rotateX(Math.PI); // 翻转：顶点在原点，底面在上
+  coneTop = new THREE.Mesh(topGeo, coneMaterial);
+  coneGroup.add(coneTop);
+
+  // 下圆锥（顶点在原点，底面朝下）
+  const botGeo = new THREE.ConeGeometry(CONE_RADIUS, CONE_HEIGHT, 64, 1, true);
+  botGeo.translate(0, -CONE_HEIGHT / 2, 0);
+  coneBottom = new THREE.Mesh(botGeo, coneMaterial.clone());
+  coneGroup.add(coneBottom);
+
+  // 母线（发光边缘线）
+  const wireMat = new THREE.LineBasicMaterial({
+    color: COLORS.cone, transparent: true, opacity: 0.25,
+  });
+  const wireGeo = new THREE.BufferGeometry();
+  const wirePts = [];
+  const meridians = 16;
+  for (let i = 0; i < meridians; i++) {
+    const a = (i / meridians) * Math.PI * 2;
+    const x = Math.cos(a), z = Math.sin(a);
+    // 上圆锥母线
+    wirePts.push(new THREE.Vector3(0, 0, 0));
+    wirePts.push(new THREE.Vector3(x * CONE_RADIUS, CONE_HEIGHT, z * CONE_RADIUS));
+    // 下圆锥母线
+    wirePts.push(new THREE.Vector3(0, 0, 0));
+    wirePts.push(new THREE.Vector3(x * CONE_RADIUS, -CONE_HEIGHT, z * CONE_RADIUS));
+  }
+  wireGeo.setFromPoints(wirePts);
+  coneWireframe = new THREE.LineSegments(wireGeo, wireMat);
+  coneGroup.add(coneWireframe);
+
+  // 底面圆环
+  for (const yDir of [1, -1]) {
+    const ringGeo = new THREE.TorusGeometry(CONE_RADIUS, 0.02, 8, 64);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: COLORS.cone, transparent: true, opacity: 0.3,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = yDir * CONE_HEIGHT;
+    coneGroup.add(ring);
+  }
+
+  // 顶点发光球
+  const apexGeo = new THREE.SphereGeometry(0.12, 16, 16);
+  const apexMat = new THREE.MeshBasicMaterial({ color: 0xC4B5FD });
+  const apex = new THREE.Mesh(apexGeo, apexMat);
+  apex.name = 'apex';
+  coneGroup.add(apex);
+}
+
+/* ============================================================
+   构建切割平面
+   ============================================================ */
+function buildPlane() {
+  // 创建平面几何（足够大以覆盖圆锥）
+  const planeSize = CONE_RADIUS * 2.6;
+  const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize, 1, 1);
+
+  const planeMat = new THREE.MeshBasicMaterial({
+    color: COLORS.plane,
+    transparent: true,
+    opacity: 0.08,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  planeMesh = new THREE.Mesh(planeGeo, planeMat);
+  planeMesh.name = 'cuttingPlane';
+
+  // 平面边线
+  const edgeGeo = new THREE.EdgesGeometry(planeGeo);
+  const edgeMat = new THREE.LineBasicMaterial({
+    color: COLORS.plane, transparent: true, opacity: 0.4,
+  });
+  planeEdges = new THREE.LineSegments(edgeGeo, edgeMat);
+  planeMesh.add(planeEdges);
+
+  scene.add(planeMesh);
+
+  // 初始化裁剪平面
+  clippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+  updatePlaneTransform();
+}
+
+/* 更新切割平面的位置和旋转 */
+function updatePlaneTransform() {
+  const beta = state.beta;
+  const h = state.height;
+
+  // 平面默认在 XY 平面，法线朝 +Z
+  // 需要旋转到：法线为 (-sin(beta), cos(beta), 0)
+  // 先绕 X 轴旋转 90° 使平面水平（法线朝 +Y）
+  // 再绕 Z 轴旋转 beta 使平面倾斜
+  planeMesh.rotation.set(Math.PI / 2, 0, 0);
+  planeMesh.rotateZ(beta);
+
+  // 平面经过点 (0, h, 0)
+  planeMesh.position.set(0, h, 0);
+
+  // 更新裁剪平面
+  // 法线方向：(-sin(beta), cos(beta), 0)
+  // 平面方程：-sin(beta)*x + cos(beta)*y + d = 0
+  // 经过 (0, h, 0)：cos(beta)*h + d = 0 → d = -cos(beta)*h
+  clippingPlane.normal.set(-Math.sin(beta), Math.cos(beta), 0);
+  clippingPlane.constant = -Math.cos(beta) * h;
+}
+
+/* ============================================================
+   计算截面交线
+   ============================================================ */
+function computeCurveSegments(beta, h) {
+  const tanBeta = Math.tan(beta);
+  const segments = [];
+  const steps = 720;
+
+  // === 上圆锥 (y = t > 0) ===
+  // t = h / (1 - tanBeta * cos(theta))
+  {
+    let current = [];
+    let prevValid = false;
+    for (let i = 0; i <= steps; i++) {
+      const theta = (i / steps) * Math.PI * 2;
+      const denom = 1 - tanBeta * Math.cos(theta);
+
+      if (Math.abs(denom) < 0.015) {
+        if (current.length > 1) segments.push({ points: current, closed: false });
+        current = [];
+        prevValid = false;
+        continue;
+      }
+
+      const t = h / denom;
+      const valid = t > 0.08 && t < MAX_CURVE_R;
+
+      if (valid) {
+        current.push(new THREE.Vector3(
+          t * Math.cos(theta), t, t * Math.sin(theta)
+        ));
+        prevValid = true;
+      } else {
+        if (current.length > 1) segments.push({ points: current, closed: false });
+        current = [];
+        prevValid = false;
+      }
+    }
+    if (current.length > 1) segments.push({ points: current, closed: false });
+
+    // 检查是否为闭合曲线（椭圆/圆）
+    if (segments.length === 1 && tanBeta < 0.98) {
+      segments[0].closed = true;
+    }
+  }
+
+  // === 下圆锥 (y = -t < 0) ===
+  // t = -h / (1 + tanBeta * cos(theta))
+  {
+    let current = [];
+    for (let i = 0; i <= steps; i++) {
+      const theta = (i / steps) * Math.PI * 2;
+      const denom = 1 + tanBeta * Math.cos(theta);
+
+      if (Math.abs(denom) < 0.015) {
+        if (current.length > 1) segments.push({ points: current, closed: false });
+        current = [];
+        continue;
+      }
+
+      const t = -h / denom;
+      const valid = t > 0.08 && t < MAX_CURVE_R;
+
+      if (valid) {
+        current.push(new THREE.Vector3(
+          t * Math.cos(theta), -t, t * Math.sin(theta)
+        ));
+      } else {
+        if (current.length > 1) segments.push({ points: current, closed: false });
+        current = [];
+      }
+    }
+    if (current.length > 1) segments.push({ points: current, closed: false });
+  }
+
+  return segments;
+}
+
+/* ============================================================
+   构建截面交线
+   ============================================================ */
+function buildIntersectionCurve() {
+  if (curveGroup) {
+    scene.remove(curveGroup);
+    disposeGroup(curveGroup);
+  }
+  curveGroup = new THREE.Group();
+  scene.add(curveGroup);
+
+  if (!state.showCurve) return;
+
+  const segments = computeCurveSegments(state.beta, state.height);
+
+  for (const seg of segments) {
+    if (seg.points.length < 2) continue;
+
+    // 使用 CatmullRomCurve3 创建平滑曲线
+    const curve = new THREE.CatmullRomCurve3(
+      seg.points, seg.closed, 'catmullrom', 0.5
+    );
+
+    const tubeRadius = 0.035;
+    const tubularSegments = Math.max(32, seg.points.length * 2);
+    const tubeGeo = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, 8, seg.closed);
+
+    // 主管子（亮色）
+    const tubeMat = new THREE.MeshBasicMaterial({
+      color: COLORS.curve,
+      transparent: true,
+      opacity: 0.95,
+    });
+    curveGroup.add(new THREE.Mesh(tubeGeo, tubeMat));
+
+    // 发光层（略大，加法混合）
+    const glowGeo = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius * 2.5, 8, seg.closed);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: COLORS.curveGlow,
+      transparent: true,
+      opacity: 0.25,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    curveGroup.add(new THREE.Mesh(glowGeo, glowMat));
+  }
+
+  // 更新交线光源位置到截面中心附近
+  const curveLight = scene.getObjectByName('curveLight');
+  if (curveLight && segments.length > 0 && segments[0].points.length > 0) {
+    const p = segments[0].points[0];
+    curveLight.position.set(p.x, p.y, p.z);
+  }
+}
+
+/* ============================================================
+   获取截面类型信息
+   ============================================================ */
+function getConicInfo(beta, h) {
+  const e = Math.sin(beta) / Math.cos(CONE_HALF_ANGLE); // 离心率
+  const eClamped = Math.min(e, 99);
+
+  let type, nameCn, nameEn, formula, curveType;
+
+  if (e < 0.02) {
+    type = 'circle';
+    nameCn = '圆';
+    nameEn = 'Circle';
+    formula = 'x² + y² = r²';
+    curveType = '闭合曲线';
+  } else if (e < 0.98) {
+    type = 'ellipse';
+    nameCn = '椭圆';
+    nameEn = 'Ellipse';
+    formula = 'x²/a² + y²/b² = 1';
+    curveType = '闭合曲线';
+  } else if (e <= 1.02) {
+    type = 'parabola';
+    nameCn = '抛物线';
+    nameEn = 'Parabola';
+    formula = 'y² = 2px';
+    curveType = '开放曲线';
+  } else {
+    type = 'hyperbola';
+    nameCn = '双曲线';
+    nameEn = 'Hyperbola';
+    formula = 'x²/a² − y²/b² = 1';
+    curveType = '双支开放曲线';
+  }
+
+  return { type, nameCn, nameEn, formula, eccentricity: eClamped, curveType };
+}
+
+/* ============================================================
+   更新信息面板
+   ============================================================ */
+function updateInfoPanel() {
+  const info = getConicInfo(state.beta, state.height);
+
+  document.getElementById('conicName').textContent = info.nameCn;
+  document.getElementById('conicEn').textContent = info.nameEn;
+  document.getElementById('conicFormula').textContent = info.formula;
+  document.getElementById('valEccentricity').textContent = info.eccentricity.toFixed(3);
+  document.getElementById('valBeta').textContent = (state.beta * 180 / Math.PI).toFixed(1) + '°';
+  document.getElementById('valHeight').textContent = state.height.toFixed(2);
+  document.getElementById('valType').textContent = info.curveType;
+
+  // 更新预设按钮高亮
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === info.type);
+  });
+}
+
+/* ============================================================
+   更新显示模式
+   ============================================================ */
+function updateDisplayMode() {
+  const mode = state.displayMode;
+
+  if (mode === 'solid') {
+    coneTop.material.opacity = 0.18;
+    coneBottom.material.opacity = 0.18;
+    coneTop.material.wireframe = false;
+    coneBottom.material.wireframe = false;
+    coneWireframe.visible = true;
+    coneWireframe.material.opacity = 0.25;
+  } else if (mode === 'wireframe') {
+    coneTop.material.opacity = 0.0;
+    coneBottom.material.opacity = 0.0;
+    coneTop.material.wireframe = true;
+    coneBottom.material.wireframe = true;
+    coneWireframe.visible = true;
+    coneWireframe.material.opacity = 0.5;
+  } else if (mode === 'transparent') {
+    coneTop.material.opacity = 0.08;
+    coneBottom.material.opacity = 0.08;
+    coneTop.material.wireframe = false;
+    coneBottom.material.wireframe = false;
+    coneWireframe.visible = true;
+    coneWireframe.material.opacity = 0.15;
+  }
+
+  // 剖切模式
+  if (state.clipMode) {
+    coneTop.material.clippingPlanes = [clippingPlane];
+    coneBottom.material.clippingPlanes = [clippingPlane];
+    coneTop.material.opacity = Math.max(coneTop.material.opacity, 0.35);
+    coneBottom.material.opacity = Math.max(coneBottom.material.opacity, 0.35);
+  } else {
+    coneTop.material.clippingPlanes = [];
+    coneBottom.material.clippingPlanes = [];
+  }
+}
+
+/* ============================================================
+   更新所有可见性
+   ============================================================ */
+function updateVisibility() {
+  planeMesh.visible = state.showPlane;
+  curveGroup.visible = state.showCurve;
+  axesGroup.visible = state.showAxes;
+  gridHelper.visible = state.showAxes;
+  updateDisplayMode();
+}
+
+/* ============================================================
+   完整更新（滑块变化时调用）
+   ============================================================ */
+function fullUpdate() {
+  updatePlaneTransform();
+  buildIntersectionCurve();
+  updateInfoPanel();
+  updateVisibility();
+}
+
+/* ============================================================
+   渲染循环
+   ============================================================ */
+function animate() {
+  requestAnimationFrame(animate);
+
+  const t = clock.getElapsedTime();
+  const dt = clock.getDelta();
+
+  // 入场动画
+  if (state.entranceProgress < 1) {
+    state.entranceProgress = Math.min(1, state.entranceProgress + dt * 0.7);
+    const s = easeOutCubic(state.entranceProgress);
+    if (coneGroup) coneGroup.scale.setScalar(s);
+    if (planeMesh) planeMesh.material.opacity = 0.08 * s;
+    if (curveGroup) curveGroup.children.forEach(c => {
+      if (c.material) c.material.opacity = (c.material.userData.baseOpacity || c.material.opacity) * s;
+    });
+  }
+
+  // 顶点光源脉动
+  const apexLight = scene.getObjectByName('apexLight');
+  if (apexLight) apexLight.intensity = 0.6 + Math.sin(t * 2) * 0.2;
+
+  // 交线光源脉动
+  const curveLight = scene.getObjectByName('curveLight');
+  if (curveLight) curveLight.intensity = 0.4 + Math.sin(t * 3) * 0.15;
+
+  // 交线发光层脉动
+  if (curveGroup && state.showCurve) {
+    curveGroup.children.forEach((child, i) => {
+      if (i % 2 === 1 && child.material) {
+        child.material.opacity = 0.2 + Math.sin(t * 2 + i * 0.5) * 0.08;
+      }
+    });
+  }
+
+  // 背景星尘缓慢旋转
+  if (bgStars) {
+    bgStars.rotation.y = t * 0.01;
+    bgStars.rotation.x = t * 0.005;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   工具函数
+   ============================================================ */
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function disposeGroup(group) {
+  group.traverse(obj => {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+      else obj.material.dispose();
+    }
+  });
+}
+
+/* ============================================================
+   UI 交互
+   ============================================================ */
+
+// 滑块填充更新
+function updateSliderFill(slider) {
+  const min = parseFloat(slider.min);
+  const max = parseFloat(slider.max);
+  const val = parseFloat(slider.value);
+  const pct = ((val - min) / (max - min)) * 100;
+  slider.style.setProperty('--fill', pct + '%');
+}
+
+// 切割角滑块
+const sliderBeta = document.getElementById('sliderBeta');
+sliderBeta.addEventListener('input', (e) => {
+  state.beta = parseFloat(e.target.value) * Math.PI / 180;
+  document.getElementById('sliderBetaVal').textContent = parseFloat(e.target.value).toFixed(1) + '°';
+  updateSliderFill(e.target);
+  fullUpdate();
+  showStatus(`β = ${parseFloat(e.target.value).toFixed(1)}°`);
+});
+
+// 高度滑块
+const sliderHeight = document.getElementById('sliderHeight');
+sliderHeight.addEventListener('input', (e) => {
+  state.height = parseFloat(e.target.value);
+  document.getElementById('sliderHeightVal').textContent = state.height.toFixed(2);
+  updateSliderFill(e.target);
+  fullUpdate();
+  showStatus(`h = ${state.height.toFixed(2)}`);
+});
+
+// 预设按钮
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const preset = btn.dataset.preset;
+    let betaDeg, h;
+
+    switch (preset) {
+      case 'circle':    betaDeg = 0;  h = 2.0; break;
+      case 'ellipse':   betaDeg = 25; h = 1.5; break;
+      case 'parabola':  betaDeg = 45; h = 1.5; break;
+      case 'hyperbola': betaDeg = 60; h = 1.0; break;
+    }
+
+    state.beta = betaDeg * Math.PI / 180;
+    state.height = h;
+
+    sliderBeta.value = betaDeg;
+    sliderHeight.value = h;
+    document.getElementById('sliderBetaVal').textContent = betaDeg.toFixed(1) + '°';
+    document.getElementById('sliderHeightVal').textContent = h.toFixed(2);
+    updateSliderFill(sliderBeta);
+    updateSliderFill(sliderHeight);
+
+    fullUpdate();
+
+    const info = getConicInfo(state.beta, state.height);
+    showStatus(`预设：${info.nameCn} · e = ${info.eccentricity.toFixed(3)}`);
+  });
+});
+
+// 开关
+function setupToggle(id, key, callback) {
+  const el = document.getElementById(id);
+  el.addEventListener('click', () => {
+    state[key] = !state[key];
+    el.classList.toggle('on', state[key]);
+    if (callback) callback();
+  });
+}
+
+setupToggle('togglePlane', 'showPlane', updateVisibility);
+setupToggle('toggleCurve', 'showCurve', () => { buildIntersectionCurve(); updateVisibility(); });
+setupToggle('toggleAxes', 'showAxes', updateVisibility);
+setupToggle('toggleClip', 'clipMode', updateVisibility);
+
+// 显示模式切换
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.displayMode = btn.dataset.mode;
+    updateDisplayMode();
+    showStatus(`显示模式：${btn.querySelector('span').textContent}`);
+  });
+});
+
+// 播放/暂停
+const playPauseBtn = document.getElementById('playPauseBtn');
+const playIcon = document.getElementById('playIcon');
+const pauseIcon = document.getElementById('pauseIcon');
+
+playPauseBtn.addEventListener('click', () => {
+  state.isPlaying = !state.isPlaying;
+  controls.autoRotate = state.isPlaying;
+  playPauseBtn.classList.toggle('active', state.isPlaying);
+  playIcon.style.display = state.isPlaying ? 'none' : 'block';
+  pauseIcon.style.display = state.isPlaying ? 'block' : 'none';
+});
+
+// 重置视角
+document.getElementById('resetBtn').addEventListener('click', () => {
+  animateCameraTo(9, 5, 12, 0, 0, 0);
+  showStatus('视角已重置');
+});
+
+// 全屏
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+});
+
+// 相机动画
+function animateCameraTo(x, y, z, tx, ty, tz) {
+  const startPos = camera.position.clone();
+  const endPos = new THREE.Vector3(x, y, z);
+  const startTarget = controls.target.clone();
+  const endTarget = new THREE.Vector3(tx, ty, tz);
+  const startTime = clock.getElapsedTime();
+
+  function step() {
+    const elapsed = clock.getElapsedTime() - startTime;
+    const t = Math.min(elapsed / 0.8, 1);
+    const eased = easeOutCubic(t);
+
+    camera.position.lerpVectors(startPos, endPos, eased);
+    controls.target.lerpVectors(startTarget, endTarget, eased);
+    controls.update();
+
+    if (t < 1) requestAnimationFrame(step);
+  }
+  step();
+}
+
+// 状态提示
+let statusTimer = null;
+function showStatus(msg) {
+  const tag = document.getElementById('statusTag');
+  tag.textContent = msg;
+  tag.classList.add('active');
+  if (statusTimer) clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => {
+    tag.classList.remove('active');
+    tag.textContent = '就绪';
+  }, 2000);
+}
+
+// 点击交互（Raycaster）
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  // 检测点击圆锥
+  const coneMeshes = [coneTop, coneBottom];
+  const intersects = raycaster.intersectObjects(coneMeshes);
+
+  if (intersects.length > 0) {
+    const point = intersects[0].point;
+    const dist = point.length();
+    showStatus(`圆锥表面点 · 距顶点 ${dist.toFixed(2)}`);
+
+    // 闪烁高亮
+    const originalEmissive = coneTop.material.emissiveIntensity;
+    coneTop.material.emissiveIntensity = 0.5;
+    coneBottom.material.emissiveIntensity = 0.5;
+    setTimeout(() => {
+      coneTop.material.emissiveIntensity = originalEmissive;
+      coneBottom.material.emissiveIntensity = originalEmissive;
+    }, 400);
+  }
+});
+
+// 窗口自适应
+function onResize() {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+/* ============================================================
+   启动
+   ============================================================ */
+initScene();
+updateSliderFill(sliderBeta);
+updateSliderFill(sliderHeight);
+updateInfoPanel();
+updateVisibility();
+
+// 存储基础透明度（用于入场动画）
+if (curveGroup) {
+  curveGroup.children.forEach(c => {
+    if (c.material) c.material.userData.baseOpacity = c.material.opacity;
+  });
+}
+
+animate();
+
+// 隐藏加载层
+setTimeout(() => {
+  document.getElementById('loadingOverlay').classList.add('hidden');
+}, 500);
+
+</script>
+
+</body>
+</html>

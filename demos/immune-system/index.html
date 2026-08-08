@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人体免疫系统 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css">
+<link rel="stylesheet" href="/assets/css/demo-framework.css">
+<style>
+/* ===== 免疫系统 Demo 专属样式 ===== */
+:root {
+  --imm-blue: #2563eb;
+  --imm-blue-light: #3b82f6;
+  --imm-blue-soft: rgba(37, 99, 235, 0.1);
+  --imm-blue-deep: #1e40af;
+  --imm-red: #dc2626;
+  --imm-red-light: #fca5a5;
+  --imm-red-soft: rgba(220, 38, 38, 0.1);
+  --imm-bg: #faf8f5;
+  /* 细胞配色 */
+  --cell-macro: #fef3c7;
+  --cell-macro-stroke: #d97706;
+  --cell-neutro: #fce7f3;
+  --cell-neutro-stroke: #db2777;
+  --cell-dend: #ede9fe;
+  --cell-dend-stroke: #7c3aed;
+  --cell-b: #dbeafe;
+  --cell-b-stroke: #2563eb;
+  --cell-t: #cffafe;
+  --cell-t-stroke: #0891b2;
+  --cell-antibody: #fde68a;
+  --cell-antibody-stroke: #ca8a04;
+  --cell-bacteria: #fca5a5;
+  --cell-bacteria-stroke: #dc2626;
+  --cell-memory: #fbbf24;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--imm-bg);
+}
+
+/* ===== 加载动画 ===== */
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--imm-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+.loader-overlay.hidden { opacity: 0; visibility: hidden; }
+.loader-cells { position: relative; width: 200px; height: 200px; }
+.loader-cell {
+  position: absolute;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: cellGather 1.8s ease forwards;
+}
+.loader-cell:nth-child(1) { background: var(--cell-macro); border: 2px solid var(--cell-macro-stroke); top: 10%; left: 45%; animation-delay: 0s; }
+.loader-cell:nth-child(2) { background: var(--cell-neutro); border: 2px solid var(--cell-neutro-stroke); top: 40%; left: 10%; animation-delay: 0.15s; }
+.loader-cell:nth-child(3) { background: var(--cell-dend); border: 2px solid var(--cell-dend-stroke); top: 40%; left: 80%; animation-delay: 0.3s; }
+.loader-cell:nth-child(4) { background: var(--cell-b); border: 2px solid var(--cell-b-stroke); top: 75%; left: 30%; animation-delay: 0.45s; }
+.loader-cell:nth-child(5) { background: var(--cell-t); border: 2px solid var(--cell-t-stroke); top: 75%; left: 60%; animation-delay: 0.6s; }
+@keyframes cellGather {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.loader-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: var(--imm-blue);
+  opacity: 0;
+  animation: centerPulse 1s ease forwards 0.9s, centerBeat 2s ease-in-out infinite 1.9s;
+}
+@keyframes centerPulse {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+  100% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes centerBeat {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.15; }
+  50% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+.loader-text {
+  position: absolute;
+  bottom: 22%;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+  opacity: 0;
+  animation: textFade 0.8s ease forwards 1.4s;
+}
+@keyframes textFade { to { opacity: 1; } }
+
+/* ===== 页面主体 ===== */
+.page-wrapper {
+  padding-top: 64px;
+  min-height: 100vh;
+}
+
+/* ===== 杂志布局微调 ===== */
+.magazine-layout {
+  display: grid;
+  grid-template-columns: 40% 60%;
+  gap: var(--spacer-32);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--spacer-32) var(--spacer-32);
+  min-height: calc(100vh - 64px);
+}
+body.has-info-bar .magazine-layout {
+  padding-bottom: calc(var(--spacer-32) + 52px);
+}
+
+/* ===== 左侧文章区微调 ===== */
+.magazine-article {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.magazine-article::-webkit-scrollbar { width: 4px; }
+.magazine-article::-webkit-scrollbar-track { background: transparent; }
+.magazine-article::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.magazine-kicker { color: var(--imm-blue); }
+.magazine-step-dot.active { background-color: var(--imm-blue); }
+.magazine-proof-num { background-color: var(--imm-blue); }
+.magazine-theorem-box {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(37, 99, 235, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.15);
+}
+.magazine-theorem-title { color: var(--imm-blue); }
+
+/* ===== 播放控制 ===== */
+.play-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  margin-top: var(--spacer-12);
+}
+.play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--imm-blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: var(--fs-tiny);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.play-btn:hover { background: var(--imm-blue-deep); }
+.play-btn svg { width: 12px; height: 12px; }
+.play-progress {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.play-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--imm-blue);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+/* ===== 右侧可视化区 ===== */
+.magazine-visual-wrapper {
+  background: linear-gradient(180deg, #ffffff 0%, #faf8f5 100%);
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacer-24);
+}
+.visual-stage {
+  width: 100%;
+  position: relative;
+}
+.visual-stage svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ===== 步骤内容 ===== */
+.step-content-box {
+  display: none;
+}
+.step-content-box.active {
+  display: block;
+  animation: fadeInUp 0.4s ease;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== 可视化步骤容器 ===== */
+.visual-step {
+  display: none;
+}
+.visual-step.active {
+  display: block;
+  animation: visualFadeIn 0.5s ease;
+}
+@keyframes visualFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ===== 细胞标签提示 ===== */
+.cell-tooltip {
+  position: absolute;
+  background: rgba(26, 26, 26, 0.92);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+  max-width: 200px;
+  white-space: normal;
+}
+.cell-tooltip.visible { opacity: 1; }
+.cell-tooltip strong { color: var(--imm-blue-light); }
+
+/* ===== 图例 ===== */
+.visual-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacer-12);
+  margin-top: var(--spacer-16);
+  padding: var(--spacer-16);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-tiny);
+  color: var(--text-muted);
+}
+.legend-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+
+/* ===== 互动按钮 ===== */
+.vax-btn-group {
+  display: flex;
+  gap: var(--spacer-12);
+  justify-content: center;
+  margin-top: var(--spacer-16);
+}
+.vax-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid var(--imm-blue);
+  background: #fff;
+  color: var(--imm-blue);
+  border-radius: var(--radius);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.vax-btn:hover { background: var(--imm-blue-soft); }
+.vax-btn.active { background: var(--imm-blue); color: #fff; }
+.vax-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.vax-btn svg { width: 16px; height: 16px; }
+
+/* ===== 疫苗类型卡片 ===== */
+.vax-type-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacer-8);
+  margin-top: var(--spacer-16);
+}
+.vax-type-card {
+  padding: var(--spacer-12);
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-soft);
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.vax-type-card:hover {
+  border-color: var(--imm-blue);
+  box-shadow: var(--shadow-soft);
+}
+.vax-type-icon {
+  width: 36px; height: 36px;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--imm-blue-soft);
+}
+.vax-type-name {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.vax-type-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ===== 异常卡片 ===== */
+.disorder-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacer-12);
+  margin-top: var(--spacer-12);
+}
+.disorder-card {
+  padding: var(--spacer-16);
+  border-radius: var(--radius-card);
+  border: 1px solid;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.disorder-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-card); }
+.disorder-card.allergy { border-color: rgba(245, 158, 11, 0.3); background: rgba(254, 243, 199, 0.3); }
+.disorder-card.autoimmune { border-color: rgba(220, 38, 38, 0.2); background: rgba(254, 226, 226, 0.3); }
+.disorder-card.deficiency { border-color: rgba(37, 99, 235, 0.2); background: rgba(219, 234, 254, 0.3); }
+.disorder-title {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.disorder-card.allergy .disorder-title { color: #b45309; }
+.disorder-card.autoimmune .disorder-title { color: var(--imm-red); }
+.disorder-card.deficiency .disorder-title { color: var(--imm-blue); }
+.disorder-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ===== 健康贴士 ===== */
+.health-tips {
+  display: flex;
+  gap: var(--spacer-16);
+  margin-top: var(--spacer-16);
+  padding: var(--spacer-16);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(37, 99, 235, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: var(--radius-card);
+}
+.tip-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.tip-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--imm-blue-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tip-icon svg { width: 18px; height: 18px; color: var(--imm-blue); }
+.tip-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ===== SVG 动画 ===== */
+@keyframes cellDrift {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(3px, -2px); }
+  50% { transform: translate(-2px, 3px); }
+  75% { transform: translate(-3px, -1px); }
+}
+@keyframes bacteriaWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(8deg); }
+  50% { transform: rotate(-5deg); }
+  75% { transform: rotate(3deg); }
+}
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
+}
+@keyframes antibodyFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes flowDash {
+  to { stroke-dashoffset: -20; }
+}
+
+/* ===== 数字高亮 ===== */
+.stat-highlight {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--imm-blue);
+  line-height: 1;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .magazine-layout {
+    grid-template-columns: 1fr;
+    gap: var(--spacer-24);
+  }
+  .magazine-article {
+    max-height: none;
+    overflow-y: visible;
+  }
+  .vax-type-cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .magazine-layout { padding: var(--spacer-20) var(--spacer-16); }
+  .disorder-cards { grid-template-columns: 1fr; }
+  .health-tips { flex-wrap: wrap; gap: var(--spacer-12); }
+  .tip-item { min-width: 80px; }
+  .vax-type-cards { grid-template-columns: repeat(2, 1fr); }
+  .magazine-visual-wrapper { min-height: 360px; padding: var(--spacer-16); }
+}
+@media (max-width: 480px) {
+  .vax-type-cards { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 加载动画 ====== -->
+<div class="loader-overlay" id="loaderOverlay">
+  <div class="loader-cells">
+    <div class="loader-cell"></div>
+    <div class="loader-cell"></div>
+    <div class="loader-cell"></div>
+    <div class="loader-cell"></div>
+    <div class="loader-cell"></div>
+    <div class="loader-center"></div>
+  </div>
+  <div class="loader-text">免疫系统正在激活…</div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">生物</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">人体免疫系统</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-bio">生物</span>
+      <a href="/skills/jingbo-edu-life-science-lecture-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="magazine-article">
+        <div class="magazine-article-header">
+          <div class="magazine-kicker">BIOLOGY · 免疫学专题</div>
+          <h1 class="magazine-title">人体的国防军<br>免疫系统</h1>
+          <p class="magazine-subtitle">2 万亿个免疫细胞，24 小时巡逻——你的身体每天都在打一场看不见的战争。</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="magazine-step-indicator">
+          <div class="magazine-step-dots" id="stepDots">
+            <div class="magazine-step-dot active" data-step="0"></div>
+            <div class="magazine-step-dot" data-step="1"></div>
+            <div class="magazine-step-dot" data-step="2"></div>
+            <div class="magazine-step-dot" data-step="3"></div>
+            <div class="magazine-step-dot" data-step="4"></div>
+          </div>
+          <span class="magazine-step-label" id="stepLabel">第 1 / 5 步</span>
+        </div>
+
+        <!-- 步骤内容 -->
+        <div class="magazine-body">
+          <div class="magazine-step-content" id="stepContent">
+
+            <!-- 第 1 步 -->
+            <div class="step-content-box active" data-step="0">
+              <h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">人体的国防军——免疫系统概览</h3>
+              <p class="lead">你的身体里有大约 <span class="stat-highlight">2 万亿</span> 个免疫细胞，每天都在默默守护你。</p>
+              <div class="magazine-theorem-box">
+                <div class="magazine-theorem-title">三道防线</div>
+                <div class="magazine-theorem-text">
+                  <strong>第一道：皮肤和黏膜</strong>——物理屏障，像城墙一样阻挡病原体入侵。<br><br>
+                  <strong>第二道：先天免疫</strong>——吞噬细胞等快速反应部队，非特异性攻击，几分钟内应战。<br><br>
+                  <strong>第三道：适应性免疫</strong>——B 细胞和 T 细胞组成的特种部队，精准打击特定敌人，并拥有记忆能力。
+                </div>
+              </div>
+              <p>免疫系统遍布全身：骨髓是免疫细胞的"兵工厂"，胸腺是 T 细胞的"训练营"，淋巴结是免疫应答的"指挥部"，脾脏过滤血液中的病原体，扁桃体守卫呼吸道入口。</p>
+              <p style="color:var(--imm-blue);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">→ 鼠标悬停在右侧人体图上，探索各免疫器官</p>
+            </div>
+
+            <!-- 第 2 步 -->
+            <div class="step-content-box" data-step="1">
+              <h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">先天免疫——快速反应部队</h3>
+              <p class="lead">当病原体突破皮肤防线，先天免疫系统在数分钟内应战。</p>
+              <div class="magazine-proof-step">
+                <div class="magazine-proof-num">1</div>
+                <div class="magazine-proof-text"><strong>巨噬细胞</strong>——大吞噬细胞，游走巡逻，吞噬病原体并释放信号分子招募更多免疫细胞。</div>
+              </div>
+              <div class="magazine-proof-step">
+                <div class="magazine-proof-num">2</div>
+                <div class="magazine-proof-text"><strong>中性粒细胞</strong>——数量最多的免疫细胞，释放颗粒毒素进行"自杀式攻击"，与细菌同归于尽。</div>
+              </div>
+              <div class="magazine-proof-step">
+                <div class="magazine-proof-num">3</div>
+                <div class="magazine-proof-text"><strong>NK 细胞</strong>——自然杀伤细胞，识别并消灭被病毒感染的细胞和癌变的细胞。</div>
+              </div>
+              <div class="magazine-proof-step">
+                <div class="magazine-proof-num">4</div>
+                <div class="magazine-proof-text"><strong>树突状细胞</strong>——情报收集员，吞噬病原体碎片后前往淋巴结，激活适应性免疫。</div>
+              </div>
+              <p>此外，<strong>补体系统</strong>在血液中直接裂解细菌，<strong>炎症反应</strong>（红、肿、热、痛）增加局部血流量，让更多免疫细胞到达战场。</p>
+            </div>
+
+            <!-- 第 3 步 -->
+            <div class="step-content-box" data-step="2">
+              <h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">适应性免疫——精准打击与记忆</h3>
+              <p class="lead">先天免疫如果不够，就需要适应性免疫——人体的"特种部队"登场。</p>
+              <div class="magazine-theorem-box">
+                <div class="magazine-theorem-title">两条作战路线</div>
+                <div class="magazine-theorem-text">
+                  <strong>体液免疫：</strong>辅助性 T 细胞激活 B 细胞 → B 细胞分化为浆细胞 → 产生大量 Y 形抗体 → 抗体标记病原体供吞噬细胞消灭。<br><br>
+                  <strong>细胞免疫：</strong>细胞毒性 T 细胞直接接触并杀死被感染的细胞，阻止病毒在细胞内繁殖。
+                </div>
+              </div>
+              <p>最关键的是——一部分 B 细胞和 T 细胞会变成<strong>记忆细胞</strong>，存活数年甚至终身。下次遇到同样的病原体时，它们可以快速反应，在你生病之前就消灭敌人。这就是<strong>疫苗工作的原理</strong>。</p>
+              <p style="color:var(--imm-blue);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">→ 观察右侧淋巴结内的免疫激活过程</p>
+            </div>
+
+            <!-- 第 4 步 -->
+            <div class="step-content-box" data-step="3">
+              <h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">疫苗的原理——提前演练的军事演习</h3>
+              <p class="lead">疫苗就是一场军事演习——让免疫系统提前"认识"敌人。</p>
+              <div class="magazine-proof-step">
+                <div class="magazine-proof-num">▶</div>
+                <div class="magazine-proof-text"><strong>第一阶段（接种疫苗）：</strong>灭活或减毒的病原体进入体内，免疫系统激活，产生抗体和记忆细胞。</div>
+              </div>
+              <div class="magazine-proof-step">
+                <div class="magazine-proof-num">▶</div>
+                <div class="magazine-proof-text"><strong>第二阶段（真病毒入侵）：</strong>同样的病毒再次入侵，记忆细胞迅速识别，快速产生大量抗体——<strong>免疫应答速度提高约 100 倍</strong>，病毒被迅速消灭。</div>
+              </div>
+              <p>不同类型的疫苗使用不同策略：灭活疫苗（如狂犬疫苗）、减毒活疫苗（如麻疹疫苗）、mRNA 疫苗（如新冠 mRNA 疫苗）、腺病毒载体疫苗（如埃博拉疫苗）。</p>
+              <p style="color:var(--imm-blue);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:16px;">→ 点击右侧按钮，触发两个阶段的动画</p>
+            </div>
+
+            <!-- 第 5 步 -->
+            <div class="step-content-box" data-step="4">
+              <h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">免疫系统的"误伤"与"失守"</h3>
+              <p class="lead">免疫系统不是完美的——它会认错人、反应过度，甚至被攻破。</p>
+              <div class="magazine-proof-step">
+                <div class="magazine-proof-num" style="background:#b45309;">!</div>
+                <div class="magazine-proof-text"><strong>过敏</strong>——对花粉、食物等无害物质发动攻击，释放组胺导致打喷嚏、皮疹等症状。</div>
+              </div>
+              <div class="magazine-proof-step">
+                <div class="magazine-proof-num" style="background:var(--imm-red);">!</div>
+                <div class="magazine-proof-text"><strong>自身免疫病</strong>——免疫系统错误攻击自身组织，如类风湿性关节炎、红斑狼疮、1 型糖尿病。</div>
+              </div>
+              <div class="magazine-proof-step">
+                <div class="magazine-proof-num" style="background:var(--imm-blue);">!</div>
+                <div class="magazine-proof-text"><strong>免疫缺陷</strong>——HIV 病毒攻击辅助性 T 细胞，免疫系统瘫痪，导致艾滋病（AIDS）。</div>
+              </div>
+              <div class="magazine-theorem-box">
+                <div class="magazine-theorem-title">保持免疫力</div>
+                <div class="magazine-theorem-text">充足睡眠、规律运动、均衡营养、压力管理——这四件事是维持免疫系统正常运转的基础。</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 上一步 / 下一步 + 播放控制 -->
+        <div class="play-controls">
+          <button class="play-btn" id="playBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <span id="playBtnText">自动播放</span>
+          </button>
+          <div class="play-progress"><div class="play-progress-bar" id="playProgressBar"></div></div>
+        </div>
+        <div class="magazine-step-nav">
+          <button class="btn btn-secondary" id="prevBtn">
+            <span>←</span> 上一步
+          </button>
+          <button class="btn btn-primary" id="nextBtn" style="background-color:var(--imm-blue);">
+            下一步 <span>→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="magazine-visual">
+        <div class="magazine-visual-wrapper">
+          <div class="visual-stage" id="visualStage">
+
+            <!-- ====== 步骤 1：免疫系统概览 ====== -->
+            <div class="visual-step active" data-step="0">
+              <svg viewBox="0 0 520 460" id="svgStep0" style="max-height:480px;">
+                <defs>
+                  <radialGradient id="bodyGrad" cx="50%" cy="40%">
+                    <stop offset="0%" stop-color="#fff" stop-opacity="0.8"/>
+                    <stop offset="100%" stop-color="#f3efe9"/>
+                  </radialGradient>
+                  <filter id="softGlow0"><feGaussianBlur stdDeviation="3"/></filter>
+                </defs>
+
+                <!-- 人体轮廓 -->
+                <g id="bodyOutline" style="cursor:pointer;">
+                  <!-- 头部 -->
+                  <ellipse cx="200" cy="60" rx="32" ry="36" fill="url(#bodyGrad)" stroke="#d4ccc0" stroke-width="1.5"/>
+                  <!-- 颈部 -->
+                  <rect x="192" y="92" width="16" height="14" fill="url(#bodyGrad)" stroke="#d4ccc0" stroke-width="1"/>
+                  <!-- 躯干 -->
+                  <path d="M 165 106 Q 145 112 142 140 L 138 220 Q 136 260 142 290 L 155 330 Q 160 350 168 355 L 232 355 Q 240 350 245 330 L 258 290 Q 264 260 262 220 L 258 140 Q 255 112 235 106 Z" fill="url(#bodyGrad)" stroke="#d4ccc0" stroke-width="1.5"/>
+                  <!-- 手臂 -->
+                  <path d="M 145 115 Q 120 125 108 160 Q 100 200 96 240 Q 92 270 90 295" fill="none" stroke="#d4ccc0" stroke-width="10" stroke-linecap="round" opacity="0.5"/>
+                  <path d="M 255 115 Q 280 125 292 160 Q 300 200 304 240 Q 308 270 310 295" fill="none" stroke="#d4ccc0" stroke-width="10" stroke-linecap="round" opacity="0.5"/>
+                  <!-- 腿部 -->
+                  <path d="M 170 355 L 165 420 Q 163 435 168 445" fill="none" stroke="#d4ccc0" stroke-width="14" stroke-linecap="round" opacity="0.5"/>
+                  <path d="M 230 355 L 235 420 Q 237 435 232 445" fill="none" stroke="#d4ccc0" stroke-width="14" stroke-linecap="round" opacity="0.5"/>
+                </g>
+
+                <!-- 免疫器官标注 -->
+                <!-- 扁桃体 -->
+                <g class="organ-marker" data-organ="tonsil" style="cursor:pointer;">
+                  <circle cx="192" cy="68" r="5" fill="#fbbf24" opacity="0.8"/>
+                  <circle cx="192" cy="68" r="9" fill="none" stroke="#fbbf24" stroke-width="1" opacity="0.4">
+                    <animate attributeName="r" values="9;14;9" dur="2s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite"/>
+                  </circle>
+                  <line x1="192" y1="68" x2="60" y2="50" stroke="#d4ccc0" stroke-width="1" stroke-dasharray="3,3"/>
+                  <text x="55" y="46" text-anchor="end" font-size="11" fill="#6b6b6b" font-family="var(--font-sans)">扁桃体</text>
+                  <text x="55" y="58" text-anchor="end" font-size="9" fill="#a3a3a3" font-family="var(--font-sans)">守卫呼吸道</text>
+                </g>
+
+                <!-- 胸腺 -->
+                <g class="organ-marker" data-organ="thymus" style="cursor:pointer;">
+                  <ellipse cx="200" cy="130" rx="10" ry="14" fill="#a78bfa" opacity="0.7"/>
+                  <circle cx="200" cy="130" r="15" fill="none" stroke="#a78bfa" stroke-width="1" opacity="0.4">
+                    <animate attributeName="r" values="15;20;15" dur="2.5s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/>
+                  </circle>
+                  <line x1="210" y1="130" x2="310" y2="100" stroke="#d4ccc0" stroke-width="1" stroke-dasharray="3,3"/>
+                  <text x="315" y="96" font-size="11" fill="#6b6b6b" font-family="var(--font-sans)">胸腺</text>
+                  <text x="315" y="108" font-size="9" fill="#a3a3a3" font-family="var(--font-sans)">T 细胞训练营</text>
+                </g>
+
+                <!-- 骨髓 -->
+                <g class="organ-marker" data-organ="marrow" style="cursor:pointer;">
+                  <circle cx="168" cy="400" r="6" fill="#f87171" opacity="0.7"/>
+                  <circle cx="168" cy="400" r="10" fill="none" stroke="#f87171" stroke-width="1" opacity="0.4">
+                    <animate attributeName="r" values="10;15;10" dur="2.2s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2.2s" repeatCount="indefinite"/>
+                  </circle>
+                  <line x1="168" y1="400" x2="80" y2="400" stroke="#d4ccc0" stroke-width="1" stroke-dasharray="3,3"/>
+                  <text x="75" y="396" text-anchor="end" font-size="11" fill="#6b6b6b" font-family="var(--font-sans)">骨髓</text>
+                  <text x="75" y="408" text-anchor="end" font-size="9" fill="#a3a3a3" font-family="var(--font-sans)">免疫细胞兵工厂</text>
+                </g>
+
+                <!-- 脾脏 -->
+                <g class="organ-marker" data-organ="spleen" style="cursor:pointer;">
+                  <ellipse cx="155" cy="200" rx="8" ry="12" fill="#34d399" opacity="0.7" transform="rotate(-15 155 200)"/>
+                  <circle cx="155" cy="200" r="14" fill="none" stroke="#34d399" stroke-width="1" opacity="0.4">
+                    <animate attributeName="r" values="14;19;14" dur="2.8s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2.8s" repeatCount="indefinite"/>
+                  </circle>
+                  <line x1="147" y1="200" x2="60" y2="200" stroke="#d4ccc0" stroke-width="1" stroke-dasharray="3,3"/>
+                  <text x="55" y="196" text-anchor="end" font-size="11" fill="#6b6b6b" font-family="var(--font-sans)">脾脏</text>
+                  <text x="55" y="208" text-anchor="end" font-size="9" fill="#a3a3a3" font-family="var(--font-sans)">过滤血液病原体</text>
+                </g>
+
+                <!-- 淋巴结 -->
+                <g class="organ-marker" data-organ="lymph" style="cursor:pointer;">
+                  <circle cx="108" cy="175" r="5" fill="#60a5fa" opacity="0.8"/>
+                  <circle cx="108" cy="175" r="9" fill="none" stroke="#60a5fa" stroke-width="1" opacity="0.4">
+                    <animate attributeName="r" values="9;14;9" dur="2.3s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2.3s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="292" cy="175" r="5" fill="#60a5fa" opacity="0.8"/>
+                  <circle cx="292" cy="175" r="9" fill="none" stroke="#60a5fa" stroke-width="1" opacity="0.4">
+                    <animate attributeName="r" values="9;14;9" dur="2.3s" repeatCount="indefinite" begin="1s"/>
+                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2.3s" repeatCount="indefinite" begin="1s"/>
+                  </circle>
+                  <circle cx="160" cy="280" r="4" fill="#60a5fa" opacity="0.8"/>
+                  <circle cx="240" cy="280" r="4" fill="#60a5fa" opacity="0.8"/>
+                  <line x1="108" y1="175" x2="40" y2="145" stroke="#d4ccc0" stroke-width="1" stroke-dasharray="3,3"/>
+                  <text x="35" y="141" text-anchor="end" font-size="11" fill="#6b6b6b" font-family="var(--font-sans)">淋巴结</text>
+                  <text x="35" y="153" text-anchor="end" font-size="9" fill="#a3a3a3" font-family="var(--font-sans)">免疫指挥部</text>
+                </g>
+
+                <!-- 三道防线示意图 -->
+                <g transform="translate(340, 170)">
+                  <text x="80" y="-10" text-anchor="middle" font-size="11" fill="#6b6b6b" font-family="var(--font-serif)" font-weight="600">三道防线</text>
+
+                  <!-- 第一道防线 -->
+                  <g class="defense-line" data-line="1" style="cursor:pointer;">
+                    <rect x="10" y="0" width="140" height="30" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1" opacity="0.7"/>
+                    <text x="80" y="19" text-anchor="middle" font-size="10" fill="#92400e" font-family="var(--font-sans)" font-weight="600">第一道：皮肤屏障</text>
+                    <text x="155" y="19" font-size="9" fill="#a3a3a3" font-family="var(--font-sans)">城墙</text>
+                  </g>
+
+                  <!-- 第二道防线 -->
+                  <g class="defense-line" data-line="2" style="cursor:pointer;">
+                    <rect x="10" y="42" width="140" height="30" rx="4" fill="#fce7f3" stroke="#db2777" stroke-width="1" opacity="0.7"/>
+                    <text x="80" y="61" text-anchor="middle" font-size="10" fill="#9d174d" font-family="var(--font-sans)" font-weight="600">第二道：先天免疫</text>
+                    <text x="155" y="61" font-size="9" fill="#a3a3a3" font-family="var(--font-sans)">巡逻兵</text>
+                  </g>
+
+                  <!-- 第三道防线 -->
+                  <g class="defense-line" data-line="3" style="cursor:pointer;">
+                    <rect x="10" y="84" width="140" height="30" rx="4" fill="#dbeafe" stroke="#2563eb" stroke-width="1" opacity="0.7"/>
+                    <text x="80" y="103" text-anchor="middle" font-size="10" fill="#1e40af" font-family="var(--font-sans)" font-weight="600">第三道：适应性免疫</text>
+                    <text x="155" y="103" font-size="9" fill="#a3a3a3" font-family="var(--font-sans)">特种部队</text>
+                  </g>
+
+                  <!-- 箭头 -->
+                  <path d="M 80 30 L 80 42" stroke="#d4ccc0" stroke-width="1" marker-end="url(#arrowSmall)"/>
+                  <path d="M 80 72 L 80 84" stroke="#d4ccc0" stroke-width="1" marker-end="url(#arrowSmall)"/>
+                </g>
+
+                <defs>
+                  <marker id="arrowSmall" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                    <path d="M 0 0 L 6 3 L 0 6 z" fill="#d4ccc0"/>
+                  </marker>
+                </defs>
+
+                <!-- 装饰：巡逻细胞 -->
+                <g opacity="0.3">
+                  <circle cx="130" cy="160" r="4" fill="#fef3c7" stroke="#d97706" stroke-width="1">
+                    <animateMotion dur="8s" repeatCount="indefinite" path="M 0 0 Q 20 -10 30 5 Q 20 15 0 10 Z"/>
+                  </circle>
+                  <circle cx="270" cy="240" r="4" fill="#fce7f3" stroke="#db2777" stroke-width="1">
+                    <animateMotion dur="10s" repeatCount="indefinite" path="M 0 0 Q -15 10 -25 -5 Q -10 -15 0 0 Z"/>
+                  </circle>
+                </g>
+              </svg>
+            </div>
+
+            <!-- ====== 步骤 2：先天免疫战场 ====== -->
+            <div class="visual-step" data-step="1">
+              <svg viewBox="0 0 520 460" id="svgStep1" style="max-height:480px;">
+                <defs>
+                  <radialGradient id="tissueGrad" cx="50%" cy="50%">
+                    <stop offset="0%" stop-color="#fefcf9"/>
+                    <stop offset="100%" stop-color="#f5f0e8"/>
+                  </radialGradient>
+                  <filter id="cellGlow"><feGaussianBlur stdDeviation="2"/></filter>
+                </defs>
+
+                <!-- 组织液背景 -->
+                <rect width="520" height="400" fill="url(#tissueGrad)" rx="12"/>
+
+                <!-- 网格纹理 -->
+                <g opacity="0.05">
+                  <line x1="0" y1="100" x2="520" y2="100" stroke="#999" stroke-width="0.5"/>
+                  <line x1="0" y1="200" x2="520" y2="200" stroke="#999" stroke-width="0.5"/>
+                  <line x1="0" y1="300" x2="520" y2="300" stroke="#999" stroke-width="0.5"/>
+                  <line x1="130" y1="0" x2="130" y2="400" stroke="#999" stroke-width="0.5"/>
+                  <line x1="260" y1="0" x2="260" y2="400" stroke="#999" stroke-width="0.5"/>
+                  <line x1="390" y1="0" x2="390" y2="400" stroke="#999" stroke-width="0.5"/>
+                </g>
+
+                <!-- 细菌入侵 -->
+                <g id="bacteriaGroup">
+                  <g class="bacteria" transform="translate(400, 80)">
+                    <ellipse cx="0" cy="0" rx="12" ry="5" fill="#fca5a5" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="-12" y1="0" x2="-18" y2="-3" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="-12" y1="0" x2="-18" y2="3" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="12" y1="0" x2="18" y2="-3" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="12" y1="0" x2="18" y2="3" stroke="#dc2626" stroke-width="1.5"/>
+                    <circle cx="-3" cy="-1" r="1.5" fill="#dc2626"/>
+                    <circle cx="4" cy="1" r="1.5" fill="#dc2626"/>
+                    <animateTransform attributeName="transform" type="translate" values="400,80; 380,100; 350,130; 320,160; 300,190" dur="6s" repeatCount="indefinite"/>
+                  </g>
+                  <g class="bacteria" transform="translate(440, 120)">
+                    <ellipse cx="0" cy="0" rx="10" ry="4" fill="#fca5a5" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="-10" y1="0" x2="-15" y2="-2" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="10" y1="0" x2="15" y2="2" stroke="#dc2626" stroke-width="1.5"/>
+                    <animateTransform attributeName="transform" type="translate" values="440,120; 410,150; 380,180; 350,210; 330,240" dur="7s" repeatCount="indefinite"/>
+                  </g>
+                  <g class="bacteria" transform="translate(420, 200)">
+                    <ellipse cx="0" cy="0" rx="11" ry="4.5" fill="#fca5a5" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="-11" y1="0" x2="-16" y2="-3" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="11" y1="0" x2="16" y2="3" stroke="#dc2626" stroke-width="1.5"/>
+                    <animateTransform attributeName="transform" type="translate" values="420,200; 390,220; 360,250; 340,280" dur="8s" repeatCount="indefinite"/>
+                  </g>
+                </g>
+
+                <!-- 巨噬细胞 -->
+                <g class="immune-cell" data-cell="macrophage" style="cursor:pointer;">
+                  <circle cx="150" cy="180" r="32" fill="#fef3c7" stroke="#d97706" stroke-width="2" opacity="0.9"/>
+                  <!-- 伪足 -->
+                  <path d="M 122 170 Q 110 160 105 168 Q 108 175 118 172 Z" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+                  <path d="M 178 185 Q 192 180 195 190 Q 188 195 180 192 Z" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+                  <path d="M 145 210 Q 140 222 148 225 Q 155 220 152 212 Z" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+                  <!-- 细胞核 -->
+                  <ellipse cx="148" cy="178" rx="10" ry="8" fill="#d97706" opacity="0.3"/>
+                  <!-- 被吞噬的细菌碎片 -->
+                  <circle cx="160" cy="175" r="4" fill="#fca5a5" opacity="0.6"/>
+                  <circle cx="142" cy="190" r="3" fill="#fca5a5" opacity="0.5"/>
+                  <text x="150" y="240" text-anchor="middle" font-size="10" fill="#92400e" font-family="var(--font-sans)" font-weight="600">巨噬细胞</text>
+                  <text x="150" y="252" text-anchor="middle" font-size="8" fill="#a3a3a3" font-family="var(--font-sans)">吞噬病原体</text>
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 8,5; 5,-3; -3,4; 0,0" dur="4s" repeatCount="indefinite"/>
+                </g>
+
+                <!-- 中性粒细胞 -->
+                <g class="immune-cell" data-cell="neutrophil" style="cursor:pointer;">
+                  <circle cx="350" cy="280" r="22" fill="#fce7f3" stroke="#db2777" stroke-width="2" opacity="0.9"/>
+                  <!-- 多叶核 -->
+                  <ellipse cx="345" cy="275" rx="5" ry="4" fill="#db2777" opacity="0.4"/>
+                  <ellipse cx="355" cy="278" rx="4" ry="3.5" fill="#db2777" opacity="0.4"/>
+                  <ellipse cx="348" cy="285" rx="4" ry="3" fill="#db2777" opacity="0.4"/>
+                  <!-- 释放颗粒 -->
+                  <circle cx="325" cy="295" r="2" fill="#db2777" opacity="0.5">
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="372" cy="290" r="2" fill="#db2777" opacity="0.5">
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" begin="0.5s"/>
+                  </circle>
+                  <text x="350" y="320" text-anchor="middle" font-size="10" fill="#9d174d" font-family="var(--font-sans)" font-weight="600">中性粒细胞</text>
+                  <text x="350" y="332" text-anchor="middle" font-size="8" fill="#a3a3a3" font-family="var(--font-sans)">自杀式攻击</text>
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -5,8; 3,5; 8,-3; 0,0" dur="3.5s" repeatCount="indefinite"/>
+                </g>
+
+                <!-- NK 细胞 -->
+                <g class="immune-cell" data-cell="nk" style="cursor:pointer;">
+                  <circle cx="100" cy="310" r="18" fill="#cffafe" stroke="#0891b2" stroke-width="2" opacity="0.9"/>
+                  <ellipse cx="100" cy="308" rx="7" ry="6" fill="#0891b2" opacity="0.3"/>
+                  <!-- 颗粒 -->
+                  <circle cx="92" cy="300" r="1.5" fill="#0891b2" opacity="0.6"/>
+                  <circle cx="108" cy="302" r="1.5" fill="#0891b2" opacity="0.6"/>
+                  <text x="100" y="345" text-anchor="middle" font-size="10" fill="#0e7490" font-family="var(--font-sans)" font-weight="600">NK 细胞</text>
+                  <text x="100" y="357" text-anchor="middle" font-size="8" fill="#a3a3a3" font-family="var(--font-sans)">杀灭感染细胞</text>
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 3,-5; -2,3; 5,2; 0,0" dur="3s" repeatCount="indefinite"/>
+                </g>
+
+                <!-- 树突状细胞 -->
+                <g class="immune-cell" data-cell="dendritic" style="cursor:pointer;">
+                  <circle cx="260" cy="140" r="20" fill="#ede9fe" stroke="#7c3aed" stroke-width="2" opacity="0.9"/>
+                  <!-- 树突状突起 -->
+                  <line x1="245" y1="128" x2="235" y2="118" stroke="#7c3aed" stroke-width="1.5"/>
+                  <line x1="255" y1="122" x2="252" y2="110" stroke="#7c3aed" stroke-width="1.5"/>
+                  <line x1="272" y1="125" x2="280" y2="115" stroke="#7c3aed" stroke-width="1.5"/>
+                  <line x1="278" y1="138" x2="290" y2="135" stroke="#7c3aed" stroke-width="1.5"/>
+                  <line x1="248" y1="155" x2="240" y2="165" stroke="#7c3aed" stroke-width="1.5"/>
+                  <line x1="265" y1="158" x2="268" y2="170" stroke="#7c3aed" stroke-width="1.5"/>
+                  <ellipse cx="260" cy="140" rx="8" ry="6" fill="#7c3aed" opacity="0.25"/>
+                  <!-- 病原体碎片 -->
+                  <circle cx="258" cy="138" r="3" fill="#fca5a5" opacity="0.5"/>
+                  <text x="260" y="185" text-anchor="middle" font-size="10" fill="#5b21b6" font-family="var(--font-sans)" font-weight="600">树突状细胞</text>
+                  <text x="260" y="197" text-anchor="middle" font-size="8" fill="#a3a3a3" font-family="var(--font-sans)">情报收集员</text>
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 4,3; -3,6; 2,-4; 0,0" dur="5s" repeatCount="indefinite"/>
+                </g>
+
+                <!-- 炎症效果（红光） -->
+                <circle cx="250" cy="200" r="100" fill="none" stroke="#dc2626" stroke-width="1" opacity="0.08">
+                  <animate attributeName="r" values="80;120;80" dur="3s" repeatCount="indefinite"/>
+                  <animate attributeName="opacity" values="0.08;0.02;0.08" dur="3s" repeatCount="indefinite"/>
+                </circle>
+
+                <!-- 信号分子 -->
+                <g opacity="0.5">
+                  <circle cx="190" cy="200" r="2" fill="#d97706">
+                    <animate attributeName="cy" values="200;160;200" dur="3s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="3s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="220" cy="220" r="2" fill="#d97706">
+                    <animate attributeName="cy" values="220;180;220" dur="3.5s" repeatCount="indefinite" begin="0.5s"/>
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="3.5s" repeatCount="indefinite" begin="0.5s"/>
+                  </circle>
+                  <circle cx="180" cy="240" r="2" fill="#d97706">
+                    <animate attributeName="cy" values="240;200;240" dur="2.8s" repeatCount="indefinite" begin="1s"/>
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="2.8s" repeatCount="indefinite" begin="1s"/>
+                  </circle>
+                </g>
+
+                <!-- 战场图例 -->
+                <g transform="translate(10, 375)">
+                  <rect width="500" height="55" fill="#fff" opacity="0.8" rx="8"/>
+                  <g transform="translate(15, 15)">
+                    <ellipse cx="8" cy="8" rx="10" ry="4" fill="#fca5a5" stroke="#dc2626" stroke-width="1"/>
+                    <text x="25" y="12" font-size="9" fill="#6b6b6b">细菌（病原体）</text>
+                  </g>
+                  <g transform="translate(130, 12)">
+                    <circle cx="8" cy="8" r="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+                    <text x="22" y="12" font-size="9" fill="#6b6b6b">巨噬细胞</text>
+                  </g>
+                  <g transform="translate(225, 12)">
+                    <circle cx="8" cy="8" r="7" fill="#fce7f3" stroke="#db2777" stroke-width="1.5"/>
+                    <text x="20" y="12" font-size="9" fill="#6b6b6b">中性粒细胞</text>
+                  </g>
+                  <g transform="translate(325, 12)">
+                    <circle cx="8" cy="8" r="7" fill="#cffafe" stroke="#0891b2" stroke-width="1.5"/>
+                    <text x="20" y="12" font-size="9" fill="#6b6b6b">NK 细胞</text>
+                  </g>
+                  <g transform="translate(405, 12)">
+                    <circle cx="8" cy="8" r="7" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+                    <text x="20" y="12" font-size="9" fill="#6b6b6b">树突状细胞</text>
+                  </g>
+                  <text x="15" y="45" font-size="9" fill="#a3a3a3" font-style="italic">↑ 细胞自动运动中，悬停查看详情</text>
+                </g>
+              </svg>
+            </div>
+
+            <!-- ====== 步骤 3：适应性免疫激活 ====== -->
+            <div class="visual-step" data-step="2">
+              <svg viewBox="0 0 520 460" id="svgStep2" style="max-height:480px;">
+                <defs>
+                  <radialGradient id="lymphNodeGrad" cx="50%" cy="50%">
+                    <stop offset="0%" stop-color="#fff"/>
+                    <stop offset="70%" stop-color="#f5f0e8"/>
+                    <stop offset="100%" stop-color="#e5ded4"/>
+                  </radialGradient>
+                  <marker id="arrowFlow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M 0 0 L 8 4 L 0 8 z" fill="#2563eb" opacity="0.6"/>
+                  </marker>
+                </defs>
+
+                <!-- 淋巴结轮廓 -->
+                <ellipse cx="260" cy="200" rx="220" ry="150" fill="url(#lymphNodeGrad)" stroke="#d4ccc0" stroke-width="1.5" opacity="0.6"/>
+                <text x="260" y="60" text-anchor="middle" font-size="11" fill="#6b6b6b" font-family="var(--font-serif)" font-style="italic">淋巴结内部</text>
+
+                <!-- 激活流程 -->
+                <!-- 1. 树突状细胞呈递抗原 -->
+                <g class="adaptive-cell" style="cursor:pointer;">
+                  <circle cx="120" cy="160" r="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2" opacity="0.9"/>
+                  <line x1="105" y1="148" x2="97" y2="140" stroke="#7c3aed" stroke-width="1.5"/>
+                  <line x1="115" y1="143" x2="112" y2="132" stroke="#7c3aed" stroke-width="1.5"/>
+                  <line x1="132" y1="146" x2="140" y2="136" stroke="#7c3aed" stroke-width="1.5"/>
+                  <line x1="138" y1="158" x2="148" y2="155" stroke="#7c3aed" stroke-width="1.5"/>
+                  <ellipse cx="120" cy="160" rx="8" ry="6" fill="#7c3aed" opacity="0.25"/>
+                  <!-- 抗原碎片 -->
+                  <circle cx="125" cy="155" r="3" fill="#fca5a5" opacity="0.7"/>
+                  <text x="120" y="200" text-anchor="middle" font-size="10" fill="#5b21b6" font-family="var(--font-sans)" font-weight="600">树突状细胞</text>
+                  <text x="120" y="212" text-anchor="middle" font-size="8" fill="#a3a3a3" font-family="var(--font-sans)">呈递抗原</text>
+                  <!-- 编号 -->
+                  <circle cx="100" cy="130" r="10" fill="#7c3aed"/>
+                  <text x="100" y="134" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">1</text>
+                </g>
+
+                <!-- 箭头 1→2 -->
+                <line x1="145" y1="160" x2="195" y2="160" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5" marker-end="url(#arrowFlow)">
+                  <animate attributeName="stroke-dashoffset" values="0;-14" dur="1s" repeatCount="indefinite"/>
+                </line>
+
+                <!-- 2. 辅助性 T 细胞 -->
+                <g class="adaptive-cell" style="cursor:pointer;">
+                  <circle cx="225" cy="160" r="18" fill="#cffafe" stroke="#0891b2" stroke-width="2" opacity="0.9"/>
+                  <ellipse cx="225" cy="158" rx="7" ry="5" fill="#0891b2" opacity="0.3"/>
+                  <!-- CD4 标记 -->
+                  <text x="225" y="195" text-anchor="middle" font-size="10" fill="#0e7490" font-family="var(--font-sans)" font-weight="600">辅助性 T 细胞</text>
+                  <text x="225" y="207" text-anchor="middle" font-size="8" fill="#a3a3a3" font-family="var(--font-sans)">指挥调度</text>
+                  <circle cx="207" cy="135" r="10" fill="#0891b2"/>
+                  <text x="207" y="139" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">2</text>
+                  <!-- 激活脉冲 -->
+                  <circle cx="225" cy="160" r="18" fill="none" stroke="#0891b2" stroke-width="1" opacity="0.5">
+                    <animate attributeName="r" values="18;28;18" dur="2s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite"/>
+                  </circle>
+                </g>
+
+                <!-- 箭头 2→3 (分叉) -->
+                <path d="M 245 160 Q 280 160 290 140" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5" marker-end="url(#arrowFlow)">
+                  <animate attributeName="stroke-dashoffset" values="0;-14" dur="1s" repeatCount="indefinite"/>
+                </path>
+                <path d="M 245 160 Q 280 160 290 200" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5" marker-end="url(#arrowFlow)">
+                  <animate attributeName="stroke-dashoffset" values="0;-14" dur="1s" repeatCount="indefinite"/>
+                </path>
+
+                <!-- 3a. B 细胞 → 浆细胞 → 抗体 -->
+                <g class="adaptive-cell" style="cursor:pointer;">
+                  <circle cx="335" cy="120" r="16" fill="#dbeafe" stroke="#2563eb" stroke-width="2" opacity="0.9"/>
+                  <ellipse cx="335" cy="118" rx="6" ry="5" fill="#2563eb" opacity="0.3"/>
+                  <text x="335" y="100" text-anchor="middle" font-size="10" fill="#1e40af" font-family="var(--font-sans)" font-weight="600">B 细胞</text>
+                  <circle cx="320" cy="98" r="10" fill="#2563eb"/>
+                  <text x="320" y="102" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">3</text>
+                </g>
+
+                <!-- 箭头 3a→4a -->
+                <line x1="355" y1="120" x2="395" y2="120" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5" marker-end="url(#arrowFlow)">
+                  <animate attributeName="stroke-dashoffset" values="0;-14" dur="1s" repeatCount="indefinite"/>
+                </line>
+
+                <!-- 4a. 浆细胞 + 抗体 -->
+                <g class="adaptive-cell" style="cursor:pointer;">
+                  <circle cx="430" cy="120" r="20" fill="#bfdbfe" stroke="#2563eb" stroke-width="2" opacity="0.9"/>
+                  <ellipse cx="430" cy="118" rx="8" ry="6" fill="#2563eb" opacity="0.3"/>
+                  <!-- 浆细胞特征：丰富内质网 -->
+                  <path d="M 420 112 Q 425 115 420 118" fill="none" stroke="#2563eb" stroke-width="0.8" opacity="0.4"/>
+                  <path d="M 435 112 Q 440 115 435 118" fill="none" stroke="#2563eb" stroke-width="0.8" opacity="0.4"/>
+                  <text x="430" y="155" text-anchor="middle" font-size="10" fill="#1e40af" font-family="var(--font-sans)" font-weight="600">浆细胞</text>
+                  <text x="430" y="167" text-anchor="middle" font-size="8" fill="#a3a3a3" font-family="var(--font-sans)">产生抗体</text>
+                  <circle cx="412" cy="92" r="10" fill="#2563eb"/>
+                  <text x="412" y="96" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">4</text>
+                </g>
+
+                <!-- Y 形抗体 -->
+                <g opacity="0.8">
+                  <g transform="translate(395, 75)">
+                    <path d="M 0 8 L 0 0 M -5 -5 L 0 0 L 5 -5" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round"/>
+                    <text x="0" y="-10" text-anchor="middle" font-size="8" fill="#854d0e">抗体</text>
+                    <animateTransform attributeName="transform" type="translate" values="395,75; 395,65; 395,75" dur="2s" repeatCount="indefinite"/>
+                  </g>
+                  <g transform="translate(440, 70)">
+                    <path d="M 0 8 L 0 0 M -5 -5 L 0 0 L 5 -5" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round"/>
+                    <animateTransform attributeName="transform" type="translate" values="440,70; 440,60; 440,70" dur="2.2s" repeatCount="indefinite" begin="0.3s"/>
+                  </g>
+                  <g transform="translate(370, 90)">
+                    <path d="M 0 8 L 0 0 M -5 -5 L 0 0 L 5 -5" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round"/>
+                    <animateTransform attributeName="transform" type="translate" values="370,90; 370,80; 370,90" dur="2.5s" repeatCount="indefinite" begin="0.6s"/>
+                  </g>
+                </g>
+
+                <!-- 3b. 细胞毒性 T 细胞 -->
+                <g class="adaptive-cell" style="cursor:pointer;">
+                  <circle cx="335" cy="240" r="16" fill="#cffafe" stroke="#0891b2" stroke-width="2" opacity="0.9"/>
+                  <ellipse cx="335" cy="238" rx="6" ry="5" fill="#0891b2" opacity="0.3"/>
+                  <text x="335" y="270" text-anchor="middle" font-size="10" fill="#0e7490" font-family="var(--font-sans)" font-weight="600">细胞毒性 T 细胞</text>
+                  <text x="335" y="282" text-anchor="middle" font-size="8" fill="#a3a3a3" font-family="var(--font-sans)">直接杀伤</text>
+                  <!-- 颗粒释放 -->
+                  <circle cx="320" cy="230" r="1.5" fill="#0891b2" opacity="0.6">
+                    <animate attributeName="opacity" values="0.6;0.1;0.6" dur="1.5s" repeatCount="indefinite"/>
+                  </circle>
+                </g>
+
+                <!-- 被感染细胞 -->
+                <g opacity="0.7">
+                  <rect x="390" y="225" width="36" height="30" rx="4" fill="#fef3c7" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3,2"/>
+                  <circle cx="400" cy="238" r="2" fill="#dc2626" opacity="0.5"/>
+                  <circle cx="412" cy="242" r="2" fill="#dc2626" opacity="0.5"/>
+                  <text x="408" y="270" text-anchor="middle" font-size="8" fill="#a3a3a3">被感染细胞</text>
+                </g>
+
+                <!-- 杀伤箭头 -->
+                <line x1="352" y1="240" x2="388" y2="240" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.6">
+                  <animate attributeName="opacity" values="0.6;0.2;0.6" dur="1.5s" repeatCount="indefinite"/>
+                </line>
+
+                <!-- 5. 记忆细胞 -->
+                <g transform="translate(260, 310)">
+                  <rect x="-80" y="0" width="160" height="50" rx="8" fill="rgba(251, 191, 36, 0.1)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4,3"/>
+                  <text x="0" y="18" text-anchor="middle" font-size="11" fill="#92400e" font-family="var(--font-serif)" font-weight="700">★ 记忆细胞形成</text>
+                  <text x="0" y="34" text-anchor="middle" font-size="9" fill="#a3a3a3">记忆 B 细胞 + 记忆 T 细胞 → 长期保护</text>
+                  <!-- 星标动画 -->
+                  <text x="-90" y="20" font-size="14" fill="#fbbf24">★
+                    <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+                  </text>
+                  <text x="90" y="20" font-size="14" fill="#fbbf24">★
+                    <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+                  </text>
+                  <circle cx="-60" cy="10" r="8" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" opacity="0.6"/>
+                  <text x="-60" y="13" text-anchor="middle" font-size="8" fill="#2563eb">B★</text>
+                  <circle cx="60" cy="10" r="8" fill="#cffafe" stroke="#0891b2" stroke-width="1.5" opacity="0.6"/>
+                  <text x="60" y="13" text-anchor="middle" font-size="8" fill="#0891b2">T★</text>
+                </g>
+
+                <!-- 体液免疫/细胞免疫标注 -->
+                <text x="430" y="75" text-anchor="middle" font-size="9" fill="#2563eb" font-family="var(--font-sans)" font-weight="500" opacity="0.6">体液免疫</text>
+                <text x="335" y="300" text-anchor="middle" font-size="9" fill="#0891b2" font-family="var(--font-sans)" font-weight="500" opacity="0.6">细胞免疫</text>
+              </svg>
+            </div>
+
+            <!-- ====== 步骤 4：疫苗原理 ====== -->
+            <div class="visual-step" data-step="3">
+              <svg viewBox="0 0 520 360" id="svgStep3" style="max-height:400px;">
+                <defs>
+                  <linearGradient id="vaxBg1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#dbeafe" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+                  </linearGradient>
+                  <linearGradient id="vaxBg2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#fef3c7" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+
+                <!-- 第一阶段：接种疫苗 -->
+                <g id="vaxPhase1">
+                  <rect x="10" y="10" width="240" height="340" rx="12" fill="url(#vaxBg1)" stroke="#2563eb" stroke-width="1" opacity="0.5"/>
+                  <text x="130" y="35" text-anchor="middle" font-size="13" fill="#1e40af" font-family="var(--font-serif)" font-weight="700">第一阶段：接种疫苗</text>
+
+                  <!-- 注射器 -->
+                  <g transform="translate(60, 60)">
+                    <rect x="0" y="8" width="50" height="10" rx="2" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+                    <rect x="48" y="6" width="6" height="14" fill="#9ca3af"/>
+                    <line x1="54" y1="13" x2="68" y2="13" stroke="#9ca3af" stroke-width="2"/>
+                    <rect x="-15" y="6" width="15" height="14" rx="2" fill="#2563eb" opacity="0.3"/>
+                    <!-- 疫苗液滴 -->
+                    <circle cx="70" cy="13" r="3" fill="#2563eb" opacity="0.5">
+                      <animate attributeName="cy" values="13;60;13" dur="3s" repeatCount="indefinite"/>
+                      <animate attributeName="opacity" values="0.5;0;0.5" dur="3s" repeatCount="indefinite"/>
+                    </circle>
+                  </g>
+                  <text x="130" y="85" text-anchor="middle" font-size="9" fill="#6b6b6b">灭活病毒进入体内</text>
+
+                  <!-- 免疫激活 -->
+                  <g transform="translate(130, 140)">
+                    <!-- 树突状细胞 -->
+                    <circle cx="0" cy="0" r="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" opacity="0.8"/>
+                    <line x1="-12" y1="-8" x2="-18" y2="-14" stroke="#7c3aed" stroke-width="1"/>
+                    <line x1="12" y1="-8" x2="18" y2="-14" stroke="#7c3aed" stroke-width="1"/>
+                    <circle cx="3" cy="-2" r="3" fill="#fca5a5" opacity="0.5"/>
+                  </g>
+
+                  <!-- T 细胞激活 -->
+                  <g transform="translate(80, 200)">
+                    <circle cx="0" cy="0" r="12" fill="#cffafe" stroke="#0891b2" stroke-width="1.5" opacity="0.8"/>
+                    <ellipse cx="0" cy="-2" rx="5" ry="4" fill="#0891b2" opacity="0.25"/>
+                    <circle cx="0" cy="0" r="12" fill="none" stroke="#0891b2" stroke-width="1" opacity="0.4">
+                      <animate attributeName="r" values="12;20;12" dur="2s" repeatCount="indefinite"/>
+                      <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite"/>
+                    </circle>
+                  </g>
+
+                  <!-- B 细胞 → 浆细胞 -->
+                  <g transform="translate(180, 200)">
+                    <circle cx="0" cy="0" r="12" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" opacity="0.8"/>
+                    <ellipse cx="0" cy="-2" rx="5" ry="4" fill="#2563eb" opacity="0.25"/>
+                  </g>
+
+                  <!-- 连接线 -->
+                  <line x1="130" y1="156" x2="92" y2="192" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>
+                  <line x1="130" y1="156" x2="168" y2="192" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>
+
+                  <!-- 抗体产生 -->
+                  <g transform="translate(130, 260)">
+                    <path d="M -15 8 L -15 0 M -20 -5 L -15 0 L -10 -5" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+                    <path d="M 0 8 L 0 0 M -5 -5 L 0 0 L 5 -5" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+                    <path d="M 15 8 L 15 0 M 10 -5 L 15 0 L 20 -5" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+                  </g>
+                  <text x="130" y="290" text-anchor="middle" font-size="9" fill="#6b6b6b">抗体 + 记忆细胞形成</text>
+
+                  <!-- 记忆细胞标记 -->
+                  <g transform="translate(130, 315)">
+                    <rect x="-55" y="0" width="110" height="22" rx="4" fill="rgba(251, 191, 36, 0.15)" stroke="#fbbf24" stroke-width="1"/>
+                    <text x="0" y="14" text-anchor="middle" font-size="9" fill="#92400e" font-weight="600">★ 记忆细胞已形成</text>
+                  </g>
+                </g>
+
+                <!-- 第二阶段：真病毒入侵 -->
+                <g id="vaxPhase2">
+                  <rect x="270" y="10" width="240" height="340" rx="12" fill="url(#vaxBg2)" stroke="#dc2626" stroke-width="1" opacity="0.5"/>
+                  <text x="390" y="35" text-anchor="middle" font-size="13" fill="#dc2626" font-family="var(--font-serif)" font-weight="700">第二阶段：真病毒入侵</text>
+
+                  <!-- 病毒入侵 -->
+                  <g transform="translate(330, 65)">
+                    <circle cx="0" cy="0" r="14" fill="#fca5a5" stroke="#dc2626" stroke-width="1.5" opacity="0.7"/>
+                    <!-- 刺突 -->
+                    <line x1="0" y1="-14" x2="0" y2="-20" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="10" y1="-10" x2="14" y2="-16" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="-10" y1="-10" x2="-14" y2="-16" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="12" y1="5" x2="18" y2="6" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="-12" y1="5" x2="-18" y2="6" stroke="#dc2626" stroke-width="1.5"/>
+                    <circle cx="-3" cy="-2" r="2" fill="#dc2626" opacity="0.4"/>
+                    <circle cx="4" cy="2" r="2" fill="#dc2626" opacity="0.4"/>
+                  </g>
+                  <text x="390" y="75" text-anchor="middle" font-size="9" fill="#6b6b6b">病毒再次入侵</text>
+
+                  <!-- 记忆细胞快速识别 -->
+                  <g transform="translate(390, 130)">
+                    <circle cx="0" cy="0" r="16" fill="rgba(251, 191, 36, 0.2)" stroke="#fbbf24" stroke-width="2" stroke-dasharray="3,2"/>
+                    <text x="0" y="4" text-anchor="middle" font-size="10" fill="#92400e" font-weight="700">★</text>
+                    <circle cx="0" cy="0" r="16" fill="none" stroke="#fbbf24" stroke-width="1" opacity="0.5">
+                      <animate attributeName="r" values="16;28;16" dur="1s" repeatCount="indefinite"/>
+                      <animate attributeName="opacity" values="0.5;0;0.5" dur="1s" repeatCount="indefinite"/>
+                    </circle>
+                  </g>
+                  <text x="390" y="160" text-anchor="middle" font-size="9" fill="#92400e" font-weight="600">记忆细胞快速识别</text>
+
+                  <!-- 大量抗体 -->
+                  <g transform="translate(390, 210)">
+                    <path d="M -30 5 L -30 -3 M -35 -8 L -30 -3 L -25 -8" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+                    <path d="M -10 5 L -10 -3 M -15 -8 L -10 -3 L -5 -8" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+                    <path d="M 10 5 L 10 -3 M 5 -8 L 10 -3 L 15 -8" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+                    <path d="M 30 5 L 30 -3 M 25 -8 L 30 -3 L 35 -8" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+                  </g>
+                  <text x="390" y="235" text-anchor="middle" font-size="9" fill="#6b6b6b">快速产生大量抗体</text>
+
+                  <!-- 速度对比 -->
+                  <g transform="translate(390, 270)">
+                    <rect x="-60" y="0" width="120" height="30" rx="6" fill="rgba(37, 99, 235, 0.1)" stroke="#2563eb" stroke-width="1"/>
+                    <text x="0" y="20" text-anchor="middle" font-size="14" fill="#2563eb" font-family="var(--font-serif)" font-weight="700">速度 × 100</text>
+                  </g>
+
+                  <!-- 病毒被消灭 -->
+                  <g transform="translate(390, 320)" opacity="0.5">
+                    <circle cx="0" cy="0" r="10" fill="#fca5a5" stroke="#dc2626" stroke-width="1" stroke-dasharray="2,2"/>
+                    <line x1="-8" y1="-8" x2="8" y2="8" stroke="#dc2626" stroke-width="1.5"/>
+                    <line x1="8" y1="-8" x2="-8" y2="8" stroke="#dc2626" stroke-width="1.5"/>
+                  </g>
+                  <text x="390" y="345" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="600">病毒被迅速消灭</text>
+                </g>
+
+                <!-- 中间箭头 -->
+                <g transform="translate(260, 180)">
+                  <path d="M -10 0 L 10 0" stroke="#6b6b6b" stroke-width="2" marker-end="url(#arrowVax)"/>
+                  <defs>
+                    <marker id="arrowVax" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                      <path d="M 0 0 L 8 4 L 0 8 z" fill="#6b6b6b"/>
+                    </marker>
+                  </defs>
+                </g>
+              </svg>
+
+              <!-- 互动按钮 -->
+              <div class="vax-btn-group">
+                <button class="vax-btn" id="vaxPhase1Btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
+                  接种疫苗
+                </button>
+                <button class="vax-btn" id="vaxPhase2Btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 22h20L12 2z"/></svg>
+                  病毒入侵
+                </button>
+              </div>
+
+              <!-- 疫苗类型卡片 -->
+              <div class="vax-type-cards">
+                <div class="vax-type-card">
+                  <div class="vax-type-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="8"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
+                  </div>
+                  <div class="vax-type-name">灭活疫苗</div>
+                  <div class="vax-type-desc">已杀死的病毒，安全</div>
+                </div>
+                <div class="vax-type-card">
+                  <div class="vax-type-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>
+                  </div>
+                  <div class="vax-type-name">减毒活疫苗</div>
+                  <div class="vax-type-desc">弱化病毒，免疫强</div>
+                </div>
+                <div class="vax-type-card">
+                  <div class="vax-type-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M4 8h16M4 16h16M8 4v16M16 4v16"/></svg>
+                  </div>
+                  <div class="vax-type-name">mRNA 疫苗</div>
+                  <div class="vax-type-desc">基因指令，快速开发</div>
+                </div>
+                <div class="vax-type-card">
+                  <div class="vax-type-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><polygon points="12 2 22 12 12 22 2 12"/></svg>
+                  </div>
+                  <div class="vax-type-name">载体疫苗</div>
+                  <div class="vax-type-desc">病毒载体递送</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ====== 步骤 5：免疫异常 ====== -->
+            <div class="visual-step" data-step="4">
+              <svg viewBox="0 0 520 300" id="svgStep4" style="max-height:320px;">
+                <!-- 过敏机制 -->
+                <g transform="translate(10, 10)" class="disorder-svg-group" data-disorder="allergy" style="cursor:pointer;">
+                  <rect width="160" height="130" rx="10" fill="rgba(254, 243, 199, 0.3)" stroke="#d97706" stroke-width="1" opacity="0.6"/>
+                  <text x="80" y="22" text-anchor="middle" font-size="11" fill="#b45309" font-family="var(--font-serif)" font-weight="700">过敏</text>
+                  <!-- 过敏原 -->
+                  <g transform="translate(25, 50)">
+                    <circle cx="0" cy="0" r="6" fill="#fbbf24" opacity="0.6"/>
+                    <circle cx="-3" cy="-2" r="1" fill="#fff"/>
+                    <circle cx="2" cy="1" r="1" fill="#fff"/>
+                  </g>
+                  <text x="25" y="68" text-anchor="middle" font-size="8" fill="#a3a3a3">过敏原</text>
+                  <!-- 箭头 -->
+                  <path d="M 35 50 L 55 50" stroke="#d97706" stroke-width="1" stroke-dasharray="2,2" opacity="0.5" marker-end="url(#arrowDisorder1)"/>
+                  <!-- 肥大细胞释放组胺 -->
+                  <g transform="translate(70, 50)">
+                    <circle cx="0" cy="0" r="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" opacity="0.7"/>
+                    <circle cx="-3" cy="-2" r="1.5" fill="#d97706" opacity="0.5">
+                      <animate attributeName="cy" values="-2;-8;-2" dur="2s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="3" cy="2" r="1.5" fill="#d97706" opacity="0.5">
+                      <animate attributeName="cx" values="3;8;3" dur="2s" repeatCount="indefinite"/>
+                    </circle>
+                  </g>
+                  <text x="70" y="68" text-anchor="middle" font-size="8" fill="#a3a3a3">组胺释放</text>
+                  <!-- 箭头 -->
+                  <path d="M 85 50 L 105 50" stroke="#d97706" stroke-width="1" stroke-dasharray="2,2" opacity="0.5" marker-end="url(#arrowDisorder1)"/>
+                  <!-- 症状 -->
+                  <g transform="translate(125, 50)">
+                    <text x="0" y="-2" text-anchor="middle" font-size="14">🤧</text>
+                  </g>
+                  <text x="125" y="68" text-anchor="middle" font-size="8" fill="#a3a3a3">症状</text>
+                  <text x="80" y="95" text-anchor="middle" font-size="8" fill="#6b6b6b">花粉/食物 → 过度反应</text>
+                  <text x="80" y="108" text-anchor="middle" font-size="8" fill="#6b6b6b">→ 打喷嚏/皮疹/肿胀</text>
+                  <defs><marker id="arrowDisorder1" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M 0 0 L 6 3 L 0 6 z" fill="#d97706" opacity="0.5"/></marker></defs>
+                </g>
+
+                <!-- 自身免疫病机制 -->
+                <g transform="translate(180, 10)" class="disorder-svg-group" data-disorder="autoimmune" style="cursor:pointer;">
+                  <rect width="160" height="130" rx="10" fill="rgba(254, 226, 226, 0.3)" stroke="#dc2626" stroke-width="1" opacity="0.6"/>
+                  <text x="80" y="22" text-anchor="middle" font-size="11" fill="#dc2626" font-family="var(--font-serif)" font-weight="700">自身免疫病</text>
+                  <!-- 免疫细胞 -->
+                  <g transform="translate(30, 50)">
+                    <circle cx="0" cy="0" r="8" fill="#cffafe" stroke="#0891b2" stroke-width="1.5" opacity="0.7"/>
+                    <ellipse cx="0" cy="-1" rx="3" ry="2.5" fill="#0891b2" opacity="0.3"/>
+                  </g>
+                  <text x="30" y="68" text-anchor="middle" font-size="8" fill="#a3a3a3">免疫细胞</text>
+                  <!-- 错误攻击箭头 -->
+                  <path d="M 40 50 L 60 50" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="2,2" opacity="0.6" marker-end="url(#arrowDisorder2)"/>
+                  <text x="50" y="42" text-anchor="middle" font-size="8" fill="#dc2626" font-weight="600">误攻!</text>
+                  <!-- 自身细胞 -->
+                  <g transform="translate(75, 50)">
+                    <rect x="-8" y="-6" width="16" height="12" rx="3" fill="#fef3c7" stroke="#d97706" stroke-width="1" opacity="0.6"/>
+                    <circle cx="-2" cy="-1" r="1.5" fill="#d97706" opacity="0.4"/>
+                  </g>
+                  <text x="75" y="68" text-anchor="middle" font-size="8" fill="#a3a3a3">自身细胞</text>
+                  <!-- 损伤箭头 -->
+                  <path d="M 88 50 L 108 50" stroke="#dc2626" stroke-width="1" stroke-dasharray="2,2" opacity="0.5" marker-end="url(#arrowDisorder2)"/>
+                  <!-- 结果 -->
+                  <g transform="translate(125, 50)">
+                    <text x="0" y="2" text-anchor="middle" font-size="14">⚕</text>
+                  </g>
+                  <text x="125" y="68" text-anchor="middle" font-size="8" fill="#a3a3a3">组织损伤</text>
+                  <text x="80" y="95" text-anchor="middle" font-size="8" fill="#6b6b6b">类风湿性关节炎</text>
+                  <text x="80" y="108" text-anchor="middle" font-size="8" fill="#6b6b6b">红斑狼疮 / 1型糖尿病</text>
+                  <defs><marker id="arrowDisorder2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M 0 0 L 6 3 L 0 6 z" fill="#dc2626" opacity="0.6"/></marker></defs>
+                </g>
+
+                <!-- 免疫缺陷机制 -->
+                <g transform="translate(350, 10)" class="disorder-svg-group" data-disorder="deficiency" style="cursor:pointer;">
+                  <rect width="160" height="130" rx="10" fill="rgba(219, 234, 254, 0.3)" stroke="#2563eb" stroke-width="1" opacity="0.6"/>
+                  <text x="80" y="22" text-anchor="middle" font-size="11" fill="#2563eb" font-family="var(--font-serif)" font-weight="700">免疫缺陷 (HIV)</text>
+                  <!-- HIV 病毒 -->
+                  <g transform="translate(30, 50)">
+                    <circle cx="0" cy="0" r="8" fill="#fca5a5" stroke="#dc2626" stroke-width="1.5" opacity="0.7"/>
+                    <line x1="0" y1="-8" x2="0" y2="-13" stroke="#dc2626" stroke-width="1"/>
+                    <line x1="6" y1="-5" x2="10" y2="-9" stroke="#dc2626" stroke-width="1"/>
+                    <line x1="-6" y1="-5" x2="-10" y2="-9" stroke="#dc2626" stroke-width="1"/>
+                  </g>
+                  <text x="30" y="68" text-anchor="middle" font-size="8" fill="#a3a3a3">HIV 病毒</text>
+                  <!-- 攻击箭头 -->
+                  <path d="M 40 50 L 60 50" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="2,2" opacity="0.6" marker-end="url(#arrowDisorder3)"/>
+                  <!-- T 细胞被攻击 -->
+                  <g transform="translate(75, 50)">
+                    <circle cx="0" cy="0" r="8" fill="#cffafe" stroke="#0891b2" stroke-width="1.5" opacity="0.5" stroke-dasharray="2,2"/>
+                    <ellipse cx="0" cy="-1" rx="3" ry="2.5" fill="#0891b2" opacity="0.2"/>
+                    <line x1="-6" y1="-6" x2="6" y2="6" stroke="#dc2626" stroke-width="1" opacity="0.4"/>
+                    <line x1="6" y1="-6" x2="-6" y2="6" stroke="#dc2626" stroke-width="1" opacity="0.4"/>
+                  </g>
+                  <text x="75" y="68" text-anchor="middle" font-size="8" fill="#a3a3a3">T 细胞被攻破</text>
+                  <!-- 瘫痪箭头 -->
+                  <path d="M 88 50 L 108 50" stroke="#2563eb" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" marker-end="url(#arrowDisorder3)"/>
+                  <!-- 免疫瘫痪 -->
+                  <g transform="translate(125, 50)">
+                    <circle cx="0" cy="0" r="10" fill="none" stroke="#6b6b6b" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.4"/>
+                    <text x="0" y="3" text-anchor="middle" font-size="10" fill="#6b6b6b" opacity="0.4">∅</text>
+                  </g>
+                  <text x="125" y="68" text-anchor="middle" font-size="8" fill="#a3a3a3">免疫瘫痪</text>
+                  <text x="80" y="95" text-anchor="middle" font-size="8" fill="#6b6b6b">辅助性 T 细胞被消灭</text>
+                  <text x="80" y="108" text-anchor="middle" font-size="8" fill="#6b6b6b">→ 机会性感染 (AIDS)</text>
+                  <defs><marker id="arrowDisorder3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M 0 0 L 6 3 L 0 6 z" fill="#2563eb" opacity="0.5"/></marker></defs>
+                </g>
+
+                <!-- 健康贴士 -->
+                <g transform="translate(10, 155)">
+                  <rect width="500" height="130" rx="10" fill="rgba(37, 99, 235, 0.04)" stroke="rgba(37, 99, 235, 0.12)" stroke-width="1"/>
+                  <text x="250" y="22" text-anchor="middle" font-size="12" fill="#2563eb" font-family="var(--font-serif)" font-weight="700">保持免疫力</text>
+
+                  <!-- 睡眠 -->
+                  <g transform="translate(75, 60)">
+                    <circle cx="0" cy="0" r="22" fill="rgba(37, 99, 235, 0.1)"/>
+                    <text x="0" y="6" text-anchor="middle" font-size="20">😴</text>
+                    <text x="0" y="38" text-anchor="middle" font-size="10" fill="#6b6b6b" font-weight="600">充足睡眠</text>
+                    <text x="0" y="52" text-anchor="middle" font-size="8" fill="#a3a3a3">7-8 小时/天</text>
+                  </g>
+
+                  <!-- 运动 -->
+                  <g transform="translate(190, 60)">
+                    <circle cx="0" cy="0" r="22" fill="rgba(37, 99, 235, 0.1)"/>
+                    <text x="0" y="6" text-anchor="middle" font-size="20">🏃</text>
+                    <text x="0" y="38" text-anchor="middle" font-size="10" fill="#6b6b6b" font-weight="600">规律运动</text>
+                    <text x="0" y="52" text-anchor="middle" font-size="8" fill="#a3a3a3">每周 150 分钟</text>
+                  </g>
+
+                  <!-- 营养 -->
+                  <g transform="translate(310, 60)">
+                    <circle cx="0" cy="0" r="22" fill="rgba(37, 99, 235, 0.1)"/>
+                    <text x="0" y="6" text-anchor="middle" font-size="20">🥗</text>
+                    <text x="0" y="38" text-anchor="middle" font-size="10" fill="#6b6b6b" font-weight="600">均衡营养</text>
+                    <text x="0" y="52" text-anchor="middle" font-size="8" fill="#a3a3a3">蛋白质+维生素</text>
+                  </g>
+
+                  <!-- 压力管理 -->
+                  <g transform="translate(425, 60)">
+                    <circle cx="0" cy="0" r="22" fill="rgba(37, 99, 235, 0.1)"/>
+                    <text x="0" y="6" text-anchor="middle" font-size="20">🧘</text>
+                    <text x="0" y="38" text-anchor="middle" font-size="10" fill="#6b6b6b" font-weight="600">压力管理</text>
+                    <text x="0" y="52" text-anchor="middle" font-size="8" fill="#a3a3a3">冥想/深呼吸</text>
+                  </g>
+                </g>
+              </svg>
+            </div>
+
+          </div>
+        </div>
+        <p class="magazine-visual-caption" id="visualCaption">图 1：人体免疫系统器官分布与三道防线示意图</p>
+
+        <!-- 图例（步骤2显示） -->
+        <div class="visual-legend" id="visualLegend" style="display:none;">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cell-macro);border-color:var(--cell-macro-stroke);"></div>巨噬细胞</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cell-neutro);border-color:var(--cell-neutro-stroke);"></div>中性粒细胞</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cell-dend);border-color:var(--cell-dend-stroke);"></div>树突状细胞</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cell-b);border-color:var(--cell-b-stroke);"></div>B 细胞</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cell-t);border-color:var(--cell-t-stroke);"></div>T 细胞</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cell-antibody);border-color:var(--cell-antibody-stroke);"></div>抗体</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cell-bacteria);border-color:var(--cell-bacteria-stroke);"></div>细菌/病毒</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">S112 · 人体免疫系统可视化</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">CSS Animation</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-life-science-lecture-v0.1.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<!-- ====== Tooltip ====== -->
+<div class="cell-tooltip" id="cellTooltip"></div>
+
+<script>
+/* ============================================================
+   人体免疫系统 Demo — 交互逻辑
+   ============================================================ */
+
+// ====== 步骤数据 ======
+const stepCaptions = [
+  '图 1：人体免疫系统器官分布与三道防线示意图',
+  '图 2：先天免疫的微观战场——巨噬细胞、中性粒细胞、NK 细胞与树突状细胞协同作战',
+  '图 3：淋巴结内适应性免疫的激活过程——从抗原呈递到抗体产生与记忆细胞形成',
+  '图 4：疫苗免疫的两阶段对比——接种疫苗与真病毒入侵的免疫应答差异',
+  '图 5：三种免疫异常机制对比与保持免疫力的健康建议'
+];
+
+// ====== 元素引用 ======
+let currentStep = 0;
+const totalSteps = 5;
+const stepContentBoxes = document.querySelectorAll('.step-content-box');
+const visualSteps = document.querySelectorAll('.visual-step');
+const stepDots = document.querySelectorAll('.magazine-step-dot');
+const stepLabel = document.getElementById('stepLabel');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const visualCaption = document.getElementById('visualCaption');
+const visualLegend = document.getElementById('visualLegend');
+const playBtn = document.getElementById('playBtn');
+const playBtnText = document.getElementById('playBtnText');
+const playProgressBar = document.getElementById('playProgressBar');
+
+// ====== 步骤切换 ======
+function goToStep(step) {
+  if (step < 0 || step >= totalSteps) return;
+  currentStep = step;
+
+  // 更新文章内容
+  stepContentBoxes.forEach((box, i) => {
+    box.classList.toggle('active', i === currentStep);
+  });
+
+  // 更新可视化
+  visualSteps.forEach((vs, i) => {
+    vs.classList.toggle('active', i === currentStep);
+  });
+
+  // 更新步骤圆点
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === currentStep) dot.classList.add('active');
+    else if (i < currentStep) dot.classList.add('completed');
+  });
+
+  // 更新标签
+  stepLabel.textContent = `第 ${currentStep + 1} / ${totalSteps} 步`;
+
+  // 更新按钮状态
+  prevBtn.disabled = currentStep === 0;
+  prevBtn.style.opacity = currentStep === 0 ? '0.5' : '1';
+  prevBtn.style.cursor = currentStep === 0 ? 'not-allowed' : 'pointer';
+
+  nextBtn.innerHTML = currentStep === totalSteps - 1
+    ? '完成 ✓'
+    : '下一步 <span>→</span>';
+
+  // 更新图注
+  visualCaption.textContent = stepCaptions[currentStep];
+
+  // 步骤2显示图例
+  visualLegend.style.display = currentStep === 1 ? 'flex' : 'none';
+
+  // 重置自动播放进度
+  if (isPlaying) {
+    resetPlayProgress();
+  }
+}
+
+// ====== 按钮事件 ======
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) goToStep(currentStep - 1);
+});
+
+nextBtn.addEventListener('click', () => {
+  if (currentStep < totalSteps - 1) goToStep(currentStep + 1);
+});
+
+stepDots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const step = parseInt(dot.dataset.step);
+    if (step !== currentStep) goToStep(step);
+  });
+});
+
+// ====== 导航栏滚动 ======
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 自动播放 ======
+let isPlaying = false;
+let playTimer = null;
+let progressTimer = null;
+const PLAY_DURATION = 9000; // 9 秒/步
+const PROGRESS_INTERVAL = 50;
+let progressElapsed = 0;
+
+function startAutoPlay() {
+  isPlaying = true;
+  playBtnText.textContent = '暂停';
+  playBtn.querySelector('svg').innerHTML = '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
+  progressElapsed = 0;
+  startPlayProgress();
+}
+
+function stopAutoPlay() {
+  isPlaying = false;
+  playBtnText.textContent = '自动播放';
+  playBtn.querySelector('svg').innerHTML = '<path d="M8 5v14l11-7z"/>';
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+  playProgressBar.style.width = '0%';
+}
+
+function startPlayProgress() {
+  if (progressTimer) clearInterval(progressTimer);
+  progressTimer = setInterval(() => {
+    progressElapsed += PROGRESS_INTERVAL;
+    const pct = Math.min((progressElapsed / PLAY_DURATION) * 100, 100);
+    playProgressBar.style.width = pct + '%';
+    if (progressElapsed >= PLAY_DURATION) {
+      clearInterval(progressTimer);
+      if (currentStep < totalSteps - 1) {
+        goToStep(currentStep + 1);
+      } else {
+        stopAutoPlay();
+      }
+    }
+  }, PROGRESS_INTERVAL);
+}
+
+function resetPlayProgress() {
+  progressElapsed = 0;
+  playProgressBar.style.width = '0%';
+  if (isPlaying) {
+    startPlayProgress();
+  }
+}
+
+playBtn.addEventListener('click', () => {
+  if (isPlaying) {
+    stopAutoPlay();
+  } else {
+    startAutoPlay();
+  }
+});
+
+// ====== Tooltip 交互 ======
+const tooltip = document.getElementById('cellTooltip');
+
+// 器官信息
+const organInfo = {
+  tonsil: { name: '扁桃体', desc: '位于咽部，是免疫系统的第一道哨岗，拦截通过呼吸道和消化道进入的病原体。' },
+  thymus: { name: '胸腺', desc: '位于胸骨后方，是 T 细胞的"训练营"。未成熟的 T 细胞在此分化、成熟，学会识别自身和非自身。' },
+  marrow: { name: '骨髓', desc: '免疫细胞的"兵工厂"。所有免疫细胞——B 细胞、T 细胞、巨噬细胞等——都起源于骨髓中的造血干细胞。' },
+  spleen: { name: '脾脏', desc: '位于左上腹，是血液的过滤器。清除血液中的病原体和衰老红细胞，也是 B 细胞和 T 细胞的重要驻地。' },
+  lymph: { name: '淋巴结', desc: '遍布全身的"检查站"。组织液流经淋巴结时，其中的树突状细胞和淋巴细胞会检查是否有病原体，激活免疫应答。' }
+};
+
+// 防线信息
+const defenseInfo = {
+  '1': { name: '第一道防线：皮肤黏膜', desc: '物理屏障，像城墙一样阻挡病原体入侵。皮肤、呼吸道黏膜、胃酸等都属于这一道防线。' },
+  '2': { name: '第二道防线：先天免疫', desc: '快速反应部队，非特异性攻击。巨噬细胞、中性粒细胞等在感染后数分钟内应战。' },
+  '3': { name: '第三道防线：适应性免疫', desc: '特种部队，精准打击特定敌人。B 细胞产生抗体，T 细胞直接杀伤，并形成免疫记忆。' }
+};
+
+// 细胞信息（步骤2）
+const cellInfo = {
+  macrophage: { name: '巨噬细胞', desc: '大吞噬细胞，游走巡逻，吞噬病原体并释放信号分子（细胞因子）招募更多免疫细胞。' },
+  neutrophil: { name: '中性粒细胞', desc: '数量最多的免疫细胞，释放颗粒毒素进行自杀式攻击，与细菌同归于尽。寿命仅几天。' },
+  nk: { name: 'NK 细胞', desc: '自然杀伤细胞，识别并消灭被病毒感染的细胞和癌变细胞，不需要预先致敏。' },
+  dendritic: { name: '树突状细胞', desc: '情报收集员，吞噬病原体碎片后前往淋巴结，将抗原呈递给 T 细胞，激活适应性免疫。' }
+};
+
+// 绑定器官 hover
+document.querySelectorAll('.organ-marker').forEach(el => {
+  el.addEventListener('mouseenter', (e) => {
+    const organ = el.dataset.organ;
+    const info = organInfo[organ];
+    if (info) {
+      tooltip.innerHTML = `<strong>${info.name}</strong><br>${info.desc}`;
+      tooltip.classList.add('visible');
+    }
+  });
+  el.addEventListener('mousemove', (e) => {
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY - 10) + 'px';
+  });
+  el.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('visible');
+  });
+});
+
+// 绑定防线 hover
+document.querySelectorAll('.defense-line').forEach(el => {
+  el.addEventListener('mouseenter', (e) => {
+    const line = el.dataset.line;
+    const info = defenseInfo[line];
+    if (info) {
+      tooltip.innerHTML = `<strong>${info.name}</strong><br>${info.desc}`;
+      tooltip.classList.add('visible');
+    }
+  });
+  el.addEventListener('mousemove', (e) => {
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY - 10) + 'px';
+  });
+  el.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('visible');
+  });
+});
+
+// 绑定免疫细胞 hover（步骤2）
+document.querySelectorAll('.immune-cell').forEach(el => {
+  el.addEventListener('mouseenter', (e) => {
+    const cell = el.dataset.cell;
+    const info = cellInfo[cell];
+    if (info) {
+      tooltip.innerHTML = `<strong>${info.name}</strong><br>${info.desc}`;
+      tooltip.classList.add('visible');
+    }
+  });
+  el.addEventListener('mousemove', (e) => {
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY - 10) + 'px';
+  });
+  el.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('visible');
+  });
+});
+
+// ====== 疫苗互动按钮 ======
+const vaxPhase1Btn = document.getElementById('vaxPhase1Btn');
+const vaxPhase2Btn = document.getElementById('vaxPhase2Btn');
+const svgStep3 = document.getElementById('svgStep3');
+
+vaxPhase1Btn.addEventListener('click', () => {
+  vaxPhase1Btn.classList.add('active');
+  vaxPhase2Btn.classList.remove('active');
+  // 重放第一阶段动画
+  const phase1 = svgStep3.querySelector('#vaxPhase1');
+  phase1.style.animation = 'none';
+  void phase1.offsetWidth; // trigger reflow
+  phase1.style.animation = 'visualFadeIn 0.6s ease';
+});
+
+vaxPhase2Btn.addEventListener('click', () => {
+  vaxPhase2Btn.classList.add('active');
+  vaxPhase1Btn.classList.remove('active');
+  const phase2 = svgStep3.querySelector('#vaxPhase2');
+  phase2.style.animation = 'none';
+  void phase2.offsetWidth;
+  phase2.style.animation = 'visualFadeIn 0.6s ease';
+});
+
+// ====== 疫苗类型卡片点击 ======
+const vaxTypeDetails = {
+  '灭活疫苗': '使用化学方法灭活的病毒，如狂犬疫苗、流感疫苗。安全性高，但免疫效果较弱，需多次接种。',
+  '减毒活疫苗': '经过处理的弱化病毒，如麻疹疫苗、天花疫苗。免疫效果强，但极少数情况下可能致病。',
+  'mRNA 疫苗': '注射病毒蛋白质的基因指令，让细胞自己产生抗原。如新冠疫苗，开发速度快。',
+  '载体疫苗': '用无害病毒作为载体，递送病原体抗原基因。如埃博拉疫苗、新冠疫苗（腺病毒载体）。'
+};
+
+document.querySelectorAll('.vax-type-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const name = card.querySelector('.vax-type-name').textContent;
+    const desc = vaxTypeDetails[name];
+    if (desc) {
+      tooltip.innerHTML = `<strong>${name}</strong><br>${desc}`;
+      const rect = card.getBoundingClientRect();
+      tooltip.style.left = (rect.left + rect.width / 2 - 100) + 'px';
+      tooltip.style.top = (rect.top - 80) + 'px';
+      tooltip.classList.add('visible');
+      setTimeout(() => tooltip.classList.remove('visible'), 3000);
+    }
+  });
+});
+
+// ====== 异常卡片点击 ======
+const disorderDetails = {
+  'allergy': '过敏是免疫系统对无害物质（过敏原）的过度反应。肥大细胞释放组胺，导致血管扩张、黏液分泌增多，引起打喷嚏、皮疹、肿胀等症状。常见过敏原包括花粉、尘螨、食物和药物。',
+  'autoimmune': '自身免疫病是免疫系统错误地将自身组织当作外来入侵者进行攻击。类风湿性关节炎攻击关节，红斑狼疮攻击多器官，1 型糖尿病攻击胰岛细胞。病因可能与遗传和环境因素有关。',
+  'deficiency': '免疫缺陷病是免疫系统功能不足。HIV 病毒专门攻击辅助性 T 细胞（CD4+），破坏免疫指挥系统，导致各种机会性感染和肿瘤，即艾滋病（AIDS）。'
+};
+
+document.querySelectorAll('.disorder-svg-group').forEach(group => {
+  group.addEventListener('click', (e) => {
+    const type = group.dataset.disorder;
+    const desc = disorderDetails[type];
+    if (desc) {
+      tooltip.innerHTML = desc;
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top = (e.clientY - 10) + 'px';
+      tooltip.classList.add('visible');
+      setTimeout(() => tooltip.classList.remove('visible'), 5000);
+    }
+  });
+  group.addEventListener('mouseenter', (e) => {
+    const type = group.dataset.disorder;
+    const names = { allergy: '过敏', autoimmune: '自身免疫病', deficiency: '免疫缺陷 (HIV)' };
+    tooltip.innerHTML = `<strong>${names[type]}</strong><br>点击查看详细说明`;
+    tooltip.classList.add('visible');
+  });
+  group.addEventListener('mousemove', (e) => {
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY - 10) + 'px';
+  });
+  group.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('visible');
+  });
+});
+
+// ====== 加载动画结束 ======
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loaderOverlay').classList.add('hidden');
+  }, 2200);
+});
+
+// ====== 键盘导航 ======
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && currentStep > 0) goToStep(currentStep - 1);
+  if (e.key === 'ArrowRight' && currentStep < totalSteps - 1) goToStep(currentStep + 1);
+  if (e.key === ' ') {
+    e.preventDefault();
+    playBtn.click();
+  }
+});
+
+// ====== 初始化 ======
+goToStep(0);
+</script>
+
+</body>
+</html>

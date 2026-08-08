@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>框架二 · 杂志讲解型 — 模板 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+</head>
+<body>
+
+<!-- ====== 顶部导航栏（浅色） ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/demos.html" class="demo-back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </a>
+    <span class="demo-nav-divider"></span>
+    <a href="/" class="demo-nav-logo">景礴</a>
+  </div>
+  <div class="demo-nav-center">Demo 标题（杂志讲解型）</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-math">学科</span>
+    <a href="/skills.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 页面主体 ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ========== 左侧：文章区 ========== -->
+      <div class="magazine-article">
+        <div class="magazine-article-header">
+          <div class="magazine-kicker">SUBJECT · 主题分类</div>
+          <h1 class="magazine-title">文章大标题<br>可以换行</h1>
+          <p class="magazine-subtitle">副标题，用斜体衬线字体，简短描述这个 Demo 要讲什么。</p>
+        </div>
+
+        <!-- 步骤导航 -->
+        <div class="magazine-step-indicator">
+          <div class="magazine-step-dots" id="stepDots">
+            <div class="magazine-step-dot active" data-step="0"></div>
+            <div class="magazine-step-dot" data-step="1"></div>
+            <div class="magazine-step-dot" data-step="2"></div>
+            <div class="magazine-step-dot" data-step="3"></div>
+          </div>
+          <span class="magazine-step-label" id="stepLabel">第 1 / 4 步</span>
+        </div>
+
+        <!-- 步骤内容（JS 动态切换） -->
+        <div class="magazine-body">
+          <div class="magazine-step-content" id="stepContent"></div>
+        </div>
+
+        <!-- 上一步 / 下一步 -->
+        <div class="magazine-step-nav">
+          <button class="btn btn-secondary" id="prevBtn">
+            <span>←</span> 上一步
+          </button>
+          <button class="btn btn-primary" id="nextBtn">
+            下一步 <span>→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========== 右侧：可视化区 ========== -->
+      <div class="magazine-visual">
+        <div class="magazine-visual-wrapper">
+          <canvas id="demoCanvas" width="700" height="500"></canvas>
+        </div>
+        <p class="magazine-visual-caption">图注：用斜体衬线字体描述这张图说明了什么</p>
+
+        <!-- 可选：公式或数据展示区 -->
+        <div style="background-color:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--spacer-24);text-align:center;">
+          <div style="font-family:var(--font-serif);font-size:28px;font-weight:700;color:var(--text);margin-bottom:var(--spacer-8);">
+            公式 / 数据 <span style="color:var(--brand);">高亮</span>
+          </div>
+          <div style="font-size:var(--fs-small);color:var(--text-muted);font-family:var(--font-serif);font-style:italic;">
+            公式说明文字
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">skill-name</span>
+    <span class="demo-tech-tag">Canvas</span>
+    <span class="demo-tech-tag">JSXGraph</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills.html" class="demo-info-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      查看源码
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   框架二：杂志讲解型 — 模板脚本
+   演示步骤切换 + Canvas 可视化联动
+   ============================================================ */
+
+// ====== 步骤内容数据 ======
+const steps = [
+  {
+    title: '引言',
+    content: `
+      <p class="lead">这是第一段引言文字，用 lead 样式突出显示，字号稍大、字重稍粗。</p>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">核心概念</div>
+        <div class="magazine-theorem-text">
+          这里用高亮框展示核心概念或定理。<br>
+          <strong>关键公式：E = mc²</strong>
+        </div>
+      </div>
+      <p>正文段落，行高 1.8，确保舒适阅读。可以解释背景、引入问题、给出上下文。</p>
+    `
+  },
+  {
+    title: '第一步：构造',
+    content: `
+      <p class="lead">第一步的引导文字，描述这一步要做什么。</p>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">1</div>
+        <div class="magazine-proof-text">
+          第一步的详细说明。可以包含数学推导或逻辑步骤。
+        </div>
+      </div>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">2</div>
+        <div class="magazine-proof-text">
+          第二个步骤的说明。
+        </div>
+      </div>
+      <p>步骤之间的过渡文字，引导读者继续。</p>
+    `
+  },
+  {
+    title: '第二步：推导',
+    content: `
+      <p class="lead">第二步的引导文字。</p>
+      <div class="magazine-proof-step">
+        <div class="magazine-proof-num">→</div>
+        <div class="magazine-proof-text">
+          推导过程：<strong>a² + 2ab + b² = 2ab + c²</strong>
+        </div>
+      </div>
+      <p style="text-align:center;font-family:var(--font-serif);font-size:24px;font-weight:700;color:var(--brand);margin-top:16px;">
+        a² + b² = c²
+      </p>
+    `
+  },
+  {
+    title: '结论',
+    content: `
+      <p class="lead">总结性文字，收束全文。</p>
+      <div class="magazine-theorem-box">
+        <div class="magazine-theorem-title">结论</div>
+        <div class="magazine-theorem-text">
+          最终结论的完整表述。<br><br>
+          <strong style="font-size:20px;font-family:var(--font-serif);">最终公式</strong>
+        </div>
+      </div>
+      <p style="color:var(--brand);font-weight:500;font-family:var(--font-serif);font-style:italic;margin-top:24px;">
+        —— 结语，用斜体衬线字体
+      </p>
+    `
+  }
+];
+
+// ====== 步骤导航逻辑 ======
+let currentStep = 0;
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDots = document.querySelectorAll('.magazine-step-dot');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function updateStep() {
+  stepContent.classList.add('fade-out');
+
+  setTimeout(() => {
+    const step = steps[currentStep];
+    stepContent.innerHTML = `<h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:16px;color:var(--text);">${step.title}</h3>${step.content}`;
+    stepContent.classList.remove('fade-out');
+    stepContent.classList.add('fade-in');
+    setTimeout(() => stepContent.classList.remove('fade-in'), 300);
+  }, 200);
+
+  stepLabel.textContent = `第 ${currentStep + 1} / ${steps.length} 步`;
+
+  stepDots.forEach((dot, i) => {
+    dot.classList.remove('active', 'completed');
+    if (i === currentStep) dot.classList.add('active');
+    else if (i < currentStep) dot.classList.add('completed');
+  });
+
+  prevBtn.disabled = currentStep === 0;
+  prevBtn.style.opacity = currentStep === 0 ? '0.5' : '1';
+  prevBtn.style.cursor = currentStep === 0 ? 'not-allowed' : 'pointer';
+
+  nextBtn.innerHTML = currentStep === steps.length - 1
+    ? '完成 ✓'
+    : '下一步 <span>→</span>';
+
+  drawStep(currentStep);
+}
+
+prevBtn.addEventListener('click', () => {
+  if (currentStep > 0) { currentStep--; updateStep(); }
+});
+
+nextBtn.addEventListener('click', () => {
+  if (currentStep < steps.length - 1) { currentStep++; updateStep(); }
+});
+
+stepDots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const step = parseInt(dot.dataset.step);
+    if (step !== currentStep) { currentStep = step; updateStep(); }
+  });
+});
+
+// ====== Canvas 可视化（示例） ======
+const canvas = document.getElementById('demoCanvas');
+const ctx = canvas.getContext('2d');
+
+function drawStep(step) {
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.font = 'bold 18px serif';
+  ctx.fillStyle = '#1a1a1a';
+  ctx.textAlign = 'center';
+  ctx.fillText(`可视化 — 步骤 ${step + 1}`, w / 2, h / 2 - 20);
+
+  // 根据步骤画不同的图形
+  ctx.strokeStyle = '#c2410c';
+  ctx.lineWidth = 2;
+
+  if (step === 0) {
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2 + 40, 60, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (step === 1) {
+    ctx.strokeRect(w / 2 - 70, h / 2 - 20, 140, 120);
+  } else if (step === 2) {
+    ctx.beginPath();
+    ctx.moveTo(w / 2 - 80, h / 2 + 80);
+    ctx.lineTo(w / 2, h / 2 - 40);
+    ctx.lineTo(w / 2 + 80, h / 2 + 80);
+    ctx.closePath();
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = 'rgba(194, 65, 12, 0.15)';
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2 + 40, 60, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.font = '13px sans-serif';
+  ctx.fillStyle = '#6b6b6b';
+  ctx.fillText('这里是可视化区域，随步骤切换而更新', w / 2, h - 30);
+}
+
+// ====== 导航栏滚动 ======
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// 初始化
+updateStep();
+</script>
+
+</body>
+</html>

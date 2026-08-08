@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>复利计算器与财富增长 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+/* ====== 本 Demo 专用配色（金色财富主题） ====== */
+.framework-interactive {
+  --ci-gold: #b8860b;
+  --ci-gold-light: #f4d03f;
+  --ci-gold-deep: #d4ac0d;
+  --ci-gold-soft: rgba(184, 134, 11, 0.08);
+  --ci-teal: #1abc9c;
+  --ci-teal-soft: rgba(26, 188, 156, 0.12);
+  --ci-red: #c0392b;
+  --ci-green: #27ae60;
+  --ci-gray-blue: #7f8c8d;
+}
+
+/* ====== 画布区背景 ====== */
+.interactive-canvas-area {
+  background: linear-gradient(180deg, #faf8f5 0%, #f5f0e8 100%);
+}
+
+/* ====== 顶部数据面板 ====== */
+.ci-data-panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+
+.ci-data-card {
+  flex: 1;
+  min-width: 120px;
+  max-width: 200px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  pointer-events: auto;
+}
+
+.ci-data-card.highlight {
+  background: rgba(255, 252, 245, 0.95);
+  border-color: rgba(184, 134, 11, 0.25);
+  box-shadow: 0 4px 20px rgba(184, 134, 11, 0.12);
+}
+
+.ci-data-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.ci-data-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ci-gold);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.ci-data-value.small {
+  font-size: 16px;
+}
+
+.ci-data-sub {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-top: 2px;
+  font-family: var(--font-sans);
+}
+
+/* ====== 72法则验证条 ====== */
+.ci-rule72 {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ci-rule72 strong {
+  font-family: var(--font-mono);
+  color: var(--ci-green);
+  font-weight: 700;
+}
+
+.ci-rule72-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+}
+
+/* ====== 控制面板扩展 ====== */
+.interactive-control-panel {
+  height: auto !important;
+  min-height: 140px;
+  padding: 16px 24px !important;
+  flex-wrap: wrap;
+  gap: 16px 24px !important;
+}
+
+.ci-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.ci-controls-row:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 滑块组容器 */
+.ci-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
+  flex: 1;
+  max-width: 180px;
+}
+
+.ci-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ci-slider-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.ci-slider-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ci-gold);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* 下拉选择 */
+.ci-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 100px;
+}
+
+.ci-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 6px 28px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 11px;
+  font-family: var(--font-sans);
+  color: var(--text);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%236b6b6b' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: border-color var(--duration-fast) var(--ease);
+}
+
+.ci-select:hover {
+  border-color: var(--text-faint);
+}
+
+.ci-select:focus {
+  outline: none;
+  border-color: var(--ci-gold);
+}
+
+/* 显示选项 toggle */
+.ci-toggles {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ci-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  white-space: nowrap;
+  background: var(--surface);
+}
+
+.ci-toggle:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.ci-toggle.active {
+  background: var(--ci-gold-soft);
+  border-color: rgba(184, 134, 11, 0.3);
+  color: var(--ci-gold);
+}
+
+.ci-toggle .ci-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 预设按钮 */
+.ci-presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ci-preset-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+  margin-right: 2px;
+}
+
+.ci-preset-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  white-space: nowrap;
+  background: var(--surface);
+}
+
+.ci-preset-btn:hover {
+  border-color: var(--ci-gold);
+  color: var(--ci-gold);
+}
+
+.ci-preset-btn.active {
+  background: var(--ci-gold);
+  border-color: var(--ci-gold);
+  color: #fff;
+}
+
+/* 速度按钮 */
+.ci-speed-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ci-speed-btn {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  background: var(--surface);
+}
+
+.ci-speed-btn:hover {
+  border-color: var(--text-faint);
+}
+
+.ci-speed-btn.active {
+  background: var(--ci-gold-soft);
+  border-color: rgba(184, 134, 11, 0.3);
+  color: var(--ci-gold);
+}
+
+/* ====== 悬停提示 ====== */
+.ci-tooltip {
+  position: absolute;
+  z-index: 30;
+  pointer-events: none;
+  padding: 8px 12px;
+  background: rgba(26, 26, 26, 0.92);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius);
+  font-size: 11px;
+  color: #fff;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.ci-tooltip.visible {
+  opacity: 1;
+}
+
+.ci-tooltip-year {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ci-gold-light);
+  margin-bottom: 4px;
+}
+
+.ci-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ci-tooltip-label {
+  color: #a3a3a3;
+}
+
+.ci-tooltip-value {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ====== 加载动画 ====== */
+.ci-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  z-index: 50;
+  transition: opacity 0.5s ease;
+}
+
+.ci-loader.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ci-loader-coins {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.ci-loader-coin {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ci-gold-light), var(--ci-gold));
+  animation: ci-coin-bounce 0.8s ease-in-out infinite;
+}
+
+.ci-loader-coin:nth-child(1) { animation-delay: 0s; }
+.ci-loader-coin:nth-child(2) { animation-delay: 0.1s; }
+.ci-loader-coin:nth-child(3) { animation-delay: 0.2s; }
+.ci-loader-coin:nth-child(4) { animation-delay: 0.3s; }
+.ci-loader-coin:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes ci-coin-bounce {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-20px) scale(1.1); opacity: 1; }
+}
+
+/* ====== 响应式 ====== */
+@media (max-width: 768px) {
+  .ci-data-panel {
+    flex-direction: row;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+
+  .ci-data-card {
+    min-width: 110px;
+    flex-shrink: 0;
+  }
+
+  .ci-data-value {
+    font-size: 16px;
+  }
+
+  .ci-rule72 {
+    font-size: 10px;
+    padding: 6px 10px;
+  }
+
+  .interactive-control-panel {
+    padding: 12px 16px !important;
+  }
+
+  .ci-slider-group {
+    min-width: 100px;
+  }
+
+  .ci-controls-row {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ci-data-panel {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .ci-data-card {
+    min-width: 90px;
+    padding: 8px 10px;
+  }
+
+  .ci-data-value {
+    font-size: 14px;
+  }
+
+  .ci-rule72 {
+    display: none;
+  }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">复利计算器与财富增长</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-math">数学</span>
+      <a href="/skills/jingbo-edu-math-graph-tool-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体：上下分栏 ====== -->
+<div class="framework-interactive">
+  <div class="interactive-main">
+
+    <!-- ========== 上方：画布区 ========== -->
+    <div class="interactive-canvas-area">
+      <!-- 加载动画 -->
+      <div class="ci-loader" id="ciLoader">
+        <div class="ci-loader-coins">
+          <div class="ci-loader-coin"></div>
+          <div class="ci-loader-coin"></div>
+          <div class="ci-loader-coin"></div>
+          <div class="ci-loader-coin"></div>
+          <div class="ci-loader-coin"></div>
+        </div>
+      </div>
+
+      <canvas id="demoCanvas"></canvas>
+
+      <!-- 顶部数据面板 -->
+      <div class="ci-data-panel">
+        <div class="ci-data-card highlight">
+          <div class="ci-data-label">最终金额</div>
+          <div class="ci-data-value" id="dataFinal">¥0</div>
+          <div class="ci-data-sub" id="dataFinalSub">本金 + 收益</div>
+        </div>
+        <div class="ci-data-card">
+          <div class="ci-data-label">总收益</div>
+          <div class="ci-data-value" id="dataProfit">¥0</div>
+          <div class="ci-data-sub" id="dataProfitSub">复利产生的财富</div>
+        </div>
+        <div class="ci-data-card">
+          <div class="ci-data-label">收益率</div>
+          <div class="ci-data-value" id="dataReturn">0%</div>
+          <div class="ci-data-sub" id="dataReturnSub">相对本金增长</div>
+        </div>
+        <div class="ci-data-card">
+          <div class="ci-data-label">翻倍次数</div>
+          <div class="ci-data-value" id="dataDoublings">0</div>
+          <div class="ci-data-sub" id="dataDoublingsSub">本金翻了几番</div>
+        </div>
+      </div>
+
+      <!-- 72法则验证 -->
+      <div class="ci-rule72" id="rule72">
+        <span>72法则</span>
+        <span class="ci-rule72-divider"></span>
+        <span>理论翻倍：<strong id="rule72Theory">— 年</strong></span>
+        <span class="ci-rule72-divider"></span>
+        <span>实际翻倍：<strong id="rule72Actual">— 年</strong></span>
+      </div>
+
+      <!-- 悬停提示 -->
+      <div class="ci-tooltip" id="tooltip">
+        <div class="ci-tooltip-year" id="tooltipYear">第 0 年</div>
+        <div class="ci-tooltip-row">
+          <span class="ci-tooltip-label">复利总值</span>
+          <span class="ci-tooltip-value" id="tooltipCompound">¥0</span>
+        </div>
+        <div class="ci-tooltip-row">
+          <span class="ci-tooltip-label">单利总值</span>
+          <span class="ci-tooltip-value" id="tooltipSimple">¥0</span>
+        </div>
+        <div class="ci-tooltip-row" id="tooltipInflationRow" style="display:none;">
+          <span class="ci-tooltip-label">实际购买力</span>
+          <span class="ci-tooltip-value" id="tooltipInflation">¥0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 下方：控制面板 ========== -->
+    <div class="interactive-control-panel">
+
+      <!-- 第一行：滑块 + 选择器 + 播放控制 -->
+      <div class="ci-controls-row">
+        <!-- 本金 -->
+        <div class="ci-slider-group">
+          <div class="ci-slider-header">
+            <span class="ci-slider-label">初始本金</span>
+            <span class="ci-slider-value" id="principalVal">¥100,000</span>
+          </div>
+          <input type="range" class="control-slider" id="principalSlider" min="1000" max="1000000" step="1000" value="100000" />
+        </div>
+
+        <!-- 年利率 -->
+        <div class="ci-slider-group">
+          <div class="ci-slider-header">
+            <span class="ci-slider-label">年利率</span>
+            <span class="ci-slider-value" id="rateVal">8.0%</span>
+          </div>
+          <input type="range" class="control-slider" id="rateSlider" min="0" max="20" step="0.1" value="8" />
+        </div>
+
+        <!-- 投资年限 -->
+        <div class="ci-slider-group">
+          <div class="ci-slider-header">
+            <span class="ci-slider-label">投资年限</span>
+            <span class="ci-slider-value" id="yearsVal">20 年</span>
+          </div>
+          <input type="range" class="control-slider" id="yearsSlider" min="1" max="50" step="1" value="20" />
+        </div>
+
+        <!-- 每月定投 -->
+        <div class="ci-slider-group">
+          <div class="ci-slider-header">
+            <span class="ci-slider-label">每月定投</span>
+            <span class="ci-slider-value" id="monthlyVal">¥0</span>
+          </div>
+          <input type="range" class="control-slider" id="monthlySlider" min="0" max="20000" step="500" value="0" />
+        </div>
+
+        <!-- 通胀率 -->
+        <div class="ci-slider-group">
+          <div class="ci-slider-header">
+            <span class="ci-slider-label">通胀率</span>
+            <span class="ci-slider-value" id="inflationVal">0.0%</span>
+          </div>
+          <input type="range" class="control-slider" id="inflationSlider" min="0" max="10" step="0.1" value="0" />
+        </div>
+
+        <!-- 复利频率 -->
+        <div class="ci-select-group">
+          <span class="ci-slider-label">复利频率</span>
+          <select class="ci-select" id="freqSelect">
+            <option value="1">年复利</option>
+            <option value="2">半年复利</option>
+            <option value="4">季度复利</option>
+            <option value="12">月复利</option>
+            <option value="365">日复利</option>
+            <option value="continuous">连续复利</option>
+          </select>
+        </div>
+
+        <!-- 显示格式 -->
+        <div class="ci-select-group">
+          <span class="ci-slider-label">显示格式</span>
+          <select class="ci-select" id="formatSelect">
+            <option value="cny">人民币 ¥</option>
+            <option value="usd">美元 $</option>
+            <option value="multiple">倍数 ×</option>
+          </select>
+        </div>
+
+        <!-- 播放控制 -->
+        <div class="control-buttons">
+          <button class="control-btn control-btn-play" id="playBtn" title="播放/暂停">
+            <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
+          <button class="control-btn" id="resetBtn" title="重置">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            重置
+          </button>
+          <div class="ci-speed-group">
+            <button class="ci-speed-btn active" data-speed="1">1×</button>
+            <button class="ci-speed-btn" data-speed="5">5×</button>
+            <button class="ci-speed-btn" data-speed="10">10×</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第二行：显示选项 + 预设 -->
+      <div class="ci-controls-row">
+        <!-- 显示选项 -->
+        <div class="ci-toggles">
+          <button class="ci-toggle active" data-toggle="simple">
+            <span class="ci-dot" style="background:var(--ci-gray-blue);"></span>
+            单利对比
+          </button>
+          <button class="ci-toggle" data-toggle="doubling">
+            <span class="ci-dot" style="background:var(--ci-green);"></span>
+            翻倍标记
+          </button>
+          <button class="ci-toggle" data-toggle="inflation">
+            <span class="ci-dot" style="background:var(--ci-red);"></span>
+            通胀调整
+          </button>
+          <button class="ci-toggle" data-toggle="monthly">
+            <span class="ci-dot" style="background:var(--ci-teal);"></span>
+            定投区域
+          </button>
+        </div>
+
+        <!-- 预设 -->
+        <div class="ci-presets">
+          <span class="ci-preset-label">预设：</span>
+          <button class="ci-preset-btn" data-preset="1">股神收益率</button>
+          <button class="ci-preset-btn" data-preset="2">银行定存</button>
+          <button class="ci-preset-btn" data-preset="3">定投养老</button>
+          <button class="ci-preset-btn" data-preset="4">通胀侵蚀</button>
+          <button class="ci-preset-btn" data-preset="5">频率对比</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">compound-interest-calculator</span>
+    <span class="demo-tech-tag">Canvas 2D</span>
+    <span class="demo-tech-tag">实时计算</span>
+    <span class="demo-tech-tag">复利公式</span>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="fpsTag">60 FPS</span>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   D213 · 复利计算器与财富增长
+   核心计算 + Canvas 绘制 + 交互控制
+   ============================================================ */
+
+// ====== 状态 ======
+const state = {
+  principal: 100000,
+  rate: 8,
+  years: 20,
+  monthly: 0,
+  inflation: 0,
+  freq: 1,
+  format: 'cny',
+  // 显示选项
+  showSimple: true,
+  showDoubling: false,
+  showInflation: false,
+  showMonthly: false,
+  // 播放
+  isPlaying: false,
+  playSpeed: 1,
+  playYear: 0,
+  // 数据缓存
+  data: [],
+  maxDisplayYear: 20,
+  // FPS
+  fps: 60,
+  lastFrame: 0,
+  // 数字动画
+  animatedValues: { final: 0, profit: 0, returnPct: 0, doublings: 0 },
+  targetValues: { final: 0, profit: 0, returnPct: 0, doublings: 0 },
+};
+
+// ====== 复利计算引擎 ======
+function computeCompound(principal, annualRate, years, freq, monthly, inflation) {
+  const r = annualRate / 100;
+  const data = [];
+
+  for (let year = 0; year <= years; year++) {
+    let compound, simple, monthlyTotal, inflationAdjusted;
+
+    if (freq === 'continuous') {
+      // 连续复利: A = P * e^(rt)
+      compound = principal * Math.exp(r * year);
+    } else {
+      // 离散复利: A = P(1 + r/n)^(nt)
+      const n = freq;
+      compound = principal * Math.pow(1 + r / n, n * year);
+    }
+
+    // 单利: A = P(1 + rt)
+    simple = principal * (1 + r * year);
+
+    // 定投部分: 每月定投的复利终值
+    // FV = PMT * [((1 + r/n)^(nt) - 1) / (r/n)] （年金终值公式）
+    if (monthly > 0 && r > 0) {
+      const months = year * 12;
+      if (freq === 'continuous') {
+        // 近似：用连续复利的月等效利率
+        const effectiveMonthly = Math.exp(r / 12) - 1;
+        monthlyTotal = monthly * ((Math.pow(1 + effectiveMonthly, months) - 1) / effectiveMonthly);
+      } else {
+        // 使用有效年利率计算月利率
+        const ear = Math.pow(1 + r / freq, freq) - 1;
+        const effectiveMonthly = Math.pow(1 + ear, 1 / 12) - 1;
+        monthlyTotal = monthly * ((Math.pow(1 + effectiveMonthly, months) - 1) / effectiveMonthly);
+      }
+    } else if (monthly > 0 && r === 0) {
+      monthlyTotal = monthly * year * 12;
+    } else {
+      monthlyTotal = 0;
+    }
+
+    // 总值 = 本金复利 + 定投复利
+    const total = compound + monthlyTotal;
+
+    // 通胀调整后的实际购买力
+    if (inflation > 0) {
+      const inf = inflation / 100;
+      inflationAdjusted = total / Math.pow(1 + inf, year);
+    } else {
+      inflationAdjusted = total;
+    }
+
+    data.push({
+      year,
+      compound: total,
+      compoundOnly: compound,
+      simple: simple + monthlyTotal,
+      simpleOnly: simple,
+      monthly: monthlyTotal,
+      inflationAdjusted,
+      principalOnly: principal + monthlyTotal,
+    });
+  }
+
+  return data;
+}
+
+// ====== 72法则 ======
+function rule72(rate) {
+  if (rate <= 0) return Infinity;
+  return 72 / rate;
+}
+
+// 实际翻倍时间
+function actualDoublingTime(rate, freq) {
+  if (rate <= 0) return Infinity;
+  const r = rate / 100;
+  let effectiveRate;
+  if (freq === 'continuous') {
+    effectiveRate = Math.exp(r) - 1;
+  } else {
+    effectiveRate = Math.pow(1 + r / freq, freq) - 1;
+  }
+  if (effectiveRate <= 0) return Infinity;
+  return Math.log(2) / Math.log(1 + effectiveRate);
+}
+
+// ====== 格式化 ======
+function formatMoney(value, format) {
+  if (format === 'multiple') {
+    return '×' + (value / state.principal).toFixed(2);
+  }
+  const symbol = format === 'usd' ? '$' : '¥';
+  if (value >= 100000000) {
+    return symbol + (value / 100000000).toFixed(2) + '亿';
+  } else if (value >= 10000) {
+    return symbol + (value / 10000).toFixed(2) + '万';
+  } else {
+    return symbol + Math.round(value).toLocaleString();
+  }
+}
+
+function formatMoneyFull(value, format) {
+  if (format === 'multiple') {
+    return '×' + (value / state.principal).toFixed(3);
+  }
+  const symbol = format === 'usd' ? '$' : '¥';
+  return symbol + Math.round(value).toLocaleString();
+}
+
+// ====== Canvas 绘制 ======
+const canvas = document.getElementById('demoCanvas');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  draw();
+});
+
+// ====== 主绘制函数 ======
+function draw() {
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+
+  // 背景
+  ctx.fillStyle = '#faf8f5';
+  ctx.fillRect(0, 0, w, h);
+
+  if (state.data.length === 0) return;
+
+  // 图表区域 padding
+  const padLeft = 60;
+  const padRight = 30;
+  const padTop = 100;
+  const padBottom = 50;
+  const chartW = w - padLeft - padRight;
+  const chartH = h - padTop - padBottom;
+
+  // 计算最大值（用于 Y 轴缩放）
+  let maxValue = 0;
+  for (const d of state.data) {
+    if (d.compound > maxValue) maxValue = d.compound;
+    if (state.showSimple && d.simple > maxValue) maxValue = d.simple;
+    if (state.showInflation && d.inflationAdjusted > maxValue) maxValue = d.inflationAdjusted;
+  }
+  maxValue = maxValue * 1.1; // 留 10% 顶部空间
+  if (maxValue === 0) maxValue = 1;
+
+  // 当前播放年份对应的数据索引
+  const displayYears = state.isPlaying ? state.playYear : state.years;
+  const maxIdx = Math.min(state.data.length - 1, Math.ceil(displayYears));
+
+  // ====== 绘制网格 ======
+  ctx.strokeStyle = '#eeeae3';
+  ctx.lineWidth = 1;
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.fillStyle = '#a3a3a3';
+
+  // Y 轴刻度
+  const ySteps = 5;
+  for (let i = 0; i <= ySteps; i++) {
+    const y = padTop + (chartH / ySteps) * i;
+    const val = maxValue * (1 - i / ySteps);
+
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(w - padRight, y);
+    ctx.setLineDash(i === ySteps ? [] : [2, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.textAlign = 'right';
+    ctx.fillText(formatMoney(val, state.format), padLeft - 8, y + 3);
+  }
+
+  // X 轴刻度
+  const xSteps = Math.min(state.years, 10);
+  for (let i = 0; i <= xSteps; i++) {
+    const x = padLeft + (chartW / xSteps) * i;
+    const year = Math.round((state.years / xSteps) * i);
+
+    ctx.beginPath();
+    ctx.moveTo(x, padTop);
+    ctx.lineTo(x, h - padBottom);
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = '#eeeae3';
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#a3a3a3';
+    ctx.fillText(year + '年', x, h - padBottom + 18);
+  }
+
+  // ====== 坐标转换函数 ======
+  const xScale = (year) => padLeft + (chartW / state.years) * year;
+  const yScale = (val) => padTop + chartH * (1 - val / maxValue);
+
+  // ====== 绘制定投区域（如果在底部） ======
+  if (state.showMonthly && state.monthly > 0) {
+    ctx.beginPath();
+    ctx.moveTo(xScale(0), yScale(state.data[0].principalOnly));
+    for (let i = 0; i <= maxIdx; i++) {
+      ctx.lineTo(xScale(state.data[i].year), yScale(state.data[i].principalOnly));
+    }
+    for (let i = maxIdx; i >= 0; i--) {
+      ctx.lineTo(xScale(state.data[i].year), yScale(0));
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(26, 188, 156, 0.10)';
+    ctx.fill();
+
+    // 定投本金线
+    ctx.beginPath();
+    ctx.moveTo(xScale(0), yScale(state.data[0].principalOnly));
+    for (let i = 0; i <= maxIdx; i++) {
+      ctx.lineTo(xScale(state.data[i].year), yScale(state.data[i].principalOnly));
+    }
+    ctx.strokeStyle = 'rgba(26, 188, 156, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ====== 绘制复利面积填充 ======
+  const gradient = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
+  gradient.addColorStop(0, 'rgba(244, 208, 63, 0.35)');
+  gradient.addColorStop(0.5, 'rgba(212, 172, 13, 0.20)');
+  gradient.addColorStop(1, 'rgba(184, 134, 11, 0.05)');
+
+  ctx.beginPath();
+  ctx.moveTo(xScale(0), yScale(state.data[0].compound));
+  for (let i = 0; i <= maxIdx; i++) {
+    const d = state.data[i];
+    // 平滑曲线
+    if (i > 0) {
+      const prev = state.data[i - 1];
+      const cpx = (xScale(prev.year) + xScale(d.year)) / 2;
+      ctx.bezierCurveTo(cpx, yScale(prev.compound), cpx, yScale(d.compound), xScale(d.year), yScale(d.compound));
+    } else {
+      ctx.lineTo(xScale(d.year), yScale(d.compound));
+    }
+  }
+  // 闭合到底部
+  ctx.lineTo(xScale(state.data[maxIdx].year), h - padBottom);
+  ctx.lineTo(xScale(0), h - padBottom);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // ====== 绘制复利曲线 ======
+  ctx.beginPath();
+  ctx.moveTo(xScale(0), yScale(state.data[0].compound));
+  for (let i = 0; i <= maxIdx; i++) {
+    const d = state.data[i];
+    if (i > 0) {
+      const prev = state.data[i - 1];
+      const cpx = (xScale(prev.year) + xScale(d.year)) / 2;
+      ctx.bezierCurveTo(cpx, yScale(prev.compound), cpx, yScale(d.compound), xScale(d.year), yScale(d.compound));
+    } else {
+      ctx.lineTo(xScale(d.year), yScale(d.compound));
+    }
+  }
+  // 曲线渐变
+  const lineGradient = ctx.createLinearGradient(padLeft, 0, w - padRight, 0);
+  lineGradient.addColorStop(0, '#d4ac0d');
+  lineGradient.addColorStop(1, '#f4d03f');
+  ctx.strokeStyle = lineGradient;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // ====== 绘制单利对比线 ======
+  if (state.showSimple) {
+    ctx.beginPath();
+    ctx.moveTo(xScale(0), yScale(state.data[0].simple));
+    for (let i = 0; i <= maxIdx; i++) {
+      ctx.lineTo(xScale(state.data[i].year), yScale(state.data[i].simple));
+    }
+    ctx.strokeStyle = '#7f8c8d';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 单利标签
+    if (maxIdx > 0) {
+      const labelX = xScale(state.data[maxIdx].year) + 6;
+      const labelY = yScale(state.data[maxIdx].simple);
+      ctx.fillStyle = '#7f8c8d';
+      ctx.textAlign = 'left';
+      ctx.font = '10px JetBrains Mono, monospace';
+      ctx.fillText('单利', labelX, labelY + 3);
+    }
+  }
+
+  // ====== 绘制通胀调整线 ======
+  if (state.showInflation && state.inflation > 0) {
+    ctx.beginPath();
+    ctx.moveTo(xScale(0), yScale(state.data[0].inflationAdjusted));
+    for (let i = 0; i <= maxIdx; i++) {
+      ctx.lineTo(xScale(state.data[i].year), yScale(state.data[i].inflationAdjusted));
+    }
+    ctx.strokeStyle = '#c0392b';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (maxIdx > 0) {
+      const labelX = xScale(state.data[maxIdx].year) + 6;
+      const labelY = yScale(state.data[maxIdx].inflationAdjusted);
+      ctx.fillStyle = '#c0392b';
+      ctx.textAlign = 'left';
+      ctx.font = '10px JetBrains Mono, monospace';
+      ctx.fillText('实际', labelX, labelY + 3);
+    }
+  }
+
+  // ====== 绘制翻倍标记 ======
+  if (state.showDoubling) {
+    let doublingCount = 0;
+    let prevVal = state.principal;
+    for (let i = 1; i <= maxIdx; i++) {
+      const d = state.data[i];
+      while (d.compound >= prevVal * 2) {
+        doublingCount++;
+        // 找到精确翻倍年份（插值）
+        const prev = state.data[i - 1];
+        const ratio = (prevVal * 2 - prev.compound) / (d.compound - prev.compound);
+        const doubleYear = prev.year + ratio;
+        const doubleVal = prevVal * 2;
+
+        const px = xScale(doubleYear);
+        const py = yScale(doubleVal);
+
+        // 翻倍标记竖线
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px, h - padBottom);
+        ctx.strokeStyle = 'rgba(39, 174, 96, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 标记圆点
+        ctx.beginPath();
+        ctx.arc(px, py, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#27ae60';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(px, py, 5, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 标签
+        ctx.fillStyle = '#27ae60';
+        ctx.font = 'bold 10px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('×' + Math.pow(2, doublingCount), px, py - 10);
+
+        prevVal = prevVal * 2;
+      }
+    }
+  }
+
+  // ====== 绘制最终点光晕 ======
+  if (maxIdx > 0) {
+    const lastData = state.data[maxIdx];
+    const px = xScale(lastData.year);
+    const py = yScale(lastData.compound);
+
+    // 光晕
+    const glow = ctx.createRadialGradient(px, py, 0, px, py, 20);
+    glow.addColorStop(0, 'rgba(244, 208, 63, 0.4)');
+    glow.addColorStop(1, 'rgba(244, 208, 63, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(px, py, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 圆点
+    ctx.beginPath();
+    ctx.arc(px, py, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#f4d03f';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(px, py, 6, 0, Math.PI * 2);
+    ctx.strokeStyle = '#b8860b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 最终值标签
+    ctx.fillStyle = '#b8860b';
+    ctx.font = 'bold 12px JetBrains Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(formatMoney(lastData.compound, state.format), px + 10, py - 8);
+  }
+
+  // ====== 绘制播放进度指示器 ======
+  if (state.isPlaying && state.playYear < state.years) {
+    const px = xScale(state.playYear);
+    ctx.beginPath();
+    ctx.moveTo(px, padTop);
+    ctx.lineTo(px, h - padBottom);
+    ctx.strokeStyle = 'rgba(184, 134, 11, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([2, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ====== 更新数据面板 ======
+function updateDataPanel() {
+  if (state.data.length === 0) return;
+
+  const displayYears = state.isPlaying ? state.playYear : state.years;
+  const maxIdx = Math.min(state.data.length - 1, Math.ceil(displayYears));
+  const currentData = state.data[maxIdx];
+
+  const finalAmount = currentData.compound;
+  const totalInvested = state.principal + state.monthly * 12 * displayYears;
+  const profit = finalAmount - totalInvested;
+  const returnPct = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
+
+  // 翻倍次数
+  let doublings = 0;
+  let val = state.principal;
+  while (finalAmount >= val * 2) {
+    doublings++;
+    val *= 2;
+  }
+
+  state.targetValues = {
+    final: finalAmount,
+    profit: profit,
+    returnPct: returnPct,
+    doublings: doublings,
+  };
+
+  // 72法则
+  const theoryYears = rule72(state.rate);
+  const actualYears = actualDoublingTime(state.rate, state.freq);
+
+  document.getElementById('rule72Theory').textContent =
+    theoryYears === Infinity ? '— 年' : theoryYears.toFixed(1) + ' 年';
+  document.getElementById('rule72Actual').textContent =
+    actualYears === Infinity ? '— 年' : actualYears.toFixed(1) + ' 年';
+
+  // 更新副标题
+  document.getElementById('dataFinalSub').textContent =
+    `本金 ${formatMoney(totalInvested, state.format)} + 收益`;
+  document.getElementById('dataProfitSub').textContent =
+    profit >= 0 ? '复利创造的财富' : '亏损';
+  document.getElementById('dataReturnSub').textContent =
+    `相对投入资金 ${returnPct >= 0 ? '增长' : '下降'}`;
+  document.getElementById('dataDoublingsSub').textContent =
+    `翻了 ${doublings} 番 = ×${Math.pow(2, doublings).toFixed(0)}`;
+}
+
+// ====== 数字滚动动画 ======
+function animateNumbers() {
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const speed = 0.12;
+
+  state.animatedValues.final = lerp(state.animatedValues.final, state.targetValues.final, speed);
+  state.animatedValues.profit = lerp(state.animatedValues.profit, state.targetValues.profit, speed);
+  state.animatedValues.returnPct = lerp(state.animatedValues.returnPct, state.targetValues.returnPct, speed);
+  state.animatedValues.doublings = lerp(state.animatedValues.doublings, state.targetValues.doublings, speed);
+
+  document.getElementById('dataFinal').textContent = formatMoney(state.animatedValues.final, state.format);
+  document.getElementById('dataProfit').textContent = formatMoney(state.animatedValues.profit, state.format);
+  document.getElementById('dataReturn').textContent =
+    (state.animatedValues.returnPct >= 0 ? '+' : '') + state.animatedValues.returnPct.toFixed(1) + '%';
+  document.getElementById('dataDoublings').textContent = Math.round(state.animatedValues.doublings);
+}
+
+// ====== 重新计算 ======
+function recalculate() {
+  state.data = computeCompound(
+    state.principal,
+    state.rate,
+    state.years,
+    state.freq,
+    state.monthly,
+    state.inflation
+  );
+  updateDataPanel();
+  draw();
+}
+
+// ====== 动画循环 ======
+function animate(now) {
+  const dt = (now - state.lastFrame) / 1000 || 0.016;
+  state.lastFrame = now;
+  state.fps = Math.round(1 / dt);
+
+  // 播放逻辑
+  if (state.isPlaying) {
+    state.playYear += dt * state.playSpeed;
+    if (state.playYear >= state.years) {
+      state.playYear = state.years;
+      state.isPlaying = false;
+      updatePlayButton();
+    }
+    updateDataPanel();
+  }
+
+  draw();
+  animateNumbers();
+
+  document.getElementById('fpsTag').textContent = state.fps + ' FPS';
+
+  requestAnimationFrame(animate);
+}
+
+// ====== 播放按钮 ======
+function updatePlayButton() {
+  const icon = document.getElementById('playIcon');
+  if (state.isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+  }
+}
+
+// ====== 悬停交互 ======
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  const w = rect.width;
+  const h = rect.height;
+  const padLeft = 60;
+  const padRight = 30;
+  const padTop = 100;
+  const padBottom = 50;
+  const chartW = w - padLeft - padRight;
+  const chartH = h - padTop - padBottom;
+
+  if (mx < padLeft || mx > w - padRight || my < padTop || my > h - padBottom) {
+    tooltip.classList.remove('visible');
+    return;
+  }
+
+  const year = Math.round(((mx - padLeft) / chartW) * state.years);
+  const clampedYear = Math.max(0, Math.min(state.years, year));
+  const dataPoint = state.data[clampedYear];
+
+  if (!dataPoint) return;
+
+  document.getElementById('tooltipYear').textContent = '第 ' + clampedYear + ' 年';
+  document.getElementById('tooltipCompound').textContent = formatMoneyFull(dataPoint.compound, state.format);
+  document.getElementById('tooltipSimple').textContent = formatMoneyFull(dataPoint.simple, state.format);
+
+  const inflationRow = document.getElementById('tooltipInflationRow');
+  if (state.showInflation && state.inflation > 0) {
+    inflationRow.style.display = 'flex';
+    document.getElementById('tooltipInflation').textContent = formatMoneyFull(dataPoint.inflationAdjusted, state.format);
+  } else {
+    inflationRow.style.display = 'none';
+  }
+
+  // 定位 tooltip
+  let tx = mx + 14;
+  let ty = my - 60;
+  if (tx + 200 > w) tx = mx - 210;
+  if (ty < 0) ty = my + 14;
+
+  tooltip.style.left = tx + 'px';
+  tooltip.style.top = ty + 'px';
+  tooltip.classList.add('visible');
+});
+
+canvas.addEventListener('mouseleave', () => {
+  tooltip.classList.remove('visible');
+});
+
+// ====== 滑块绑定 ======
+function bindSlider(sliderId, valueId, formatter, stateKey) {
+  const slider = document.getElementById(sliderId);
+  const valueEl = document.getElementById(valueId);
+
+  slider.addEventListener('input', (e) => {
+    let val;
+    if (stateKey === 'rate' || stateKey === 'inflation') {
+      val = parseFloat(e.target.value);
+      valueEl.textContent = val.toFixed(1) + '%';
+    } else if (stateKey === 'freq') {
+      val = e.target.value;
+    } else {
+      val = parseInt(e.target.value);
+      if (stateKey === 'principal' || stateKey === 'monthly') {
+        valueEl.textContent = '¥' + val.toLocaleString();
+      } else if (stateKey === 'years') {
+        valueEl.textContent = val + ' 年';
+      }
+    }
+    state[stateKey] = val;
+
+    // 如果改变了年限，重置播放
+    if (stateKey === 'years') {
+      state.playYear = 0;
+      state.isPlaying = false;
+      updatePlayButton();
+    }
+
+    // 自动开启相关显示
+    if (stateKey === 'monthly' && val > 0) {
+      state.showMonthly = true;
+      updateToggles();
+    }
+    if (stateKey === 'inflation' && val > 0) {
+      state.showInflation = true;
+      updateToggles();
+    }
+
+    recalculate();
+  });
+}
+
+bindSlider('principalSlider', 'principalVal', null, 'principal');
+bindSlider('rateSlider', 'rateVal', null, 'rate');
+bindSlider('yearsSlider', 'yearsVal', null, 'years');
+bindSlider('monthlySlider', 'monthlyVal', null, 'monthly');
+bindSlider('inflationSlider', 'inflationVal', null, 'inflation');
+
+// 复利频率
+document.getElementById('freqSelect').addEventListener('change', (e) => {
+  state.freq = e.target.value === 'continuous' ? 'continuous' : parseInt(e.target.value);
+  recalculate();
+});
+
+// 显示格式
+document.getElementById('formatSelect').addEventListener('change', (e) => {
+  state.format = e.target.value;
+  recalculate();
+});
+
+// ====== 显示选项 toggle ======
+function updateToggles() {
+  document.querySelectorAll('.ci-toggle').forEach(btn => {
+    const key = btn.dataset.toggle;
+    const stateKey = 'show' + key.charAt(0).toUpperCase() + key.slice(1);
+    btn.classList.toggle('active', state[stateKey]);
+  });
+}
+
+document.querySelectorAll('.ci-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.toggle;
+    const stateKey = 'show' + key.charAt(0).toUpperCase() + key.slice(1);
+    state[stateKey] = !state[stateKey];
+    btn.classList.toggle('active', state[stateKey]);
+
+    // 通胀 toggle 开启时，如果通胀率为0，设置默认3%
+    if (key === 'inflation' && state.showInflation && state.inflation === 0) {
+      state.inflation = 3;
+      document.getElementById('inflationSlider').value = 3;
+      document.getElementById('inflationVal').textContent = '3.0%';
+    }
+
+    recalculate();
+  });
+});
+
+// ====== 预设 ======
+const presets = {
+  '1': { principal: 100000, rate: 20, years: 30, monthly: 0, inflation: 0, freq: 1, showSimple: true, showDoubling: true, showInflation: false, showMonthly: false },
+  '2': { principal: 500000, rate: 3, years: 10, monthly: 0, inflation: 0, freq: 1, showSimple: true, showDoubling: false, showInflation: false, showMonthly: false },
+  '3': { principal: 10000, rate: 8, years: 30, monthly: 1000, inflation: 0, freq: 12, showSimple: true, showDoubling: false, showInflation: false, showMonthly: true },
+  '4': { principal: 200000, rate: 5, years: 25, monthly: 0, inflation: 3, freq: 1, showSimple: true, showDoubling: false, showInflation: true, showMonthly: false },
+  '5': { principal: 100000, rate: 8, years: 20, monthly: 0, inflation: 0, freq: 365, showSimple: true, showDoubling: true, showInflation: false, showMonthly: false },
+};
+
+document.querySelectorAll('.ci-preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const preset = presets[btn.dataset.preset];
+    if (!preset) return;
+
+    document.querySelectorAll('.ci-preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // 应用参数
+    Object.assign(state, preset);
+
+    // 更新 UI
+    document.getElementById('principalSlider').value = preset.principal;
+    document.getElementById('principalVal').textContent = '¥' + preset.principal.toLocaleString();
+    document.getElementById('rateSlider').value = preset.rate;
+    document.getElementById('rateVal').textContent = preset.rate.toFixed(1) + '%';
+    document.getElementById('yearsSlider').value = preset.years;
+    document.getElementById('yearsVal').textContent = preset.years + ' 年';
+    document.getElementById('monthlySlider').value = preset.monthly;
+    document.getElementById('monthlyVal').textContent = '¥' + preset.monthly.toLocaleString();
+    document.getElementById('inflationSlider').value = preset.inflation;
+    document.getElementById('inflationVal').textContent = preset.inflation.toFixed(1) + '%';
+    document.getElementById('freqSelect').value = preset.freq;
+
+    state.playYear = 0;
+    state.isPlaying = false;
+    updatePlayButton();
+    updateToggles();
+    recalculate();
+  });
+});
+
+// ====== 播放控制 ======
+document.getElementById('playBtn').addEventListener('click', () => {
+  if (state.playYear >= state.years) {
+    state.playYear = 0;
+  }
+  state.isPlaying = !state.isPlaying;
+  updatePlayButton();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  state.playYear = 0;
+  state.isPlaying = false;
+  updatePlayButton();
+  recalculate();
+});
+
+// 速度按钮
+document.querySelectorAll('.ci-speed-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ci-speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.playSpeed = parseInt(btn.dataset.speed);
+  });
+});
+
+// ====== 导航栏滚动 ======
+const navbar = document.getElementById('demoNavbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 初始化 ======
+window.addEventListener('DOMContentLoaded', () => {
+  resizeCanvas();
+  recalculate();
+
+  // 隐藏加载动画
+  setTimeout(() => {
+    document.getElementById('ciLoader').classList.add('hidden');
+  }, 600);
+
+  state.lastFrame = performance.now();
+  requestAnimationFrame(animate);
+});
+
+</script>
+
+</body>
+</html>

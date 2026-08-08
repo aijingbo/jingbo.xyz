@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>导数几何意义：割线到切线的极限 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css">
+<link rel="stylesheet" href="/assets/css/demo-framework.css">
+<style>
+  body{min-height:100vh;overflow-x:hidden}
+  .page-wrapper{padding-top:64px;min-height:100vh}
+
+  /* ---- Magazine layout ---- */
+  .magazine-layout{display:grid;grid-template-columns:38% 62%;gap:var(--spacer-48);max-width:1440px;margin:0 auto;padding:var(--spacer-48) var(--spacer-32);min-height:calc(100vh - 64px)}
+  body.has-info-bar .magazine-layout{padding-bottom:calc(var(--spacer-48) + 52px)}
+  .magazine-article{display:flex;flex-direction:column;gap:var(--spacer-24)}
+  .magazine-article-header{display:flex;flex-direction:column;gap:var(--spacer-12)}
+  .magazine-kicker{font-family:var(--font-mono);font-size:var(--fs-tiny);letter-spacing:.1em;color:#0d9488;text-transform:uppercase}
+  .magazine-title{font-family:var(--font-serif);font-size:clamp(26px,3vw,34px);font-weight:700;line-height:1.25;color:var(--text)}
+  .magazine-subtitle{font-size:var(--fs-body);color:var(--text-muted);line-height:var(--lh-relaxed);font-style:italic;font-family:var(--font-serif)}
+  .magazine-body{display:flex;flex-direction:column;gap:var(--spacer-16)}
+  .magazine-body p{font-size:var(--fs-body);line-height:1.8;color:var(--text)}
+  .magazine-body p.lead{font-size:16px;font-weight:500;line-height:1.7}
+
+  /* ---- Step indicator ---- */
+  .step-indicator{display:flex;align-items:center;gap:var(--spacer-12);margin:var(--spacer-16) 0}
+  .step-dots{display:flex;gap:var(--spacer-8)}
+  .step-dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:all .25s var(--ease);cursor:pointer}
+  .step-dot.active{background:#c2410c;transform:scale(1.3)}
+  .step-dot.completed{background:var(--text-faint)}
+  .step-label{font-family:var(--font-mono);font-size:var(--fs-tiny);color:var(--text-muted);letter-spacing:.05em}
+  .autoplay-btn{margin-left:auto;width:32px;height:32px;border:1px solid var(--border);border-radius:50%;background:var(--surface);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s var(--ease);flex-shrink:0}
+  .autoplay-btn:hover{border-color:#c2410c;color:#c2410c}
+  .autoplay-btn.playing{background:#c2410c;border-color:#c2410c;color:#fff}
+  .autoplay-progress{height:2px;background:var(--border);border-radius:1px;margin-top:4px;overflow:hidden}
+  .autoplay-progress-bar{height:100%;width:0;background:#c2410c;transition:width .1s linear}
+
+  /* ---- Step nav ---- */
+  .step-nav{display:flex;gap:var(--spacer-12);margin-top:var(--spacer-8)}
+  .step-nav .btn{flex:1}
+  .step-content{opacity:1;transition:all .4s var(--ease)}
+  .step-content.fade-out{opacity:0;transform:translateY(8px)}
+  .step-content.fade-in{opacity:0;transform:translateY(-8px)}
+
+  /* ---- Article elements ---- */
+  .proof-step{display:flex;gap:var(--spacer-12);margin:var(--spacer-12) 0;padding:var(--spacer-12) var(--spacer-16);background:var(--surface-muted);border-radius:var(--radius)}
+  .proof-num{width:26px;height:26px;border-radius:50%;background:#c2410c;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-weight:700;font-size:13px;flex-shrink:0}
+  .proof-text{font-size:14px;line-height:1.7;color:var(--text)}
+  .theorem-box{background:linear-gradient(135deg,rgba(194,65,12,.04),rgba(194,65,12,.08));border:1px solid rgba(194,65,12,.15);border-radius:var(--radius-card);padding:var(--spacer-16) var(--spacer-20);margin:var(--spacer-12) 0}
+  .theorem-title{font-family:var(--font-serif);font-weight:700;font-size:15px;color:#c2410c;margin-bottom:var(--spacer-4)}
+  .theorem-text{font-size:14px;line-height:1.7;color:var(--text)}
+  .theorem-text .formula{font-family:var(--font-serif);font-size:16px;font-weight:600}
+  .formula-result{text-align:center;font-family:var(--font-serif);font-size:22px;font-weight:700;color:#c2410c;margin-top:var(--spacer-12);letter-spacing:.02em}
+  .history-card{display:flex;gap:var(--spacer-12);padding:var(--spacer-12);border-left:3px solid #c2410c;background:rgba(194,65,12,.03);border-radius:0 var(--radius) var(--radius) 0;margin:var(--spacer-8) 0}
+  .history-card .era{font-family:var(--font-mono);font-size:11px;color:#c2410c;font-weight:600;white-space:nowrap;padding-top:2px}
+  .history-card .desc{font-size:13px;line-height:1.6;color:var(--text-muted)}
+
+  /* ---- Visual area ---- */
+  .magazine-visual{display:flex;flex-direction:column;gap:var(--spacer-16)}
+  .visual-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-soft);position:relative}
+  .visual-wrapper svg{display:block;width:100%;height:auto}
+  .visual-caption{font-size:var(--fs-small);color:var(--text-muted);text-align:center;font-style:italic;font-family:var(--font-serif);padding:0 var(--spacer-8)}
+
+  /* ---- Formula display ---- */
+  .formula-display{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--spacer-16) var(--spacer-20);text-align:center}
+  .formula-main{font-family:var(--font-serif);font-size:clamp(18px,2.2vw,24px);font-weight:700;color:var(--text);margin-bottom:var(--spacer-4);letter-spacing:.02em}
+  .formula-main .hl{color:#c2410c}
+  .formula-main sub{font-size:.6em;vertical-align:sub}
+  .formula-main sup{font-size:.65em;vertical-align:super}
+  .formula-sub{font-size:var(--fs-small);color:var(--text-muted);font-family:var(--font-serif);font-style:italic}
+
+  /* ---- Slope comparison cards ---- */
+  .slope-cards{display:grid;grid-template-columns:1fr 1fr;gap:var(--spacer-8)}
+  .slope-card{background:var(--surface-muted);border-radius:var(--radius);padding:var(--spacer-12);text-align:center;transition:all .25s var(--ease);border:1px solid transparent}
+  .slope-card.secant{border-color:rgba(13,148,136,.15)}
+  .slope-card.tangent{border-color:rgba(194,65,12,.15)}
+  .slope-card .slope-label{font-size:11px;color:var(--text-muted);margin-bottom:4px}
+  .slope-card .slope-value{font-family:var(--font-mono);font-size:20px;font-weight:700}
+  .slope-card.secant .slope-value{color:#0d9488}
+  .slope-card.tangent .slope-value{color:#c2410c}
+  .slope-card .match-badge{font-size:10px;color:#c2410c;font-weight:600;margin-top:4px;opacity:0;transition:opacity .3s}
+  .slope-card.match{background:rgba(194,65,12,.06);animation:slopeMatch .6s var(--ease)}
+  .slope-card.match .match-badge{opacity:1}
+  @keyframes slopeMatch{0%{transform:scale(1)}30%{transform:scale(1.05);box-shadow:0 0 20px rgba(194,65,12,.2)}100%{transform:scale(1)}}
+
+  /* ---- Interactive controls ---- */
+  .interactive-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--spacer-16) var(--spacer-20)}
+  .control-row{display:flex;gap:var(--spacer-16);align-items:center;margin-bottom:var(--spacer-12)}
+  .control-group{flex:1;display:flex;flex-direction:column;gap:var(--spacer-4)}
+  .control-group label{font-size:var(--fs-tiny);color:var(--text-muted);font-weight:500}
+  .func-selector{display:flex;gap:var(--spacer-8);flex-wrap:wrap}
+  .func-btn{padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);font-family:var(--font-mono);font-size:13px;color:var(--text-muted);cursor:pointer;transition:all .2s var(--ease)}
+  .func-btn:hover{border-color:var(--text-faint);color:var(--text)}
+  .func-btn.active{background:rgba(194,65,12,.08);border-color:rgba(194,65,12,.3);color:#c2410c}
+  .slider-group{display:flex;flex-direction:column;gap:var(--spacer-4)}
+  .slider-header{display:flex;justify-content:space-between;align-items:center}
+  .slider-header span:first-child{font-size:var(--fs-tiny);color:var(--text-muted)}
+  .slider-header span:last-child{font-family:var(--font-mono);font-size:var(--fs-tiny);font-weight:600;color:#0d9488}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:var(--border);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:#c2410c;cursor:pointer;border:2px solid var(--surface);box-shadow:0 2px 6px rgba(0,0,0,.15)}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#c2410c;cursor:pointer;border:2px solid var(--surface)}
+  .animate-btn{padding:8px 18px;border:1px solid #c2410c;border-radius:var(--radius);background:rgba(194,65,12,.06);color:#c2410c;font-size:var(--fs-small);font-weight:500;cursor:pointer;transition:all .2s var(--ease);white-space:nowrap}
+  .animate-btn:hover{background:#c2410c;color:#fff}
+  .animate-btn.playing{background:#c2410c;color:#fff}
+
+  /* ---- Application cards ---- */
+  .app-cards{display:grid;grid-template-columns:1fr 1fr;gap:var(--spacer-12)}
+  .app-card{padding:var(--spacer-16);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);transition:all .25s var(--ease);cursor:default}
+  .app-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-soft);border-color:rgba(194,65,12,.2)}
+  .app-card .app-icon{width:36px;height:36px;border-radius:50%;background:rgba(194,65,12,.08);display:flex;align-items:center;justify-content:center;margin-bottom:var(--spacer-8)}
+  .app-card .app-icon svg{width:18px;height:18px;color:#c2410c}
+  .app-card .app-title{font-family:var(--font-serif);font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .app-card .app-desc{font-size:13px;color:var(--text-muted);line-height:1.6}
+  .app-card .app-formula{font-family:var(--font-mono);font-size:11px;color:#0d9488;margin-top:var(--spacer-4);padding-top:var(--spacer-4);border-top:1px solid var(--border-soft)}
+
+  /* ---- SVG animation ---- */
+  .appear{opacity:0;animation:appearIn .5s var(--ease) forwards}
+  @keyframes appearIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+  .label-appear{opacity:0;animation:lblIn .4s var(--ease) forwards}
+  @keyframes lblIn{from{opacity:0}to{opacity:1}}
+
+  /* ---- Drag handle ---- */
+  .drag-handle{cursor:ew-resize;transition:fill .2s}
+  .drag-handle:hover{fill:rgba(194,65,12,.2)}
+  .drag-hint{font-size:11px;fill:#a3a3a3;font-family:var(--font-mono);text-anchor:middle}
+
+  /* ---- Info bar ---- */
+  .demo-info-bar{position:fixed;bottom:0;left:0;right:0;z-index:50;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 var(--spacer-24);background:rgba(243,239,233,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border)}
+  .demo-info-left{display:flex;align-items:center;gap:var(--spacer-12)}
+  .demo-info-title{font-family:var(--font-serif);font-size:13px;font-weight:600;color:var(--text)}
+  .demo-tech-tag{display:inline-flex;padding:2px 8px;font-size:10px;font-weight:500;border-radius:99px;background:var(--surface-muted);color:var(--text-muted);border:1px solid var(--border-soft)}
+  .demo-info-right{display:flex;align-items:center;gap:var(--spacer-8)}
+  .demo-info-link{color:var(--text-muted);text-decoration:none;font-size:11px;font-weight:500;transition:color .15s}
+  .demo-info-link:hover{color:#c2410c}
+
+  /* ---- Responsive ---- */
+  @media(max-width:1024px){
+    .magazine-layout{grid-template-columns:1fr;gap:var(--spacer-32)}
+    .demo-nav-center{display:none}
+  }
+  @media(max-width:768px){
+    .magazine-layout{padding:var(--spacer-24) var(--spacer-16)}
+    .demo-nav-right .tag{display:none}
+    .formula-main{font-size:18px}
+    .interactive-panel{padding:var(--spacer-12)}
+    .control-row{flex-direction:column;gap:var(--spacer-8);align-items:stretch}
+    .app-cards{grid-template-columns:1fr}
+    .slope-cards{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== Navbar ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">数学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">导数几何意义：割线到切线的极限</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-math">数学</span>
+    <a href="/skills/jingbo-edu-advanced-calculus-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== Main ====== -->
+<div class="framework-magazine">
+  <div class="page-wrapper">
+    <div class="magazine-layout">
+
+      <!-- ====== Left: Article ====== -->
+      <div class="magazine-article">
+        <div class="magazine-article-header">
+          <div class="magazine-kicker">MATHEMATICS · 微积分</div>
+          <h1 class="magazine-title">割线到切线<br>的极限之旅</h1>
+          <p class="magazine-subtitle">当两个点无限靠近，割线变成了切线——这就是导数的几何直觉。</p>
+        </div>
+
+        <div class="step-indicator">
+          <div class="step-dots" id="stepDots">
+            <div class="step-dot active" data-step="0"></div>
+            <div class="step-dot" data-step="1"></div>
+            <div class="step-dot" data-step="2"></div>
+            <div class="step-dot" data-step="3"></div>
+            <div class="step-dot" data-step="4"></div>
+          </div>
+          <span class="step-label" id="stepLabel">第 1 / 5 步</span>
+          <button class="autoplay-btn" id="autoplayBtn" title="自动播放">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+        </div>
+        <div class="autoplay-progress" id="autoplayProgress" style="display:none">
+          <div class="autoplay-progress-bar" id="autoplayBar"></div>
+        </div>
+
+        <div class="magazine-body">
+          <div class="step-content" id="stepContent"></div>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn btn-secondary" id="prevBtn"><span>←</span> 上一步</button>
+          <button class="btn btn-primary" id="nextBtn">下一步 <span>→</span></button>
+        </div>
+      </div>
+
+      <!-- ====== Right: Visual ====== -->
+      <div class="magazine-visual">
+        <div class="visual-wrapper" id="visualWrapper">
+          <svg id="viz" viewBox="0 0 700 480" width="100%" height="auto" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+        <p class="visual-caption" id="visualCaption">每一点的切线斜率不同——导数描述了"变化"本身</p>
+
+        <div class="formula-display" id="formulaDisplay">
+          <div class="formula-main" id="formulaMain">f<sup>'</sup>(x) = 切线斜率</div>
+          <div class="formula-sub" id="formulaSub">不同点对应不同斜率</div>
+        </div>
+
+        <div class="slope-cards" id="slopeCards" style="display:none">
+          <div class="slope-card secant">
+            <div class="slope-label">割线斜率</div>
+            <div class="slope-value" id="slopeSecant">3.000</div>
+            <div class="match-badge">✓ 重合于切线</div>
+          </div>
+          <div class="slope-card tangent">
+            <div class="slope-label">切线斜率</div>
+            <div class="slope-value" id="slopeTangent">2.000</div>
+            <div class="match-badge">✓ 重合于割线</div>
+          </div>
+        </div>
+
+        <div class="interactive-panel" id="interactivePanel" style="display:none">
+          <div class="control-row" id="funcSelectorRow" style="display:none">
+            <div class="control-group">
+              <label>选择函数</label>
+              <div class="func-selector">
+                <button class="func-btn active" data-func="x2">f(x) = x²</button>
+                <button class="func-btn" data-func="x3">f(x) = x³</button>
+                <button class="func-btn" data-func="sin">f(x) = sin(x)</button>
+              </div>
+            </div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Δx（拖动让 Q 趋近 P）</span>
+              <span id="deltaXValue">1.00</span>
+            </div>
+            <input type="range" id="deltaXSlider" min="-2" max="2" step="0.01" value="1">
+          </div>
+          <button class="animate-btn" id="animateBtn" style="margin-top:12px">▶ 动画演示：割线趋近切线</button>
+        </div>
+
+        <div class="app-cards" id="appCards" style="display:none">
+          <div class="app-card">
+            <div class="app-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="app-title">瞬时速度</div>
+            <div class="app-desc">位移对时间的导数就是速度。速度计的每一次跳动，都在算导数。</div>
+            <div class="app-formula">v = ds/dt</div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+            </div>
+            <div class="app-title">边际成本</div>
+            <div class="app-desc">总成本对产量的导数。多生产一件产品，成本增加多少？</div>
+            <div class="app-formula">MC = dC/dQ</div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <div class="app-title">种群增长</div>
+            <div class="app-desc">种群数量对时间的导数。预测明天会有多少细菌？</div>
+            <div class="app-formula">r = dN/dt</div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L4 14h6l-2 8 10-12h-6l2-8z"/></svg>
+            </div>
+            <div class="app-title">梯度下降</div>
+            <div class="app-desc">沿导数反方向走，找到函数最小值。这是深度学习的核心算法。</div>
+            <div class="app-formula">θ ← θ − η·∇J(θ)</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== Info bar ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">S116 · 导数几何意义讲解生成器</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">交互式</span>
+  </div>
+  <div class="demo-info-right">
+    <a href="/skills/jingbo-edu-advanced-calculus-v0.1.html" class="demo-info-link">查看源码 →</a>
+  </div>
+</footer>
+
+<script>
+"use strict";
+
+/* ============================================================
+   导数几何意义：割线到切线的极限
+   杂志讲解型 · 5 步交互式可视化
+   ============================================================ */
+
+const SVG_W = 700, SVG_H = 480;
+const svg = document.getElementById('viz');
+
+const COL = {
+  grid: '#eeeae3',
+  axis: '#b8b0a4',
+  axisLabel: '#78716c',
+  curve: '#1a1a1a',
+  curveFill: 'rgba(26,26,26,0.03)',
+  secant: '#0d9488',
+  secantSoft: 'rgba(13,148,136,0.12)',
+  tangent: '#c2410c',
+  tangentSoft: 'rgba(194,65,12,0.06)',
+  pointP: '#c2410c',
+  pointQ: '#0d9488',
+  triangle: 'rgba(13,148,136,0.08)',
+  label: '#1a1a1a',
+  muted: '#78716c',
+  hint: '#a3a3a3',
+  white: '#ffffff'
+};
+
+/* ---- Function definitions ---- */
+const FUNCTIONS = {
+  'x2': {
+    fn: x => x * x,
+    deriv: x => 2 * x,
+    label: 'x²',
+    derivLabel: '2x',
+    xRange: [-0.4, 2.6],
+    yRange: [-0.6, 5.0],
+    defaultPoint: 1
+  },
+  'x3': {
+    fn: x => x * x * x,
+    deriv: x => 3 * x * x,
+    label: 'x³',
+    derivLabel: '3x²',
+    xRange: [-1.3, 1.4],
+    yRange: [-2.2, 2.8],
+    defaultPoint: 0.8
+  },
+  'sin': {
+    fn: x => Math.sin(x),
+    deriv: x => Math.cos(x),
+    label: 'sin(x)',
+    derivLabel: 'cos(x)',
+    xRange: [-0.5, 7.0],
+    yRange: [-1.35, 1.35],
+    defaultPoint: 1.5
+  }
+};
+
+/* ---- State ---- */
+let currentFunc = 'x2';
+let pointX = 1;
+let deltaX = 1;
+let cs = { ox: 0, oy: 0, sx: 1, sy: 1 };
+let curStep = 0;
+let animatingDx = false;
+let playing = false;
+
+/* ---- Coordinate system ---- */
+function computeCoordSys(xRange, yRange) {
+  const PAD_X = 55, PAD_Y = 30;
+  const sx = (SVG_W - 2 * PAD_X) / (xRange[1] - xRange[0]);
+  const sy = (SVG_H - 2 * PAD_Y) / (yRange[1] - yRange[0]);
+  const ox = PAD_X - xRange[0] * sx;
+  const oy = PAD_Y + yRange[1] * sy;
+  return { ox, oy, sx, sy };
+}
+function mx(x) { return cs.ox + x * cs.sx; }
+function my(y) { return cs.oy - y * cs.sy; }
+
+function setFunction(key) {
+  currentFunc = key;
+  const f = FUNCTIONS[key];
+  cs = computeCoordSys(f.xRange, f.yRange);
+  pointX = f.defaultPoint;
+  document.querySelectorAll('.func-btn').forEach(b => b.classList.toggle('active', b.dataset.func === key));
+}
+
+/* ---- SVG drawing utilities ---- */
+function drawGrid(f) {
+  const xMin = f.xRange[0], xMax = f.xRange[1];
+  const yMin = f.yRange[0], yMax = f.yRange[1];
+  let lines = '';
+  for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+    const sx = mx(x);
+    lines += `<line x1="${sx}" y1="${my(yMin)}" x2="${sx}" y2="${my(yMax)}" stroke="${COL.grid}" stroke-width="1"/>`;
+  }
+  for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
+    const sy = my(y);
+    lines += `<line x1="${mx(xMin)}" y1="${sy}" x2="${mx(xMax)}" y2="${sy}" stroke="${COL.grid}" stroke-width="1"/>`;
+  }
+  return lines;
+}
+
+function drawAxes(f) {
+  const xMin = f.xRange[0], xMax = f.xRange[1];
+  const yMin = f.yRange[0], yMax = f.yRange[1];
+  let html = '';
+  if (yMin <= 0 && yMax >= 0) {
+    html += `<line x1="${mx(xMin)}" y1="${my(0)}" x2="${mx(xMax)}" y2="${my(0)}" stroke="${COL.axis}" stroke-width="1.5"/>`;
+  }
+  if (xMin <= 0 && xMax >= 0) {
+    html += `<line x1="${mx(0)}" y1="${my(yMin)}" x2="${mx(0)}" y2="${my(yMax)}" stroke="${COL.axis}" stroke-width="1.5"/>`;
+  }
+  if (xMin <= 0 && xMax >= 0 && yMin <= 0 && yMax >= 0) {
+    html += `<text x="${mx(0) - 14}" y="${my(0) + 16}" fill="${COL.axisLabel}" font-size="11" font-family="'JetBrains Mono',monospace">O</text>`;
+  }
+  html += `<text x="${mx(xMax) - 8}" y="${my(Math.max(0, yMin)) + 20}" fill="${COL.axisLabel}" font-size="13" font-family="'Noto Serif SC',serif" font-style="italic">x</text>`;
+  html += `<text x="${mx(Math.max(0, xMin)) + 8}" y="${my(yMax) + 16}" fill="${COL.axisLabel}" font-size="13" font-family="'Noto Serif SC',serif" font-style="italic">y</text>`;
+  return html;
+}
+
+function curvePath(fn, xMin, xMax, steps = 120) {
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const x = xMin + (xMax - xMin) * i / steps;
+    pts.push(`${mx(x).toFixed(1)},${my(fn(x)).toFixed(1)}`);
+  }
+  return 'M ' + pts.join(' L ');
+}
+
+function drawCurve(f, opts = {}) {
+  const xMin = f.xRange[0], xMax = f.xRange[1];
+  const path = curvePath(f.fn, xMin, xMax, 150);
+  const width = opts.width || 2.5;
+  const color = opts.color || COL.curve;
+  return `<path d="${path}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+
+function drawSecantLine(f, px, dx, opts = {}) {
+  const qx = px + dx;
+  const py = f.fn(px), qy = f.fn(qx);
+  const slope = dx !== 0 ? (qy - py) / dx : f.deriv(px);
+  const ext = opts.ext || 0.6;
+  const x1 = px - ext;
+  const y1 = py + slope * (x1 - px);
+  const x2 = qx + ext;
+  const y2 = qy + slope * (x2 - qx);
+  const dash = Math.abs(dx) < 0.08 ? '0' : '7,4';
+  const op = Math.abs(dx) < 0.04 ? 0 : 0.8;
+  return `<line x1="${mx(x1).toFixed(1)}" y1="${my(y1).toFixed(1)}" x2="${mx(x2).toFixed(1)}" y2="${my(y2).toFixed(1)}" stroke="${COL.secant}" stroke-width="2" stroke-dasharray="${dash}" opacity="${op}"/>`;
+}
+
+function drawTangentLine(f, px, opts = {}) {
+  const py = f.fn(px);
+  const slope = f.deriv(px);
+  const ext = opts.ext || 1.0;
+  const x1 = px - ext;
+  const y1 = py + slope * (x1 - px);
+  const x2 = px + ext;
+  const y2 = py + slope * (x2 - px);
+  const opacity = opts.opacity !== undefined ? opts.opacity : 0.9;
+  return `<line x1="${mx(x1).toFixed(1)}" y1="${my(y1).toFixed(1)}" x2="${mx(x2).toFixed(1)}" y2="${my(y2).toFixed(1)}" stroke="${COL.tangent}" stroke-width="${opts.width || 2.5}" opacity="${opacity}"/>`;
+}
+
+function drawTriangle(f, px, dx) {
+  const qx = px + dx;
+  const py = f.fn(px), qy = f.fn(qx);
+  const dy = qy - py;
+  let html = `<polygon points="${mx(px).toFixed(1)},${my(py).toFixed(1)} ${mx(qx).toFixed(1)},${my(py).toFixed(1)} ${mx(qx).toFixed(1)},${my(qy).toFixed(1)}" fill="${COL.triangle}" stroke="${COL.secant}" stroke-width="1" opacity="0.5"/>`;
+  html += `<text x="${((mx(px)+mx(qx))/2).toFixed(1)}" y="${(my(py)+18).toFixed(1)}" fill="${COL.secant}" font-size="12" text-anchor="middle" font-family="'JetBrains Mono',monospace">Δx=${dx.toFixed(2)}</text>`;
+  const midY = (my(py) + my(qy)) / 2;
+  html += `<text x="${(mx(qx)+10).toFixed(1)}" y="${midY.toFixed(1)}" fill="${COL.secant}" font-size="12" font-family="'JetBrains Mono',monospace">Δy=${dy.toFixed(2)}</text>`;
+  return html;
+}
+
+function drawPoint(x, y, color, label, opts = {}) {
+  let html = '';
+  if (opts.draggable) {
+    html += `<circle cx="${mx(x).toFixed(1)}" cy="${my(y).toFixed(1)}" r="14" fill="rgba(194,65,12,0.06)" stroke="${color}" stroke-width="1.5" class="drag-handle" data-point="P"/>`;
+  }
+  html += `<circle cx="${mx(x).toFixed(1)}" cy="${my(y).toFixed(1)}" r="6" fill="${color}" stroke="${COL.white}" stroke-width="2"/>`;
+  if (label) {
+    const lx = opts.labelX !== undefined ? opts.labelX : 14;
+    const ly = opts.labelY !== undefined ? opts.labelY : -12;
+    html += `<text x="${(mx(x)+lx).toFixed(1)}" y="${(my(y)+ly).toFixed(1)}" fill="${color}" font-size="15" font-weight="700" font-family="'Noto Serif SC',serif">${label}</text>`;
+  }
+  return html;
+}
+
+/* ---- Step content ---- */
+const steps = [
+  {
+    title: '瞬间的秘密',
+    html: `
+      <p class="lead">速度计指针指向 60 km/h——这是"此刻"的速度。但"此刻"没有时间长度，距离除以零时间，得到的是 0/0。这个看似无解的矛盾，正是微积分的起点。</p>
+      <div class="history-card"><span class="era">公元前300年</span><span class="desc">阿基米德用"穷竭法"逼近曲线面积——极限思想的萌芽</span></div>
+      <div class="history-card"><span class="era">1665年</span><span class="desc">牛顿在乡间躲避瘟疫时发明了"流数术"，即早期的导数</span></div>
+      <div class="history-card"><span class="era">1675年</span><span class="desc">莱布尼茨独立发展出微积分符号体系，沿用至今</span></div>
+      <div class="theorem-box">
+        <div class="theorem-title">核心问题</div>
+        <div class="theorem-text">如何定义一个函数在某一点的<strong>瞬时变化率</strong>？<br>这一点本身没有"宽度"——但变化确实在发生。</div>
+      </div>
+      <p style="color:#c2410c;font-weight:500;font-style:italic;font-family:var(--font-serif)">→ 右侧：曲线上不同点的切线斜率不同——导数描述的就是这种"变化"。</p>
+    `
+  },
+  {
+    title: '割线：平均的视角',
+    html: `
+      <p class="lead">既然"瞬时"无法直接计算，先用两点间的"平均"来逼近。在曲线上取两个点 P 和 Q，连一条割线——它的斜率，就是两点间的平均变化率。</p>
+      <div class="proof-step">
+        <div class="proof-num">1</div>
+        <div class="proof-text">取 f(x) = x²，在曲线上取 P(1, 1) 和 Q(2, 4)</div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">2</div>
+        <div class="proof-text">连接 P 和 Q，得到割线。割线斜率 = 平均变化率</div>
+      </div>
+      <div class="theorem-box">
+        <div class="theorem-title">割线斜率</div>
+        <div class="theorem-text">
+          <span class="formula">k = Δy / Δx = [f(2) − f(1)] / (2 − 1) = (4 − 1) / 1 = 3</span><br><br>
+          平均而言，从 P 到 Q，每变化 1 单位 x，y 增加 3。
+        </div>
+      </div>
+      <p>但 P 点的"瞬时变化率"真的是 3 吗？显然不是——割线太粗糙了。Q 距 P 越远，平均值越偏离瞬时值。</p>
+      <p style="color:#c2410c;font-weight:500;font-style:italic;font-family:var(--font-serif)">→ 如果让 Q 沿着曲线靠近 P 呢？</p>
+    `
+  },
+  {
+    title: '让 Q 走向 P',
+    html: `
+      <p class="lead">关键一步：让 Q 沿着曲线向 P 靠近。割线会怎样变化？它开始旋转——最终重合于一条特殊的直线：切线。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">导数的定义</div>
+        <div class="theorem-text">
+          <span class="formula">f'(a) = lim<sub style="font-size:.6em">Δx→0</sub> [f(a+Δx) − f(a)] / Δx</span><br><br>
+          当 Δx 趋近于 0，割线斜率趋近于一个确定的值——<strong>这就是导数</strong>。
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">→</div>
+        <div class="proof-text">
+          对 f(x) = x²，a = 1：<br>
+          [(1+Δx)² − 1] / Δx = [1 + 2Δx + Δx² − 1] / Δx = (2Δx + Δx²) / Δx = <strong>2 + Δx</strong>
+        </div>
+      </div>
+      <div class="theorem-box">
+        <div class="theorem-title">极限时刻</div>
+        <div class="theorem-text">
+          当 Δx → 0 时：2 + Δx → <strong>2</strong><br>
+          所以 f'(1) = 2。这就是切线的斜率。
+        </div>
+      </div>
+      <p style="color:#c2410c;font-weight:500;font-style:italic;font-family:var(--font-serif)">→ 拖动右侧滑块，亲眼看着割线旋转到切线位置。当 Δx 接近 0，两条线几乎重合。</p>
+    `
+  },
+  {
+    title: '亲手验证',
+    html: `
+      <p class="lead">纸上得来终觉浅。换一个函数，拖动 P 点到任意位置，调整 Δx——看看割线斜率是否总是趋近于导数值。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">通用公式</div>
+        <div class="theorem-text">
+          <span class="formula">f'(x₀) = lim<sub style="font-size:.6em">Δx→0</sub> [f(x₀+Δx) − f(x₀)] / Δx</span><br><br>
+          无论函数是什么，无论在哪一点，这个极限都给出该点的瞬时变化率。
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">1</div>
+        <div class="proof-text">选择不同函数（x²、x³、sin x）</div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">2</div>
+        <div class="proof-text">拖动橙色 P 点到任意位置</div>
+      </div>
+      <div class="proof-step">
+        <div class="proof-num">3</div>
+        <div class="proof-text">调整 Δx 滑块，观察割线趋近切线</div>
+      </div>
+      <p style="color:#c2410c;font-weight:500;font-style:italic;font-family:var(--font-serif)">→ 当 |Δx| < 0.05 时，割线与切线几乎重合——这就是极限的力量。</p>
+    `
+  },
+  {
+    title: '导数的世界',
+    html: `
+      <p class="lead">从牛顿的运动定律到 AI 的梯度下降，从经济学的边际成本到生物学的种群增长率——导数是描述"变化"的通用语言。</p>
+      <div class="theorem-box">
+        <div class="theorem-title">导数的本质</div>
+        <div class="theorem-text">
+          导数不仅是一个数学公式，它是一种<strong>世界观</strong>：用"瞬时变化率"理解和预测世界。<br><br>
+          凡是有"变化"的地方，就有导数的身影。
+        </div>
+      </div>
+      <p>右侧展示了导数在四个领域中的应用。每一个应用背后，都是同一个简单的思想：在无限小的时间间隔里，变化量与时间之比。</p>
+      <p style="color:#c2410c;font-weight:500;font-style:italic;font-family:var(--font-serif)">→ 导数不只是数学公式——它是理解和改变世界的工具。</p>
+    `
+  }
+];
+
+const captions = [
+  '曲线上不同点的切线斜率不同——导数描述了"变化"本身',
+  '割线连接两点 P 和 Q，斜率 = Δy / Δx = 平均变化率',
+  '拖动 Δx 滑块，看割线如何旋转趋近切线',
+  '选择函数、拖动 P 点、调整 Δx——亲手验证导数',
+  '导数在速度、经济、生物、AI 等领域的应用'
+];
+
+/* ---- Step drawing ---- */
+function drawStep1() {
+  const f = FUNCTIONS['x2'];
+  cs = computeCoordSys(f.xRange, f.yRange);
+
+  const tPoints = [0.5, 1.0, 1.5, 2.0];
+  let tangentHtml = '';
+  tPoints.forEach((px, i) => {
+    const py = f.fn(px);
+    const slope = f.deriv(px);
+    const ext = 0.7;
+    const x1 = px - ext, y1 = py + slope * (x1 - px);
+    const x2 = px + ext, y2 = py + slope * (x2 - px);
+    const op = 0.35 + i * 0.18;
+    tangentHtml += `
+      <line x1="${mx(x1).toFixed(1)}" y1="${my(y1).toFixed(1)}" x2="${mx(x2).toFixed(1)}" y2="${my(y2).toFixed(1)}"
+            stroke="${COL.tangent}" stroke-width="2" opacity="${op}"
+            class="appear" style="animation-delay:${i*0.3}s"/>
+      <circle cx="${mx(px).toFixed(1)}" cy="${my(py).toFixed(1)}" r="5" fill="${COL.tangent}" opacity="${op+0.3}"
+              class="appear" style="animation-delay:${i*0.3+0.1}s"/>
+      <text x="${(mx(px)+8).toFixed(1)}" y="${(my(py)-12).toFixed(1)}" fill="${COL.tangent}" font-size="12"
+            font-family="'JetBrains Mono',monospace" font-weight="600" opacity="${op+0.3}"
+            class="label-appear" style="animation-delay:${i*0.3+0.2}s">k=${slope.toFixed(1)}</text>
+    `;
+  });
+
+  svg.innerHTML = `
+    ${drawGrid(f)}
+    ${drawAxes(f)}
+    ${drawCurve(f)}
+    ${tangentHtml}
+    <text x="${(SVG_W/2).toFixed(1)}" y="${(SVG_H-12).toFixed(1)}" fill="${COL.hint}" font-size="13"
+          text-anchor="middle" font-family="'Noto Serif SC',serif" font-style="italic"
+          class="label-appear" style="animation-delay:1.4s">不同点 → 不同斜率 → 导数</text>
+  `;
+}
+
+function drawStep2() {
+  const f = FUNCTIONS['x2'];
+  cs = computeCoordSys(f.xRange, f.yRange);
+
+  const px = 1, dx = 1;
+  const qx = px + dx;
+  const py = f.fn(px), qy = f.fn(qx);
+
+  svg.innerHTML = `
+    ${drawGrid(f)}
+    ${drawAxes(f)}
+    ${drawCurve(f)}
+    ${drawSecantLine(f, px, dx, {ext: 0.8})}
+    ${drawTriangle(f, px, dx)}
+    ${drawPoint(px, py, COL.pointP, 'P', {labelY: -14})}
+    ${drawPoint(qx, qy, COL.pointQ, 'Q', {labelX: 14, labelY: -14})}
+  `;
+
+  document.getElementById('formulaMain').innerHTML = `k = <span class="hl">Δy/Δx</span> = [f(2) − f(1)] / 1 = 3`;
+  document.getElementById('formulaSub').textContent = '割线斜率 = 平均变化率';
+}
+
+function drawStep3() {
+  const f = FUNCTIONS['x2'];
+  cs = computeCoordSys(f.xRange, f.yRange);
+
+  const px = 1;
+  const dx = deltaX;
+  const qx = px + dx;
+  const py = f.fn(px);
+  const qy = f.fn(qx);
+  const secantSlope = dx !== 0 ? (qy - py) / dx : f.deriv(px);
+  const tangentSlope = f.deriv(px);
+
+  const showSecant = Math.abs(dx) > 0.03;
+  const showTriangle = Math.abs(dx) > 0.15;
+
+  svg.innerHTML = `
+    ${drawGrid(f)}
+    ${drawAxes(f)}
+    ${drawCurve(f)}
+    ${drawTangentLine(f, px, {ext: 1.2, opacity: 0.85})}
+    ${showSecant ? drawSecantLine(f, px, dx, {ext: 0.8}) : ''}
+    ${showTriangle ? drawTriangle(f, px, dx) : ''}
+    ${drawPoint(px, py, COL.pointP, 'P', {labelY: -14})}
+    ${showSecant ? drawPoint(qx, qy, COL.pointQ, 'Q', {labelX: 14, labelY: -14}) : ''}
+    ${!showSecant ? `<text x="${(mx(px)+16).toFixed(1)}" y="${(my(py)-20).toFixed(1)}" fill="${COL.tangent}" font-size="13" font-family="'Noto Serif SC',serif" font-weight="600" class="label-appear">Δx→0，割线=切线</text>` : ''}
+  `;
+
+  document.getElementById('slopeSecant').textContent = secantSlope.toFixed(3);
+  document.getElementById('slopeTangent').textContent = tangentSlope.toFixed(3);
+  const match = Math.abs(secantSlope - tangentSlope) < 0.08;
+  document.querySelectorAll('.slope-card').forEach(c => c.classList.toggle('match', match));
+
+  const dxDisplay = Math.abs(dx) < 0.03 ? (dx >= 0 ? '→ 0⁺' : '→ 0⁻') : dx.toFixed(2);
+  document.getElementById('deltaXValue').textContent = dxDisplay;
+  document.getElementById('deltaXValue').style.color = Math.abs(dx) < 0.03 ? '#c2410c' : '#0d9488';
+
+  document.getElementById('formulaMain').innerHTML = `割线斜率 = 2 + Δx = <span class="hl">${secantSlope.toFixed(3)}</span>`;
+  document.getElementById('formulaSub').textContent = match ? '✓ 当 Δx→0，割线斜率 → 切线斜率 = 2' : `切线斜率 f'(1) = 2`;
+}
+
+function drawStep4() {
+  const f = FUNCTIONS[currentFunc];
+  cs = computeCoordSys(f.xRange, f.yRange);
+
+  const px = pointX;
+  const dx = deltaX;
+  const qx = px + dx;
+  const py = f.fn(px);
+  const qy = f.fn(qx);
+  const secantSlope = dx !== 0 ? (qy - py) / dx : f.deriv(px);
+  const tangentSlope = f.deriv(px);
+
+  const showSecant = Math.abs(dx) > 0.03;
+  const showTriangle = Math.abs(dx) > 0.15;
+
+  svg.innerHTML = `
+    ${drawGrid(f)}
+    ${drawAxes(f)}
+    ${drawCurve(f)}
+    ${drawTangentLine(f, px, {ext: 1.0, opacity: 0.7})}
+    ${showSecant ? drawSecantLine(f, px, dx, {ext: 0.6}) : ''}
+    ${showTriangle ? drawTriangle(f, px, dx) : ''}
+    ${drawPoint(px, py, COL.pointP, 'P', {draggable: true, labelY: -14})}
+    ${showSecant ? drawPoint(qx, qy, COL.pointQ, 'Q', {labelX: 14, labelY: -14}) : ''}
+  `;
+
+  document.getElementById('slopeSecant').textContent = secantSlope.toFixed(3);
+  document.getElementById('slopeTangent').textContent = tangentSlope.toFixed(3);
+  const match = Math.abs(secantSlope - tangentSlope) < 0.08;
+  document.querySelectorAll('.slope-card').forEach(c => c.classList.toggle('match', match));
+
+  const dxDisplay = Math.abs(dx) < 0.03 ? (dx >= 0 ? '→ 0⁺' : '→ 0⁻') : dx.toFixed(2);
+  document.getElementById('deltaXValue').textContent = dxDisplay;
+  document.getElementById('deltaXValue').style.color = Math.abs(dx) < 0.03 ? '#c2410c' : '#0d9488';
+
+  document.getElementById('formulaMain').innerHTML = `f(x) = <span class="hl">${f.label}</span> → f'(x) = ${f.derivLabel}`;
+  document.getElementById('formulaSub').textContent = `x = ${px.toFixed(2)}，f'(${px.toFixed(2)}) = ${tangentSlope.toFixed(3)}`;
+
+  setupDrag();
+}
+
+function drawStep5() {
+  const f = FUNCTIONS['x2'];
+  cs = computeCoordSys(f.xRange, f.yRange);
+
+  const px = 1;
+  const py = f.fn(px);
+  const slope = f.deriv(px);
+
+  svg.innerHTML = `
+    ${drawGrid(f)}
+    ${drawAxes(f)}
+    ${drawCurve(f)}
+    ${drawTangentLine(f, px, {ext: 1.5, opacity: 0.5})}
+    <circle cx="${mx(px).toFixed(1)}" cy="${my(py).toFixed(1)}" r="6" fill="${COL.tangent}" stroke="${COL.white}" stroke-width="2" class="appear"/>
+    <text x="${(mx(px)+14).toFixed(1)}" y="${(my(py)-12).toFixed(1)}" fill="${COL.tangent}" font-size="14" font-weight="700" font-family="'Noto Serif SC',serif" class="label-appear">P</text>
+    <text x="${(mx(px)+14).toFixed(1)}" y="${(my(py)+6).toFixed(1)}" fill="${COL.muted}" font-size="11" font-family="'JetBrains Mono',monospace" class="label-appear" style="animation-delay:.2s">f'(1)=2</text>
+    <text x="${(SVG_W/2).toFixed(1)}" y="${(SVG_H-12).toFixed(1)}" fill="${COL.hint}" font-size="13" text-anchor="middle" font-family="'Noto Serif SC',serif" font-style="italic" class="label-appear" style="animation-delay:.4s">导数 = 瞬时变化率 = 切线斜率</text>
+  `;
+}
+
+function drawCurrentStep() {
+  switch (curStep) {
+    case 0: drawStep1(); break;
+    case 1: drawStep2(); break;
+    case 2: drawStep3(); break;
+    case 3: drawStep4(); break;
+    case 4: drawStep5(); break;
+  }
+}
+
+/* ---- Navigation ---- */
+const stepContent = document.getElementById('stepContent');
+const stepLabel = document.getElementById('stepLabel');
+const stepDots = document.querySelectorAll('.step-dot');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const captionEl = document.getElementById('visualCaption');
+const formulaDisplay = document.getElementById('formulaDisplay');
+const slopeCards = document.getElementById('slopeCards');
+const interactivePanel = document.getElementById('interactivePanel');
+const funcSelectorRow = document.getElementById('funcSelectorRow');
+const appCards = document.getElementById('appCards');
+const visualWrapper = document.getElementById('visualWrapper');
+
+function updateStep() {
+  stepContent.classList.add('fade-out');
+  setTimeout(() => {
+    const s = steps[curStep];
+    stepContent.innerHTML = `<h3 style="font-family:var(--font-serif);font-size:var(--fs-h2);margin-bottom:12px;color:var(--text)">${s.title}</h3>${s.html}`;
+    stepContent.classList.remove('fade-out');
+    stepContent.classList.add('fade-in');
+    setTimeout(() => stepContent.classList.remove('fade-in'), 400);
+  }, 200);
+
+  stepLabel.textContent = `第 ${curStep + 1} / ${steps.length} 步`;
+  stepDots.forEach((d, i) => {
+    d.classList.remove('active', 'completed');
+    if (i === curStep) d.classList.add('active');
+    else if (i < curStep) d.classList.add('completed');
+  });
+
+  prevBtn.disabled = curStep === 0;
+  prevBtn.style.opacity = curStep === 0 ? '0.4' : '1';
+  prevBtn.style.cursor = curStep === 0 ? 'not-allowed' : 'pointer';
+  nextBtn.innerHTML = curStep === steps.length - 1 ? '完成 ✓' : '下一步 <span>→</span>';
+
+  captionEl.textContent = captions[curStep];
+
+  // Panel visibility
+  formulaDisplay.style.display = (curStep === 0 || curStep === 4) ? 'none' : 'block';
+  slopeCards.style.display = (curStep === 2 || curStep === 3) ? 'grid' : 'none';
+  interactivePanel.style.display = (curStep === 2 || curStep === 3) ? 'block' : 'none';
+  funcSelectorRow.style.display = (curStep === 3) ? 'flex' : 'none';
+  appCards.style.display = (curStep === 4) ? 'grid' : 'none';
+  visualWrapper.style.display = (curStep === 4) ? 'block' : 'block';
+
+  // Reset to x2 for steps 0-2
+  if (curStep < 3 && currentFunc !== 'x2') {
+    setFunction('x2');
+  }
+
+  drawCurrentStep();
+}
+
+prevBtn.addEventListener('click', () => { if (curStep > 0) { curStep--; updateStep(); resetAutoplay(); } });
+nextBtn.addEventListener('click', () => { if (curStep < steps.length - 1) { curStep++; updateStep(); resetAutoplay(); } });
+stepDots.forEach(d => d.addEventListener('click', () => { const s = parseInt(d.dataset.step); if (s !== curStep) { curStep = s; updateStep(); resetAutoplay(); } }));
+
+/* ---- Keyboard navigation ---- */
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' && curStep > 0) { curStep--; updateStep(); resetAutoplay(); }
+  if (e.key === 'ArrowRight' && curStep < steps.length - 1) { curStep++; updateStep(); resetAutoplay(); }
+});
+
+/* ---- Δx slider ---- */
+const deltaXSlider = document.getElementById('deltaXSlider');
+const deltaXValue = document.getElementById('deltaXValue');
+
+deltaXSlider.addEventListener('input', () => {
+  let val = parseFloat(deltaXSlider.value);
+  if (Math.abs(val) < 0.03) {
+    val = val >= 0 ? 0.03 : -0.03;
+    deltaXSlider.value = val;
+  }
+  deltaX = val;
+  if (curStep === 2) drawStep3();
+  else if (curStep === 3) drawStep4();
+});
+
+/* ---- Function selector ---- */
+document.querySelectorAll('.func-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setFunction(btn.dataset.func);
+    if (curStep === 3) drawStep4();
+  });
+});
+
+/* ---- Animate Δx button ---- */
+const animateBtn = document.getElementById('animateBtn');
+
+animateBtn.addEventListener('click', () => {
+  if (animatingDx) {
+    animatingDx = false;
+    animateBtn.classList.remove('playing');
+    animateBtn.textContent = '▶ 动画演示：割线趋近切线';
+    return;
+  }
+  animatingDx = true;
+  animateBtn.classList.add('playing');
+  animateBtn.textContent = '⏸ 停止动画';
+  animateDeltaX();
+});
+
+function animateDeltaX() {
+  const startDx = deltaX > 0 ? Math.max(deltaX, 1.5) : Math.min(deltaX, -1.5);
+  const endDx = 0.03;
+  const duration = 4500;
+  const startTime = performance.now();
+
+  function frame(now) {
+    if (!animatingDx) return;
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    const eased = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+    deltaX = startDx + (endDx - startDx) * eased;
+    deltaXSlider.value = deltaX;
+    if (curStep === 2) drawStep3();
+    else if (curStep === 3) drawStep4();
+    if (t < 1 && animatingDx) {
+      requestAnimationFrame(frame);
+    } else {
+      animatingDx = false;
+      animateBtn.classList.remove('playing');
+      animateBtn.textContent = '▶ 动画演示：割线趋近切线';
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---- P point drag (step 4) ---- */
+let dragPoint = null;
+
+function setupDrag() {
+  const handles = svg.querySelectorAll('.drag-handle');
+  handles.forEach(h => {
+    h.addEventListener('mousedown', startDrag);
+    h.addEventListener('touchstart', startDrag, { passive: false });
+  });
+}
+
+function startDrag(e) {
+  e.preventDefault();
+  dragPoint = e.currentTarget.dataset.point;
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('touchmove', onDrag, { passive: false });
+  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('touchend', endDrag);
+}
+
+function onDrag(e) {
+  if (!dragPoint) return;
+  e.preventDefault();
+  const rect = svg.getBoundingClientRect();
+  const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+  const svgX = (clientX - rect.left) * (SVG_W / rect.width);
+  const mathX = (svgX - cs.ox) / cs.sx;
+  const f = FUNCTIONS[currentFunc];
+  const xMin = f.xRange[0] + 0.2;
+  const xMax = f.xRange[1] - 0.2;
+  pointX = Math.max(xMin, Math.min(xMax, mathX));
+  if (curStep === 3) drawStep4();
+}
+
+function endDrag() {
+  dragPoint = null;
+  document.removeEventListener('mousemove', onDrag);
+  document.removeEventListener('touchmove', onDrag);
+  document.removeEventListener('mouseup', endDrag);
+  document.removeEventListener('touchend', endDrag);
+}
+
+/* ---- Autoplay ---- */
+let playTimer = null;
+let progressTimer = null;
+const PLAY_MS = 8000;
+const autoplayBtn = document.getElementById('autoplayBtn');
+const autoplayProgress = document.getElementById('autoplayProgress');
+const autoplayBar = document.getElementById('autoplayBar');
+
+autoplayBtn.addEventListener('click', () => {
+  if (playing) stopAutoplay();
+  else startAutoplay();
+});
+
+function startAutoplay() {
+  playing = true;
+  autoplayBtn.classList.add('playing');
+  autoplayBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>';
+  autoplayProgress.style.display = 'block';
+  autoplayBar.style.width = '0';
+  let elapsed = 0;
+  progressTimer = setInterval(() => {
+    elapsed += 50;
+    autoplayBar.style.width = (elapsed / PLAY_MS * 100) + '%';
+  }, 50);
+  playTimer = setTimeout(() => {
+    if (curStep < steps.length - 1) { curStep++; updateStep(); startAutoplay(); }
+    else { stopAutoplay(); }
+  }, PLAY_MS);
+}
+
+function stopAutoplay() {
+  playing = false;
+  autoplayBtn.classList.remove('playing');
+  autoplayBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  autoplayProgress.style.display = 'none';
+  clearTimeout(playTimer);
+  clearInterval(progressTimer);
+}
+
+function resetAutoplay() {
+  if (playing) { stopAutoplay(); }
+  if (animatingDx) {
+    animatingDx = false;
+    animateBtn.classList.remove('playing');
+    animateBtn.textContent = '▶ 动画演示：割线趋近切线';
+  }
+}
+
+/* ---- Navbar scroll ---- */
+window.addEventListener('scroll', () => {
+  document.getElementById('demoNavbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+/* ---- Init ---- */
+setFunction('x2');
+updateStep();
+</script>
+
+</body>
+</html>

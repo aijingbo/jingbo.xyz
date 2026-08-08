@@ -1,0 +1,2282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>化学反应平衡模拟器 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+/* ===== 化学平衡模拟器 专属样式 ===== */
+:root {
+  --chem-reactant-a: #2563eb;
+  --chem-reactant-a-light: #60a5fa;
+  --chem-reactant-a-soft: rgba(37, 99, 235, 0.12);
+  --chem-reactant-b: #0891b2;
+  --chem-reactant-b-light: #22d3ee;
+  --chem-reactant-b-soft: rgba(8, 145, 178, 0.12);
+  --chem-product: #dc2626;
+  --chem-product-light: #f87171;
+  --chem-product-soft: rgba(220, 38, 38, 0.12);
+  --chem-catalyst: #d97706;
+  --chem-catalyst-light: #fbbf24;
+  --chem-equilibrium: #059669;
+  --chem-equilibrium-soft: rgba(5, 150, 105, 0.12);
+  --chem-panel: #f3efe9;
+  --chem-panel-border: #e5ded4;
+  --chem-grid: #ede8e0;
+  --chem-axis: #c4bdb0;
+  --chem-instrument: #2d2a26;
+  --chem-instrument-soft: rgba(45, 42, 38, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: var(--font-sans);
+}
+
+/* ===== 主框架布局 ===== */
+.chem-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+  padding-top: 64px;
+}
+
+/* ===== 主显示区：左右分栏 ===== */
+.chem-display {
+  flex: 1;
+  display: flex;
+  gap: 1px;
+  background: var(--chem-panel-border);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ----- 左侧：粒子模拟容器 ----- */
+.chem-particle-panel {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  position: relative;
+  min-width: 0;
+}
+
+.chem-particle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--chem-panel);
+  border-bottom: 1px solid var(--chem-panel-border);
+  flex-shrink: 0;
+}
+
+.chem-equation {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chem-equation sub {
+  font-size: 0.65em;
+  vertical-align: sub;
+}
+
+.chem-equation .arrow {
+  color: var(--text-muted);
+  font-size: 18px;
+  margin: 0 4px;
+}
+
+.chem-direction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--chem-instrument-soft);
+  color: var(--text-muted);
+  transition: all var(--duration-fast) var(--ease);
+}
+
+.chem-direction-badge.forward {
+  background: var(--chem-reactant-a-soft);
+  color: var(--chem-reactant-a);
+}
+
+.chem-direction-badge.reverse {
+  background: var(--chem-product-soft);
+  color: var(--chem-product);
+}
+
+.chem-direction-badge.equilibrium {
+  background: var(--chem-equilibrium-soft);
+  color: var(--chem-equilibrium);
+}
+
+.chem-direction-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.5s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.chem-particle-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #faf8f5 0%, #f0ebe3 100%);
+}
+
+#particleCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 粒子图例 */
+.chem-particle-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  border: 1px solid var(--chem-panel-border);
+}
+
+.chem-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.chem-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ----- 右侧：数据图表区 ----- */
+.chem-chart-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  min-width: 0;
+}
+
+.chem-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--chem-panel);
+  border-bottom: 1px solid var(--chem-panel-border);
+  flex-shrink: 0;
+}
+
+.chem-chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chem-chart-title svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+}
+
+.chem-chart-toggles {
+  display: flex;
+  gap: 4px;
+}
+
+.chem-toggle-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--chem-panel-border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  letter-spacing: 0.02em;
+}
+
+.chem-toggle-btn:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.chem-toggle-btn.active {
+  background: var(--chem-instrument);
+  color: #fff;
+  border-color: var(--chem-instrument);
+}
+
+.chem-chart-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#chartCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 数据读数面板 */
+.chem-readouts {
+  display: flex;
+  gap: 1px;
+  background: var(--chem-panel-border);
+  border-top: 1px solid var(--chem-panel-border);
+  flex-shrink: 0;
+}
+
+.chem-readout {
+  flex: 1;
+  background: var(--chem-panel);
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chem-readout-label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.chem-readout-value {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.chem-readout-value.reactant { color: var(--chem-reactant-a); }
+.chem-readout-value.product { color: var(--chem-product); }
+.chem-readout-value.equilibrium { color: var(--chem-equilibrium); }
+
+.chem-readout-unit {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+/* ===== 控制面板 ===== */
+.chem-controls {
+  flex-shrink: 0;
+  background: var(--chem-panel);
+  border-top: 1px solid var(--chem-panel-border);
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.chem-controls::-webkit-scrollbar { height: 4px; }
+.chem-controls::-webkit-scrollbar-thumb { background: var(--chem-axis); border-radius: 2px; }
+
+/* 反应选择器 */
+.chem-reaction-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 16px;
+  border-right: 1px solid var(--chem-panel-border);
+  flex-shrink: 0;
+  min-width: 180px;
+}
+
+.chem-control-section-label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.chem-reaction-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--chem-panel-border);
+  background: var(--surface);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  white-space: nowrap;
+}
+
+.chem-reaction-btn:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.chem-reaction-btn.active {
+  background: var(--chem-instrument);
+  color: #fff;
+  border-color: var(--chem-instrument);
+}
+
+.chem-reaction-btn .rxn-num {
+  font-weight: 700;
+  opacity: 0.6;
+  font-size: 10px;
+}
+
+/* 滑块组 */
+.chem-sliders {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 16px;
+  border-right: 1px solid var(--chem-panel-border);
+  flex-shrink: 0;
+}
+
+.chem-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
+}
+
+.chem-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.chem-slider-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.chem-slider-label .species-a { color: var(--chem-reactant-a); font-weight: 600; }
+.chem-slider-label .species-b { color: var(--chem-reactant-b); font-weight: 600; }
+.chem-slider-label .species-c { color: var(--chem-product); font-weight: 600; }
+
+.chem-slider-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 36px;
+  text-align: right;
+}
+
+.chem-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--chem-panel-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.chem-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  transition: transform var(--duration-fast) var(--ease);
+}
+
+.chem-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.chem-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* 滑块颜色变体 */
+.chem-slider.slider-a::-webkit-slider-thumb { background: var(--chem-reactant-a); }
+.chem-slider.slider-b::-webkit-slider-thumb { background: var(--chem-reactant-b); }
+.chem-slider.slider-c::-webkit-slider-thumb { background: var(--chem-product); }
+.chem-slider.slider-temp::-webkit-slider-thumb { background: var(--chem-catalyst); }
+.chem-slider.slider-pressure::-webkit-slider-thumb { background: #7c3aed; }
+
+/* 催化剂开关 */
+.chem-catalyst-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  border-right: 1px solid var(--chem-panel-border);
+  flex-shrink: 0;
+}
+
+.chem-switch {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--chem-panel-border);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease);
+  flex-shrink: 0;
+}
+
+.chem-switch.on {
+  background: var(--chem-catalyst);
+}
+
+.chem-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform var(--duration-fast) var(--ease);
+}
+
+.chem-switch.on::after {
+  transform: translateX(18px);
+}
+
+/* 预设按钮 */
+.chem-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 16px;
+  border-right: 1px solid var(--chem-panel-border);
+  flex-shrink: 0;
+  max-width: 240px;
+}
+
+.chem-preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.chem-preset-btn {
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--chem-panel-border);
+  background: var(--surface);
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  white-space: nowrap;
+  text-align: center;
+}
+
+.chem-preset-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+/* 播放控制 */
+.chem-playback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  flex-shrink: 0;
+}
+
+.chem-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--chem-panel-border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.chem-btn:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.chem-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chem-btn-play {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+.chem-btn-play:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+  color: #fff;
+}
+
+.chem-btn-play.playing {
+  background: var(--chem-instrument);
+  border-color: var(--chem-instrument);
+}
+
+/* 速度选择 */
+.chem-speed-select {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.chem-speed-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.chem-speed-btn {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 3px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--chem-panel-border);
+  background: var(--surface);
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+}
+
+.chem-speed-btn:hover { color: var(--text); }
+.chem-speed-btn.active {
+  background: var(--chem-instrument);
+  color: #fff;
+  border-color: var(--chem-instrument);
+}
+
+/* ===== 底部信息条 ===== */
+.chem-info-bar {
+  flex-shrink: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--chem-instrument);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.chem-info-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chem-info-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chem-tech-tag {
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 10px;
+}
+
+/* ===== 加载动画 ===== */
+.chem-loader {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.chem-loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.chem-loader-molecules {
+  display: flex;
+  gap: 8px;
+}
+
+.chem-loader-mol {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  animation: molBounce 0.8s ease infinite;
+}
+
+.chem-loader-mol:nth-child(1) { background: var(--chem-reactant-a); animation-delay: 0s; }
+.chem-loader-mol:nth-child(2) { background: var(--chem-reactant-b); animation-delay: 0.15s; }
+.chem-loader-mol:nth-child(3) { background: var(--chem-product); animation-delay: 0.3s; }
+
+@keyframes molBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 900px) {
+  .chem-display {
+    flex-direction: column;
+  }
+  
+  .chem-particle-panel {
+    flex: none;
+    height: 45%;
+  }
+  
+  .chem-chart-panel {
+    flex: 1;
+  }
+  
+  .chem-readouts {
+    overflow-x: auto;
+  }
+  
+  .chem-sliders {
+    gap: 12px;
+  }
+  
+  .chem-slider-group {
+    min-width: 80px;
+  }
+  
+  .chem-presets {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .chem-reaction-selector {
+    min-width: 140px;
+  }
+  
+  .chem-reaction-btn {
+    font-size: 10px;
+  }
+  
+  .chem-slider-group {
+    min-width: 70px;
+  }
+  
+  .chem-slider-label {
+    font-size: 9px;
+  }
+  
+  .chem-info-bar {
+    font-size: 10px;
+  }
+}
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- 加载动画 -->
+<div class="chem-loader" id="loader">
+  <div class="chem-loader-molecules">
+    <div class="chem-loader-mol"></div>
+    <div class="chem-loader-mol"></div>
+    <div class="chem-loader-mol"></div>
+  </div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">化学</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">化学反应平衡模拟器</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-chem">化学</span>
+      <a href="/skills/jingbo-edu-biochem-model-sim-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主应用 ====== -->
+<div class="chem-app">
+
+  <!-- 主显示区 -->
+  <div class="chem-display">
+
+    <!-- 左侧：粒子模拟 -->
+    <div class="chem-particle-panel">
+      <div class="chem-particle-header">
+        <div class="chem-equation" id="equationDisplay">
+          N<sub>2</sub> + 3H<sub>2</sub> <span class="arrow">⇌</span> 2NH<sub>3</sub>
+        </div>
+        <div class="chem-direction-badge" id="directionBadge">
+          <span class="dot"></span>
+          <span id="directionText">就绪</span>
+        </div>
+      </div>
+      <div class="chem-particle-canvas-wrap">
+        <canvas id="particleCanvas"></canvas>
+        <div class="chem-particle-legend">
+          <div class="chem-legend-item">
+            <span class="chem-legend-dot" style="background: var(--chem-reactant-a);"></span>
+            <span id="legendA">N₂</span>
+          </div>
+          <div class="chem-legend-item">
+            <span class="chem-legend-dot" style="background: var(--chem-reactant-b);"></span>
+            <span id="legendB">H₂</span>
+          </div>
+          <div class="chem-legend-item">
+            <span class="chem-legend-dot" style="background: var(--chem-product);"></span>
+            <span id="legendC">NH₃</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：数据图表 -->
+    <div class="chem-chart-panel">
+      <div class="chem-chart-header">
+        <div class="chem-chart-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+          浓度 — 时间曲线
+        </div>
+        <div class="chem-chart-toggles">
+          <button class="chem-toggle-btn active" data-toggle="concentration">浓度</button>
+          <button class="chem-toggle-btn active" data-toggle="rate">速率</button>
+          <button class="chem-toggle-btn active" data-toggle="equilibrium">平衡线</button>
+        </div>
+      </div>
+      <div class="chem-chart-canvas-wrap">
+        <canvas id="chartCanvas"></canvas>
+      </div>
+      <!-- 数据读数 -->
+      <div class="chem-readouts">
+        <div class="chem-readout">
+          <span class="chem-readout-label">Kc</span>
+          <span class="chem-readout-value equilibrium" id="kcValue">—</span>
+        </div>
+        <div class="chem-readout">
+          <span class="chem-readout-label">转化率</span>
+          <span class="chem-readout-value" id="conversionValue">0.0<span class="chem-readout-unit">%</span></span>
+        </div>
+        <div class="chem-readout">
+          <span class="chem-readout-label">正反应速率</span>
+          <span class="chem-readout-value reactant" id="rateFwdValue">0.000</span>
+        </div>
+        <div class="chem-readout">
+          <span class="chem-readout-label">逆反应速率</span>
+          <span class="chem-readout-value product" id="rateRevValue">0.000</span>
+        </div>
+        <div class="chem-readout">
+          <span class="chem-readout-label">时间</span>
+          <span class="chem-readout-value" id="timeValue">0.0<span class="chem-readout-unit">s</span></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 控制面板 -->
+  <div class="chem-controls">
+
+    <!-- 反应选择器 -->
+    <div class="chem-reaction-selector">
+      <span class="chem-control-section-label">反应类型</span>
+      <button class="chem-reaction-btn active" data-reaction="ammonia">
+        <span class="rxn-num">01</span> 合成氨
+      </button>
+      <button class="chem-reaction-btn" data-reaction="so2">
+        <span class="rxn-num">02</span> SO₂催化氧化
+      </button>
+      <button class="chem-reaction-btn" data-reaction="ester">
+        <span class="rxn-num">03</span> 酯化反应
+      </button>
+    </div>
+
+    <!-- 参数滑块 -->
+    <div class="chem-sliders">
+      <div class="chem-slider-group">
+        <div class="chem-slider-header">
+          <span class="chem-slider-label"><span class="species-a" id="labelA">[N₂]</span></span>
+          <span class="chem-slider-value" id="concAValue">1.0</span>
+        </div>
+        <input type="range" class="chem-slider slider-a" id="concA" min="0.1" max="5.0" step="0.1" value="1.0" />
+      </div>
+
+      <div class="chem-slider-group">
+        <div class="chem-slider-header">
+          <span class="chem-slider-label"><span class="species-b" id="labelB">[H₂]</span></span>
+          <span class="chem-slider-value" id="concBValue">1.0</span>
+        </div>
+        <input type="range" class="chem-slider slider-b" id="concB" min="0.1" max="5.0" step="0.1" value="1.0" />
+      </div>
+
+      <div class="chem-slider-group">
+        <div class="chem-slider-header">
+          <span class="chem-slider-label"><span class="species-c" id="labelC">[NH₃]</span></span>
+          <span class="chem-slider-value" id="concCValue">0.0</span>
+        </div>
+        <input type="range" class="chem-slider slider-c" id="concC" min="0" max="3.0" step="0.1" value="0" />
+      </div>
+
+      <div class="chem-slider-group">
+        <div class="chem-slider-header">
+          <span class="chem-slider-label">温度</span>
+          <span class="chem-slider-value" id="tempValue">500K</span>
+        </div>
+        <input type="range" class="chem-slider slider-temp" id="temperature" min="200" max="800" step="10" value="500" />
+      </div>
+
+      <div class="chem-slider-group">
+        <div class="chem-slider-header">
+          <span class="chem-slider-label">压强</span>
+          <span class="chem-slider-value" id="pressureValue">1.0atm</span>
+        </div>
+        <input type="range" class="chem-slider slider-pressure" id="pressure" min="0.5" max="10" step="0.5" value="1" />
+      </div>
+
+      <div class="chem-slider-group">
+        <div class="chem-slider-header">
+          <span class="chem-slider-label">速率系数</span>
+          <span class="chem-slider-value" id="rateCoeffValue">1.0</span>
+        </div>
+        <input type="range" class="chem-slider" id="rateCoeff" min="0.1" max="5.0" step="0.1" value="1.0" />
+      </div>
+    </div>
+
+    <!-- 催化剂开关 -->
+    <div class="chem-catalyst-toggle">
+      <span class="chem-control-section-label">催化剂</span>
+      <div class="chem-switch" id="catalystSwitch"></div>
+    </div>
+
+    <!-- 预设模式 -->
+    <div class="chem-presets">
+      <span class="chem-control-section-label">预设实验</span>
+      <div class="chem-preset-grid">
+        <button class="chem-preset-btn" data-preset="industrial">合成氨工业</button>
+        <button class="chem-preset-btn" data-preset="so2-contact">SO₂接触氧化</button>
+        <button class="chem-preset-btn" data-preset="concentration-shock">浓度突增</button>
+        <button class="chem-preset-btn" data-preset="temperature-shock">温度骤变</button>
+      </div>
+    </div>
+
+    <!-- 播放控制 -->
+    <div class="chem-playback">
+      <button class="chem-btn chem-btn-play" id="playBtn" title="播放/暂停">
+        <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+      </button>
+      <button class="chem-btn" id="resetBtn" title="重置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        重置
+      </button>
+      <button class="chem-btn" id="stepBtn" title="单步前进">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+        单步
+      </button>
+      <div class="chem-speed-select">
+        <span class="chem-control-section-label">速度</span>
+        <div class="chem-speed-buttons">
+          <button class="chem-speed-btn" data-speed="0.25">0.25×</button>
+          <button class="chem-speed-btn" data-speed="0.5">0.5×</button>
+          <button class="chem-speed-btn active" data-speed="1">1×</button>
+          <button class="chem-speed-btn" data-speed="2">2×</button>
+          <button class="chem-speed-btn" data-speed="4">4×</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 底部信息条 -->
+  <footer class="chem-info-bar">
+    <div class="chem-info-left">
+      <span>chemical-equilibrium-sim</span>
+      <span class="chem-tech-tag">Canvas 2D</span>
+      <span class="chem-tech-tag">动力学计算</span>
+      <span class="chem-tech-tag">实时模拟</span>
+    </div>
+    <div class="chem-info-right">
+      <span id="particleCount">0 粒子</span>
+      <span class="chem-tech-tag" id="fpsTag">60 FPS</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   化学反应平衡模拟器
+   Chemistry Equilibrium Simulator
+   ============================================================ */
+
+// ===== 反应数据配置 =====
+const REACTIONS = {
+  ammonia: {
+    name: '合成氨',
+    equation: 'N₂ + 3H₂ ⇌ 2NH₃',
+    equationHtml: 'N<sub>2</sub> + 3H<sub>2</sub> <span class="arrow">⇌</span> 2NH<sub>3</sub>',
+    species: { A: 'N₂', B: 'H₂', C: 'NH₃' },
+    stoich: { A: 1, B: 3, C: 2 },
+    // Kc at reference temperature (500K)
+    KcRef: 0.42,
+    TRef: 500,
+    // Enthalpy change (kJ/mol) — exothermic = negative
+    deltaH: -92,
+    // Gas moles: reactants = 1+3=4, products = 2
+    gasMoles: { reactant: 4, product: 2 },
+    isGas: true,
+    // Activation energy (kJ/mol) — simplified
+    Ea: 230,
+    // Reference rate pre-exponential factor
+    k0: 0.8,
+    colors: { A: '#2563eb', B: '#0891b2', C: '#dc2626' }
+  },
+  so2: {
+    name: 'SO₂催化氧化',
+    equation: '2SO₂ + O₂ ⇌ 2SO₃',
+    equationHtml: '2SO<sub>2</sub> + O<sub>2</sub> <span class="arrow">⇌</span> 2SO<sub>3</sub>',
+    species: { A: 'SO₂', B: 'O₂', C: 'SO₃' },
+    stoich: { A: 2, B: 1, C: 2 },
+    KcRef: 280,
+    TRef: 700,
+    deltaH: -198,
+    gasMoles: { reactant: 3, product: 2 },
+    isGas: true,
+    Ea: 180,
+    k0: 0.5,
+    colors: { A: '#2563eb', B: '#0891b2', C: '#dc2626' }
+  },
+  ester: {
+    name: '酯化反应',
+    equation: 'CH₃COOH + C₂H₅OH ⇌ CH₃COOC₂H₅ + H₂O',
+    equationHtml: 'CH<sub>3</sub>COOH + C<sub>2</sub>H<sub>5</sub>OH <span class="arrow">⇌</span> CH<sub>3</sub>COOC<sub>2</sub>H<sub>5</sub> + H<sub>2</sub>O',
+    species: { A: 'CH₃COOH', B: 'C₂H₅OH', C: 'CH₃COOC₂H₅' },
+    stoich: { A: 1, B: 1, C: 1 },
+    KcRef: 4.0,
+    TRef: 350,
+    deltaH: -5,
+    gasMoles: { reactant: 2, product: 2 },
+    isGas: false,
+    Ea: 55,
+    k0: 1.2,
+    colors: { A: '#2563eb', B: '#0891b2', C: '#dc2626' }
+  }
+};
+
+// ===== 全局状态 =====
+const R = 8.314; // 气体常数 J/(mol·K)
+
+const state = {
+  reactionKey: 'ammonia',
+  reaction: REACTIONS.ammonia,
+
+  // 初始浓度
+  initConc: { A: 1.0, B: 1.0, C: 0.0 },
+  // 当前浓度
+  conc: { A: 1.0, B: 1.0, C: 0.0 },
+  // 模拟起始浓度（用于转化率计算）
+  startConc: { A: 1.0, B: 1.0, C: 0.0 },
+
+  // 参数
+  temperature: 500,
+  pressure: 1.0,
+  rateCoeff: 1.0,
+  catalyst: false,
+
+  // 模拟
+  time: 0,
+  isPlaying: false,
+  speed: 1.0,
+  stepMode: false,
+
+  // 速率
+  rateFwd: 0,
+  rateRev: 0,
+  Kc: 0,
+  conversion: 0,
+
+  // 图表数据
+  history: [],
+  maxHistory: 500,
+  chartWindow: 30, // 时间窗口（秒）
+
+  // 图表显示选项
+  showConcentration: true,
+  showRate: true,
+  showEquilibrium: true,
+
+  // FPS
+  fps: 60,
+  lastFrame: 0,
+};
+
+// ===== DOM 引用 =====
+const particleCanvas = document.getElementById('particleCanvas');
+const pCtx = particleCanvas.getContext('2d');
+const chartCanvas = document.getElementById('chartCanvas');
+const cCtx = chartCanvas.getContext('2d');
+
+// ===== 粒子系统 =====
+const MAX_PARTICLES = 140;
+let particles = [];
+let flashEffects = [];
+let catalystParticles = [];
+
+class Particle {
+  constructor(x, y, type, color) {
+    this.x = x;
+    this.y = y;
+    this.type = type; // 'A', 'B', 'C'
+    this.color = color;
+    this.radius = type === 'A' ? 7 : type === 'B' ? 5 : 6;
+    const speed = 0.5 + Math.random() * 1.0;
+    const angle = Math.random() * Math.PI * 2;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.life = 1;
+    this.justFormed = 0;
+  }
+
+  update(dt, tempFactor, bounds) {
+    // 温度影响速度
+    const speedMul = tempFactor * (state.catalyst ? 1.3 : 1.0);
+    this.x += this.vx * speedMul * dt * 60;
+    this.y += this.vy * speedMul * dt * 60;
+
+    // 边界反弹
+    if (this.x - this.radius < bounds.x) {
+      this.x = bounds.x + this.radius;
+      this.vx = Math.abs(this.vx);
+    }
+    if (this.x + this.radius > bounds.x + bounds.w) {
+      this.x = bounds.x + bounds.w - this.radius;
+      this.vx = -Math.abs(this.vx);
+    }
+    if (this.y - this.radius < bounds.y) {
+      this.y = bounds.y + this.radius;
+      this.vy = Math.abs(this.vy);
+    }
+    if (this.y + this.radius > bounds.y + bounds.h) {
+      this.y = bounds.y + bounds.h - this.radius;
+      this.vy = -Math.abs(this.vy);
+    }
+
+    if (this.justFormed > 0) this.justFormed -= dt * 3;
+  }
+
+  draw(ctx) {
+    // 形成时的光效
+    if (this.justFormed > 0) {
+      ctx.save();
+      ctx.globalAlpha = this.justFormed * 0.5;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius + 6 * this.justFormed, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 渐变球体
+    const grad = ctx.createRadialGradient(
+      this.x - this.radius * 0.3, this.y - this.radius * 0.3, 0,
+      this.x, this.y, this.radius
+    );
+    grad.addColorStop(0, this.lightenColor(this.color, 40));
+    grad.addColorStop(0.7, this.color);
+    grad.addColorStop(1, this.darkenColor(this.color, 20));
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 高光
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.beginPath();
+    ctx.arc(this.x - this.radius * 0.3, this.y - this.radius * 0.3, this.radius * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  lightenColor(hex, percent) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.min(255, (num >> 16) + percent);
+    const g = Math.min(255, ((num >> 8) & 0x00FF) + percent);
+    const b = Math.min(255, (num & 0x0000FF) + percent);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  darkenColor(hex, percent) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.max(0, (num >> 16) - percent);
+    const g = Math.max(0, ((num >> 8) & 0x00FF) - percent);
+    const b = Math.max(0, (num & 0x0000FF) - percent);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+}
+
+class FlashEffect {
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.life = 1;
+    this.radius = 0;
+  }
+
+  update(dt) {
+    this.life -= dt * 4;
+    this.radius += dt * 80;
+  }
+
+  draw(ctx) {
+    if (this.life <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = this.life * 0.6;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+class CatalystParticle {
+  constructor(bounds) {
+    this.bounds = bounds;
+    this.radius = 8;
+    this.angle = Math.random() * Math.PI * 2;
+    this.angleSpeed = 0.02 + Math.random() * 0.02;
+    this.orbitRadius = 60 + Math.random() * 80;
+    this.cx = bounds.x + bounds.w / 2;
+    this.cy = bounds.y + bounds.h / 2;
+    this.x = this.cx;
+    this.y = this.cy;
+    this.pulse = 0;
+  }
+
+  update(dt) {
+    this.angle += this.angleSpeed * (1 + state.temperature / 500);
+    this.cx = this.bounds.x + this.bounds.w / 2;
+    this.cy = this.bounds.y + this.bounds.h / 2;
+    this.x = this.cx + Math.cos(this.angle) * this.orbitRadius;
+    this.y = this.cy + Math.sin(this.angle) * this.orbitRadius * 0.7;
+    this.pulse += dt * 3;
+  }
+
+  draw(ctx) {
+    const pulseSize = Math.sin(this.pulse) * 2;
+    // 外光晕
+    const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius + 8 + pulseSize);
+    grad.addColorStop(0, 'rgba(217, 119, 6, 0.3)');
+    grad.addColorStop(1, 'rgba(217, 119, 6, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius + 8 + pulseSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 金色核心
+    const coreGrad = ctx.createRadialGradient(
+      this.x - 2, this.y - 2, 0,
+      this.x, this.y, this.radius
+    );
+    coreGrad.addColorStop(0, '#fde68a');
+    coreGrad.addColorStop(0.6, '#d97706');
+    coreGrad.addColorStop(1, '#92400e');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // "Cat" 标记
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = 'bold 8px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Cat', this.x, this.y);
+  }
+}
+
+// ===== 化学动力学计算 =====
+
+function calculateKc(reaction, T) {
+  // van't Hoff 方程: ln(K2/K1) = -ΔH/R * (1/T2 - 1/T1)
+  // ΔH in J/mol
+  const dH = reaction.deltaH * 1000;
+  const lnRatio = -dH / R * (1 / T - 1 / reaction.TRef);
+  return reaction.KcRef * Math.exp(lnRatio);
+}
+
+function calculateKf(reaction, T, rateCoeff, catalyst) {
+  // Arrhenius: k = k0 * exp(-Ea/RT)
+  const Ea = reaction.Ea * 1000; // J/mol
+  const catFactor = catalyst ? 5.0 : 1.0;
+  const tempFactor = Math.exp(-Ea / (R * T));
+  return reaction.k0 * rateCoeff * catFactor * tempFactor * 0.01;
+}
+
+function calculateRates() {
+  const r = state.reaction;
+  const T = state.temperature;
+  const P = state.pressure;
+
+  // 计算 Kc
+  state.Kc = calculateKc(r, T);
+
+  // 计算正反应速率常数
+  const kf = calculateKf(r, T, state.rateCoeff, state.catalyst);
+  const kr = kf / state.Kc;
+
+  // 压强影响（仅气相反应）
+  let pressureFactorFwd = 1;
+  let pressureFactorRev = 1;
+  if (r.isGas) {
+    const pRatio = P / 1.0;
+    pressureFactorFwd = Math.pow(pRatio, r.stoich.A + r.stoich.B);
+    pressureFactorRev = Math.pow(pRatio, r.stoich.C);
+  }
+
+  // 正反应速率 = kf * [A]^a * [B]^b * P_factor
+  const cA = Math.max(0, state.conc.A);
+  const cB = Math.max(0, state.conc.B);
+  const cC = Math.max(0, state.conc.C);
+
+  state.rateFwd = kf * Math.pow(cA, r.stoich.A) * Math.pow(cB, r.stoich.B) * pressureFactorFwd;
+  state.rateRev = kr * Math.pow(cC, r.stoich.C) * pressureFactorRev;
+
+  return { kf, kr, pressureFactorFwd, pressureFactorRev };
+}
+
+function updateChemistry(dt) {
+  const r = state.reaction;
+  calculateRates();
+
+  // 浓度变化（Euler 积分）
+  const netRate = state.rateFwd - state.rateRev;
+  const dA = -r.stoich.A * netRate * dt;
+  const dB = -r.stoich.B * netRate * dt;
+  const dC = r.stoich.C * netRate * dt;
+
+  state.conc.A = Math.max(0, state.conc.A + dA);
+  state.conc.B = Math.max(0, state.conc.B + dB);
+  state.conc.C = Math.max(0, state.conc.C + dC);
+
+  // 转化率
+  if (state.startConc.A > 0) {
+    state.conversion = Math.max(0, (state.startConc.A - state.conc.A) / state.startConc.A * 100);
+  }
+
+  // 记录历史
+  state.time += dt;
+  state.history.push({
+    t: state.time,
+    A: state.conc.A,
+    B: state.conc.B,
+    C: state.conc.C,
+    rf: state.rateFwd,
+    rr: state.rateRev
+  });
+  if (state.history.length > state.maxHistory) {
+    state.history.shift();
+  }
+}
+
+// ===== 粒子系统管理 =====
+
+function syncParticles(bounds) {
+  const r = state.reaction;
+  const totalConc = state.conc.A + state.conc.B + state.conc.C;
+  if (totalConc < 0.01) {
+    particles = [];
+    return;
+  }
+
+  // 按浓度比例分配粒子数
+  // 考虑化学计量数：实际分子数与浓度成正比
+  const targetA = Math.round(MAX_PARTICLES * state.conc.A / totalConc);
+  const targetB = Math.round(MAX_PARTICLES * state.conc.B / totalConc);
+  const targetC = MAX_PARTICLES - targetA - targetB;
+
+  // 当前各类粒子数
+  const currentA = particles.filter(p => p.type === 'A').length;
+  const currentB = particles.filter(p => p.type === 'B').length;
+  const currentC = particles.filter(p => p.type === 'C').length;
+
+  // 调整A粒子
+  adjustParticles('A', targetA, currentA, r.colors.A, bounds);
+  // 调整B粒子
+  adjustParticles('B', targetB, currentB, r.colors.B, bounds);
+  // 调整C粒子
+  adjustParticles('C', targetC, currentC, r.colors.C, bounds);
+}
+
+function adjustParticles(type, target, current, color, bounds) {
+  if (target > current) {
+    // 增加粒子
+    for (let i = 0; i < target - current; i++) {
+      const x = bounds.x + Math.random() * bounds.w;
+      const y = bounds.y + Math.random() * bounds.h;
+      const p = new Particle(x, y, type, color);
+      p.justFormed = 1;
+      particles.push(p);
+      // 添加闪光
+      flashEffects.push(new FlashEffect(x, y, color));
+    }
+  } else if (target < current) {
+    // 减少粒子（随机移除）
+    const toRemove = current - target;
+    let removed = 0;
+    for (let i = particles.length - 1; i >= 0 && removed < toRemove; i--) {
+      if (particles[i].type === type) {
+        flashEffects.push(new FlashEffect(particles[i].x, particles[i].y, color));
+        particles.splice(i, 1);
+        removed++;
+      }
+    }
+  }
+}
+
+function updateCatalystParticles(bounds) {
+  if (state.catalyst) {
+    const target = 3;
+    while (catalystParticles.length < target) {
+      catalystParticles.push(new CatalystParticle(bounds));
+    }
+    catalystParticles.forEach(c => c.bounds = bounds);
+  } else {
+    catalystParticles = [];
+  }
+}
+
+// ===== 粒子模拟绘制 =====
+
+function drawParticleSimulation(dt) {
+  const w = particleCanvas.clientWidth;
+  const h = particleCanvas.clientHeight;
+
+  // 背景
+  pCtx.fillStyle = '#faf8f5';
+  pCtx.fillRect(0, 0, w, h);
+
+  // 容器边框 — 烧杯造型
+  const margin = 24;
+  const bounds = {
+    x: margin,
+    y: margin,
+    w: w - margin * 2,
+    h: h - margin * 2
+  };
+
+  // 容器背景渐变
+  const containerGrad = pCtx.createLinearGradient(0, bounds.y, 0, bounds.y + bounds.h);
+  containerGrad.addColorStop(0, 'rgba(245, 240, 232, 0.5)');
+  containerGrad.addColorStop(1, 'rgba(235, 228, 216, 0.8)');
+  pCtx.fillStyle = containerGrad;
+  pCtx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
+
+  // 网格线
+  pCtx.strokeStyle = 'rgba(200, 192, 178, 0.15)';
+  pCtx.lineWidth = 1;
+  for (let x = bounds.x; x < bounds.x + bounds.w; x += 30) {
+    pCtx.beginPath();
+    pCtx.moveTo(x, bounds.y);
+    pCtx.lineTo(x, bounds.y + bounds.h);
+    pCtx.stroke();
+  }
+  for (let y = bounds.y; y < bounds.y + bounds.h; y += 30) {
+    pCtx.beginPath();
+    pCtx.moveTo(bounds.x, y);
+    pCtx.lineTo(bounds.x + bounds.w, y);
+    pCtx.stroke();
+  }
+
+  // 温度因子影响粒子速度
+  const tempFactor = Math.sqrt(state.temperature / 500);
+
+  // 更新催化剂粒子
+  updateCatalystParticles(bounds);
+  catalystParticles.forEach(c => c.update(dt));
+
+  // 同步粒子数量（始终反映当前浓度）
+  syncParticles(bounds);
+
+  // 更新和绘制粒子
+  particles.forEach(p => p.update(dt, tempFactor, bounds));
+
+  // 碰撞检测 — 反应可视化
+  if (state.isPlaying || state.stepMode) {
+    detectCollisions(bounds);
+  }
+  // 绘制粒子
+  particles.forEach(p => p.draw(pCtx));
+
+  // 绘制催化剂粒子
+  catalystParticles.forEach(c => c.draw(pCtx));
+
+  // 更新和绘制闪光效果
+  flashEffects = flashEffects.filter(f => f.life > 0);
+  flashEffects.forEach(f => { f.update(dt); f.draw(pCtx); });
+
+  // 容器边框 — 精密仪器风格
+  pCtx.strokeStyle = 'rgba(45, 42, 38, 0.15)';
+  pCtx.lineWidth = 1.5;
+  pCtx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
+
+  // 角标
+  drawCornerMarks(pCtx, bounds);
+
+  // 温度/压强指示
+  drawEnvironmentInfo(pCtx, w, h);
+
+  // 平衡光效
+  if (isAtEquilibrium()) {
+    pCtx.save();
+    pCtx.strokeStyle = 'rgba(5, 150, 105, 0.15)';
+    pCtx.lineWidth = 3;
+    pCtx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
+    pCtx.restore();
+  }
+
+  state.stepMode = false;
+}
+
+function detectCollisions(bounds) {
+  const r = state.reaction;
+  // 简化碰撞：检测A和B粒子接近
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const p1 = particles[i];
+      const p2 = particles[j];
+      const dx = p1.x - p2.x;
+      const dy = p1.y - p2.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // 碰撞反弹
+      if (dist < p1.radius + p2.radius && dist > 0) {
+        const angle = Math.atan2(dy, dx);
+        const overlap = p1.radius + p2.radius - dist;
+        p1.x += Math.cos(angle) * overlap * 0.5;
+        p1.y += Math.sin(angle) * overlap * 0.5;
+        p2.x -= Math.cos(angle) * overlap * 0.5;
+        p2.y -= Math.sin(angle) * overlap * 0.5;
+
+        // 速度交换（简化弹性碰撞）
+        const v1 = { x: p1.vx, y: p1.vy };
+        const v2 = { x: p2.vx, y: p2.vy };
+        p1.vx = v2.x;
+        p1.vy = v2.y;
+        p2.vx = v1.x;
+        p2.vy = v1.y;
+
+        // 反应概率（基于正反应速率）
+        if ((p1.type === 'A' && p2.type === 'B') || (p1.type === 'B' && p2.type === 'A')) {
+          const reactProb = Math.min(0.3, state.rateFwd * 2);
+          if (Math.random() < reactProb) {
+            flashEffects.push(new FlashEffect(
+              (p1.x + p2.x) / 2, (p1.y + p2.y) / 2, '#fbbf24'
+            ));
+          }
+        }
+      }
+    }
+  }
+}
+
+function drawCornerMarks(ctx, bounds) {
+  const len = 12;
+  ctx.strokeStyle = 'rgba(45, 42, 38, 0.3)';
+  ctx.lineWidth = 1.5;
+
+  // 左上
+  ctx.beginPath();
+  ctx.moveTo(bounds.x, bounds.y + len);
+  ctx.lineTo(bounds.x, bounds.y);
+  ctx.lineTo(bounds.x + len, bounds.y);
+  ctx.stroke();
+
+  // 右上
+  ctx.beginPath();
+  ctx.moveTo(bounds.x + bounds.w - len, bounds.y);
+  ctx.lineTo(bounds.x + bounds.w, bounds.y);
+  ctx.lineTo(bounds.x + bounds.w, bounds.y + len);
+  ctx.stroke();
+
+  // 左下
+  ctx.beginPath();
+  ctx.moveTo(bounds.x, bounds.y + bounds.h - len);
+  ctx.lineTo(bounds.x, bounds.y + bounds.h);
+  ctx.lineTo(bounds.x + len, bounds.y + bounds.h);
+  ctx.stroke();
+
+  // 右下
+  ctx.beginPath();
+  ctx.moveTo(bounds.x + bounds.w - len, bounds.y + bounds.h);
+  ctx.lineTo(bounds.x + bounds.w, bounds.y + bounds.h);
+  ctx.lineTo(bounds.x + bounds.w, bounds.y + bounds.h - len);
+  ctx.stroke();
+}
+
+function drawEnvironmentInfo(ctx, w, h) {
+  ctx.save();
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.fillStyle = 'rgba(45, 42, 38, 0.4)';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+
+  const info = `T = ${state.temperature}K`;
+  const info2 = state.reaction.isGas ? `P = ${state.pressure.toFixed(1)} atm` : '液相反应';
+  const info3 = state.catalyst ? '催化剂: 开启' : '催化剂: 关闭';
+
+  ctx.fillText(info, w - 30, 30);
+  ctx.fillText(info2, w - 30, 45);
+  ctx.fillText(info3, w - 30, 60);
+  ctx.restore();
+}
+
+function isAtEquilibrium() {
+  const ratio = state.rateRev > 0 ? state.rateFwd / state.rateRev : 0;
+  return state.time > 2 && ratio > 0.95 && ratio < 1.05;
+}
+
+// ===== 浓度-时间曲线绘制 =====
+
+function drawChart() {
+  const w = chartCanvas.clientWidth;
+  const h = chartCanvas.clientHeight;
+
+  // 背景
+  cCtx.fillStyle = '#faf8f5';
+  cCtx.fillRect(0, 0, w, h);
+
+  const padding = { top: 16, right: 16, bottom: 28, left: 44 };
+  const plotW = w - padding.left - padding.right;
+  const plotH = h - padding.top - padding.bottom;
+
+  // 网格
+  cCtx.strokeStyle = '#ede8e0';
+  cCtx.lineWidth = 1;
+  cCtx.font = '10px "JetBrains Mono", monospace';
+  cCtx.fillStyle = '#a3a3a3';
+
+  // Y轴网格
+  const ySteps = 5;
+  let maxConc = 0;
+  for (const h of state.history) {
+    maxConc = Math.max(maxConc, h.A, h.B, h.C);
+  }
+  maxConc = Math.max(maxConc, 1.0);
+  maxConc = Math.ceil(maxConc * 1.2 * 2) / 2;
+
+  for (let i = 0; i <= ySteps; i++) {
+    const y = padding.top + (plotH / ySteps) * i;
+    cCtx.beginPath();
+    cCtx.moveTo(padding.left, y);
+    cCtx.lineTo(w - padding.right, y);
+    cCtx.stroke();
+
+    const val = maxConc - (maxConc / ySteps) * i;
+    cCtx.textAlign = 'right';
+    cCtx.textBaseline = 'middle';
+    cCtx.fillText(val.toFixed(1), padding.left - 6, y);
+  }
+
+  // X轴网格
+  const xSteps = 6;
+  const tWindow = state.chartWindow;
+  const tStart = Math.max(0, state.time - tWindow);
+  const tEnd = Math.max(tWindow, state.time);
+
+  for (let i = 0; i <= xSteps; i++) {
+    const x = padding.left + (plotW / xSteps) * i;
+    cCtx.beginPath();
+    cCtx.moveTo(x, padding.top);
+    cCtx.lineTo(x, padding.top + plotH);
+    cCtx.stroke();
+
+    const t = tStart + (tEnd - tStart) / xSteps * i;
+    cCtx.textAlign = 'center';
+    cCtx.textBaseline = 'top';
+    cCtx.fillText(t.toFixed(1) + 's', x, padding.top + plotH + 4);
+  }
+
+  // 轴线
+  cCtx.strokeStyle = '#c4bdb0';
+  cCtx.lineWidth = 1.5;
+  cCtx.beginPath();
+  cCtx.moveTo(padding.left, padding.top);
+  cCtx.lineTo(padding.left, padding.top + plotH);
+  cCtx.lineTo(w - padding.right, padding.top + plotH);
+  cCtx.stroke();
+
+  // 轴标签
+  cCtx.fillStyle = '#6b6b6b';
+  cCtx.font = '10px "Noto Sans SC", sans-serif';
+  cCtx.textAlign = 'left';
+  cCtx.textBaseline = 'top';
+  cCtx.fillText('浓度 (mol/L)', padding.left + 2, padding.top - 2);
+  cCtx.textAlign = 'right';
+  cCtx.fillText('时间', w - padding.right, padding.top + plotH + 16);
+
+  // 裁剪到绘图区域
+  cCtx.save();
+  cCtx.beginPath();
+  cCtx.rect(padding.left, padding.top, plotW, plotH);
+  cCtx.clip();
+
+  // 平衡线
+  if (state.showEquilibrium && state.history.length > 10) {
+    // 计算平衡浓度
+    const eqConc = calculateEquilibriumConcentrations();
+    if (eqConc) {
+      drawEquilibriumLine(eqConc.A, '#2563eb', padding, plotW, plotH, tStart, tEnd, maxConc);
+      drawEquilibriumLine(eqConc.B, '#0891b2', padding, plotW, plotH, tStart, tEnd, maxConc);
+      drawEquilibriumLine(eqConc.C, '#dc2626', padding, plotW, plotH, tStart, tEnd, maxConc);
+    }
+  }
+
+  // 浓度曲线
+  if (state.showConcentration && state.history.length > 1) {
+    drawCurve(state.history, 'A', '#2563eb', padding, plotW, plotH, tStart, tEnd, maxConc);
+    drawCurve(state.history, 'B', '#0891b2', padding, plotW, plotH, tStart, tEnd, maxConc);
+    drawCurve(state.history, 'C', '#dc2626', padding, plotW, plotH, tStart, tEnd, maxConc);
+  }
+
+  // 速率曲线
+  if (state.showRate && state.history.length > 1) {
+    // 归一化速率到浓度的尺度
+    let maxRate = 0;
+    for (const h of state.history) {
+      maxRate = Math.max(maxRate, h.rf, h.rr);
+    }
+    if (maxRate > 0) {
+      drawRateCurve(state.history, 'rf', '#2563eb', padding, plotW, plotH, tStart, tEnd, maxConc, maxRate, true);
+      drawRateCurve(state.history, 'rr', '#dc2626', padding, plotW, plotH, tStart, tEnd, maxConc, maxRate, false);
+    }
+  }
+
+  cCtx.restore();
+
+  // 图例
+  drawChartLegend(w, padding);
+}
+
+function drawCurve(history, key, color, padding, plotW, plotH, tStart, tEnd, maxConc) {
+  cCtx.strokeStyle = color;
+  cCtx.lineWidth = 2;
+  cCtx.beginPath();
+
+  let started = false;
+  for (const point of history) {
+    if (point.t < tStart) continue;
+    const x = padding.left + ((point.t - tStart) / (tEnd - tStart)) * plotW;
+    const y = padding.top + plotH - (point[key] / maxConc) * plotH;
+    if (!started) {
+      cCtx.moveTo(x, y);
+      started = true;
+    } else {
+      cCtx.lineTo(x, y);
+    }
+  }
+  cCtx.stroke();
+
+  // 渐变填充
+  if (started) {
+    const lastPoint = history[history.length - 1];
+    const lastX = padding.left + ((lastPoint.t - tStart) / (tEnd - tStart)) * plotW;
+    cCtx.lineTo(lastX, padding.top + plotH);
+    const firstPoint = history.find(p => p.t >= tStart) || history[0];
+    const firstX = padding.left + ((firstPoint.t - tStart) / (tEnd - tStart)) * plotW;
+    cCtx.lineTo(firstX, padding.top + plotH);
+    cCtx.closePath();
+    const grad = cCtx.createLinearGradient(0, padding.top, 0, padding.top + plotH);
+    const hexColor = color.replace('#', '');
+    const r = parseInt(hexColor.substr(0, 2), 16);
+    const g = parseInt(hexColor.substr(2, 2), 16);
+    const b = parseInt(hexColor.substr(4, 2), 16);
+    grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.12)`);
+    grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+    cCtx.fillStyle = grad;
+    cCtx.fill();
+  }
+}
+
+function drawRateCurve(history, key, color, padding, plotW, plotH, tStart, tEnd, maxConc, maxRate, isForward) {
+  cCtx.save();
+  cCtx.strokeStyle = color;
+  cCtx.lineWidth = 1.5;
+  cCtx.setLineDash([4, 4]);
+  cCtx.globalAlpha = 0.6;
+  cCtx.beginPath();
+
+  let started = false;
+  for (const point of history) {
+    if (point.t < tStart) continue;
+    const x = padding.left + ((point.t - tStart) / (tEnd - tStart)) * plotW;
+    const normalizedRate = (point[key] / maxRate) * maxConc * 0.5;
+    const y = padding.top + plotH - (normalizedRate / maxConc) * plotH;
+    if (!started) {
+      cCtx.moveTo(x, y);
+      started = true;
+    } else {
+      cCtx.lineTo(x, y);
+    }
+  }
+  cCtx.stroke();
+  cCtx.restore();
+}
+
+function drawEquilibriumLine(eqConc, color, padding, plotW, plotH, tStart, tEnd, maxConc) {
+  if (eqConc <= 0 || eqConc > maxConc) return;
+  const y = padding.top + plotH - (eqConc / maxConc) * plotH;
+  cCtx.save();
+  cCtx.strokeStyle = color;
+  cCtx.lineWidth = 1;
+  cCtx.setLineDash([2, 6]);
+  cCtx.globalAlpha = 0.3;
+  cCtx.beginPath();
+  cCtx.moveTo(padding.left, y);
+  cCtx.lineTo(padding.left + plotW, y);
+  cCtx.stroke();
+  cCtx.restore();
+}
+
+function drawChartLegend(w, padding) {
+  const items = [
+    { label: state.reaction.species.A, color: '#2563eb' },
+    { label: state.reaction.species.B, color: '#0891b2' },
+    { label: state.reaction.species.C, color: '#dc2626' },
+  ];
+
+  cCtx.font = '10px "JetBrains Mono", monospace';
+  let x = padding.left + 4;
+  const y = padding.top + 4;
+
+  for (const item of items) {
+    cCtx.fillStyle = item.color;
+    cCtx.beginPath();
+    cCtx.arc(x + 4, y + 4, 3, 0, Math.PI * 2);
+    cCtx.fill();
+    cCtx.fillStyle = '#6b6b6b';
+    cCtx.textAlign = 'left';
+    cCtx.textBaseline = 'middle';
+    cCtx.fillText(item.label, x + 10, y + 4);
+    x += cCtx.measureText(item.label).width + 24;
+  }
+}
+
+function calculateEquilibriumConcentrations() {
+  const r = state.reaction;
+  const T = state.temperature;
+  const Kc = calculateKc(r, T);
+
+  // 从初始浓度计算平衡浓度
+  // aA + bB ⇌ cC, 设反应进度为 ξ
+  // [A] = [A]₀ - aξ, [B] = [B]₀ - bξ, [C] = [C]₀ + cξ
+  // Kc = [C]^c / ([A]^a * [B]^b)
+  // 数值求解 ξ
+  let xi = 0;
+  const maxXi = Math.min(
+    state.initConc.A / r.stoich.A,
+    state.initConc.B / r.stoich.B
+  );
+
+  // 压强影响
+  let pFactor = 1;
+  if (r.isGas) {
+    pFactor = Math.pow(state.pressure, r.stoich.A + r.stoich.B - r.stoich.C);
+  }
+  const KcEff = Kc * pFactor;
+
+  // 二分法求解
+  let lo = -state.initConc.C / r.stoich.C;
+  let hi = maxXi;
+  for (let i = 0; i < 50; i++) {
+    const mid = (lo + hi) / 2;
+    const cA = Math.max(0.001, state.initConc.A - r.stoich.A * mid);
+    const cB = Math.max(0.001, state.initConc.B - r.stoich.B * mid);
+    const cC = Math.max(0, state.initConc.C + r.stoich.C * mid);
+    const Q = Math.pow(cC, r.stoich.C) / (Math.pow(cA, r.stoich.A) * Math.pow(cB, r.stoich.B));
+    if (Q < KcEff) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  xi = (lo + hi) / 2;
+
+  return {
+    A: Math.max(0.001, state.initConc.A - r.stoich.A * xi),
+    B: Math.max(0.001, state.initConc.B - r.stoich.B * xi),
+    C: Math.max(0, state.initConc.C + r.stoich.C * xi)
+  };
+}
+
+// ===== UI 更新 =====
+
+function updateReadouts() {
+  document.getElementById('kcValue').textContent = state.Kc > 0 ? state.Kc.toFixed(3) : '—';
+  document.getElementById('conversionValue').innerHTML = state.conversion.toFixed(1) + '<span class="chem-readout-unit">%</span>';
+  document.getElementById('rateFwdValue').textContent = state.rateFwd.toFixed(4);
+  document.getElementById('rateRevValue').textContent = state.rateRev.toFixed(4);
+  document.getElementById('timeValue').innerHTML = state.time.toFixed(1) + '<span class="chem-readout-unit">s</span>';
+  document.getElementById('particleCount').textContent = particles.length + ' 粒子';
+  document.getElementById('fpsTag').textContent = state.fps + ' FPS';
+
+  // 方向指示
+  const badge = document.getElementById('directionBadge');
+  const text = document.getElementById('directionText');
+  badge.classList.remove('forward', 'reverse', 'equilibrium');
+
+  if (!state.isPlaying && state.time === 0) {
+    text.textContent = '就绪';
+  } else if (isAtEquilibrium()) {
+    badge.classList.add('equilibrium');
+    text.textContent = '平衡状态';
+  } else if (state.rateFwd > state.rateRev) {
+    badge.classList.add('forward');
+    text.textContent = '正向移动 →';
+  } else {
+    badge.classList.add('reverse');
+    text.textContent = '← 逆向移动';
+  }
+}
+
+// ===== Canvas 尺寸自适应 =====
+
+function resizeCanvas(canvas, ctx) {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function resizeAll() {
+  resizeCanvas(particleCanvas, pCtx);
+  resizeCanvas(chartCanvas, cCtx);
+}
+
+// ===== 动画循环 =====
+
+function animate(now) {
+  const dt = Math.min(0.05, (now - state.lastFrame) / 1000 || 0.016);
+  state.lastFrame = now;
+  state.fps = Math.round(1 / dt);
+
+  const simDt = dt * state.speed;
+
+  if (state.isPlaying) {
+    // 多步小步长积分，提高稳定性
+    const subSteps = 4;
+    const subDt = simDt / subSteps;
+    for (let i = 0; i < subSteps; i++) {
+      updateChemistry(subDt);
+    }
+  }
+
+  drawParticleSimulation(dt);
+  drawChart();
+  updateReadouts();
+
+  requestAnimationFrame(animate);
+}
+
+// ===== 控制事件 =====
+
+function setReaction(key) {
+  state.reactionKey = key;
+  state.reaction = REACTIONS[key];
+  const r = state.reaction;
+
+  // 更新方程显示
+  document.getElementById('equationDisplay').innerHTML = r.equationHtml;
+
+  // 更新标签
+  document.getElementById('labelA').textContent = '[' + r.species.A + ']';
+  document.getElementById('labelB').textContent = '[' + r.species.B + ']';
+  document.getElementById('labelC').textContent = '[' + r.species.C + ']';
+  document.getElementById('legendA').textContent = r.species.A;
+  document.getElementById('legendB').textContent = r.species.B;
+  document.getElementById('legendC').textContent = r.species.C;
+
+  // 更新按钮状态
+  document.querySelectorAll('.chem-reaction-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.reaction === key);
+  });
+
+  resetSimulation();
+}
+
+function resetSimulation() {
+  state.conc = { ...state.initConc };
+  state.startConc = { ...state.initConc };
+  state.time = 0;
+  state.history = [];
+  state.rateFwd = 0;
+  state.rateRev = 0;
+  state.conversion = 0;
+  particles = [];
+  flashEffects = [];
+  calculateRates();
+  state.Kc = calculateKc(state.reaction, state.temperature);
+}
+
+function applyPreset(preset) {
+  // 清除可能存在的旧定时器
+  if (window._presetTimer) {
+    clearTimeout(window._presetTimer);
+    window._presetTimer = null;
+  }
+
+  switch (preset) {
+    case 'industrial':
+      setReaction('ammonia');
+      setSliderValues({ concA: 2.0, concB: 3.0, concC: 0, temperature: 700, pressure: 10, rateCoeff: 1.0 });
+      state.catalyst = true;
+      document.getElementById('catalystSwitch').classList.add('on');
+      break;
+    case 'so2-contact':
+      setReaction('so2');
+      setSliderValues({ concA: 2.0, concB: 1.0, concC: 0, temperature: 700, pressure: 1.0, rateCoeff: 1.0 });
+      state.catalyst = true;
+      document.getElementById('catalystSwitch').classList.add('on');
+      break;
+    case 'concentration-shock':
+      setReaction('ammonia');
+      setSliderValues({ concA: 1.0, concB: 1.0, concC: 0, temperature: 500, pressure: 1.0, rateCoeff: 1.0 });
+      state.catalyst = false;
+      document.getElementById('catalystSwitch').classList.remove('on');
+      resetSimulation();
+      state.isPlaying = true;
+      updatePlayButton();
+      // 8秒后突然增加反应物A浓度（模拟加入更多反应物）
+      window._presetTimer = setTimeout(() => {
+        if (state.isPlaying) {
+          state.conc.A += 2.5;
+          // 添加视觉闪光提示
+          for (let i = 0; i < 10; i++) {
+            flashEffects.push(new FlashEffect(
+              100 + Math.random() * 300,
+              100 + Math.random() * 200,
+              '#2563eb'
+            ));
+          }
+        }
+      }, 8000);
+      return;
+    case 'temperature-shock':
+      setReaction('so2');
+      setSliderValues({ concA: 2.0, concB: 1.0, concC: 0, temperature: 600, pressure: 1.0, rateCoeff: 1.0 });
+      state.catalyst = true;
+      document.getElementById('catalystSwitch').classList.add('on');
+      resetSimulation();
+      state.isPlaying = true;
+      updatePlayButton();
+      // 8秒后突然升高温度
+      window._presetTimer = setTimeout(() => {
+        if (state.isPlaying) {
+          setSliderValues({ temperature: 800 });
+          for (let i = 0; i < 10; i++) {
+            flashEffects.push(new FlashEffect(
+              100 + Math.random() * 300,
+              100 + Math.random() * 200,
+              '#d97706'
+            ));
+          }
+        }
+      }, 8000);
+      return;
+  }
+  resetSimulation();
+  state.isPlaying = true;
+  updatePlayButton();
+}
+
+function setSliderValues(values) {
+  if (values.concA !== undefined) {
+    document.getElementById('concA').value = values.concA;
+    state.initConc.A = values.concA;
+    document.getElementById('concAValue').textContent = values.concA.toFixed(1);
+  }
+  if (values.concB !== undefined) {
+    document.getElementById('concB').value = values.concB;
+    state.initConc.B = values.concB;
+    document.getElementById('concBValue').textContent = values.concB.toFixed(1);
+  }
+  if (values.concC !== undefined) {
+    document.getElementById('concC').value = values.concC;
+    state.initConc.C = values.concC;
+    document.getElementById('concCValue').textContent = values.concC.toFixed(1);
+  }
+  if (values.temperature !== undefined) {
+    document.getElementById('temperature').value = values.temperature;
+    state.temperature = values.temperature;
+    document.getElementById('tempValue').textContent = values.temperature + 'K';
+  }
+  if (values.pressure !== undefined) {
+    document.getElementById('pressure').value = values.pressure;
+    state.pressure = values.pressure;
+    document.getElementById('pressureValue').textContent = values.pressure.toFixed(1) + 'atm';
+  }
+  if (values.rateCoeff !== undefined) {
+    document.getElementById('rateCoeff').value = values.rateCoeff;
+    state.rateCoeff = values.rateCoeff;
+    document.getElementById('rateCoeffValue').textContent = values.rateCoeff.toFixed(1);
+  }
+}
+
+function updatePlayButton() {
+  const btn = document.getElementById('playBtn');
+  const icon = document.getElementById('playIcon');
+  if (state.isPlaying) {
+    btn.classList.add('playing');
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+  } else {
+    btn.classList.remove('playing');
+    icon.innerHTML = '<polygon points="6 4 20 12 6 20 6 4"/>';
+  }
+}
+
+// ===== 事件绑定 =====
+
+function initEvents() {
+  // 反应选择
+  document.querySelectorAll('.chem-reaction-btn').forEach(btn => {
+    btn.addEventListener('click', () => setReaction(btn.dataset.reaction));
+  });
+
+  // 浓度滑块
+  document.getElementById('concA').addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    state.initConc.A = v;
+    document.getElementById('concAValue').textContent = v.toFixed(1);
+    if (!state.isPlaying) {
+      state.conc.A = v;
+      calculateRates();
+    }
+  });
+
+  document.getElementById('concB').addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    state.initConc.B = v;
+    document.getElementById('concBValue').textContent = v.toFixed(1);
+    if (!state.isPlaying) {
+      state.conc.B = v;
+      calculateRates();
+    }
+  });
+
+  document.getElementById('concC').addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    state.initConc.C = v;
+    document.getElementById('concCValue').textContent = v.toFixed(1);
+    if (!state.isPlaying) {
+      state.conc.C = v;
+      calculateRates();
+    }
+  });
+
+  // 温度
+  document.getElementById('temperature').addEventListener('input', (e) => {
+    state.temperature = parseInt(e.target.value);
+    document.getElementById('tempValue').textContent = state.temperature + 'K';
+    calculateRates();
+  });
+
+  // 压强
+  document.getElementById('pressure').addEventListener('input', (e) => {
+    state.pressure = parseFloat(e.target.value);
+    document.getElementById('pressureValue').textContent = state.pressure.toFixed(1) + 'atm';
+    calculateRates();
+  });
+
+  // 速率系数
+  document.getElementById('rateCoeff').addEventListener('input', (e) => {
+    state.rateCoeff = parseFloat(e.target.value);
+    document.getElementById('rateCoeffValue').textContent = state.rateCoeff.toFixed(1);
+    calculateRates();
+  });
+
+  // 催化剂开关
+  document.getElementById('catalystSwitch').addEventListener('click', () => {
+    state.catalyst = !state.catalyst;
+    document.getElementById('catalystSwitch').classList.toggle('on', state.catalyst);
+    calculateRates();
+  });
+
+  // 预设
+  document.querySelectorAll('.chem-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+  });
+
+  // 播放/暂停
+  document.getElementById('playBtn').addEventListener('click', () => {
+    state.isPlaying = !state.isPlaying;
+    updatePlayButton();
+  });
+
+  // 重置
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.isPlaying = false;
+    updatePlayButton();
+    resetSimulation();
+  });
+
+  // 单步
+  document.getElementById('stepBtn').addEventListener('click', () => {
+    if (!state.isPlaying) {
+      state.stepMode = true;
+      const stepDt = 0.2 * state.speed;
+      const subSteps = 4;
+      const subDt = stepDt / subSteps;
+      for (let i = 0; i < subSteps; i++) {
+        updateChemistry(subDt);
+      }
+    }
+  });
+
+  // 速度
+  document.querySelectorAll('.chem-speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.speed = parseFloat(btn.dataset.speed);
+      document.querySelectorAll('.chem-speed-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // 图表切换
+  document.querySelectorAll('.chem-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+      const toggle = btn.dataset.toggle;
+      if (toggle === 'concentration') state.showConcentration = btn.classList.contains('active');
+      if (toggle === 'rate') state.showRate = btn.classList.contains('active');
+      if (toggle === 'equilibrium') state.showEquilibrium = btn.classList.contains('active');
+    });
+  });
+
+  // 导航栏滚动
+  window.addEventListener('scroll', () => {
+    document.getElementById('demoNavbar').classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // 窗口调整
+  window.addEventListener('resize', resizeAll);
+}
+
+// ===== 初始化 =====
+
+function init() {
+  resizeAll();
+  initEvents();
+  calculateRates();
+  state.Kc = calculateKc(state.reaction, state.temperature);
+  requestAnimationFrame(animate);
+
+  // 隐藏加载动画
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+  }, 600);
+}
+
+// 等待字体加载
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+
+</body>
+</html>

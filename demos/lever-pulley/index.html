@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>杠杆与滑轮力学实验 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<style>
+  /* ============================================================
+     杠杆与滑轮力学实验 — 交互工具型 Demo
+     配色：机械橙 + 金属灰 + 暖白背景
+     ============================================================ */
+
+  :root {
+    --mech-orange: #ea580c;
+    --mech-orange-hover: #c2410c;
+    --metal-light: #9ca3af;
+    --metal-dark: #4b5563;
+    --weight-dark: #1f2937;
+    --rope-brown: #92400e;
+    --force-red: #dc2626;
+    --arm-amber: #f59e0b;
+    --fulcrum-gray: #374151;
+  }
+
+  /* ---------- 控制面板自定义 ---------- */
+  .framework-interactive .interactive-main {
+    padding-top: 64px;
+  }
+
+  .lever-control-panel {
+    flex-shrink: 0;
+    background-color: var(--surface-muted);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* 第一行：模式标签 + 操作按钮 */
+  .control-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border-soft);
+    gap: 16px;
+  }
+
+  .mode-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: 3px;
+  }
+
+  .mode-tab {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    border-radius: var(--radius-full);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .mode-tab:hover {
+    color: var(--text);
+  }
+
+  .mode-tab.active {
+    background: var(--mech-orange);
+    color: #fff;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .action-btn:hover {
+    border-color: var(--text-faint);
+    background: var(--bg);
+  }
+
+  .action-btn.primary {
+    background: var(--mech-orange);
+    border-color: var(--mech-orange);
+    color: #fff;
+  }
+
+  .action-btn.primary:hover {
+    background: var(--mech-orange-hover);
+  }
+
+  .action-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* 第二行：参数 + 预设 + 显示选项 */
+  .control-row-bottom {
+    display: flex;
+    align-items: stretch;
+    padding: 12px 24px;
+    gap: 24px;
+  }
+
+  .param-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .param-section-lever {
+    flex: 1;
+    max-width: 480px;
+  }
+
+  .param-section-pulley {
+    flex: 1;
+    max-width: 240px;
+  }
+
+  .param-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 20px;
+  }
+
+  .param-grid-single {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .param-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .param-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 55px;
+  }
+
+  .param-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .param-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--mech-orange);
+    cursor: pointer;
+    border: 2px solid var(--surface);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+
+  .param-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--mech-orange);
+    cursor: pointer;
+    border: 2px solid var(--surface);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+
+  .param-value {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--mech-orange);
+    min-width: 44px;
+    text-align: right;
+  }
+
+  /* 预设和显示选项区 */
+  .options-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .options-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .preset-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 300px;
+  }
+
+  .preset-btn {
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .preset-btn:hover {
+    border-color: var(--mech-orange);
+    color: var(--mech-orange);
+  }
+
+  .display-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    max-width: 300px;
+  }
+
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle input {
+    width: 13px;
+    height: 13px;
+    accent-color: var(--mech-orange);
+    cursor: pointer;
+  }
+
+  .toggle input:checked + span {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ---------- 画布区 ---------- */
+  .interactive-canvas-area {
+    background: linear-gradient(180deg, #faf8f5 0%, #f0ebe3 100%);
+  }
+
+  .apparatus-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* ---------- 数据面板 ---------- */
+  .interactive-data-display {
+    min-width: 180px;
+    max-width: 220px;
+  }
+
+  .data-row {
+    padding: 2px 0;
+  }
+
+  .data-row.highlight {
+    border-top: 1px solid var(--border-soft);
+    margin-top: 4px;
+    padding-top: 6px;
+  }
+
+  .data-row.balance .data-value {
+    color: var(--accent-bio);
+  }
+
+  .data-row.unbalance .data-value {
+    color: var(--force-red);
+  }
+
+  .data-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 2px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  /* ---------- SVG 文本样式 ---------- */
+  .svg-label {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 11px;
+    fill: var(--text);
+  }
+
+  .svg-label-sm {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 9px;
+    fill: var(--text-muted);
+  }
+
+  .svg-force-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    fill: var(--force-red);
+    font-weight: 600;
+  }
+
+  .svg-arm-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    fill: #b45309;
+    font-weight: 600;
+  }
+
+  .svg-torque-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    fill: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .svg-weight-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    fill: #f3f4f6;
+    font-weight: 600;
+  }
+
+  .svg-scale-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    fill: var(--text-faint);
+  }
+
+  /* ---------- 状态指示器 ---------- */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .status-badge.balanced {
+    background: rgba(5, 150, 105, 0.1);
+    color: var(--accent-bio);
+  }
+
+  .status-badge.unbalanced {
+    background: rgba(220, 38, 38, 0.1);
+    color: var(--force-red);
+  }
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width: 1024px) {
+    .control-row-bottom {
+      flex-wrap: wrap;
+    }
+    .param-section-lever {
+      max-width: 100%;
+      flex: 1 1 100%;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .control-row-top {
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 12px;
+    }
+
+    .mode-tabs {
+      overflow-x: auto;
+      width: 100%;
+    }
+
+    .mode-tab {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+
+    .control-row-bottom {
+      flex-direction: column;
+      padding: 8px 12px;
+      gap: 8px;
+    }
+
+    .param-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .interactive-data-display {
+      top: 8px;
+      right: 8px;
+      padding: 10px 12px;
+      min-width: 140px;
+      max-width: 180px;
+    }
+
+    .interactive-data-display .data-section-title {
+      font-size: 9px;
+    }
+  }
+</style>
+</head>
+<body class="has-info-bar">
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+    <div class="demo-nav-left">
+      <a href="/" class="demo-nav-logo">景礴学院</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">物理</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+    </div>
+    <div class="demo-nav-center">杠杆与滑轮力学实验</div>
+    <div class="demo-nav-right">
+      <span class="tag tag-physics">物理</span>
+      <a href="/skills/jingbo-edu-physics-experiment-sim-v0.1.html" class="demo-btn-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>下载 Skill</span>
+      </a>
+    </div>
+  </header>
+
+<!-- ====== 主体：上下分栏 ====== -->
+<div class="framework-interactive">
+  <div class="interactive-main">
+
+    <!-- ========== 上方：画布区 ========== -->
+    <div class="interactive-canvas-area">
+      <svg class="apparatus-svg" id="apparatus" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid meet"></svg>
+
+      <!-- 数据显示面板 -->
+      <div class="interactive-data-display" id="dataPanel"></div>
+    </div>
+
+    <!-- ========== 下方：控制面板 ========== -->
+    <div class="lever-control-panel">
+
+      <!-- 第一行：模式标签 + 操作按钮 -->
+      <div class="control-row-top">
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="lever">杠杆实验</button>
+          <button class="mode-tab" data-mode="fixed">定滑轮</button>
+          <button class="mode-tab" data-mode="movable">动滑轮</button>
+          <button class="mode-tab" data-mode="pulley2">滑轮组(2段)</button>
+          <button class="mode-tab" data-mode="pulley3">滑轮组(3段)</button>
+        </div>
+        <div class="action-buttons">
+          <button class="action-btn" id="releaseBtn" title="释放/固定杠杆">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span id="releaseLabel">固定</span>
+          </button>
+          <button class="action-btn primary" id="playBtn" title="播放/暂停动画" style="display:none">
+            <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span id="playLabel">播放</span>
+          </button>
+          <button class="action-btn" id="resetBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            重置
+          </button>
+          <button class="action-btn" id="addWeightBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            加钩码
+          </button>
+        </div>
+      </div>
+
+      <!-- 第二行：参数 + 预设 + 显示选项 -->
+      <div class="control-row-bottom">
+        <!-- 杠杆参数 -->
+        <div class="param-section param-section-lever" id="leverParams">
+          <div class="param-grid">
+            <div class="param-item">
+              <span class="param-label">左侧 G₁</span>
+              <input type="range" class="param-slider" id="sliderG1" min="0" max="10" step="0.5" value="4" />
+              <span class="param-value" id="valG1">4.0 N</span>
+            </div>
+            <div class="param-item">
+              <span class="param-label">右侧 G₂</span>
+              <input type="range" class="param-slider" id="sliderG2" min="0" max="10" step="0.5" value="5" />
+              <span class="param-value" id="valG2">5.0 N</span>
+            </div>
+            <div class="param-item">
+              <span class="param-label">左臂 L₁</span>
+              <input type="range" class="param-slider" id="sliderL1" min="1" max="10" step="1" value="5" />
+              <span class="param-value" id="valL1">5 格</span>
+            </div>
+            <div class="param-item">
+              <span class="param-label">右臂 L₂</span>
+              <input type="range" class="param-slider" id="sliderL2" min="1" max="10" step="1" value="4" />
+              <span class="param-value" id="valL2">4 格</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 滑轮参数 -->
+        <div class="param-section param-section-pulley" id="pulleyParams" style="display:none">
+          <div class="param-grid-single">
+            <div class="param-item">
+              <span class="param-label">物重 G</span>
+              <input type="range" class="param-slider" id="sliderG" min="10" max="100" step="5" value="40" />
+              <span class="param-value" id="valG">40 N</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 预设实验 -->
+        <div class="options-section">
+          <span class="options-label">预设实验</span>
+          <div class="preset-buttons">
+            <button class="preset-btn" data-preset="0">杠杆平衡</button>
+            <button class="preset-btn" data-preset="1">省力杠杆</button>
+            <button class="preset-btn" data-preset="2">费力杠杆</button>
+            <button class="preset-btn" data-preset="3">定滑轮</button>
+            <button class="preset-btn" data-preset="4">动滑轮</button>
+            <button class="preset-btn" data-preset="5">滑轮组</button>
+          </div>
+        </div>
+
+        <!-- 显示选项 -->
+        <div class="options-section">
+          <span class="options-label">显示选项</span>
+          <div class="display-toggles">
+            <label class="toggle"><input type="checkbox" id="togForce" checked><span>力示意图</span></label>
+            <label class="toggle"><input type="checkbox" id="togArm" checked><span>力臂标注</span></label>
+            <label class="toggle"><input type="checkbox" id="togTorque"><span>力矩数值</span></label>
+            <label class="toggle"><input type="checkbox" id="togGrid" checked><span>刻度网格</span></label>
+            <label class="toggle"><input type="checkbox" id="togTension"><span>绳子张力</span></label>
+            <label class="toggle"><input type="checkbox" id="togEff"><span>机械效率</span></label>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 底部信息条 ====== -->
+<footer class="demo-info-bar">
+  <div class="demo-info-left">
+    <span class="demo-info-title">S208 · 杠杆与滑轮力学实验室</span>
+    <span class="demo-tech-tag">SVG</span>
+    <span class="demo-tech-tag">实时计算</span>
+  </div>
+  <div class="demo-info-right">
+    <span class="demo-tech-tag" id="fpsTag">60 FPS</span>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   杠杆与滑轮力学实验 — 交互逻辑
+   ============================================================ */
+
+// ===== 配置 =====
+const CFG = {
+  svgW: 900, svgH: 600,
+  fulcrumX: 450, fulcrumY: 380,
+  gridSize: 30,       // 1格 = 30px
+  maxArm: 10,
+  pulleyR: 35,
+  supportY: 72,
+  fixedPulleyY: 140,
+  movablePulleyBaseY: 360,
+  liftDistance: 70,   // 动画提升距离
+};
+
+// ===== 状态 =====
+const state = {
+  mode: 'lever',
+  // 杠杆参数
+  G1: 4, L1: 5, G2: 5, L2: 4,
+  // 滑轮参数
+  G: 40,
+  // 显示选项
+  show: { force: true, arm: true, torque: false, grid: true, tension: false, eff: false },
+  // 杠杆动画
+  released: false,
+  leverAngle: 0,
+  targetAngle: 0,
+  // 滑轮动画
+  playing: false,
+  animProgress: 0,
+  // FPS
+  fps: 60,
+  lastFrame: 0,
+};
+
+// 滑轮模式对应的绳子段数
+const PULLEY_N = { fixed: 1, movable: 2, pulley2: 2, pulley3: 3 };
+
+// ===== SVG 构建 =====
+const svg = document.getElementById('apparatus');
+const NS = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs = {}, children = []) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    e.setAttribute(k, v);
+  }
+  for (const c of (Array.isArray(children) ? children : [children])) {
+    if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+    else if (c) e.appendChild(c);
+  }
+  return e;
+}
+
+function clearSVG() {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+}
+
+// ===== 绘制：定义（渐变、箭头） =====
+function drawDefs() {
+  const defs = el('defs');
+
+  // 金属渐变（竖直方向）
+  defs.appendChild(el('linearGradient', { id: 'metalGrad', x1: '0%', y1: '0%', x2: '0%', y2: '100%' }, [
+    el('stop', { offset: '0%', 'stop-color': '#9ca3af' }),
+    el('stop', { offset: '50%', 'stop-color': '#6b7280' }),
+    el('stop', { offset: '100%', 'stop-color': '#4b5563' }),
+  ]));
+
+  // 金属渐变（水平方向）
+  defs.appendChild(el('linearGradient', { id: 'metalGradH', x1: '0%', y1: '0%', x2: '100%', y2: '0%' }, [
+    el('stop', { offset: '0%', 'stop-color': '#4b5563' }),
+    el('stop', { offset: '50%', 'stop-color': '#9ca3af' }),
+    el('stop', { offset: '100%', 'stop-color': '#4b5563' }),
+  ]));
+
+  // 钩码渐变
+  defs.appendChild(el('linearGradient', { id: 'weightGrad', x1: '0%', y1: '0%', x2: '0%', y2: '100%' }, [
+    el('stop', { offset: '0%', 'stop-color': '#374151' }),
+    el('stop', { offset: '50%', 'stop-color': '#1f2937' }),
+    el('stop', { offset: '100%', 'stop-color': '#111827' }),
+  ]));
+
+  // 支点渐变
+  defs.appendChild(el('linearGradient', { id: 'fulcrumGrad', x1: '0%', y1: '0%', x2: '0%', y2: '100%' }, [
+    el('stop', { offset: '0%', 'stop-color': '#4b5563' }),
+    el('stop', { offset: '100%', 'stop-color': '#1f2937' }),
+  ]));
+
+  // 支架渐变
+  defs.appendChild(el('linearGradient', { id: 'supportGrad', x1: '0%', y1: '0%', x2: '0%', y2: '100%' }, [
+    el('stop', { offset: '0%', 'stop-color': '#6b7280' }),
+    el('stop', { offset: '100%', 'stop-color': '#374151' }),
+  ]));
+
+  // 向下箭头标记
+  defs.appendChild(el('marker', { id: 'arrowDown', markerWidth: 8, markerHeight: 8, refX: 4, refY: 7, orient: 'auto' }, [
+    el('path', { d: 'M 0 0 L 4 7 L 8 0 Z', fill: '#dc2626' }),
+  ]));
+
+  // 向上箭头标记
+  defs.appendChild(el('marker', { id: 'arrowUp', markerWidth: 8, markerHeight: 8, refX: 4, refY: 1, orient: 'auto' }, [
+    el('path', { d: 'M 0 8 L 4 1 L 8 8 Z', fill: '#dc2626' }),
+  ]));
+
+  // 通用箭头
+  defs.appendChild(el('marker', { id: 'arrowEnd', markerWidth: 8, markerHeight: 8, refX: 7, refY: 4, orient: 'auto' }, [
+    el('path', { d: 'M 0 0 L 7 4 L 0 8 Z', fill: '#dc2626' }),
+  ]));
+
+  // 阴影滤镜
+  defs.appendChild(el('filter', { id: 'softShadow', x: '-20%', y: '-20%', width: '140%', height: '140%' }, [
+    el('feGaussianBlur', { in: 'SourceAlpha', stdDeviation: 2 }),
+    el('feOffset', { dx: 0, dy: 2 }),
+    el('feComponentTransfer', {}, [el('feFuncA', { type: 'linear', slope: 0.2 })]),
+    el('feMerge', {}, [el('feMergeNode'), el('feMergeNode', { in: 'SourceGraphic' })]),
+  ]));
+
+  return defs;
+}
+
+// ===== 绘制：网格 =====
+function drawGrid() {
+  if (!state.show.grid) return null;
+  const g = el('g', { id: 'grid', opacity: '0.4' });
+  // 竖线
+  for (let x = 0; x <= CFG.svgW; x += CFG.gridSize) {
+    g.appendChild(el('line', {
+      x1: x, y1: 0, x2: x, y2: CFG.svgH,
+      stroke: '#e5ded4', 'stroke-width': x % 150 === 0 ? 1 : 0.5,
+    }));
+  }
+  // 横线
+  for (let y = 0; y <= CFG.svgH; y += CFG.gridSize) {
+    g.appendChild(el('line', {
+      x1: 0, y1: y, x2: CFG.svgW, y2: y,
+      stroke: '#e5ded4', 'stroke-width': y % 150 === 0 ? 1 : 0.5,
+    }));
+  }
+  return g;
+}
+
+// ===== 绘制：杠杆装置 =====
+function drawLeverApparatus() {
+  const g = el('g', { id: 'lever-apparatus' });
+  const { fulcrumX, fulcrumY, gridSize } = CFG;
+  const angle = state.leverAngle * Math.PI / 180;
+
+  // --- 支点底座 ---
+  const baseW = 80, baseH = 12;
+  g.appendChild(el('rect', {
+    x: fulcrumX - baseW / 2, y: fulcrumY + 28,
+    width: baseW, height: baseH,
+    fill: 'url(#fulcrumGrad)', rx: 2,
+  }));
+  // 三角形支点
+  g.appendChild(el('polygon', {
+    points: `${fulcrumX},${fulcrumY} ${fulcrumX - 22},${fulcrumY + 28} ${fulcrumX + 22},${fulcrumY + 28}`,
+    fill: 'url(#fulcrumGrad)', stroke: '#1f2937', 'stroke-width': 1,
+  }));
+  // 支点高光圆
+  g.appendChild(el('circle', {
+    cx: fulcrumX, cy: fulcrumY, r: 5,
+    fill: '#6b7280', stroke: '#1f2937', 'stroke-width': 1,
+  }));
+  g.appendChild(el('circle', {
+    cx: fulcrumX - 1.5, cy: fulcrumY - 1.5, r: 1.5,
+    fill: '#d1d5db',
+  }));
+
+  // --- 杠杆杆 ---
+  const leverLen = CFG.maxArm * gridSize; // 300px each side
+  const leftEndX = fulcrumX - leverLen * Math.cos(angle);
+  const leftEndY = fulcrumY + leverLen * Math.sin(angle);
+  const rightEndX = fulcrumX + leverLen * Math.cos(angle);
+  const rightEndY = fulcrumY - leverLen * Math.sin(angle);
+
+  // 杠杆主体（矩形旋转）
+  const leverThickness = 8;
+  const dx = rightEndX - leftEndX;
+  const dy = rightEndY - leftEndY;
+  const leverAngleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+  const leverMidX = (leftEndX + rightEndX) / 2;
+  const leverMidY = (leftEndY + rightEndY) / 2;
+
+  const leverGroup = el('g', { transform: `rotate(${leverAngleDeg}, ${leverMidX}, ${leverMidY})` });
+
+  // 杠杆杆体
+  leverGroup.appendChild(el('rect', {
+    x: leftEndX, y: leverMidY - leverThickness / 2,
+    width: leverLen * 2, height: leverThickness,
+    fill: 'url(#metalGradH)', rx: 3,
+    stroke: '#374151', 'stroke-width': 0.5,
+  }));
+
+  // 刻度线
+  for (let i = 1; i <= CFG.maxArm; i++) {
+    const leftX = fulcrumX - i * gridSize;
+    const rightX = fulcrumX + i * gridSize;
+    // 左侧刻度
+    leverGroup.appendChild(el('line', {
+      x1: leftX, y1: leverMidY - leverThickness / 2,
+      x2: leftX, y2: leverMidY + leverThickness / 2,
+      stroke: '#374151', 'stroke-width': 1,
+    }));
+    // 右侧刻度
+    leverGroup.appendChild(el('line', {
+      x1: rightX, y1: leverMidY - leverThickness / 2,
+      x2: rightX, y2: leverMidY + leverThickness / 2,
+      stroke: '#374151', 'stroke-width': 1,
+    }));
+    // 数字标注（每隔2格）
+    if (i % 2 === 0) {
+      leverGroup.appendChild(el('text', {
+        x: leftX, y: leverMidY + leverThickness / 2 + 10,
+        'text-anchor': 'middle', class: 'svg-scale-label',
+      }, [`${i}`]));
+      leverGroup.appendChild(el('text', {
+        x: rightX, y: leverMidY + leverThickness / 2 + 10,
+        'text-anchor': 'middle', class: 'svg-scale-label',
+      }, [`${i}`]));
+    }
+  }
+  g.appendChild(leverGroup);
+
+  // --- 钩码位置 ---
+  const w1X = fulcrumX - state.L1 * gridSize * Math.cos(angle);
+  const w1Y = fulcrumY + state.L1 * gridSize * Math.sin(angle);
+  const w2X = fulcrumX + state.L2 * gridSize * Math.cos(angle);
+  const w2Y = fulcrumY - state.L2 * gridSize * Math.sin(angle);
+
+  // 钩码（左侧）
+  if (state.G1 > 0) {
+    g.appendChild(drawHookedWeight(w1X, w1Y, state.G1, 'G₁'));
+  }
+  // 钩码（右侧）
+  if (state.G2 > 0) {
+    g.appendChild(drawHookedWeight(w2X, w2Y, state.G2, 'G₂'));
+  }
+
+  // --- 力的示意图 ---
+  if (state.show.force) {
+    if (state.G1 > 0) {
+      g.appendChild(drawForceArrowDown(w1X, w1Y + 2, 35, `${state.G1.toFixed(1)} N`));
+    }
+    if (state.G2 > 0) {
+      g.appendChild(drawForceArrowDown(w2X, w2Y + 2, 35, `${state.G2.toFixed(1)} N`));
+    }
+  }
+
+  // --- 力臂标注 ---
+  if (state.show.arm) {
+    // 力臂 = 从支点到力的作用线的垂直距离
+    // 力的方向是竖直向下，所以力臂 = 水平距离
+    const arm1X = fulcrumX - state.L1 * gridSize * Math.cos(angle);
+    const arm2X = fulcrumX + state.L2 * gridSize * Math.cos(angle);
+
+    // 左力臂线（从支点到左侧力作用线）
+    g.appendChild(el('line', {
+      x1: fulcrumX, y1: fulcrumY,
+      x2: arm1X, y2: fulcrumY,
+      stroke: '#f59e0b', 'stroke-width': 1.5, 'stroke-dasharray': '4 3',
+    }));
+    // 直角标记
+    g.appendChild(drawRightAngle(fulcrumX, fulcrumY, arm1X, fulcrumY, arm1X, w1Y));
+    // 力臂标签
+    if (state.L1 > 0) {
+      g.appendChild(el('text', {
+        x: (fulcrumX + arm1X) / 2, y: fulcrumY - 6,
+        'text-anchor': 'middle', class: 'svg-arm-label',
+      }, [`L₁=${state.L1}`]));
+    }
+
+    // 右力臂线
+    g.appendChild(el('line', {
+      x1: fulcrumX, y1: fulcrumY,
+      x2: arm2X, y2: fulcrumY,
+      stroke: '#f59e0b', 'stroke-width': 1.5, 'stroke-dasharray': '4 3',
+    }));
+    g.appendChild(drawRightAngle(fulcrumX, fulcrumY, arm2X, fulcrumY, arm2X, w2Y));
+    if (state.L2 > 0) {
+      g.appendChild(el('text', {
+        x: (fulcrumX + arm2X) / 2, y: fulcrumY - 6,
+        'text-anchor': 'middle', class: 'svg-arm-label',
+      }, [`L₂=${state.L2}`]));
+    }
+  }
+
+  // --- 力矩数值 ---
+  if (state.show.torque) {
+    const torque1 = state.G1 * state.L1;
+    const torque2 = state.G2 * state.L2;
+    g.appendChild(el('text', {
+      x: w1X, y: w1Y + 55,
+      'text-anchor': 'middle', class: 'svg-torque-label',
+    }, [`M₁=${torque1.toFixed(1)}`]));
+    g.appendChild(el('text', {
+      x: w2X, y: w2Y + 55,
+      'text-anchor': 'middle', class: 'svg-torque-label',
+    }, [`M₂=${torque2.toFixed(1)}`]));
+  }
+
+  // --- 平衡状态指示 ---
+  const torqueDiff = state.G1 * state.L1 - state.G2 * state.L2;
+  const isBalanced = Math.abs(torqueDiff) < 0.01;
+  if (!isBalanced && state.released) {
+    const hint = torqueDiff > 0 ? '◀ 左侧力矩更大' : '右侧力矩更大 ▶';
+    g.appendChild(el('text', {
+      x: fulcrumX, y: 50,
+      'text-anchor': 'middle',
+      'font-family': 'JetBrains Mono, monospace',
+      'font-size': '12', 'fill': '#dc2626', 'font-weight': '600',
+    }, [hint]));
+  } else if (isBalanced && state.G1 > 0 && state.G2 > 0) {
+    g.appendChild(el('text', {
+      x: fulcrumX, y: 50,
+      'text-anchor': 'middle',
+      'font-family': 'JetBrains Mono, monospace',
+      'font-size': '12', 'fill': '#059669', 'font-weight': '600',
+    }, ['✓ 杠杆平衡']));
+  }
+
+  return g;
+}
+
+// ===== 绘制：钩码（堆叠样式） =====
+function drawHookedWeight(x, y, weight, label) {
+  const g = el('g');
+  const blockH = 9, blockW = 30, gap = 1;
+  const numBlocks = Math.round(weight * 2); // 0.5N = 1 block
+  const totalH = numBlocks * (blockH + gap);
+  const topY = y + 4; // 留出挂钩空间
+
+  // 挂钩
+  g.appendChild(el('line', {
+    x1: x, y1: y, x2: x, y2: topY,
+    stroke: '#4b5563', 'stroke-width': 1.5,
+  }));
+  g.appendChild(el('path', {
+    d: `M ${x - 4} ${topY} Q ${x} ${topY - 4} ${x + 4} ${topY}`,
+    fill: 'none', stroke: '#4b5563', 'stroke-width': 1.5,
+  }));
+
+  // 钩码块
+  for (let i = 0; i < numBlocks; i++) {
+    const blockY = topY + i * (blockH + gap);
+    g.appendChild(el('rect', {
+      x: x - blockW / 2, y: blockY,
+      width: blockW, height: blockH,
+      fill: 'url(#weightGrad)', rx: 1.5,
+      stroke: '#0f172a', 'stroke-width': 0.5,
+    }));
+    // 白色刻度线
+    g.appendChild(el('line', {
+      x1: x - blockW / 2 + 3, y1: blockY + blockH / 2,
+      x2: x + blockW / 2 - 3, y2: blockY + blockH / 2,
+      stroke: '#6b7280', 'stroke-width': 0.5,
+    }));
+  }
+
+  // 标签
+  g.appendChild(el('rect', {
+    x: x - 18, y: topY + totalH + 2,
+    width: 36, height: 14,
+    fill: '#1f2937', rx: 2,
+  }));
+  g.appendChild(el('text', {
+    x: x, y: topY + totalH + 12,
+    'text-anchor': 'middle', class: 'svg-weight-label',
+  }, [`${label}=${weight.toFixed(1)}N`]));
+
+  return g;
+}
+
+// ===== 绘制：力箭头（向下） =====
+function drawForceArrowDown(x, y, length, label) {
+  const g = el('g');
+  g.appendChild(el('line', {
+    x1: x, y1: y, x2: x, y2: y + length,
+    stroke: '#dc2626', 'stroke-width': 2,
+    'marker-end': 'url(#arrowDown)',
+  }));
+  g.appendChild(el('text', {
+    x: x + 6, y: y + length / 2 + 4,
+    class: 'svg-force-label',
+  }, [label]));
+  return g;
+}
+
+// ===== 绘制：力箭头（向上） =====
+function drawForceArrowUp(x, y, length, label) {
+  const g = el('g');
+  g.appendChild(el('line', {
+    x1: x, y1: y, x2: x, y2: y - length,
+    stroke: '#dc2626', 'stroke-width': 2,
+    'marker-end': 'url(#arrowUp)',
+  }));
+  g.appendChild(el('text', {
+    x: x + 6, y: y - length / 2 + 4,
+    class: 'svg-force-label',
+  }, [label]));
+  return g;
+}
+
+// ===== 绘制：力箭头（任意方向） =====
+function drawForceArrow(x1, y1, x2, y2, label) {
+  const g = el('g');
+  g.appendChild(el('line', {
+    x1, y1, x2, y2,
+    stroke: '#dc2626', 'stroke-width': 2,
+    'marker-end': 'url(#arrowEnd)',
+  }));
+  if (label) {
+    const mx = (x1 + x2) / 2 + 6;
+    const my = (y1 + y2) / 2 + 4;
+    g.appendChild(el('text', {
+      x: mx, y: my, class: 'svg-force-label',
+    }, [label]));
+  }
+  return g;
+}
+
+// ===== 绘制：直角标记 =====
+function drawRightAngle(cx, cy, ax, ay, bx, by) {
+  const size = 6;
+  const dx1 = ax - cx, dy1 = ay - cy;
+  const dx2 = bx - cx, by2 = by - cy;
+  const len1 = Math.hypot(dx1, dy1) || 1;
+  const len2 = Math.hypot(dx2, by2) || 1;
+  const p1x = cx + (dx1 / len1) * size;
+  const p1y = cy + (dy1 / len1) * size;
+  const p2x = cx + (dx2 / len2) * size + (dx1 / len1) * size;
+  const p2y = cy + (by2 / len2) * size + (dy1 / len1) * size;
+  const p3x = cx + (dx2 / len2) * size;
+  const p3y = cy + (by2 / len2) * size;
+  return el('polyline', {
+    points: `${p1x},${p1y} ${p2x},${p2y} ${p3x},${p3y}`,
+    fill: 'none', stroke: '#f59e0b', 'stroke-width': 1,
+  });
+}
+
+// ===== 绘制：滑轮圆盘 =====
+function drawPulleyWheel(cx, cy, r, label) {
+  const g = el('g');
+
+  // 外圈（轮槽）
+  g.appendChild(el('circle', {
+    cx, cy, r: r + 3,
+    fill: 'none', stroke: '#374151', 'stroke-width': 2,
+  }));
+  // 轮体
+  g.appendChild(el('circle', {
+    cx, cy, r,
+    fill: 'url(#metalGrad)', stroke: '#374151', 'stroke-width': 1,
+  }));
+  // 凹槽
+  g.appendChild(el('circle', {
+    cx, cy, r: r - 3,
+    fill: 'none', stroke: '#4b5563', 'stroke-width': 1,
+  }));
+  // 中心轴
+  g.appendChild(el('circle', {
+    cx, cy, r: 5,
+    fill: '#1f2937',
+  }));
+  g.appendChild(el('circle', {
+    cx: cx - 1, cy: cy - 1, r: 1.5,
+    fill: '#9ca3af',
+  }));
+  // 辐条线
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2;
+    g.appendChild(el('line', {
+      x1: cx + Math.cos(a) * 6, y1: cy + Math.sin(a) * 6,
+      x2: cx + Math.cos(a) * (r - 4), y2: cy + Math.sin(a) * (r - 4),
+      stroke: '#6b7280', 'stroke-width': 1,
+    }));
+  }
+
+  // 标签
+  if (label) {
+    g.appendChild(el('text', {
+      x: cx, y: cy - r - 8,
+      'text-anchor': 'middle', class: 'svg-label-sm',
+    }, [label]));
+  }
+
+  return g;
+}
+
+// ===== 绘制：大砝码（滑轮用） =====
+function drawHeavyWeight(x, y, weight, label) {
+  const g = el('g');
+  const w = 50, h = 45;
+
+  // 挂钩
+  g.appendChild(el('line', {
+    x1: x, y1: y, x2: x, y2: y + 6,
+    stroke: '#4b5563', 'stroke-width': 2,
+  }));
+  g.appendChild(el('path', {
+    d: `M ${x - 5} ${y + 6} Q ${x} ${y + 1} ${x + 5} ${y + 6}`,
+    fill: 'none', stroke: '#4b5563', 'stroke-width': 2,
+  }));
+
+  // 砝码主体
+  g.appendChild(el('rect', {
+    x: x - w / 2, y: y + 8,
+    width: w, height: h,
+    fill: 'url(#weightGrad)', rx: 3,
+    stroke: '#0f172a', 'stroke-width': 1,
+  }));
+
+  // 顶部装饰
+  g.appendChild(el('rect', {
+    x: x - w / 2 + 3, y: y + 10,
+    width: w - 6, height: 3,
+    fill: '#374151', rx: 1,
+  }));
+
+  // 重量标签
+  g.appendChild(el('text', {
+    x: x, y: y + 8 + h / 2 + 4,
+    'text-anchor': 'middle', class: 'svg-weight-label',
+  }, [`${weight} N`]));
+
+  // 标识标签
+  if (label) {
+    g.appendChild(el('text', {
+      x: x, y: y + 8 + h / 2 + 16,
+      'text-anchor': 'middle',
+      'font-family': 'JetBrains Mono, monospace',
+      'font-size': '9', 'fill': '#9ca3af',
+    }, [label]));
+  }
+
+  return g;
+}
+
+// ===== 绘制：绳子 =====
+function drawRope(pathD, tension) {
+  const g = el('g');
+  g.appendChild(el('path', {
+    d: pathD,
+    fill: 'none',
+    stroke: '#92400e',
+    'stroke-width': 2.5,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+  }));
+  // 张力标注
+  if (tension && state.show.tension) {
+    // 在路径中点添加标注
+    // 简化处理：在特定位置添加文本
+  }
+  return g;
+}
+
+// ===== 绘制：天花板支架 =====
+function drawSupport(width = 500) {
+  const g = el('g');
+  const cx = CFG.svgW / 2;
+  // 支架横梁
+  g.appendChild(el('rect', {
+    x: cx - width / 2, y: CFG.supportY - 8,
+    width: width, height: 12,
+    fill: 'url(#supportGrad)', rx: 2,
+  }));
+  // 阴影线
+  for (let i = 0; i < width; i += 15) {
+    g.appendChild(el('line', {
+      x1: cx - width / 2 + i, y1: CFG.supportY - 8,
+      x2: cx - width / 2 + i + 8, y2: CFG.supportY + 4,
+      stroke: '#1f2937', 'stroke-width': 0.5, opacity: '0.3',
+    }));
+  }
+  // 固定点标注
+  g.appendChild(el('text', {
+    x: cx, y: CFG.supportY - 14,
+    'text-anchor': 'middle', class: 'svg-label-sm',
+  }, ['固定支架']));
+  return g;
+}
+
+// ===== 绘制：定滑轮 =====
+function drawFixedPulleyApparatus() {
+  const g = el('g', { id: 'fixed-pulley' });
+  const cx = CFG.svgW / 2;
+  const py = CFG.fixedPulleyY;
+  const r = CFG.pulleyR;
+  const n = 1;
+
+  // 支架
+  g.appendChild(drawSupport(200));
+  // 支架连接
+  g.appendChild(el('line', {
+    x1: cx, y1: CFG.supportY + 4, x2: cx, y2: py - r,
+    stroke: '#4b5563', 'stroke-width': 3,
+  }));
+
+  // 滑轮
+  g.appendChild(drawPulleyWheel(cx, py, r, '定滑轮'));
+
+  // 动画偏移
+  const liftOffset = state.animProgress * CFG.liftDistance;
+
+  // 绳子路径
+  const weightX = cx - r - 5;
+  const pullX = cx + r + 5;
+  const ropeTopY = py - r;
+  const weightY = py + 120 - liftOffset;
+
+  // 左侧绳（连接重物）
+  const ropePath = `M ${weightX} ${ropeTopY + 5}` +
+    ` Q ${weightX} ${py} ${cx - r} ${py}` +
+    ` A ${r} ${r} 0 0 1 ${cx + r} ${py}` +
+    ` Q ${pullX} ${py} ${pullX} ${ropeTopY + 5}` +
+    ` L ${pullX} ${py + 100}`;
+  g.appendChild(drawRope(ropePath));
+
+  // 重物
+  g.appendChild(drawHeavyWeight(weightX, py + 115 - liftOffset, state.G, 'G'));
+
+  // 拉力端（手拉位置）
+  const pullEndY = py + 100 + liftOffset;
+  g.appendChild(el('circle', {
+    cx: pullX, cy: pullEndY, r: 8,
+    fill: 'url(#metalGrad)', stroke: '#374151', 'stroke-width': 1,
+  }));
+  g.appendChild(el('text', {
+    x: pullX + 14, y: pullEndY + 4,
+    class: 'svg-label-sm',
+  }, ['拉力端']));
+
+  // 力箭头
+  if (state.show.force) {
+    const F = state.G;
+    // 重物重力
+    g.appendChild(drawForceArrowDown(weightX, py + 115 - liftOffset + 55, 30, `${state.G} N`));
+    // 拉力（向下拉）
+    g.appendChild(drawForceArrowDown(pullX, pullEndY + 10, 30, `F=${F.toFixed(1)} N`));
+  }
+
+  // 张力标注
+  if (state.show.tension) {
+    g.appendChild(el('text', {
+      x: weightX - 30, y: py + 40,
+      'text-anchor': 'end', class: 'svg-arm-label',
+    }, [`T=${state.G}N`]));
+    g.appendChild(el('text', {
+      x: pullX + 30, y: py + 40,
+      class: 'svg-arm-label',
+    }, [`T=${state.G}N`]));
+  }
+
+  // 功的原理标注
+  drawWorkPrincipleHint(g, cx, n, liftOffset);
+
+  return g;
+}
+
+// ===== 绘制：动滑轮 =====
+function drawMovablePulleyApparatus() {
+  const g = el('g', { id: 'movable-pulley' });
+  const cx = CFG.svgW / 2;
+  const r = CFG.pulleyR;
+  const n = 2;
+
+  // 支架
+  g.appendChild(drawSupport(250));
+  // 左侧固定点
+  const attachX = cx - 70;
+  g.appendChild(el('rect', {
+    x: attachX - 8, y: CFG.supportY - 4,
+    width: 16, height: 12,
+    fill: '#374151', rx: 2,
+  }));
+  g.appendChild(el('text', {
+    x: attachX, y: CFG.supportY - 10,
+    'text-anchor': 'middle', class: 'svg-label-sm',
+  }, ['固定点']));
+
+  // 动画偏移
+  const liftOffset = state.animProgress * CFG.liftDistance;
+  const my = CFG.movablePulleyBaseY - liftOffset;
+
+  // 滑轮
+  g.appendChild(drawPulleyWheel(cx, my, r, '动滑轮'));
+
+  // 绳子路径
+  // 从左固定点 → 下到动滑轮左侧 → 绕过底部 → 上到右侧自由端
+  const leftTangentX = cx - r;
+  const rightTangentX = cx + r;
+  const ropeStartY = CFG.supportY + 4;
+  const freeEndY = my - r;
+
+  // 左侧绳段：固定点 → 动滑轮左
+  // 右侧绳段：动滑轮右 → 自由端（向上拉）
+  const ropePath = `M ${attachX} ${ropeStartY}` +
+    ` L ${attachX} ${my}` +
+    ` L ${leftTangentX} ${my}` +
+    ` A ${r} ${r} 0 0 1 ${rightTangentX} ${my}` +
+    ` L ${rightTangentX} ${freeEndY - 30}`;
+  g.appendChild(drawRope(ropePath));
+
+  // 重物挂在动滑轮下方
+  g.appendChild(drawHeavyWeight(cx, my + r + 5, state.G, 'G'));
+
+  // 自由端（向上拉）
+  const freeEndTopY = freeEndY - 30 - liftOffset * 2;
+  g.appendChild(el('circle', {
+    cx: rightTangentX, cy: freeEndTopY, r: 6,
+    fill: 'url(#metalGrad)', stroke: '#374151', 'stroke-width': 1,
+  }));
+  g.appendChild(el('text', {
+    x: rightTangentX + 12, y: freeEndTopY + 3,
+    class: 'svg-label-sm',
+  }, ['拉力↑']));
+
+  // 力箭头
+  if (state.show.force) {
+    const F = state.G / n;
+    // 重物重力
+    g.appendChild(drawForceArrowDown(cx, my + r + 55, 30, `${state.G} N`));
+    // 拉力（向上）
+    g.appendChild(drawForceArrowUp(rightTangentX, freeEndTopY - 5, 30, `F=${F.toFixed(1)}N`));
+  }
+
+  // 张力标注
+  if (state.show.tension) {
+    const T = state.G / n;
+    g.appendChild(el('text', {
+      x: attachX - 10, y: (ropeStartY + my) / 2,
+      'text-anchor': 'end', class: 'svg-arm-label',
+    }, [`T=${T.toFixed(1)}N`]));
+    g.appendChild(el('text', {
+      x: rightTangentX + 10, y: (my + freeEndTopY) / 2,
+      class: 'svg-arm-label',
+    }, [`T=${T.toFixed(1)}N`]));
+  }
+
+  drawWorkPrincipleHint(g, cx, n, liftOffset);
+
+  return g;
+}
+
+// ===== 绘制：滑轮组 =====
+function drawPulleySystemApparatus(n) {
+  const g = el('g', { id: `pulley-system-${n}` });
+  const cx = CFG.svgW / 2;
+  const r = CFG.pulleyR;
+
+  // 支架
+  g.appendChild(drawSupport(400));
+
+  // 动画偏移
+  const liftOffset = state.animProgress * CFG.liftDistance;
+  const my = CFG.movablePulleyBaseY - liftOffset;
+
+  if (n === 2) {
+    // === 滑轮组 n=2 ===
+    // 1个定滑轮 + 1个动滑轮
+    const fx = cx;        // 定滑轮 x
+    const fy = CFG.fixedPulleyY; // 定滑轮 y
+
+    // 定滑轮支架连接
+    g.appendChild(el('line', {
+      x1: fx, y1: CFG.supportY + 4, x2: fx, y2: fy - r,
+      stroke: '#4b5563', 'stroke-width': 3,
+    }));
+
+    // 定滑轮
+    g.appendChild(drawPulleyWheel(fx, fy, r, '定滑轮'));
+
+    // 动滑轮
+    g.appendChild(drawPulleyWheel(cx, my, r, '动滑轮'));
+
+    // 绳子路径
+    // 左侧固定点在支架上 → 下到动滑轮左 → 绕过底部 → 上到定滑轮右 → 绕过顶部 → 下到自由端
+    const attachX = cx - r - 35;
+    const movableLeft = cx - r;
+    const movableRight = cx + r;
+    const fixedRight = fx + r;
+    const fixedLeft = fx - r;
+
+    const ropePath = `M ${attachX} ${CFG.supportY + 4}` +
+      ` L ${attachX} ${my}` +
+      ` L ${movableLeft} ${my}` +
+      ` A ${r} ${r} 0 0 1 ${movableRight} ${my}` +
+      ` L ${movableRight} ${fy}` +
+      ` A ${r} ${r} 0 0 1 ${fixedLeft} ${fy}` +
+      ` L ${fixedLeft} ${fy + 80}`;
+    g.appendChild(drawRope(ropePath));
+
+    // 重物
+    g.appendChild(drawHeavyWeight(cx, my + r + 5, state.G, 'G'));
+
+    // 自由端
+    const freeEndY = fy + 80 + liftOffset * n;
+    g.appendChild(el('circle', {
+      cx: fixedLeft, cy: freeEndY, r: 6,
+      fill: 'url(#metalGrad)', stroke: '#374151', 'stroke-width': 1,
+    }));
+    g.appendChild(el('text', {
+      x: fixedLeft - 12, y: freeEndY + 3,
+      'text-anchor': 'end', class: 'svg-label-sm',
+    }, ['拉力↓']));
+
+    // 力箭头
+    if (state.show.force) {
+      const F = state.G / n;
+      g.appendChild(drawForceArrowDown(cx, my + r + 55, 30, `${state.G} N`));
+      g.appendChild(drawForceArrowDown(fixedLeft, freeEndY + 10, 30, `F=${F.toFixed(1)}N`));
+    }
+
+    // 张力标注
+    if (state.show.tension) {
+      const T = state.G / n;
+      g.appendChild(el('text', {
+        x: attachX - 10, y: my - 20,
+        'text-anchor': 'end', class: 'svg-arm-label',
+      }, [`T=${T.toFixed(1)}N`]));
+      g.appendChild(el('text', {
+        x: movableRight + 10, y: (my + fy) / 2,
+        class: 'svg-arm-label',
+      }, [`T=${T.toFixed(1)}N`]));
+    }
+
+    // 绳子段数标注
+    g.appendChild(el('text', {
+      x: cx + 90, y: my,
+      class: 'svg-arm-label',
+    }, [`n=${n}段`]));
+
+  } else if (n === 3) {
+    // === 滑轮组 n=3 ===
+    // 2个定滑轮 + 1个动滑轮
+    const f1x = cx - 55;  // 定滑轮1
+    const f2x = cx + 55;  // 定滑轮2
+    const fy = CFG.fixedPulleyY;
+
+    // 定滑轮支架连接
+    g.appendChild(el('line', {
+      x1: f1x, y1: CFG.supportY + 4, x2: f1x, y2: fy - r,
+      stroke: '#4b5563', 'stroke-width': 3,
+    }));
+    g.appendChild(el('line', {
+      x1: f2x, y1: CFG.supportY + 4, x2: f2x, y2: fy - r,
+      stroke: '#4b5563', 'stroke-width': 3,
+    }));
+
+    // 定滑轮
+    g.appendChild(drawPulleyWheel(f1x, fy, r, '定滑轮₁'));
+    g.appendChild(drawPulleyWheel(f2x, fy, r, '定滑轮₂'));
+
+    // 动滑轮
+    g.appendChild(drawPulleyWheel(cx, my, r, '动滑轮'));
+
+    // 绳子路径（n=3）
+    // 从动滑轮挂钩 → 上过定滑轮1 → 下绕动滑轮 → 上过定滑轮2 → 下到自由端
+    const hookX = cx;
+    const hookY = my - r;
+    const f1Left = f1x - r;
+    const f1Right = f1x + r;
+    const f2Left = f2x - r;
+    const f2Right = f2x + r;
+    const movLeft = cx - r;
+    const movRight = cx + r;
+
+    const ropePath = `M ${hookX} ${hookY}` +
+      ` L ${hookX} ${fy}` +
+      ` A ${r} ${r} 0 0 0 ${f1Left} ${fy}` +
+      ` L ${f1Left} ${my}` +
+      ` L ${movLeft} ${my}` +
+      ` A ${r} ${r} 0 0 1 ${movRight} ${my}` +
+      ` L ${movRight} ${fy}` +
+      ` L ${f2Right} ${fy}` +
+      ` A ${r} ${r} 0 0 1 ${f2Left} ${fy}` +
+      ` L ${f2Left} ${fy + 80}`;
+    g.appendChild(drawRope(ropePath));
+
+    // 重物
+    g.appendChild(drawHeavyWeight(cx, my + r + 5, state.G, 'G'));
+
+    // 自由端
+    const freeEndY = fy + 80 + liftOffset * n;
+    g.appendChild(el('circle', {
+      cx: f2Left, cy: freeEndY, r: 6,
+      fill: 'url(#metalGrad)', stroke: '#374151', 'stroke-width': 1,
+    }));
+    g.appendChild(el('text', {
+      x: f2Left - 12, y: freeEndY + 3,
+      'text-anchor': 'end', class: 'svg-label-sm',
+    }, ['拉力↓']));
+
+    // 力箭头
+    if (state.show.force) {
+      const F = state.G / n;
+      g.appendChild(drawForceArrowDown(cx, my + r + 55, 30, `${state.G} N`));
+      g.appendChild(drawForceArrowDown(f2Left, freeEndY + 10, 30, `F=${F.toFixed(1)}N`));
+    }
+
+    // 张力标注
+    if (state.show.tension) {
+      const T = state.G / n;
+      g.appendChild(el('text', {
+        x: hookX + 10, y: (hookY + fy) / 2,
+        class: 'svg-arm-label',
+      }, [`T=${T.toFixed(1)}N`]));
+      g.appendChild(el('text', {
+        x: f1Left - 10, y: (fy + my) / 2,
+        'text-anchor': 'end', class: 'svg-arm-label',
+      }, [`T=${T.toFixed(1)}N`]));
+      g.appendChild(el('text', {
+        x: movRight + 10, y: (my + fy) / 2,
+        class: 'svg-arm-label',
+      }, [`T=${T.toFixed(1)}N`]));
+    }
+
+    // 绳子段数标注
+    g.appendChild(el('text', {
+      x: cx + 100, y: my,
+      class: 'svg-arm-label',
+    }, [`n=${n}段`]));
+  }
+
+  drawWorkPrincipleHint(g, cx, n, liftOffset);
+
+  return g;
+}
+
+// ===== 绘制：功的原理提示 =====
+function drawWorkPrincipleHint(g, cx, n, liftOffset) {
+  if (!state.show.eff) return;
+  const F = state.G / n;
+  const h = (liftOffset / CFG.liftDistance).toFixed(2);
+  const s = (liftOffset * n / CFG.liftDistance).toFixed(2);
+  const Wh = (state.G * parseFloat(h)).toFixed(1);
+  const Ws = (F * parseFloat(s) * n / n).toFixed(1); // = G*h
+
+  const hintY = CFG.svgH - 30;
+  g.appendChild(el('rect', {
+    x: cx - 140, y: hintY - 15,
+    width: 280, height: 30,
+    fill: 'rgba(245, 158, 11, 0.08)',
+    stroke: '#f59e0b', 'stroke-width': 0.5, rx: 4,
+  }));
+  g.appendChild(el('text', {
+    x: cx, y: hintY,
+    'text-anchor': 'middle',
+    'font-family': 'JetBrains Mono, monospace',
+    'font-size': '11', 'fill': '#92400e', 'font-weight': '500',
+  }, [`W有=Gh=${state.G}×${h}=${Wh}  W总=Fs=${F.toFixed(1)}×${s}=${Ws}  η=100%`]));
+}
+
+// ===== 物理计算 =====
+function getLeverPhysics() {
+  const F1 = state.G1;
+  const F2 = state.G2;
+  const L1 = state.L1;
+  const L2 = state.L2;
+  const M1 = F1 * L1;
+  const M2 = F2 * L2;
+  const diff = M1 - M2;
+  const balanced = Math.abs(diff) < 0.01;
+  let type = '等臂';
+  if (L1 > L2) type = '省力';
+  else if (L1 < L2) type = '费力';
+  return { F1, F2, L1, L2, M1, M2, diff, balanced, type };
+}
+
+function getPulleyPhysics() {
+  const n = PULLEY_N[state.mode];
+  const G = state.G;
+  const F = G / n;
+  const h = (state.animProgress * 0.5).toFixed(2); // 假设最大提升0.5m
+  const s = (state.animProgress * 0.5 * n).toFixed(2);
+  const Wh = G * parseFloat(h);
+  const Ws = F * parseFloat(s);
+  const eta = Ws > 0 ? (Wh / Ws * 100) : 100;
+  return { n, G, F, h, s, Wh, Ws, eta };
+}
+
+// ===== 更新数据面板 =====
+function updateDataPanel() {
+  const panel = document.getElementById('dataPanel');
+  if (state.mode === 'lever') {
+    const p = getLeverPhysics();
+    const statusClass = p.balanced ? 'balanced' : 'unbalanced';
+    const statusText = p.balanced ? '✓ 平衡' : (p.diff > 0 ? '左倾' : '右倾');
+    panel.innerHTML = `
+      <div class="data-section-title">杠杆数据</div>
+      <div class="data-row"><span class="data-label">动力 F₁</span><span class="data-value">${p.F1.toFixed(1)} N</span></div>
+      <div class="data-row"><span class="data-label">阻力 F₂</span><span class="data-value">${p.F2.toFixed(1)} N</span></div>
+      <div class="data-row"><span class="data-label">动力臂 L₁</span><span class="data-value">${p.L1} 格</span></div>
+      <div class="data-row"><span class="data-label">阻力臂 L₂</span><span class="data-value">${p.L2} 格</span></div>
+      <div class="data-row"><span class="data-label">动力矩 M₁</span><span class="data-value">${p.M1.toFixed(1)}</span></div>
+      <div class="data-row"><span class="data-label">阻力矩 M₂</span><span class="data-value">${p.M2.toFixed(1)}</span></div>
+      <div class="data-row highlight ${statusClass}">
+        <span class="data-label">状态</span>
+        <span class="data-value">${statusText}</span>
+      </div>
+      <div class="data-row"><span class="data-label">类型</span><span class="data-value" style="color:var(--mech-orange)">${p.type}杠杆</span></div>
+    `;
+  } else {
+    const p = getPulleyPhysics();
+    const modeName = { fixed: '定滑轮', movable: '动滑轮', pulley2: '滑轮组(2段)', pulley3: '滑轮组(3段)' }[state.mode];
+    panel.innerHTML = `
+      <div class="data-section-title">${modeName}</div>
+      <div class="data-row"><span class="data-label">物重 G</span><span class="data-value">${p.G} N</span></div>
+      <div class="data-row"><span class="data-label">拉力 F</span><span class="data-value" style="color:var(--mech-orange)">${p.F.toFixed(1)} N</span></div>
+      <div class="data-row"><span class="data-label">绳子段数 n</span><span class="data-value">${p.n}</span></div>
+      <div class="data-row highlight"><span class="data-label">省力比</span><span class="data-value">1/${p.n}</span></div>
+      <div class="data-row"><span class="data-label">提升高度 h</span><span class="data-value">${p.h} m</span></div>
+      <div class="data-row"><span class="data-label">绳端距离 s</span><span class="data-value">${p.s} m</span></div>
+      <div class="data-row highlight"><span class="data-label">机械效率 η</span><span class="data-value">${p.eta.toFixed(0)}%</span></div>
+    `;
+  }
+}
+
+// ===== 主渲染 =====
+function render() {
+  clearSVG();
+  svg.appendChild(drawDefs());
+  const grid = drawGrid();
+  if (grid) svg.appendChild(grid);
+
+  if (state.mode === 'lever') {
+    svg.appendChild(drawLeverApparatus());
+  } else if (state.mode === 'fixed') {
+    svg.appendChild(drawFixedPulleyApparatus());
+  } else if (state.mode === 'movable') {
+    svg.appendChild(drawMovablePulleyApparatus());
+  } else if (state.mode === 'pulley2') {
+    svg.appendChild(drawPulleySystemApparatus(2));
+  } else if (state.mode === 'pulley3') {
+    svg.appendChild(drawPulleySystemApparatus(3));
+  }
+}
+
+// ===== 更新所有 UI =====
+function updateAll() {
+  // 更新滑块值显示
+  document.getElementById('valG1').textContent = state.G1.toFixed(1) + ' N';
+  document.getElementById('valG2').textContent = state.G2.toFixed(1) + ' N';
+  document.getElementById('valL1').textContent = state.L1 + ' 格';
+  document.getElementById('valL2').textContent = state.L2 + ' 格';
+  document.getElementById('valG').textContent = state.G + ' N';
+
+  // 显示/隐藏参数区域
+  const isLever = state.mode === 'lever';
+  document.getElementById('leverParams').style.display = isLever ? '' : 'none';
+  document.getElementById('pulleyParams').style.display = isLever ? 'none' : '';
+
+  // 显示/隐藏操作按钮
+  document.getElementById('releaseBtn').style.display = isLever ? '' : 'none';
+  document.getElementById('addWeightBtn').style.display = isLever ? '' : 'none';
+  document.getElementById('playBtn').style.display = isLever ? 'none' : '';
+
+  // 更新释放按钮文本
+  document.getElementById('releaseLabel').textContent = state.released ? '固定' : '释放';
+
+  // 更新数据面板
+  updateDataPanel();
+
+  // 重新渲染
+  render();
+}
+
+// ===== 计算杠杆目标角度 =====
+function updateLeverTargetAngle() {
+  const p = getLeverPhysics();
+  if (p.balanced) {
+    state.targetAngle = 0;
+  } else {
+    // 力矩差越大倾斜越多，最大 ±15°
+    const maxDiff = 100; // 10N * 10格
+    const ratio = Math.min(Math.abs(p.diff) / maxDiff, 1);
+    state.targetAngle = Math.sign(p.diff) * ratio * 15;
+  }
+}
+
+// ===== 动画循环 =====
+function animate(now) {
+  const dt = Math.min((now - state.lastFrame) / 1000 || 0.016, 0.05);
+  state.lastFrame = now;
+  state.fps = Math.round(1 / dt);
+
+  let needRender = false;
+
+  // 杠杆角度动画
+  if (state.mode === 'lever' && state.released) {
+    const diff = state.targetAngle - state.leverAngle;
+    if (Math.abs(diff) > 0.05) {
+      state.leverAngle += diff * 0.08;
+      needRender = true;
+    } else if (state.leverAngle !== state.targetAngle) {
+      state.leverAngle = state.targetAngle;
+      needRender = true;
+    }
+  }
+
+  // 滑轮升降动画
+  if (state.mode !== 'lever' && state.playing) {
+    state.animProgress += dt * 0.4;
+    if (state.animProgress >= 1) {
+      state.animProgress = 0; // 循环
+    }
+    needRender = true;
+  }
+
+  if (needRender) {
+    updateDataPanel();
+    render();
+  }
+
+  // FPS 显示（每 30 帧更新一次）
+  if (Math.floor(now / 500) !== Math.floor((now - dt * 1000) / 500)) {
+    document.getElementById('fpsTag').textContent = state.fps + ' FPS';
+  }
+
+  requestAnimationFrame(animate);
+}
+
+// ===== 预设实验 =====
+const PRESETS = [
+  // 0: 杠杆平衡
+  { mode: 'lever', G1: 4, L1: 5, G2: 5, L2: 4 },
+  // 1: 省力杠杆
+  { mode: 'lever', G1: 2, L1: 8, G2: 8, L2: 2 },
+  // 2: 费力杠杆
+  { mode: 'lever', G1: 8, L1: 2, G2: 2, L2: 8 },
+  // 3: 定滑轮
+  { mode: 'fixed', G: 40 },
+  // 4: 动滑轮
+  { mode: 'movable', G: 40 },
+  // 5: 滑轮组
+  { mode: 'pulley3', G: 60 },
+];
+
+function applyPreset(idx) {
+  const p = PRESETS[idx];
+  if (!p) return;
+  state.mode = p.mode;
+  if (p.G1 !== undefined) state.G1 = p.G1;
+  if (p.L1 !== undefined) state.L1 = p.L1;
+  if (p.G2 !== undefined) state.G2 = p.G2;
+  if (p.L2 !== undefined) state.L2 = p.L2;
+  if (p.G !== undefined) state.G = p.G;
+  state.released = false;
+  state.leverAngle = 0;
+  state.animProgress = 0;
+  state.playing = false;
+
+  // 同步 UI 控件
+  syncSlidersFromState();
+  syncModeTabsFromState();
+  updateAll();
+}
+
+// ===== 从状态同步滑块 =====
+function syncSlidersFromState() {
+  document.getElementById('sliderG1').value = state.G1;
+  document.getElementById('sliderG2').value = state.G2;
+  document.getElementById('sliderL1').value = state.L1;
+  document.getElementById('sliderL2').value = state.L2;
+  document.getElementById('sliderG').value = state.G;
+}
+
+function syncModeTabsFromState() {
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.mode === state.mode);
+  });
+}
+
+// ===== 事件绑定 =====
+document.addEventListener('DOMContentLoaded', () => {
+  // --- 模式标签 ---
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      state.mode = tab.dataset.mode;
+      state.released = false;
+      state.leverAngle = 0;
+      state.animProgress = 0;
+      state.playing = false;
+      syncModeTabsFromState();
+      updateAll();
+    });
+  });
+
+  // --- 杠杆参数滑块 ---
+  document.getElementById('sliderG1').addEventListener('input', e => {
+    state.G1 = parseFloat(e.target.value);
+    if (state.released) { updateLeverTargetAngle(); }
+    updateAll();
+  });
+  document.getElementById('sliderG2').addEventListener('input', e => {
+    state.G2 = parseFloat(e.target.value);
+    if (state.released) { updateLeverTargetAngle(); }
+    updateAll();
+  });
+  document.getElementById('sliderL1').addEventListener('input', e => {
+    state.L1 = parseInt(e.target.value);
+    if (state.released) { updateLeverTargetAngle(); }
+    updateAll();
+  });
+  document.getElementById('sliderL2').addEventListener('input', e => {
+    state.L2 = parseInt(e.target.value);
+    if (state.released) { updateLeverTargetAngle(); }
+    updateAll();
+  });
+
+  // --- 滑轮参数滑块 ---
+  document.getElementById('sliderG').addEventListener('input', e => {
+    state.G = parseInt(e.target.value);
+    updateAll();
+  });
+
+  // --- 释放/固定按钮 ---
+  document.getElementById('releaseBtn').addEventListener('click', () => {
+    state.released = !state.released;
+    if (state.released) {
+      updateLeverTargetAngle();
+    } else {
+      state.leverAngle = 0;
+    }
+    updateAll();
+  });
+
+  // --- 播放/暂停按钮 ---
+  const playBtn = document.getElementById('playBtn');
+  const playIcon = document.getElementById('playIcon');
+  playBtn.addEventListener('click', () => {
+    state.playing = !state.playing;
+    const playLabel = document.getElementById('playLabel');
+    if (state.playing) {
+      playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+      playLabel.textContent = '暂停';
+    } else {
+      playIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+      playLabel.textContent = '播放';
+    }
+  });
+
+  // --- 重置按钮 ---
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.mode = 'lever';
+    state.G1 = 4; state.L1 = 5; state.G2 = 5; state.L2 = 4;
+    state.G = 40;
+    state.released = false;
+    state.leverAngle = 0;
+    state.animProgress = 0;
+    state.playing = false;
+    syncSlidersFromState();
+    syncModeTabsFromState();
+    // 重置显示选项
+    state.show = { force: true, arm: true, torque: false, grid: true, tension: false, eff: false };
+    document.getElementById('togForce').checked = true;
+    document.getElementById('togArm').checked = true;
+    document.getElementById('togTorque').checked = false;
+    document.getElementById('togGrid').checked = true;
+    document.getElementById('togTension').checked = false;
+    document.getElementById('togEff').checked = false;
+    updateAll();
+  });
+
+  // --- 加钩码按钮 ---
+  document.getElementById('addWeightBtn').addEventListener('click', () => {
+    // 给重量较小的一侧加0.5N
+    if (state.G1 <= state.G2 && state.G1 < 10) {
+      state.G1 = Math.min(state.G1 + 0.5, 10);
+    } else if (state.G2 < 10) {
+      state.G2 = Math.min(state.G2 + 0.5, 10);
+    }
+    syncSlidersFromState();
+    if (state.released) { updateLeverTargetAngle(); }
+    updateAll();
+  });
+
+  // --- 预设按钮 ---
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyPreset(parseInt(btn.dataset.preset));
+    });
+  });
+
+  // --- 显示选项 ---
+  document.getElementById('togForce').addEventListener('change', e => { state.show.force = e.target.checked; updateAll(); });
+  document.getElementById('togArm').addEventListener('change', e => { state.show.arm = e.target.checked; updateAll(); });
+  document.getElementById('togTorque').addEventListener('change', e => { state.show.torque = e.target.checked; updateAll(); });
+  document.getElementById('togGrid').addEventListener('change', e => { state.show.grid = e.target.checked; updateAll(); });
+  document.getElementById('togTension').addEventListener('change', e => { state.show.tension = e.target.checked; updateAll(); });
+  document.getElementById('togEff').addEventListener('change', e => { state.show.eff = e.target.checked; updateAll(); });
+
+  // --- 导航栏滚动效果 ---
+  const navbar = document.getElementById('demoNavbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  // --- 初始化 ---
+  updateAll();
+  requestAnimationFrame(animate);
+});
+</script>
+
+</body>
+</html>

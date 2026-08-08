@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>宇宙/人类通史缩放时间轴 · 景礴</title>
+<link rel="stylesheet" href="/assets/css/design-system.css" />
+<link rel="stylesheet" href="/assets/css/demo-framework.css" />
+<script src="https://unpkg.com/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+/* ============================================
+   宇宙/人类通史缩放时间轴 · 主题样式
+   ============================================ */
+
+:root {
+  --ct-ochre: #B45309;
+  --ct-ochre-dark: #92400E;
+  --ct-ochre-light: #D97706;
+  --ct-gold: #FBBF24;
+  --ct-cream: #FEF3C7;
+  --ct-parchment: #F5F0E8;
+  --ct-parchment-dark: #E8DDD0;
+  --ct-brown-warm: #D4C4B0;
+  --ct-bg-warm: #FAF8F5;
+  --ct-space-dark: #0D0604;
+  --ct-space-mid: #1A0F0A;
+  --ct-ocean-deep: #0F1E1A;
+  --ct-ocean-mid: #1A2E28;
+  --ct-text-light: #F5F0E8;
+  --ct-text-dim: rgba(245, 240, 232, 0.6);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--ct-bg-warm);
+  font-family: var(--font-sans);
+}
+
+/* ---------- 加载屏 ---------- */
+.ct-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: var(--ct-space-dark);
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+.ct-loading.hidden { opacity: 0; visibility: hidden; }
+.ct-loading-orb {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ct-gold) 0%, var(--ct-ochre) 40%, transparent 70%);
+  animation: ct-pulse-orb 2s ease-in-out infinite;
+  margin-bottom: 24px;
+}
+@keyframes ct-pulse-orb {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+.ct-loading-text {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--ct-text-dim);
+  letter-spacing: 0.3em;
+}
+
+/* ---------- 导航栏覆盖 ---------- */
+.demo-navbar {
+  background-color: rgba(250, 248, 245, 0.88);
+}
+.demo-navbar.scrolled {
+  background-color: rgba(250, 248, 245, 0.95);
+}
+.demo-nav-center {
+  font-size: 15px;
+}
+
+/* ---------- 主框架覆盖 ---------- */
+.framework-narrative {
+  background: var(--ct-bg-warm);
+}
+
+/* ---------- 地图/可视化区域 ---------- */
+.narrative-map-area {
+  position: relative;
+  overflow: hidden;
+  background: var(--ct-space-dark);
+  border-right: 1px solid var(--border);
+  transition: background 0.8s ease;
+}
+.narrative-map-area.light-mode {
+  background: var(--ct-parchment);
+}
+
+#sceneCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------- 时代徽章 ---------- */
+.ct-era-badge {
+  position: absolute;
+  top: 80px;
+  left: 24px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--ct-text-light);
+  transition: all 0.5s ease;
+}
+.light-mode .ct-era-badge {
+  background: rgba(180, 83, 9, 0.08);
+  border-color: rgba(180, 83, 9, 0.2);
+  color: var(--ct-ochre);
+}
+.ct-era-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ct-gold);
+  animation: ct-dot-pulse 1.5s ease-in-out infinite;
+}
+.light-mode .ct-era-dot { background: var(--ct-ochre); }
+@keyframes ct-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* ---------- 缩放阶梯 ---------- */
+.ct-scale-ladder {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: opacity 0.5s ease;
+}
+.ct-scale-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--ct-text-dim);
+  transition: all 0.4s ease;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.ct-scale-item:hover { color: var(--ct-text-light); }
+.light-mode .ct-scale-item { color: rgba(107, 107, 107, 0.5); }
+.light-mode .ct-scale-item:hover { color: var(--text); }
+.ct-scale-item.active {
+  color: var(--ct-gold);
+  font-weight: 700;
+}
+.light-mode .ct-scale-item.active { color: var(--ct-ochre); }
+.ct-scale-bar {
+  width: 3px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  transition: all 0.4s ease;
+}
+.light-mode .ct-scale-bar { background: rgba(180, 83, 9, 0.1); }
+.ct-scale-item.active .ct-scale-bar {
+  background: var(--ct-gold);
+  height: 24px;
+}
+.light-mode .ct-scale-item.active .ct-scale-bar { background: var(--ct-ochre); }
+
+/* ---------- 信息卡片覆盖 ---------- */
+.narrative-info-card {
+  background-color: rgba(13, 6, 4, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 380px;
+  transition: all 0.5s ease;
+}
+.light-mode .narrative-info-card {
+  background-color: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+}
+.narrative-info-year {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ct-gold);
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.light-mode .narrative-info-year { color: var(--ct-ochre); }
+.narrative-info-title {
+  font-size: 22px;
+  color: var(--ct-text-light);
+  margin-bottom: 10px;
+}
+.light-mode .narrative-info-title { color: var(--text); }
+.narrative-info-desc {
+  color: var(--ct-text-dim);
+  font-size: 13px;
+  line-height: 1.75;
+}
+.light-mode .narrative-info-desc { color: var(--text-muted); }
+.ct-info-fact {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: var(--ct-gold);
+  font-style: italic;
+  line-height: 1.6;
+}
+.light-mode .ct-info-fact {
+  border-top-color: var(--border);
+  color: var(--ct-ochre-dark);
+}
+
+/* ---------- 底部时间轴滑块 ---------- */
+.ct-scrubber {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 18;
+  height: 64px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(to top, rgba(13, 6, 4, 0.8) 0%, rgba(13, 6, 4, 0) 100%);
+  transition: background 0.5s ease;
+}
+.light-mode .ct-scrubber {
+  background: linear-gradient(to top, rgba(245, 240, 232, 0.9) 0%, rgba(245, 240, 232, 0) 100%);
+}
+.ct-scrubber-track {
+  position: relative;
+  flex: 1;
+  height: 36px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.ct-scrubber-line {
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 1px;
+  position: relative;
+  transition: background 0.5s ease;
+}
+.light-mode .ct-scrubber-line { background: var(--ct-brown-warm); }
+.ct-scrubber-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(to right, var(--ct-ochre-dark), var(--ct-gold));
+  border-radius: 1px;
+  transition: width 0.5s ease;
+}
+.ct-scrubber-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+.light-mode .ct-scrubber-marker {
+  background: var(--ct-brown-warm);
+  border-color: var(--ct-parchment-dark);
+}
+.ct-scrubber-marker:hover {
+  transform: translate(-50%, -50%) scale(1.5);
+  background: var(--ct-gold);
+}
+.light-mode .ct-scrubber-marker:hover { background: var(--ct-ochre); }
+.ct-scrubber-marker.passed {
+  background: var(--ct-ochre);
+  border-color: var(--ct-gold);
+}
+.light-mode .ct-scrubber-marker.passed {
+  background: var(--ct-ochre);
+  border-color: var(--ct-ochre-dark);
+}
+.ct-scrubber-marker.active {
+  width: 14px;
+  height: 14px;
+  background: var(--ct-gold);
+  border-color: var(--ct-cream);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+  z-index: 3;
+}
+.light-mode .ct-scrubber-marker.active {
+  background: var(--ct-ochre);
+  border-color: var(--ct-bg-warm);
+  box-shadow: 0 0 10px rgba(180, 83, 9, 0.4);
+}
+.ct-scrubber-label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ct-text-dim);
+  white-space: nowrap;
+  margin-bottom: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.ct-scrubber-marker:hover .ct-scrubber-label { opacity: 1; }
+.ct-scrubber-era-labels {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ct-text-dim);
+  pointer-events: none;
+}
+.light-mode .ct-scrubber-era-labels { color: var(--text-faint); }
+
+/* ---------- 时间轴面板覆盖 ---------- */
+.narrative-timeline-panel {
+  background-color: var(--surface);
+}
+.narrative-timeline-header {
+  border-bottom: 1px solid var(--border);
+  padding: 20px 24px 16px;
+}
+.ct-timeline-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ct-ochre);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.narrative-timeline-title {
+  font-size: 18px;
+}
+.narrative-timeline-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* 事件列表覆盖 */
+.narrative-timeline-list {
+  padding: 12px 0;
+}
+.narrative-timeline-list::before {
+  left: 35px;
+  top: 16px;
+  bottom: 16px;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--ct-ochre) 0%, var(--ct-brown-warm) 50%, var(--border) 100%);
+}
+.timeline-event {
+  padding: 8px 24px 8px 0;
+  gap: 14px;
+}
+.timeline-event-dot {
+  margin-left: 14px;
+  width: 10px;
+  height: 10px;
+}
+.timeline-event-year {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.timeline-event-title {
+  font-size: 13px;
+}
+.timeline-event-desc {
+  font-size: 11px;
+  line-height: 1.55;
+}
+.timeline-event.active .timeline-event-desc {
+  max-height: 80px;
+}
+
+/* ---------- 播放控件覆盖 ---------- */
+.narrative-timeline-footer {
+  padding: 12px 20px;
+}
+.narrative-play-btn {
+  background-color: var(--ct-ochre);
+}
+.narrative-play-btn:hover {
+  background-color: var(--ct-ochre-dark);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1024px) {
+  .ct-scale-ladder { display: none; }
+  .ct-era-badge { top: 72px; left: 16px; }
+  .narrative-info-card { max-width: none; left: 16px; right: 16px; bottom: 80px; }
+}
+@media (max-width: 768px) {
+  .ct-scrubber { height: 56px; padding: 0 16px; }
+  .ct-scrubber-era-labels { display: none; }
+  .narrative-info-card { bottom: 72px; padding: 14px 16px; }
+  .narrative-info-title { font-size: 18px; }
+  .ct-info-fact { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ====== 加载屏 ====== -->
+<div class="ct-loading" id="ctLoading">
+  <div class="ct-loading-orb"></div>
+  <div class="ct-loading-text">宇宙正在诞生...</div>
+</div>
+
+<!-- ====== 顶部导航栏 ====== -->
+<header class="demo-navbar" id="demoNavbar">
+  <div class="demo-nav-left">
+    <a href="/demos.html" class="demo-back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回
+    </a>
+    <span class="demo-nav-divider"></span>
+    <a href="/" class="demo-nav-logo">景礴</a>
+      <span class="demo-nav-divider"></span>
+      <a href="/demos.html" class="demo-nav-subject">历史</a>
+      <a href="/index.html" class="demo-nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="home-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> 首页</a>
+  </div>
+  <div class="demo-nav-center">宇宙/人类通史缩放时间轴</div>
+  <div class="demo-nav-right">
+    <span class="tag tag-history">历史/天文</span>
+    <a href="/skills/jingbo-edu-humanities-lecture-v0.1.html" class="demo-btn-download">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>下载 Skill</span>
+    </a>
+  </div>
+</header>
+
+<!-- ====== 主体 ====== -->
+<div class="framework-narrative">
+  <div class="narrative-main">
+
+    <!-- ========== 左侧：可视化区域 ========== -->
+    <div class="narrative-map-area" id="mapArea">
+      <canvas id="sceneCanvas"></canvas>
+
+      <!-- 时代徽章 -->
+      <div class="ct-era-badge" id="eraBadge">
+        <span class="ct-era-dot"></span>
+        <span id="eraBadgeText">宇宙纪元</span>
+      </div>
+
+      <!-- 缩放阶梯 -->
+      <div class="ct-scale-ladder" id="scaleLadder"></div>
+
+      <!-- 信息卡片 -->
+      <div class="narrative-info-card" id="infoCard">
+        <div class="narrative-info-year" id="infoYear">138亿年前</div>
+        <div class="narrative-info-title" id="infoTitle">宇宙大爆炸</div>
+        <div class="narrative-info-desc" id="infoDesc"></div>
+        <div class="ct-info-fact" id="infoFact"></div>
+      </div>
+
+      <!-- 底部时间轴滑块 -->
+      <div class="ct-scrubber">
+        <div class="ct-scrubber-track" id="scrubberTrack">
+          <div class="ct-scrubber-line">
+            <div class="ct-scrubber-progress" id="scrubberProgress" style="width:0%"></div>
+          </div>
+          <div class="ct-scrubber-era-labels">
+            <span>138亿年前</span>
+            <span>10亿年前</span>
+            <span>100万年前</span>
+            <span>今</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 右侧：时间轴面板 ========== -->
+    <div class="narrative-timeline-panel">
+      <div class="narrative-timeline-header">
+        <div class="ct-timeline-kicker">Cosmic-Human Timeline</div>
+        <div class="narrative-timeline-title">通史缩放时间轴</div>
+        <div class="narrative-timeline-subtitle">从宇宙诞生到太空时代 · 15个关键节点</div>
+      </div>
+      <div class="narrative-timeline-list" id="timelineList"></div>
+      <div class="narrative-timeline-footer">
+        <button class="narrative-play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="playLabel">播放</span>
+        </button>
+        <div class="narrative-progress">
+          <div class="narrative-progress-bar" id="progressBar" style="width:0%"></div>
+        </div>
+        <span class="demo-tech-tag" id="eventCounter">1 / 15</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   宇宙/人类通史缩放时间轴
+   15个关键事件 · Canvas可视化 · 对数时间轴
+   ============================================================ */
+
+// ====== 事件数据 ======
+const events = [
+  {
+    year: '138亿年前', yearAgo: 13.8e9, title: '宇宙大爆炸',
+    era: '宇宙纪元', scene: 'bigBang', scale: '宇宙', scaleIdx: 0,
+    desc: '从一个无限致密、无限高温的奇点开始，宇宙在瞬间膨胀。在不到1秒内，基本粒子形成，温度高达数十亿度。这是万物起源的一刻——时间、空间、物质和能量，都从这里开始。',
+    fact: '宇宙诞生于10⁻⁴³秒（普朗克时间）之内，这比眨眼还要快10⁴⁰倍。'
+  },
+  {
+    year: '136亿年前', yearAgo: 13.6e9, title: '第一代恒星与星系',
+    era: '宇宙纪元', scene: 'stars', scale: '宇宙', scaleIdx: 0,
+    desc: '宇宙冷却到足以让氢和氦聚集，第一代恒星点燃了核聚变之火。它们巨大而短暂，在死亡时将碳、氧、铁等重元素抛洒到太空中，为后来的世界铸就了原材料。',
+    fact: '第一代恒星的质量是太阳的数百倍，寿命仅几百万年——太阳的寿命是100亿年。'
+  },
+  {
+    year: '45亿年前', yearAgo: 4.5e9, title: '太阳系与地球诞生',
+    era: '宇宙纪元', scene: 'solarSystem', scale: '太阳系', scaleIdx: 1,
+    desc: '一团旋转的星际尘埃在引力作用下坍缩，中心点燃成为太阳。残余物质在轨道上碰撞聚集，形成了地球和其他行星。最初的地球是一颗炽热的岩浆球，在数亿年间逐渐冷却。',
+    fact: '组成你身体的每一个碳原子，都曾经在一颗远古恒星的核心熔炉里锻造。'
+  },
+  {
+    year: '38亿年前', yearAgo: 3.8e9, title: '生命起源',
+    era: '生命纪元', scene: 'firstLife', scale: '地球', scaleIdx: 2,
+    desc: '在原始海洋的深处，热泉口附近，简单的有机分子组合成了第一个能自我复制的实体。这是生命史上最神秘的一跃——从化学到生物学。最初的生命是单细胞原核生物，微小却坚韧。',
+    fact: '所有现存生命的最后一个共同祖先（LUCA）生活在约35亿年前，它已经拥有DNA和核糖体。'
+  },
+  {
+    year: '5.4亿年前', yearAgo: 5.4e8, title: '寒武纪大爆发',
+    era: '生命纪元', scene: 'cambrian', scale: '地球', scaleIdx: 2,
+    desc: '在地质学上的一瞬间，海洋中突然出现了大量形态各异的生物。三叶虫、奇虾、早期脊索动物……几乎所有现代动物门类的祖先都在这一时期登场。这是演化史上最壮观的辐射事件。',
+    fact: '寒武纪大爆发仅持续了约2000万年——不到地球历史的0.5%，却创造了动物多样性的基本格局。'
+  },
+  {
+    year: '2.3亿年前', yearAgo: 2.3e8, title: '恐龙时代',
+    era: '生命纪元', scene: 'dinosaurs', scale: '地球', scaleIdx: 2,
+    desc: '恐龙登上了地球舞台，开始了长达1.6亿年的统治。从敏捷的掠食者到巨大的蜥脚类，从天空中的翼龙到海洋中的鱼龙，恐龙适应了几乎每一个生态位。此时大陆还连在一起，形成盘古大陆。',
+    fact: '恐龙统治地球的时间（1.6亿年）是人类存在时间（30万年）的530倍。'
+  },
+  {
+    year: '6600万年前', yearAgo: 6.6e7, title: '白垩纪末大灭绝',
+    era: '生命纪元', scene: 'extinction', scale: '地球', scaleIdx: 2,
+    desc: '一颗直径约10公里的小行星以每秒20公里的速度撞击了今天的墨西哥湾。撞击产生的尘埃遮蔽阳光，导致全球温度骤降。恐龙（除鸟类外）和75%的物种消失，为哺乳动物的崛起让出了道路。',
+    fact: '如果没有这颗小行星，恐龙可能仍在统治地球，人类也许永远不会出现。'
+  },
+  {
+    year: '700万年前', yearAgo: 7e6, title: '最早的人科动物',
+    era: '人类纪元', scene: 'worldMap', scale: '大陆', scaleIdx: 3,
+    desc: '在非洲东部，一群灵长类动物开始直立行走。萨赫勒人代表了人类与黑猩猩分化后的早期分支。直立行走解放了双手，为后来制造工具奠定了基础。',
+    fact: '人类与黑猩猩的DNA差异仅为1.2%——这1.2%造就了文明、科学与太空探索。',
+    location: [0.54, 0.46], highlight: 'africa'
+  },
+  {
+    year: '190万年前', yearAgo: 1.9e6, title: '直立人走出非洲',
+    era: '人类纪元', scene: 'worldMap', scale: '大陆', scaleIdx: 3,
+    desc: '直立人是第一个走出非洲的人类物种。他们制造了更精细的石斧，掌握了火的使用，足迹遍及欧亚大陆。从格鲁吉亚到爪哇，直立人的迁徙标记了人类扩张的第一步。',
+    fact: '直立人是第一种会使用火的人类物种。火改变了饮食，熟食让大脑获得了更多能量。',
+    location: [0.72, 0.38], highlight: 'asia',
+    path: [[0.54, 0.46], [0.58, 0.38], [0.65, 0.34], [0.72, 0.38], [0.78, 0.44]]
+  },
+  {
+    year: '30万年前', yearAgo: 3e5, title: '智人登场',
+    era: '人类纪元', scene: 'worldMap', scale: '大陆', scaleIdx: 3,
+    desc: '在非洲，早期的智人出现了。他们拥有更大的大脑和更复杂的社交结构。约7万年前，一部分智人走出非洲，取代了所有其他人类物种，成为地球上唯一的人属物种。',
+    fact: '今天所有非非洲裔人类的祖先，都来自约7万年前离开非洲的一小群智人——可能仅有数百人。',
+    location: [0.54, 0.46], highlight: 'africa',
+    path: [[0.54, 0.46], [0.58, 0.38], [0.50, 0.25], [0.72, 0.38], [0.80, 0.58], [0.25, 0.28]]
+  },
+  {
+    year: '1.2万年前', yearAgo: 1.2e4, title: '农业革命',
+    era: '人类纪元', scene: 'worldMap', scale: '区域', scaleIdx: 4,
+    desc: '随着最后一次冰期结束，气候变暖，人类在肥沃的新月地带开始驯化小麦、大麦和牲畜。农业让人类从游猎采集转向定居，人口激增，村落发展为城镇。这是文明的奠基时刻。',
+    fact: '农业让人类人口在几千年内从约500万增长到今天的80亿——增长了1600倍。',
+    location: [0.57, 0.35], highlight: 'fertile'
+  },
+  {
+    year: '5500年前', yearAgo: 5500, title: '文字与文明',
+    era: '人类纪元', scene: 'worldMap', scale: '区域', scaleIdx: 4,
+    desc: '在美索不达米亚，苏美尔人发明了楔形文字；在埃及，象形文字应运而生；在印度河谷和黄河流域，文明也各自绽放。文字让知识可以跨越时空传递，标志着史前时代的终结。',
+    fact: '已知最早的文字记录不是诗歌或法律，而是啤酒配方的账目——文明始于记账。',
+    location: [0.57, 0.33], highlight: 'fertile',
+    markers: [[0.57, 0.33], [0.55, 0.36], [0.68, 0.35], [0.78, 0.35]]
+  },
+  {
+    year: '500年前', yearAgo: 500, title: '科学革命',
+    era: '人类纪元', scene: 'worldMap', scale: '区域', scaleIdx: 4,
+    desc: '哥白尼推翻了地心说，伽利略将望远镜指向天空，牛顿用三大定律统一了天与地的物理。科学方法的确立改变了人类认识世界的方式，理性之光开始驱散蒙昧的迷雾。',
+    fact: '牛顿在1665年的瘟疫隔离期间发明了微积分——与你在2020年居家隔离时做的事形成对比。',
+    location: [0.49, 0.26], highlight: 'europe'
+  },
+  {
+    year: '250年前', yearAgo: 250, title: '工业革命',
+    era: '人类纪元', scene: 'worldMap', scale: '区域', scaleIdx: 4,
+    desc: '瓦特改良的蒸汽机在英国点燃了工业革命的火种。机器取代了人力和畜力，工厂取代了作坊。铁路连接了大陆，电报跨越了海洋。人类第一次拥有了改变行星级别的力量。',
+    fact: '工业革命前，人类旅行速度上限是马的速度（约50km/h）。100年后，火车达到了150km/h。',
+    location: [0.48, 0.25], highlight: 'europe'
+  },
+  {
+    year: '70年前', yearAgo: 70, title: '太空时代',
+    era: '人类纪元', scene: 'spaceAge', scale: '行星', scaleIdx: 5,
+    desc: '1957年，苏联发射了第一颗人造卫星。1969年，阿波罗11号将人类送上月球。旅行者号飞出了太阳系，哈勃望远镜看到了宇宙的边缘。人类终于可以回望自己的家园——那颗悬浮在黑暗中的蓝色星球。',
+    fact: '旅行者1号以每秒17公里的速度飞行了47年，才刚到达太阳系边缘。它要到达最近的恒星，还需要7万年。',
+    location: null
+  }
+];
+
+// 缩放阶梯
+const scaleLevels = ['宇宙', '太阳系', '地球', '大陆', '区域', '行星'];
+
+// ====== Canvas 设置 ======
+const canvas = document.getElementById('sceneCanvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, dpr = 1;
+let frameCount = 0;
+let currentEvent = 0;
+let isPlaying = false;
+let playTimer = null;
+let particles = [];
+let stars = [];
+let transitionAlpha = 1;
+let isTransitioning = false;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  W = rect.width;
+  H = rect.height;
+}
+
+// ====== 简化世界大陆轮廓 (归一化坐标 0-1) ======
+const continents = [
+  // 非洲
+  [[0.48,0.36],[0.52,0.34],[0.55,0.36],[0.57,0.40],[0.58,0.45],[0.57,0.50],[0.54,0.56],[0.51,0.60],[0.48,0.59],[0.46,0.54],[0.45,0.48],[0.46,0.41]],
+  // 欧亚大陆
+  [[0.44,0.24],[0.50,0.21],[0.58,0.19],[0.66,0.18],[0.74,0.20],[0.80,0.23],[0.83,0.28],[0.82,0.33],[0.78,0.37],[0.73,0.40],[0.68,0.41],[0.62,0.39],[0.57,0.36],[0.52,0.33],[0.48,0.30],[0.45,0.27]],
+  // 北美洲
+  [[0.10,0.18],[0.16,0.15],[0.22,0.14],[0.28,0.17],[0.30,0.23],[0.28,0.30],[0.24,0.36],[0.19,0.38],[0.13,0.35],[0.08,0.29],[0.08,0.22]],
+  // 南美洲
+  [[0.23,0.44],[0.27,0.42],[0.30,0.46],[0.31,0.53],[0.29,0.61],[0.26,0.68],[0.23,0.67],[0.21,0.58],[0.21,0.50]],
+  // 澳大利亚
+  [[0.76,0.57],[0.81,0.55],[0.85,0.58],[0.84,0.62],[0.79,0.63],[0.75,0.61]],
+  // 印度次大陆
+  [[0.64,0.36],[0.67,0.35],[0.69,0.38],[0.67,0.42],[0.64,0.41]],
+  // 东南亚岛屿
+  [[0.73,0.43],[0.77,0.42],[0.79,0.45],[0.75,0.46],[0.72,0.45]]
+];
+
+// ====== 工具函数 ======
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function drawSmoothShape(ctx, points, w, h, ox, oy, sw, sh) {
+  ctx.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const next = points[(i + 1) % points.length];
+    const x = ox + p[0] * sw;
+    const y = oy + p[1] * sh;
+    const nx = ox + next[0] * sw;
+    const ny = oy + next[1] * sh;
+    const mx = (x + nx) / 2;
+    const my = (y + ny) / 2;
+    if (i === 0) ctx.moveTo(mx, my);
+    else ctx.quadraticCurveTo(x, y, mx, my);
+  }
+  ctx.closePath();
+}
+
+// ====== 星空生成 ======
+function initStars(count) {
+  stars = [];
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random(),
+      y: Math.random(),
+      size: 0.3 + Math.random() * 1.8,
+      twinkle: Math.random() * Math.PI * 2,
+      twinkleSpeed: 0.005 + Math.random() * 0.02,
+      color: Math.random() > 0.85 ? '#FBBF24' : (Math.random() > 0.5 ? '#FEF3C7' : '#E8DDD0')
+    });
+  }
+}
+
+function drawStars(ctx, w, h, alpha) {
+  stars.forEach(s => {
+    s.twinkle += s.twinkleSpeed;
+    const a = (0.3 + Math.sin(s.twinkle) * 0.4) * alpha;
+    ctx.fillStyle = s.color.replace(')', `, ${a})`).replace('#', 'rgba(').length > 20
+      ? `rgba(254, 243, 199, ${a})` : s.color;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.arc(s.x * w, s.y * h, s.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ====== 场景渲染器 ======
+const scenes = {
+
+  // ---- 宇宙大爆炸 ----
+  bigBang(ctx, w, h, t) {
+    // 深暖色背景
+    const bgGrad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h));
+    bgGrad.addColorStop(0, '#1a0a05');
+    bgGrad.addColorStop(0.5, '#0d0604');
+    bgGrad.addColorStop(1, '#050201');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    const cx = w / 2, cy = h / 2;
+
+    // CMB 背景噪声
+    ctx.globalAlpha = 0.03;
+    for (let i = 0; i < 80; i++) {
+      const x = (Math.sin(i * 7.3 + t * 0.001) * 0.5 + 0.5) * w;
+      const y = (Math.cos(i * 5.1 + t * 0.001) * 0.5 + 0.5) * h;
+      ctx.fillStyle = i % 2 ? '#FBBF24' : '#B45309';
+      ctx.beginPath();
+      ctx.arc(x, y, 1 + (i % 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // 扩散环
+    for (let i = 0; i < 6; i++) {
+      const radius = ((t * 0.8 + i * 80) % 400) + 10;
+      const alpha = clamp(1 - radius / 400, 0, 1) * 0.25;
+      ctx.strokeStyle = `rgba(251, 191, 36, ${alpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // 粒子系统
+    if (particles.length === 0) {
+      for (let i = 0; i < 200; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.3 + Math.random() * 2.5;
+        particles.push({
+          x: cx, y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: 0.5 + Math.random() * 2.5,
+          life: 1,
+          decay: 0.001 + Math.random() * 0.004,
+          color: Math.random() > 0.6 ? '#FBBF24' : '#FEF3C7'
+        });
+      }
+    }
+
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+      if (p.life <= 0 || p.x < 0 || p.x > w || p.y < 0 || p.y > h) {
+        p.x = cx; p.y = cy;
+        p.life = 1;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.3 + Math.random() * 2.5;
+        p.vx = Math.cos(angle) * speed;
+        p.vy = Math.sin(angle) * speed;
+      }
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    // 中心光球
+    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 100);
+    coreGrad.addColorStop(0, 'rgba(254, 243, 199, 0.5)');
+    coreGrad.addColorStop(0.3, 'rgba(251, 191, 36, 0.3)');
+    coreGrad.addColorStop(1, 'rgba(180, 83, 9, 0)');
+    ctx.fillStyle = coreGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 中心亮点
+    const pulse = 0.7 + Math.sin(t * 0.05) * 0.3;
+    ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.fill();
+  },
+
+  // ---- 第一代恒星与星系 ----
+  stars(ctx, w, h, t) {
+    const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+    bgGrad.addColorStop(0, '#0d0604');
+    bgGrad.addColorStop(0.5, '#120a08');
+    bgGrad.addColorStop(1, '#0a0503');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 星空
+    drawStars(ctx, w, h, 1);
+
+    // 星云
+    const cx = w * 0.55, cy = h * 0.45;
+    for (let i = 0; i < 3; i++) {
+      const angle = t * 0.003 + i * 2.1;
+      const nx = cx + Math.cos(angle) * 80;
+      const ny = cy + Math.sin(angle) * 60;
+      const nebGrad = ctx.createRadialGradient(nx, ny, 0, nx, ny, 120);
+      nebGrad.addColorStop(0, `rgba(180, 83, 9, ${0.08 - i * 0.02})`);
+      nebGrad.addColorStop(0.5, `rgba(146, 64, 14, ${0.04})`);
+      nebGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = nebGrad;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // 螺旋星系
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(t * 0.001);
+    for (let arm = 0; arm < 3; arm++) {
+      ctx.beginPath();
+      for (let i = 0; i < 100; i++) {
+        const r = i * 1.5;
+        const a = arm * (Math.PI * 2 / 3) + i * 0.08;
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r * 0.6;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        // 星系臂上的恒星
+        if (i % 3 === 0) {
+          const starA = clamp(1 - r / 150, 0, 1);
+          ctx.fillStyle = `rgba(254, 243, 199, ${starA * 0.6})`;
+          ctx.beginPath();
+          ctx.arc(x + (Math.random() - 0.5) * 4, y + (Math.random() - 0.5) * 4, 0.5 + Math.random(), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    ctx.restore();
+
+    // 星系核心
+    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 40);
+    coreGrad.addColorStop(0, 'rgba(254, 243, 199, 0.4)');
+    coreGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+    ctx.fillStyle = coreGrad;
+    ctx.fillRect(0, 0, w, h);
+  },
+
+  // ---- 太阳系 ----
+  solarSystem(ctx, w, h, t) {
+    ctx.fillStyle = '#080403';
+    ctx.fillRect(0, 0, w, h);
+    drawStars(ctx, w, h, 0.5);
+
+    const cx = w / 2, cy = h / 2;
+
+    // 太阳光晕
+    const sunGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 200);
+    sunGlow.addColorStop(0, 'rgba(251, 191, 36, 0.15)');
+    sunGlow.addColorStop(0.5, 'rgba(180, 83, 9, 0.05)');
+    sunGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = sunGlow;
+    ctx.fillRect(0, 0, w, h);
+
+    // 轨道
+    const orbits = [60, 90, 125, 165, 210, 260, 310, 360];
+    orbits.forEach((r, i) => {
+      ctx.strokeStyle = `rgba(180, 83, 9, ${0.06 + (i === 2 ? 0.15 : 0)})`;
+      ctx.lineWidth = i === 2 ? 1.2 : 0.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // 太阳
+    const sunGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
+    sunGrad.addColorStop(0, '#fff8e7');
+    sunGrad.addColorStop(0.3, '#FBBF24');
+    sunGrad.addColorStop(1, '#B45309');
+    ctx.fillStyle = sunGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 太阳耀斑
+    for (let i = 0; i < 8; i++) {
+      const a = t * 0.01 + i * Math.PI / 4;
+      const r1 = 22, r2 = 26 + Math.sin(t * 0.05 + i) * 4;
+      ctx.strokeStyle = `rgba(251, 191, 36, ${0.3 + Math.sin(t * 0.03 + i) * 0.2})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+      ctx.stroke();
+    }
+
+    // 行星
+    const planets = [
+      { r: 60, size: 2, color: '#a89888', speed: 0.04 },
+      { r: 90, size: 3, color: '#d4a574', speed: 0.03 },
+      { r: 125, size: 3.5, color: '#4a90b8', speed: 0.025, isEarth: true },
+      { r: 165, size: 2.5, color: '#c2603a', speed: 0.02 },
+      { r: 210, size: 8, color: '#c4a882', speed: 0.012 },
+      { r: 260, size: 7, color: '#d4c098', speed: 0.009 },
+      { r: 310, size: 5, color: '#8ab4c8', speed: 0.006 },
+      { r: 360, size: 5, color: '#5a7a98', speed: 0.004 }
+    ];
+
+    planets.forEach(p => {
+      const a = t * p.speed;
+      const px = cx + Math.cos(a) * p.r;
+      const py = cy + Math.sin(a) * p.r;
+
+      // 地球高亮
+      if (p.isEarth) {
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+        ctx.beginPath();
+        ctx.arc(px, py, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(px, py, 8, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(px, py, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 地球标签
+    const earthA = t * 0.025;
+    const ex = cx + Math.cos(earthA) * 125;
+    const ey = cy + Math.sin(earthA) * 125;
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.7)';
+    ctx.textAlign = 'center';
+    ctx.fillText('地球', ex, ey - 12);
+  },
+
+  // ---- 生命起源 ----
+  firstLife(ctx, w, h, t) {
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrad.addColorStop(0, '#0a1815');
+    bgGrad.addColorStop(0.5, '#0f1e1a');
+    bgGrad.addColorStop(1, '#081210');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 热泉口
+    const ventX = w * 0.5, ventY = h * 0.85;
+    ctx.fillStyle = '#1a1210';
+    ctx.beginPath();
+    ctx.moveTo(ventX - 30, h);
+    ctx.lineTo(ventX - 15, ventY);
+    ctx.lineTo(ventX - 5, ventY + 10);
+    ctx.lineTo(ventX + 5, ventY - 5);
+    ctx.lineTo(ventX + 15, ventY + 8);
+    ctx.lineTo(ventX + 30, h);
+    ctx.closePath();
+    ctx.fill();
+
+    // 热泉口光
+    const ventGlow = ctx.createRadialGradient(ventX, ventY, 0, ventX, ventY, 60);
+    ventGlow.addColorStop(0, 'rgba(251, 191, 36, 0.3)');
+    ventGlow.addColorStop(0.5, 'rgba(180, 83, 9, 0.1)');
+    ventGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = ventGlow;
+    ctx.fillRect(0, 0, w, h);
+
+    // 气泡
+    if (particles.length === 0) {
+      for (let i = 0; i < 40; i++) {
+        particles.push({
+          x: ventX + (Math.random() - 0.5) * 40,
+          y: h - Math.random() * h,
+          size: 1 + Math.random() * 3,
+          speed: 0.3 + Math.random() * 0.8,
+          wobble: Math.random() * Math.PI * 2,
+          wobbleSpeed: 0.02 + Math.random() * 0.03,
+          alpha: 0.2 + Math.random() * 0.4
+        });
+      }
+    }
+
+    particles.forEach(p => {
+      p.y -= p.speed;
+      p.wobble += p.wobbleSpeed;
+      p.x += Math.sin(p.wobble) * 0.5;
+      if (p.y < 0) { p.y = h; p.x = ventX + (Math.random() - 0.5) * 40; }
+      ctx.fillStyle = `rgba(251, 191, 36, ${p.alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 微生物
+    for (let i = 0; i < 30; i++) {
+      const mx = (Math.sin(i * 3.7 + t * 0.003) * 0.4 + 0.5) * w;
+      const my = (Math.cos(i * 5.1 + t * 0.002) * 0.35 + 0.5) * h;
+      const pulse = 0.4 + Math.sin(t * 0.02 + i) * 0.3;
+      ctx.fillStyle = `rgba(254, 243, 199, ${pulse * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(mx, my, 1 + (i % 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 表面光线
+    const surfGrad = ctx.createLinearGradient(0, 0, 0, h * 0.3);
+    surfGrad.addColorStop(0, 'rgba(251, 191, 36, 0.06)');
+    surfGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = surfGrad;
+    ctx.fillRect(0, 0, w, h * 0.3);
+  },
+
+  // ---- 寒武纪大爆发 ----
+  cambrian(ctx, w, h, t) {
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrad.addColorStop(0, '#1a2e28');
+    bgGrad.addColorStop(0.5, '#15251f');
+    bgGrad.addColorStop(1, '#0a1815');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 水面光线
+    for (let i = 0; i < 5; i++) {
+      const lx = (i / 5 + Math.sin(t * 0.003 + i) * 0.05) * w;
+      const lightGrad = ctx.createLinearGradient(lx, 0, lx + 30, h * 0.7);
+      lightGrad.addColorStop(0, 'rgba(251, 191, 36, 0.08)');
+      lightGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+      ctx.fillStyle = lightGrad;
+      ctx.fillRect(lx - 20, 0, 80, h * 0.7);
+    }
+
+    // 海藻
+    for (let i = 0; i < 8; i++) {
+      const sx = (i / 8) * w + Math.sin(i) * 30;
+      ctx.strokeStyle = `rgba(76, 120, 80, ${0.2 + (i % 3) * 0.1})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let j = 0; j < 10; j++) {
+        const sy = h - j * 20;
+        const sway = Math.sin(t * 0.005 + i + j * 0.5) * 8;
+        if (j === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx + sway, sy);
+      }
+      ctx.stroke();
+    }
+
+    // 三叶虫
+    drawTrilobite(ctx, w * 0.25 + Math.sin(t * 0.008) * 20, h * 0.65, 20, t);
+    drawTrilobite(ctx, w * 0.7 + Math.cos(t * 0.006) * 15, h * 0.55, 15, t);
+
+    // 奇虾
+    drawAnomalocaris(ctx, w * 0.5 + Math.sin(t * 0.004) * 50, h * 0.35 + Math.cos(t * 0.003) * 20, 30, t);
+
+    // 小生物
+    for (let i = 0; i < 15; i++) {
+      const cx = (Math.sin(i * 4.3 + t * 0.005) * 0.4 + 0.5) * w;
+      const cy = (Math.cos(i * 3.1 + t * 0.004) * 0.35 + 0.5) * h;
+      ctx.fillStyle = `rgba(254, 243, 199, ${0.15 + (i % 3) * 0.1})`;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 3, 1.5, t * 0.01 + i, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 气泡
+    for (let i = 0; i < 20; i++) {
+      const bx = ((i * 37 + t * 0.3) % w);
+      const by = h - ((t * 0.5 + i * 50) % h);
+      ctx.fillStyle = `rgba(254, 243, 199, 0.15)`;
+      ctx.beginPath();
+      ctx.arc(bx, by, 1 + (i % 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  },
+
+  // ---- 恐龙时代 ----
+  dinosaurs(ctx, w, h, t) {
+    // 暖色天空
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+    skyGrad.addColorStop(0, '#c4924a');
+    skyGrad.addColorStop(0.4, '#a8763a');
+    skyGrad.addColorStop(0.7, '#8B6914');
+    skyGrad.addColorStop(1, '#5a4515');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 太阳
+    const sunX = w * 0.75, sunY = h * 0.2;
+    const sunGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 60);
+    sunGrad.addColorStop(0, 'rgba(255, 230, 150, 0.8)');
+    sunGrad.addColorStop(0.5, 'rgba(251, 191, 36, 0.3)');
+    sunGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+    ctx.fillStyle = sunGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 远山
+    ctx.fillStyle = 'rgba(90, 69, 21, 0.6)';
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.7);
+    for (let i = 0; i <= 10; i++) {
+      const x = (i / 10) * w;
+      const y = h * 0.7 - Math.sin(i * 0.8) * 40 - Math.cos(i * 1.3) * 20;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h);
+    ctx.lineTo(0, h);
+    ctx.fill();
+
+    // 火山
+    const volX = w * 0.2;
+    ctx.fillStyle = '#3d2e10';
+    ctx.beginPath();
+    ctx.moveTo(volX - 60, h);
+    ctx.lineTo(volX - 10, h * 0.55);
+    ctx.lineTo(volX + 15, h * 0.58);
+    ctx.lineTo(volX + 65, h);
+    ctx.fill();
+
+    // 火山口烟雾
+    for (let i = 0; i < 5; i++) {
+      const sx = volX + (Math.random() - 0.5) * 10;
+      const sy = h * 0.55 - i * 25 - (t * 0.3 % 30);
+      ctx.fillStyle = `rgba(60, 40, 20, ${0.3 - i * 0.05})`;
+      ctx.beginPath();
+      ctx.arc(sx + Math.sin(t * 0.01 + i) * 15, sy, 15 + i * 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 盘古大陆轮廓
+    ctx.fillStyle = 'rgba(110, 80, 30, 0.7)';
+    ctx.beginPath();
+    ctx.ellipse(w * 0.45, h * 0.85, w * 0.35, h * 0.12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 恐龙剪影
+    drawDinosaur(ctx, w * 0.4, h * 0.78, 50, '#2a1e08');
+    drawDinosaur(ctx, w * 0.65, h * 0.82, 35, '#2a1e08');
+    drawBrachiosaurus(ctx, w * 0.15, h * 0.75, 60, '#2a1e08');
+
+    // 飞行爬行动物
+    drawPterosaur(ctx, w * 0.55 + Math.sin(t * 0.008) * 30, h * 0.25 + Math.cos(t * 0.006) * 10, 20, t);
+  },
+
+  // ---- 大灭绝 ----
+  extinction(ctx, w, h, t) {
+    // 灾难天空
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+    skyGrad.addColorStop(0, '#3d1a08');
+    skyGrad.addColorStop(0.3, '#6d2a0e');
+    skyGrad.addColorStop(0.6, '#92400E');
+    skyGrad.addColorStop(1, '#4a2008');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 小行星
+    const astX = w * 0.7 - (t * 0.5 % (w * 0.5));
+    const astY = h * 0.1 + (t * 0.4 % (h * 0.5));
+    const astGrad = ctx.createRadialGradient(astX, astY, 0, astX, astY, 15);
+    astGrad.addColorStop(0, '#fff8e7');
+    astGrad.addColorStop(0.5, '#FBBF24');
+    astGrad.addColorStop(1, 'rgba(180, 83, 9, 0)');
+    ctx.fillStyle = astGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 尾迹
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(astX, astY);
+    ctx.lineTo(astX + 60, astY - 40);
+    ctx.stroke();
+
+    // 撞击闪光
+    const impactX = w * 0.25, impactY = h * 0.6;
+    const flashAlpha = 0.3 + Math.sin(t * 0.05) * 0.2;
+    const impactGrad = ctx.createRadialGradient(impactX, impactY, 0, impactX, impactY, 150);
+    impactGrad.addColorStop(0, `rgba(255, 230, 150, ${flashAlpha})`);
+    impactGrad.addColorStop(0.3, `rgba(251, 191, 36, ${flashAlpha * 0.5})`);
+    impactGrad.addColorStop(1, 'rgba(180, 83, 9, 0)');
+    ctx.fillStyle = impactGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 冲击波
+    for (let i = 0; i < 3; i++) {
+      const radius = ((t * 1.5 + i * 80) % 300);
+      ctx.strokeStyle = `rgba(251, 191, 36, ${clamp(1 - radius / 300, 0, 1) * 0.2})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(impactX, impactY, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // 灰尘云
+    for (let i = 0; i < 15; i++) {
+      const dx = impactX + Math.cos(i * 0.5 + t * 0.002) * (50 + (i % 5) * 30);
+      const dy = impactY + Math.sin(i * 0.5 + t * 0.002) * (30 + (i % 4) * 20) - i * 5;
+      ctx.fillStyle = `rgba(60, 30, 15, ${0.15 + (i % 3) * 0.05})`;
+      ctx.beginPath();
+      ctx.arc(dx, dy, 20 + (i % 4) * 10, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 地面
+    ctx.fillStyle = '#2a1408';
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.8);
+    ctx.lineTo(w * 0.4, h * 0.72);
+    ctx.lineTo(w * 0.6, h * 0.78);
+    ctx.lineTo(w, h * 0.75);
+    ctx.lineTo(w, h);
+    ctx.lineTo(0, h);
+    ctx.fill();
+
+    // 恐龙剪影
+    drawDinosaur(ctx, w * 0.7, h * 0.76, 30, '#1a0d04');
+  },
+
+  // ---- 世界地图 ----
+  worldMap(ctx, w, h, t, event) {
+    // 暖米色背景
+    ctx.fillStyle = '#F5F0E8';
+    ctx.fillRect(0, 0, w, h);
+
+    // 纸张纹理
+    ctx.globalAlpha = 0.03;
+    for (let i = 0; i < 200; i++) {
+      ctx.fillStyle = i % 2 ? '#B45309' : '#92400E';
+      ctx.fillRect((i * 37 % w), (i * 53 % h), 1, 1);
+    }
+    ctx.globalAlpha = 1;
+
+    // 地图区域
+    const mapPadX = w * 0.06;
+    const mapPadY = h * 0.08;
+    const mapW = w - mapPadX * 2;
+    const mapH = h - mapPadY * 2 - 64; // 留底部时间轴空间
+
+    // 经纬网格
+    ctx.strokeStyle = 'rgba(180, 83, 9, 0.06)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 8; i++) {
+      const x = mapPadX + (i / 8) * mapW;
+      ctx.beginPath();
+      ctx.moveTo(x, mapPadY);
+      ctx.lineTo(x, mapPadY + mapH);
+      ctx.stroke();
+    }
+    for (let i = 0; i <= 4; i++) {
+      const y = mapPadY + (i / 4) * mapH;
+      ctx.beginPath();
+      ctx.moveTo(mapPadX, y);
+      ctx.lineTo(mapPadX + mapW, y);
+      ctx.stroke();
+    }
+
+    // 大陆
+    continents.forEach(cont => {
+      drawSmoothShape(ctx, cont, 0, 0, mapPadX, mapPadY, mapW, mapH);
+      ctx.fillStyle = '#E8DDD0';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(180, 83, 9, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // 高亮区域
+    if (event.highlight) {
+      const highlights = {
+        africa: { cx: 0.52, cy: 0.48, rx: 0.12, ry: 0.18 },
+        asia: { cx: 0.72, cy: 0.35, rx: 0.18, ry: 0.12 },
+        fertile: { cx: 0.57, cy: 0.34, rx: 0.08, ry: 0.06 },
+        europe: { cx: 0.50, cy: 0.25, rx: 0.08, ry: 0.06 }
+      };
+      const hl = highlights[event.highlight];
+      if (hl) {
+        const hx = mapPadX + hl.cx * mapW;
+        const hy = mapPadY + hl.cy * mapH;
+        const pulse = 0.08 + Math.sin(t * 0.03) * 0.04;
+        ctx.fillStyle = `rgba(180, 83, 9, ${pulse})`;
+        ctx.beginPath();
+        ctx.ellipse(hx, hy, hl.rx * mapW, hl.ry * mapH, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // 迁徙路径
+    if (event.path) {
+      ctx.strokeStyle = 'rgba(146, 64, 14, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.lineDashOffset = -t * 0.1;
+      ctx.beginPath();
+      event.path.forEach((p, i) => {
+        const x = mapPadX + p[0] * mapW;
+        const y = mapPadY + p[1] * mapH;
+        if (i === 0) ctx.moveTo(x, y);
+        else {
+          // 曲线路径
+          const prev = event.path[i - 1];
+          const px = mapPadX + prev[0] * mapW;
+          const py = mapPadY + prev[1] * mapH;
+          const mx = (px + x) / 2;
+          const my = (py + y) / 2 - 15;
+          ctx.quadraticCurveTo(mx, my, x, y);
+        }
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 路径流动光点
+      const pathProgress = (t * 0.002) % 1;
+      const totalSegs = event.path.length - 1;
+      const segIdx = Math.floor(pathProgress * totalSegs);
+      const segT = (pathProgress * totalSegs) - segIdx;
+      if (segIdx < totalSegs) {
+        const p1 = event.path[segIdx];
+        const p2 = event.path[segIdx + 1];
+        const fx = mapPadX + lerp(p1[0], p2[0], segT) * mapW;
+        const fy = mapPadY + lerp(p1[1], p2[1], segT) * mapH - Math.sin(segT * Math.PI) * 15;
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.9)';
+        ctx.beginPath();
+        ctx.arc(fx, fy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.3)';
+        ctx.beginPath();
+        ctx.arc(fx, fy, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // 多标记点
+    if (event.markers) {
+      event.markers.forEach(m => {
+        const mx = mapPadX + m[0] * mapW;
+        const my = mapPadY + m[1] * mapH;
+        drawMapMarker(ctx, mx, my, t, false);
+      });
+    }
+
+    // 主标记
+    if (event.location) {
+      const mx = mapPadX + event.location[0] * mapW;
+      const my = mapPadY + event.location[1] * mapH;
+      drawMapMarker(ctx, mx, my, t, true);
+    }
+
+    // 指南针
+    drawCompass(ctx, w - 50, h - 90, 20);
+  },
+
+  // ---- 太空时代 ----
+  spaceAge(ctx, w, h, t) {
+    ctx.fillStyle = '#050201';
+    ctx.fillRect(0, 0, w, h);
+    drawStars(ctx, w, h, 1);
+
+    // 地球
+    const ex = w / 2, ey = h / 2;
+    const er = Math.min(w, h) * 0.22;
+
+    // 大气光晕
+    const atmGrad = ctx.createRadialGradient(ex, ey, er * 0.9, ex, ey, er * 1.3);
+    atmGrad.addColorStop(0, 'rgba(180, 83, 9, 0.15)');
+    atmGrad.addColorStop(0.5, 'rgba(251, 191, 36, 0.05)');
+    atmGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = atmGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 地球主体
+    const earthGrad = ctx.createRadialGradient(ex - er * 0.3, ey - er * 0.3, 0, ex, ey, er);
+    earthGrad.addColorStop(0, '#3a6b5a');
+    earthGrad.addColorStop(0.3, '#2d5849');
+    earthGrad.addColorStop(0.6, '#1e4030');
+    earthGrad.addColorStop(1, '#0d2018');
+    ctx.fillStyle = earthGrad;
+    ctx.beginPath();
+    ctx.arc(ex, ey, er, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 大陆 (简化的旋转地球)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(ex, ey, er, 0, Math.PI * 2);
+    ctx.clip();
+
+    const rotation = t * 0.002;
+    const landPositions = [
+      { lon: 0, lat: 0.1, size: 0.35 },
+      { lon: 0.3, lat: -0.2, size: 0.25 },
+      { lon: -0.4, lat: 0.15, size: 0.3 },
+      { lon: 0.6, lat: 0.3, size: 0.2 },
+      { lon: -0.2, lat: -0.3, size: 0.15 }
+    ];
+
+    landPositions.forEach(lp => {
+      const angle = lp.lon + rotation;
+      const visible = Math.cos(angle);
+      if (visible > -0.3) {
+        const lx = ex + Math.sin(angle) * er * 0.85;
+        const ly = ey + lp.lat * er;
+        const opacity = clamp(visible + 0.3, 0, 1);
+        ctx.fillStyle = `rgba(140, 100, 50, ${opacity * 0.7})`;
+        ctx.beginPath();
+        ctx.ellipse(lx, ly, er * lp.size * Math.max(visible, 0.2), er * lp.size * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+    ctx.restore();
+
+    // 地球边缘光
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(ex, ey, er, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 卫星轨道
+    for (let i = 0; i < 3; i++) {
+      const orbitR = er * (1.3 + i * 0.3);
+      const tilt = i * 0.4;
+      ctx.strokeStyle = `rgba(251, 191, 36, ${0.08})`;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.ellipse(ex, ey, orbitR, orbitR * Math.cos(tilt), tilt, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 卫星
+      const satA = t * 0.01 * (1 + i * 0.3) + i * 2;
+      const satX = ex + Math.cos(satA) * orbitR;
+      const satY = ey + Math.sin(satA) * orbitR * Math.cos(tilt);
+      ctx.fillStyle = '#FEF3C7';
+      ctx.beginPath();
+      ctx.arc(satX, satY, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 卫星光迹
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let j = 0; j < 20; j++) {
+        const ta = satA - j * 0.02;
+        const tx = ex + Math.cos(ta) * orbitR;
+        const ty = ey + Math.sin(ta) * orbitR * Math.cos(tilt);
+        if (j === 0) ctx.moveTo(tx, ty);
+        else ctx.lineTo(tx, ty);
+      }
+      ctx.stroke();
+    }
+
+    // 月球
+    const moonA = t * 0.003;
+    const moonX = ex + Math.cos(moonA) * er * 2.5;
+    const moonY = ey + Math.sin(moonA) * er * 2.5;
+    ctx.fillStyle = '#d4c4b0';
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, er * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.beginPath();
+    ctx.arc(moonX + 3, moonY - 2, er * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+};
+
+// ====== 辅助绘制函数 ======
+function drawTrilobite(ctx, x, y, size, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  const wiggle = Math.sin(t * 0.01) * 0.05;
+  ctx.rotate(wiggle);
+  ctx.fillStyle = 'rgba(180, 83, 9, 0.5)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size, size * 0.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 分节
+  ctx.strokeStyle = 'rgba(90, 45, 5, 0.4)';
+  ctx.lineWidth = 0.8;
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * size * 0.3, -size * 0.5);
+    ctx.lineTo(i * size * 0.3, size * 0.5);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawAnomalocaris(ctx, x, y, size, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.sin(t * 0.005) * 0.15);
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size, size * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 侧鳍
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.25)';
+  ctx.lineWidth = 1;
+  for (let i = -3; i <= 3; i++) {
+    const wave = Math.sin(t * 0.02 + i * 0.5) * 4;
+    ctx.beginPath();
+    ctx.moveTo(i * size * 0.2, -size * 0.2);
+    ctx.lineTo(i * size * 0.2, -size * 0.4 + wave);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(i * size * 0.2, size * 0.2);
+    ctx.lineTo(i * size * 0.2, size * 0.4 - wave);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawDinosaur(ctx, x, y, size, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  // T-Rex style silhouette
+  ctx.moveTo(x - size * 0.5, y);
+  ctx.lineTo(x - size * 0.3, y - size * 0.1);
+  ctx.lineTo(x - size * 0.15, y - size * 0.8);
+  ctx.lineTo(x + size * 0.1, y - size * 0.9);
+  ctx.lineTo(x + size * 0.2, y - size * 0.7);
+  ctx.lineTo(x + size * 0.15, y - size * 0.5);
+  ctx.lineTo(x + size * 0.35, y - size * 0.3);
+  ctx.lineTo(x + size * 0.5, y - size * 0.15);
+  ctx.lineTo(x + size * 0.5, y);
+  ctx.lineTo(x + size * 0.3, y);
+  ctx.lineTo(x + size * 0.2, y - size * 0.4);
+  ctx.lineTo(x + size * 0.1, y - size * 0.1);
+  ctx.lineTo(x - size * 0.1, y);
+  ctx.closePath();
+  ctx.fill();
+  // 尾巴
+  ctx.beginPath();
+  ctx.moveTo(x - size * 0.4, y - size * 0.3);
+  ctx.lineTo(x - size * 0.8, y - size * 0.2);
+  ctx.lineTo(x - size * 0.5, y - size * 0.1);
+  ctx.fill();
+}
+
+function drawBrachiosaurus(ctx, x, y, size, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  // 身体
+  ctx.ellipse(x, y, size * 0.4, size * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 长脖子
+  ctx.beginPath();
+  ctx.moveTo(x + size * 0.25, y - size * 0.15);
+  ctx.quadraticCurveTo(x + size * 0.5, y - size * 0.6, x + size * 0.45, y - size * 0.8);
+  ctx.lineTo(x + size * 0.5, y - size * 0.8);
+  ctx.quadraticCurveTo(x + size * 0.55, y - size * 0.5, x + size * 0.3, y - size * 0.1);
+  ctx.fill();
+  // 头
+  ctx.beginPath();
+  ctx.arc(x + size * 0.48, y - size * 0.82, size * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+  // 腿
+  ctx.fillRect(x - size * 0.25, y, size * 0.08, size * 0.25);
+  ctx.fillRect(x + size * 0.15, y, size * 0.08, size * 0.25);
+  // 尾巴
+  ctx.beginPath();
+  ctx.moveTo(x - size * 0.35, y - size * 0.05);
+  ctx.lineTo(x - size * 0.6, y);
+  ctx.lineTo(x - size * 0.35, y + size * 0.05);
+  ctx.fill();
+}
+
+function drawPterosaur(ctx, x, y, size, t) {
+  ctx.fillStyle = '#1a0d04';
+  const flap = Math.sin(t * 0.015) * 0.3;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x - size, y - size * (0.3 + flap), x - size * 1.5, y + size * 0.1);
+  ctx.quadraticCurveTo(x - size * 0.8, y + size * 0.1, x, y);
+  ctx.quadraticCurveTo(x + size * 0.8, y + size * 0.1, x + size * 1.5, y + size * 0.1);
+  ctx.quadraticCurveTo(x + size, y - size * (0.3 + flap), x, y);
+  ctx.fill();
+}
+
+function drawMapMarker(ctx, x, y, t, isActive) {
+  if (isActive) {
+    // 脉冲环
+    const pulse = (t * 0.02) % 1;
+    ctx.strokeStyle = `rgba(180, 83, 9, ${(1 - pulse) * 0.4})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, 8 + pulse * 20, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 外光晕
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 白色外圈
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(x, y, isActive ? 7 : 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 实心点
+  ctx.fillStyle = '#B45309';
+  ctx.beginPath();
+  ctx.arc(x, y, isActive ? 5 : 3.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawCompass(ctx, x, y, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = 'rgba(180, 83, 9, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, size, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 指针
+  ctx.fillStyle = '#B45309';
+  ctx.beginPath();
+  ctx.moveTo(0, -size * 0.7);
+  ctx.lineTo(-size * 0.15, 0);
+  ctx.lineTo(0, size * 0.5);
+  ctx.lineTo(size * 0.15, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(180, 83, 9, 0.4)';
+  ctx.beginPath();
+  ctx.moveTo(0, -size * 0.7);
+  ctx.lineTo(size * 0.15, 0);
+  ctx.lineTo(0, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  // N 标记
+  ctx.font = 'bold 9px "JetBrains Mono", monospace';
+  ctx.fillStyle = 'rgba(180, 83, 9, 0.5)';
+  ctx.textAlign = 'center';
+  ctx.fillText('N', 0, -size - 4);
+  ctx.restore();
+}
+
+// ====== 动画循环 ======
+function animate() {
+  const event = events[currentEvent];
+  const renderer = scenes[event.scene] || scenes.worldMap;
+  renderer(ctx, W, H, frameCount, event);
+  frameCount++;
+  requestAnimationFrame(animate);
+}
+
+// ====== 对数时间轴位置计算 ======
+function yearToX(yearAgo, width) {
+  const logMin = Math.log10(50);
+  const logMax = Math.log10(14e9);
+  const logVal = Math.log10(Math.max(yearAgo, 50));
+  return ((logMax - logVal) / (logMax - logMin)) * width;
+}
+
+// ====== 构建时间轴列表 ======
+function buildTimeline() {
+  const list = document.getElementById('timelineList');
+  list.innerHTML = events.map((e, i) => `
+    <div class="timeline-event ${i === currentEvent ? 'active' : ''}" data-idx="${i}">
+      <div class="timeline-event-dot"></div>
+      <div class="timeline-event-content">
+        <div class="timeline-event-year">${e.year} · ${e.era}</div>
+        <div class="timeline-event-title">${e.title}</div>
+        <div class="timeline-event-desc">${e.desc.substring(0, 80)}...</div>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.timeline-event').forEach(el => {
+    el.addEventListener('click', () => {
+      selectEvent(parseInt(el.dataset.idx));
+    });
+  });
+}
+
+// ====== 构建时间轴滑块 ======
+function buildScrubber() {
+  const track = document.getElementById('scrubberTrack');
+  const trackWidth = track.offsetWidth;
+  // 清除旧标记
+  track.querySelectorAll('.ct-scrubber-marker').forEach(m => m.remove());
+
+  events.forEach((e, i) => {
+    const marker = document.createElement('div');
+    marker.className = 'ct-scrubber-marker';
+    marker.dataset.idx = i;
+    const x = yearToX(e.yearAgo, trackWidth);
+    marker.style.left = `${x}px`;
+    marker.innerHTML = `<span class="ct-scrubber-label">${e.year}</span>`;
+    marker.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      selectEvent(i);
+    });
+    track.appendChild(marker);
+  });
+  updateScrubber();
+}
+
+function updateScrubber() {
+  const track = document.getElementById('scrubberTrack');
+  const trackWidth = track.offsetWidth;
+  const markers = track.querySelectorAll('.ct-scrubber-marker');
+  const progress = document.getElementById('scrubberProgress');
+
+  markers.forEach((m, i) => {
+    m.classList.toggle('active', i === currentEvent);
+    m.classList.toggle('passed', i < currentEvent);
+  });
+
+  const x = yearToX(events[currentEvent].yearAgo, trackWidth);
+  progress.style.width = `${(x / trackWidth) * 100}%`;
+}
+
+// ====== 构建缩放阶梯 ======
+function buildScaleLadder() {
+  const ladder = document.getElementById('scaleLadder');
+  ladder.innerHTML = scaleLevels.map((s, i) => `
+    <div class="ct-scale-item" data-idx="${i}">
+      <div class="ct-scale-bar"></div>
+      <span>${s}</span>
+    </div>
+  `).join('');
+
+  ladder.querySelectorAll('.ct-scale-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      // 找到对应缩放级别的第一个事件
+      const eventIdx = events.findIndex(e => e.scaleIdx === idx);
+      if (eventIdx >= 0) selectEvent(eventIdx);
+    });
+  });
+}
+
+function updateScaleLadder() {
+  const event = events[currentEvent];
+  document.querySelectorAll('.ct-scale-item').forEach((el, i) => {
+    el.classList.toggle('active', i === event.scaleIdx);
+  });
+}
+
+// ====== 选择事件 ======
+function selectEvent(idx) {
+  if (idx < 0 || idx >= events.length) return;
+
+  // 场景过渡
+  isTransitioning = true;
+  gsap.to(canvas, {
+    opacity: 0,
+    duration: 0.25,
+    ease: 'power2.out',
+    onComplete: () => {
+      currentEvent = idx;
+      const event = events[idx];
+
+      // 重置粒子
+      particles = [];
+
+      // 更新UI
+      updateUI();
+
+      // 淡入
+      gsap.to(canvas, {
+        opacity: 1,
+        duration: 0.5,
+        ease: 'power2.in',
+        onComplete: () => { isTransitioning = false; }
+      });
+    }
+  });
+}
+
+// ====== 更新UI ======
+function updateUI() {
+  const event = events[currentEvent];
+
+  // 信息卡片
+  document.getElementById('infoYear').textContent = event.year;
+  document.getElementById('infoTitle').textContent = event.title;
+  document.getElementById('infoDesc').textContent = event.desc;
+  document.getElementById('infoFact').textContent = event.fact;
+
+  // 时代徽章
+  document.getElementById('eraBadgeText').textContent = event.era;
+
+  // 深浅模式切换
+  const mapArea = document.getElementById('mapArea');
+  const isLight = event.scene === 'worldMap';
+  mapArea.classList.toggle('light-mode', isLight);
+
+  // 时间轴列表
+  document.querySelectorAll('.timeline-event').forEach((el, i) => {
+    el.classList.toggle('active', i === currentEvent);
+    if (i === currentEvent) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  });
+
+  // 进度条
+  const progress = ((currentEvent + 1) / events.length) * 100;
+  document.getElementById('progressBar').style.width = `${progress}%`;
+  document.getElementById('eventCounter').textContent = `${currentEvent + 1} / ${events.length}`;
+
+  // 滑块
+  updateScrubber();
+  updateScaleLadder();
+}
+
+// ====== 播放控制 ======
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+  const label = document.getElementById('playLabel');
+
+  if (isPlaying) {
+    icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    label.textContent = '暂停';
+    playTimer = setInterval(() => {
+      let next = currentEvent + 1;
+      if (next >= events.length) {
+        togglePlay(); // 停止
+        return;
+      }
+      selectEvent(next);
+    }, 4000);
+  } else {
+    icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent = '播放';
+    clearInterval(playTimer);
+  }
+}
+
+// ====== 键盘导航 ======
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && currentEvent > 0) selectEvent(currentEvent - 1);
+  else if (e.key === 'ArrowRight' && currentEvent < events.length - 1) selectEvent(currentEvent + 1);
+  else if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+});
+
+// ====== 时间轴轨道点击 ======
+document.getElementById('scrubberTrack').addEventListener('click', (e) => {
+  if (e.target.classList.contains('ct-scrubber-marker')) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const trackWidth = rect.width;
+
+  // 找到最接近的事件
+  let closestIdx = 0;
+  let closestDist = Infinity;
+  events.forEach((ev, i) => {
+    const evX = yearToX(ev.yearAgo, trackWidth);
+    const dist = Math.abs(x - evX);
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestIdx = i;
+    }
+  });
+  selectEvent(closestIdx);
+});
+
+// ====== 窗口大小变化 ======
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    resizeCanvas();
+    buildScrubber();
+  }, 200);
+});
+
+// ====== 导航栏滚动 ======
+window.addEventListener('scroll', () => {
+  document.getElementById('demoNavbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ====== 初始化 ======
+function init() {
+  resizeCanvas();
+  initStars(180);
+  buildTimeline();
+  buildScaleLadder();
+  buildScrubber();
+  updateUI();
+  animate();
+
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // 隐藏加载屏
+  setTimeout(() => {
+    document.getElementById('ctLoading').classList.add('hidden');
+  }, 800);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
