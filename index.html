@@ -338,7 +338,7 @@
     }
     .preview-slide.active { opacity: 1; }
 
-    /* iframe 嵌入真实 Demo —— 隐藏 Demo 自身 UI */
+    /* iframe 嵌入真实 Demo —— 默认不可见，CSS 注入成功后才显示，避免闪现全量 UI */
     .preview-iframe {
       position: absolute;
       top: 0;
@@ -348,8 +348,13 @@
       border: none;
       z-index: 0;
       pointer-events: none;
+      opacity: 0;
+      transition: opacity 600ms var(--ease);
     }
-    .preview-slide.active .preview-iframe {
+    .preview-iframe.jb-ready {
+      opacity: 1;
+    }
+    .preview-slide.active .preview-iframe.jb-ready {
       pointer-events: auto;
     }
 
@@ -1301,12 +1306,10 @@
 
     // 每个 demo 的定制 CSS 注入规则 —— 隐藏 UI 外壳，保留画布可交互
     const demoCSS = {
-      // 化学杂化轨道：隐藏导航、控制面板、图例、信息栏、浮动按钮、提示；保留右侧解释面板
-      chem: `.navbar, .controls-panel, .legend-panel, .info-bar, .float-btns-left, .float-btns-right, .scene-hint, .info-panel-close, .loading-overlay { display: none !important; }
+      // 化学杂化轨道：隐藏全部 UI 外壳（导航、控制面板、图例、信息栏、浮动按钮、提示、轨道标签、角度标签、信息面板）
+      chem: `.navbar, .controls-panel, .legend-panel, .info-bar, .float-btns-left, .float-btns-right, .scene-hint, .info-panel-close, .loading-overlay, .orbital-label, .angle-label, .info-panel { display: none !important; }
              body { overflow: hidden !important; }
-             #canvas-container { position: fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; }
-             .info-panel { top: auto !important; bottom: 20px !important; right: 20px !important; width: 260px !important; padding: 16px 18px !important; }
-             .info-panel-desc { font-size: 12px !important; line-height: 1.7 !important; }`,
+             #canvas-container { position: fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; }`,
       // 生物 DNA：隐藏导航、加载屏、模式面板、图例、底部控制、信息面板、序列条、提示
       bio: `.demo-navbar, #loader, #mode-panel, #legend, #bottom-controls, #info-panel, #sequence-bar, #hint { display: none !important; }
             body { overflow: hidden !important; }
@@ -1363,6 +1366,7 @@
       // 注入成功后的通用处理
       function onInjected() {
         if (loader) loader.classList.add('hidden');
+        iframe.classList.add('jb-ready');
         setTimeout(() => { try { iframe.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {} }, 300);
         setTimeout(() => { try { iframe.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {} }, 1500);
         setTimeout(() => { try { if (iframe.contentWindow.map && iframe.contentWindow.map.invalidateSize) iframe.contentWindow.map.invalidateSize(); } catch(e) {} }, 1000);
@@ -1397,8 +1401,8 @@
         // onload 终极备用 —— 所有资源加载完毕后确保注入
         iframe.addEventListener('load', () => attemptInject(state));
 
-        // 超时保护：20 秒后停止轮询
-        setTimeout(() => clearInterval(state.poll), 20000);
+        // 超时保护：20 秒后停止轮询，强制显示 iframe 避免永久黑屏
+        setTimeout(() => { clearInterval(state.poll); iframe.classList.add('jb-ready'); }, 20000);
       } else if (iframe && iframe.src) {
         // 已加载的 iframe，确保 CSS 已注入
         const state = { injected: false, poll: null };
@@ -1410,7 +1414,7 @@
             attemptInject(state);
             clearInterval(state.poll);
           });
-          setTimeout(() => clearInterval(state.poll), 20000);
+          setTimeout(() => { clearInterval(state.poll); iframe.classList.add('jb-ready'); }, 20000);
         }
       }
     }
