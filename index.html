@@ -1350,6 +1350,9 @@
         try {
           const doc = iframe.contentDocument;
           if (!doc) return false;
+          // 关键修复：跳过 about:blank 空文档 —— iframe.src 刚设置后 contentDocument 仍指向旧空文档
+          // 此时注入的 CSS 会在新文档加载后被丢弃，导致全量 UI 闪现
+          if (!doc.URL || doc.URL === 'about:blank' || doc.URL === 'about:srcdoc') return false;
           const target = doc.head || doc.body;
           if (!target) return false;
           if (doc.querySelectorAll('style[data-jb-injected]').length > 0) return true;
@@ -1373,7 +1376,7 @@
         setTimeout(() => { try { if (iframe.contentWindow.map && iframe.contentWindow.map.invalidateSize) iframe.contentWindow.map.invalidateSize(); } catch(e) {} }, 3000);
       }
 
-      // 通用注入尝试 —— 合并轮询/DOMContentLoaded/load 三条路径
+      // 通用注入尝试 —— 合并轮询/load 两条路径
       function attemptInject(state) {
         if (state.injected) return;
         if (tryInjectCSS()) {
@@ -1387,18 +1390,10 @@
         iframe.src = iframe.dataset.src;
         const state = { injected: false, poll: null };
 
-        // 轮询注入 —— 100ms 高频检测，抢在 CDN 脚本加载前注入
-        state.poll = setInterval(() => attemptInject(state), 100);
+        // 轮询注入 —— 50ms 高频检测，跳过 about:blank，只在真实文档中注入
+        state.poll = setInterval(() => attemptInject(state), 50);
 
-        // DOMContentLoaded —— HTML 解析完成即注入，比 load 事件早很多
-        try {
-          const doc = iframe.contentDocument;
-          if (doc && doc.readyState === 'loading') {
-            doc.addEventListener('DOMContentLoaded', () => attemptInject(state));
-          }
-        } catch(e) {}
-
-        // onload 终极备用 —— 所有资源加载完毕后确保注入
+        // onload —— 页面完全加载后确保注入（最可靠的兜底）
         iframe.addEventListener('load', () => attemptInject(state));
 
         // 超时保护：20 秒后停止轮询，强制显示 iframe 避免永久黑屏
