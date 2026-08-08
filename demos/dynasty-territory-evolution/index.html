@@ -120,16 +120,20 @@
   overflow: hidden;
 }
 
+/* 覆盖框架 .narrative-map-area svg{width:100%;height:100%} —— 仅 canvas 全尺寸，所有 overlay 内 SVG 用自身尺寸 */
+.narrative-map-area .dt-map-overlay svg,
+.narrative-map-area .narrative-info-card svg {
+  width: auto;
+  height: auto;
+}
+
 #mapCanvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
-  cursor: grab;
-}
-#mapCanvas:active {
-  cursor: grabbing;
+  cursor: default;
 }
 
 /* ---------- 地图叠加层 ---------- */
@@ -167,7 +171,7 @@
   opacity: 0;
 }
 
-/* 比例尺（左下角） */
+/* 比例尺（右下角） */
 .dt-scale-bar {
   position: absolute;
   bottom: 20px;
@@ -197,71 +201,90 @@
   background: var(--dt-ink-muted);
 }
 
-/* 罗盘（左上角） */
-.dt-compass {
+/* 罗盘（左上角）—— 必须用更高优先级选择器覆盖框架的 .narrative-map-area svg{width:100%;height:100%} */
+.narrative-map-area .dt-map-overlay .dt-compass {
   position: absolute;
   top: 20px;
   left: 20px;
-  width: 56px;
-  height: 56px;
-  opacity: 0.5;
+  width: 52px !important;
+  height: 52px !important;
+  opacity: 0.45;
 }
 
 /* ---------- 信息卡片覆盖 ---------- */
 .narrative-info-card {
-  background-color: rgba(247, 240, 224, 0.96);
+  background-color: rgba(247, 240, 224, 0.94);
   border: 1px solid var(--dt-border-soft);
   border-left: 3px solid var(--dt-ochre);
-  max-width: 380px;
+  max-width: 280px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(146, 64, 14, 0.10);
 }
 
 .narrative-info-year {
   color: var(--dt-ochre);
-  font-size: 22px;
+  font-size: 18px;
   letter-spacing: 0.02em;
+  margin-bottom: 2px;
+}
+
+.narrative-info-title {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.narrative-info-desc {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--dt-ink-light);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .dt-info-meta {
   display: flex;
-  gap: 16px;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-top: 6px;
+  margin-bottom: 6px;
   flex-wrap: wrap;
 }
 .dt-info-meta-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
   color: var(--dt-ink-muted);
 }
 .dt-info-meta-item strong {
   color: var(--dt-ink);
   font-weight: 600;
 }
-.dt-info-meta-icon {
-  width: 14px;
-  height: 14px;
+.narrative-map-area .narrative-info-card .dt-info-meta-icon {
+  width: 13px !important;
+  height: 13px !important;
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .dt-info-facts {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 4px;
+  margin-top: 8px;
 }
 .dt-fact-tag {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  font-size: 11px;
+  padding: 2px 8px;
+  font-size: 10px;
   font-weight: 500;
   border-radius: var(--radius-full);
   background: var(--dt-sepia);
   color: var(--dt-ochre-dark);
-  border: 1px solid rgba(180, 83, 9, 0.15);
+  border: 1px solid rgba(180, 83, 9, 0.12);
 }
 
 /* ---------- 时间轴面板覆盖 ---------- */
@@ -390,26 +413,14 @@
 
 /* ---------- 响应式覆盖 ---------- */
 @media (max-width: 1024px) {
-  .dt-dynasty-seal {
-    width: 56px;
-    height: 56px;
-    font-size: 28px;
-  }
-  .dt-compass {
-    width: 44px;
-    height: 44px;
+  .narrative-map-area .dt-map-overlay .dt-compass {
+    width: 44px !important;
+    height: 44px !important;
   }
 }
 
 @media (max-width: 768px) {
-  .dt-dynasty-seal {
-    width: 48px;
-    height: 48px;
-    font-size: 22px;
-    top: 12px;
-    right: 12px;
-  }
-  .dt-compass {
+  .narrative-map-area .dt-map-overlay .dt-compass {
     display: none;
   }
   .dt-scale-bar {
@@ -417,6 +428,9 @@
   }
   .narrative-info-card {
     max-width: none;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
   }
 }
 </style>
@@ -483,7 +497,7 @@
         <div class="dt-scale-bar">
           <span>0</span>
           <div class="dt-scale-bar-line"></div>
-          <span>2000km</span>
+          <span>1000km</span>
         </div>
       </div>
 
@@ -542,21 +556,56 @@
 <script>
 /* ============================================================
    朝代疆域演变动画地图
-   Canvas地图 + 时间轴联动 + GSAP领土形变动画
+   真实地理坐标 · 东亚地图底图 · 疆域多边形 · GSAP交叉淡入
    ============================================================ */
 
-// ====== 朝代数据 ======
-// 每个朝代领土用16个极坐标点定义（中心 + 16个半径），保证形变动画平滑
-function makeTerritory(cx, cy, radii) {
-  return radii.map((r, i) => {
-    const angle = (i / 16) * Math.PI * 2 - Math.PI / 2;
-    return {
-      x: cx + Math.cos(angle) * r,
-      y: cy + Math.sin(angle) * r * 0.82
-    };
-  });
+// ====== 地图投影 ======
+// 经纬度 → Canvas 坐标
+const MAP = { lonMin: 70, lonMax: 140, latMin: 14, latMax: 57 };
+function project(lon, lat) {
+  return {
+    x: ((lon - MAP.lonMin) / (MAP.lonMax - MAP.lonMin)) * canvasW,
+    y: ((MAP.latMax - lat) / (MAP.latMax - MAP.latMin)) * canvasH
+  };
+}
+function projectPoly(pts) {
+  return pts.map(([lon, lat]) => project(lon, lat));
 }
 
+// ====== 东亚底图数据（简化轮廓） ======
+const baseMap = {
+  // 东亚大陆轮廓（顺时针，从西北开始）
+  landmass: [
+    [74, 38], [78, 36], [80, 36], [80, 32], [82, 28], [88, 28],
+    [92, 28], [97, 27], [98, 24], [100, 22], [102, 22], [104, 22],
+    [108, 22], [110, 21], [113, 22], [116, 23], [118, 24], [120, 27],
+    [121, 29], [121, 31], [121, 34], [120, 37], [122, 37], [121, 39],
+    [119, 39], [121, 40], [123, 39], [125, 40], [126, 38], [127, 35],
+    [129, 35], [129, 38], [130, 42], [128, 42], [131, 45], [134, 48],
+    [133, 51], [127, 52], [120, 53], [110, 52], [100, 52], [92, 50],
+    [88, 49], [82, 46], [80, 44], [74, 40], [74, 38]
+  ],
+  // 黄河（简化）
+  yellowRiver: [
+    [96, 35], [99, 36], [102, 36], [103, 36], [106, 38], [110, 40],
+    [112, 40], [115, 41], [118, 41], [119, 37]
+  ],
+  // 长江（简化）
+  yangtze: [
+    [91, 33], [97, 32], [100, 30], [104, 29], [107, 30], [110, 30],
+    [112, 30], [115, 30], [117, 31], [119, 31], [121, 31]
+  ],
+  // 长城参考线
+  greatWall: [
+    [96, 40], [102, 41], [106, 41], [110, 41], [114, 41], [118, 41], [120, 41]
+  ],
+  // 台湾
+  taiwan: [[121, 25], [122, 24], [122, 22], [121, 22]],
+  // 海南
+  hainan: [[109, 20], [111, 20], [111, 18], [109, 18]]
+};
+
+// ====== 朝代疆域数据（真实地理坐标多边形） ======
 const dynasties = [
   {
     id: 'qin',
@@ -565,14 +614,17 @@ const dynasties = [
     yearLabel: '前221年',
     yearRange: '前221 — 前206',
     capital: '咸阳',
-    capitalPos: { x: 0.50, y: 0.46 },
+    capitalPos: [108.7, 34.4],
     area: '约340万km²',
-    color: '#B45309',
-    center: { x: 0.50, y: 0.46 },
-    radii: [0.11, 0.13, 0.15, 0.17, 0.15, 0.13, 0.11, 0.09, 0.10, 0.12, 0.14, 0.15, 0.14, 0.13, 0.11, 0.10],
     title: '大一统的开端',
     desc: '秦始皇嬴政横扫六国，建立中国历史上第一个统一的多民族中央集权国家。废分封、行郡县、书同文、车同轨，奠定此后两千年中华文明的政治基础。',
-    facts: ['设立36郡', '修筑长城', '统一度量衡', '车同轨书同文']
+    facts: ['设立36郡', '修筑长城', '统一度量衡', '车同轨书同文'],
+    territory: [
+      [103, 36], [106, 39], [109, 40], [112, 41], [115, 41], [118, 40],
+      [120, 39], [121, 37], [120, 34], [121, 31], [120, 28], [119, 26],
+      [117, 24], [114, 22], [110, 21], [108, 22], [105, 23], [103, 25],
+      [101, 27], [99, 28], [98, 30], [99, 32], [101, 34], [103, 36]
+    ]
   },
   {
     id: 'han',
@@ -581,14 +633,18 @@ const dynasties = [
     yearLabel: '前101年',
     yearRange: '前202 — 220',
     capital: '长安',
-    capitalPos: { x: 0.46, y: 0.44 },
+    capitalPos: [108.9, 34.3],
     area: '约609万km²',
-    color: '#B45309',
-    center: { x: 0.44, y: 0.42 },
-    radii: [0.17, 0.20, 0.22, 0.20, 0.17, 0.14, 0.12, 0.11, 0.13, 0.15, 0.17, 0.19, 0.21, 0.20, 0.18, 0.16],
     title: '丝路开通与西拓',
     desc: '汉武帝北击匈奴、张骞凿空西域，汉朝疆域大幅向西扩展。设西域都护府管辖今新疆地区，丝绸之路连通东西，中华帝国首次以开放姿态走向世界。',
-    facts: ['张骞通西域', '设西域都护府', '北逐匈奴', '开辟丝绸之路']
+    facts: ['张骞通西域', '设西域都护府', '北逐匈奴', '开辟丝绸之路'],
+    territory: [
+      [76, 41], [80, 42], [85, 43], [90, 43], [95, 42], [99, 41],
+      [103, 41], [106, 42], [110, 42], [114, 42], [118, 41], [120, 39],
+      [121, 37], [120, 34], [121, 31], [120, 28], [119, 26], [117, 24],
+      [114, 22], [110, 21], [108, 22], [105, 23], [103, 25], [101, 27],
+      [99, 28], [98, 30], [99, 32], [96, 36], [90, 37], [84, 37], [78, 37], [76, 41]
+    ]
   },
   {
     id: 'tang',
@@ -597,14 +653,19 @@ const dynasties = [
     yearLabel: '668年',
     yearRange: '618 — 907',
     capital: '长安',
-    capitalPos: { x: 0.44, y: 0.42 },
+    capitalPos: [108.9, 34.3],
     area: '约1076万km²',
-    color: '#B45309',
-    center: { x: 0.40, y: 0.40 },
-    radii: [0.20, 0.26, 0.28, 0.26, 0.22, 0.18, 0.15, 0.13, 0.15, 0.18, 0.22, 0.26, 0.30, 0.28, 0.24, 0.21],
     title: '盛唐气象 万国来朝',
     desc: '唐高宗、武则天时期疆域达到鼎盛。东至朝鲜半岛，西达咸海，南抵越南，北括贝加尔湖。安西都护府、北庭都护府镇守西域，大唐成为当时世界上最强大的帝国。',
-    facts: ['灭东西突厥', '设安西四镇', '万国来朝', '长安百万人口']
+    facts: ['灭东西突厥', '设安西四镇', '万国来朝', '长安百万人口'],
+    territory: [
+      [68, 42], [73, 44], [78, 45], [83, 48], [88, 50], [95, 51],
+      [105, 52], [115, 50], [122, 48], [128, 45], [130, 42], [128, 40],
+      [126, 38], [122, 37], [120, 34], [121, 31], [120, 28], [119, 26],
+      [117, 24], [114, 22], [110, 21], [108, 22], [105, 23], [103, 25],
+      [101, 27], [99, 28], [97, 30], [90, 30], [82, 30], [76, 35],
+      [72, 38], [68, 42]
+    ]
   },
   {
     id: 'song-north',
@@ -613,14 +674,17 @@ const dynasties = [
     yearLabel: '1111年',
     yearRange: '960 — 1127',
     capital: '开封',
-    capitalPos: { x: 0.58, y: 0.48 },
+    capitalPos: [114.3, 34.8],
     area: '约280万km²',
-    color: '#B45309',
-    center: { x: 0.58, y: 0.50 },
-    radii: [0.09, 0.11, 0.13, 0.15, 0.14, 0.12, 0.10, 0.08, 0.09, 0.11, 0.13, 0.14, 0.13, 0.11, 0.10, 0.09],
     title: '积弱与繁荣并存',
     desc: '北宋结束了五代十国的分裂，但疆域大幅收缩。燕云十六州未收复，西夏、辽国并立。虽军事积弱，但经济文化空前繁荣，商品经济发达，市民阶层兴起。',
-    facts: ['重文轻武', '澶渊之盟', '交子诞生', '清明上河图']
+    facts: ['重文轻武', '澶渊之盟', '交子诞生', '清明上河图'],
+    territory: [
+      [104, 36], [106, 38], [109, 39], [112, 40], [115, 40], [118, 40],
+      [120, 38], [121, 35], [120, 32], [119, 30], [120, 28], [119, 26],
+      [117, 24], [114, 22], [111, 22], [108, 23], [105, 24], [103, 26],
+      [101, 28], [101, 30], [102, 33], [104, 36]
+    ]
   },
   {
     id: 'song-south',
@@ -629,14 +693,16 @@ const dynasties = [
     yearLabel: '1142年',
     yearRange: '1127 — 1279',
     capital: '临安',
-    capitalPos: { x: 0.64, y: 0.60 },
+    capitalPos: [120.2, 30.3],
     area: '约200万km²',
-    color: '#B45309',
-    center: { x: 0.62, y: 0.58 },
-    radii: [0.07, 0.09, 0.11, 0.13, 0.12, 0.10, 0.08, 0.07, 0.08, 0.10, 0.12, 0.13, 0.12, 0.10, 0.09, 0.08],
     title: '偏安江南 经济巅峰',
     desc: '靖康之变后，宋室南渡，偏安淮河以南。疆域为历代统一王朝最小，但江南经济高度繁荣，海外贸易空前发达，泉州成为东方第一大港，文化达到新高峰。',
-    facts: ['宋室南渡', '海上丝绸之路', '泉州第一大港', '程朱理学']
+    facts: ['宋室南渡', '海上丝绸之路', '泉州第一大港', '程朱理学'],
+    territory: [
+      [104, 33], [107, 33], [110, 33], [114, 33], [117, 33], [120, 33],
+      [121, 30], [120, 28], [119, 26], [117, 24], [114, 22], [111, 22],
+      [108, 23], [105, 24], [103, 26], [101, 28], [101, 30], [103, 33]
+    ]
   },
   {
     id: 'yuan',
@@ -645,14 +711,19 @@ const dynasties = [
     yearLabel: '1280年',
     yearRange: '1271 — 1368',
     capital: '大都',
-    capitalPos: { x: 0.56, y: 0.32 },
+    capitalPos: [116.4, 39.9],
     area: '约1372万km²',
-    color: '#B45309',
-    center: { x: 0.38, y: 0.38 },
-    radii: [0.24, 0.30, 0.35, 0.33, 0.28, 0.23, 0.19, 0.17, 0.19, 0.22, 0.26, 0.30, 0.34, 0.32, 0.28, 0.25],
     title: '横跨欧亚的超级帝国',
     desc: '蒙古铁骑横扫欧亚大陆，元朝统一全国后疆域空前辽阔。岭北行省北达北冰洋，宣政院辖地管理西藏，澎湖巡检司管辖台湾。行省制度深刻影响后世行政区划。',
-    facts: ['行省制度', '设宣政院辖藏', '澎湖巡检司', '马可波罗东游']
+    facts: ['行省制度', '设宣政院辖藏', '澎湖巡检司', '马可波罗东游'],
+    territory: [
+      [68, 48], [74, 48], [82, 50], [88, 53], [95, 54], [105, 54],
+      [115, 53], [125, 53], [135, 50], [137, 46], [134, 43], [131, 42],
+      [128, 40], [126, 38], [122, 37], [120, 34], [121, 31], [120, 28],
+      [119, 26], [117, 24], [114, 22], [110, 21], [108, 22], [105, 23],
+      [103, 25], [101, 27], [99, 28], [97, 30], [90, 30], [82, 32],
+      [76, 36], [72, 40], [68, 42], [68, 48]
+    ]
   },
   {
     id: 'ming',
@@ -661,14 +732,18 @@ const dynasties = [
     yearLabel: '1428年',
     yearRange: '1368 — 1644',
     capital: '北京',
-    capitalPos: { x: 0.58, y: 0.33 },
+    capitalPos: [116.4, 39.9],
     area: '约997万km²',
-    color: '#B45309',
-    center: { x: 0.48, y: 0.42 },
-    radii: [0.15, 0.19, 0.21, 0.19, 0.16, 0.14, 0.12, 0.11, 0.13, 0.15, 0.17, 0.19, 0.21, 0.20, 0.17, 0.15],
     title: '内敛与远航',
     desc: '明朝初期疆域可观，永乐时期达到鼎盛。郑和七下西洋彰显国威，奴儿干都司管辖东北，交趾布政使司短期管辖越南北部。后期修建长城，疆域逐渐内缩。',
-    facts: ['郑和下西洋', '奴儿干都司', '修筑明长城', '永乐大典']
+    facts: ['郑和下西洋', '奴儿干都司', '修筑明长城', '永乐大典'],
+    territory: [
+      [97, 38], [100, 40], [104, 40], [108, 42], [112, 42], [116, 42],
+      [120, 42], [125, 44], [130, 45], [131, 42], [128, 40], [126, 38],
+      [122, 37], [120, 34], [121, 31], [120, 28], [119, 26], [117, 24],
+      [114, 22], [110, 21], [108, 22], [105, 23], [103, 25], [101, 27],
+      [99, 28], [97, 30], [96, 34], [97, 38]
+    ]
   },
   {
     id: 'qing',
@@ -677,26 +752,27 @@ const dynasties = [
     yearLabel: '1760年',
     yearRange: '1644 — 1912',
     capital: '北京',
-    capitalPos: { x: 0.58, y: 0.33 },
+    capitalPos: [116.4, 39.9],
     area: '约1316万km²',
-    color: '#B45309',
-    center: { x: 0.42, y: 0.38 },
-    radii: [0.21, 0.27, 0.31, 0.29, 0.25, 0.21, 0.17, 0.15, 0.17, 0.21, 0.25, 0.29, 0.33, 0.31, 0.27, 0.23],
     title: '疆域奠基 现代版图',
     desc: '康乾盛世时期，清朝疆域达到鼎盛。平定准噶尔、统一台湾、设驻藏大臣、改土归流，奠定现代中国领土基础。疆域北达外兴安岭，西至巴尔喀什湖，南含南海诸岛。',
-    facts: ['平定准噶尔', '统一台湾', '设驻藏大臣', '奠定现代版图']
+    facts: ['平定准噶尔', '统一台湾', '设驻藏大臣', '奠定现代版图'],
+    territory: [
+      [74, 39], [78, 42], [82, 46], [88, 49], [93, 51], [100, 53],
+      [108, 53], [116, 52], [124, 53], [130, 53], [135, 50], [134, 46],
+      [131, 43], [128, 40], [126, 38], [122, 37], [120, 34], [121, 31],
+      [120, 28], [119, 26], [117, 24], [114, 22], [110, 21], [108, 22],
+      [105, 23], [103, 25], [101, 27], [99, 28], [97, 30], [90, 30],
+      [82, 32], [76, 36], [74, 39]
+    ]
   }
 ];
 
-// 预计算领土多边形
-dynasties.forEach(d => {
-  d.territory = makeTerritory(d.center.x, d.center.y, d.radii);
-});
-
 // ====== 状态 ======
 let currentIdx = 0;
-let currentPoints = dynasties[0].territory.map(p => ({ x: p.x, y: p.y }));
-let currentCapital = { x: dynasties[0].capitalPos.x, y: dynasties[0].capitalPos.y };
+let prevIdx = 0;
+const animState = { prevOpacity: 0, currentOpacity: 1 };
+const capitalState = { lon: dynasties[0].capitalPos[0], lat: dynasties[0].capitalPos[1] };
 let isPlaying = false;
 let playTimer = null;
 let pulsePhase = 0;
@@ -720,47 +796,24 @@ function resizeCanvas() {
 
 window.addEventListener('resize', () => {
   resizeCanvas();
-  render();
 });
 
-// ====== 地理参考线（简化中国轮廓） ======
-// 简化的东亚海岸线和河流，用于地图背景参考
-const geoRef = {
-  // 东海岸线（从北到南）
-  coastline: [
-    [0.72, 0.18], [0.74, 0.22], [0.73, 0.28], [0.76, 0.33],
-    [0.78, 0.38], [0.80, 0.43], [0.79, 0.48], [0.82, 0.53],
-    [0.83, 0.58], [0.81, 0.63], [0.80, 0.68], [0.78, 0.72],
-    [0.76, 0.76], [0.73, 0.78]
-  ],
-  // 黄河
-  yellowRiver: [
-    [0.40, 0.30], [0.46, 0.33], [0.50, 0.31], [0.54, 0.35],
-    [0.52, 0.39], [0.56, 0.42], [0.60, 0.44], [0.64, 0.43],
-    [0.68, 0.46], [0.72, 0.48]
-  ],
-  // 长江
-  yangtze: [
-    [0.32, 0.52], [0.38, 0.53], [0.44, 0.54], [0.50, 0.56],
-    [0.56, 0.57], [0.62, 0.59], [0.68, 0.61], [0.74, 0.63],
-    [0.78, 0.65]
-  ],
-  // 北方草原线（长城参考）
-  greatWall: [
-    [0.35, 0.28], [0.42, 0.26], [0.50, 0.28], [0.58, 0.27],
-    [0.64, 0.29], [0.70, 0.28]
-  ]
-};
-
-// ====== 渲染函数 ======
+// ====== 渲染主函数 ======
 function render() {
   if (canvasW === 0) return;
   ctx.clearRect(0, 0, canvasW, canvasH);
 
   drawParchmentBg();
+  drawBaseMap();
   drawGrid();
-  drawGeoRef();
-  drawTerritory();
+
+  // 绘制前一朝代疆域（淡出）
+  if (animState.prevOpacity > 0.01) {
+    drawTerritory(dynasties[prevIdx], animState.prevOpacity, true);
+  }
+  // 绘制当前朝代疆域
+  drawTerritory(dynasties[currentIdx], animState.currentOpacity, false);
+
   drawCapital();
   drawDynastyLabel();
 }
@@ -795,89 +848,141 @@ function drawParchmentBg() {
 // 经纬度网格
 function drawGrid() {
   ctx.save();
-  ctx.strokeStyle = 'rgba(138, 127, 111, 0.08)';
+  ctx.strokeStyle = 'rgba(138, 127, 111, 0.06)';
   ctx.lineWidth = 0.5;
   ctx.setLineDash([2, 4]);
-  const stepX = canvasW / 12;
-  const stepY = canvasH / 8;
-  for (let i = 1; i < 12; i++) {
+  // 每5度一条经线
+  for (let lon = 75; lon <= 135; lon += 10) {
+    const p1 = project(lon, MAP.latMin);
+    const p2 = project(lon, MAP.latMax);
     ctx.beginPath();
-    ctx.moveTo(i * stepX, 0);
-    ctx.lineTo(i * stepX, canvasH);
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
     ctx.stroke();
   }
-  for (let i = 1; i < 8; i++) {
+  // 每5度一条纬线
+  for (let lat = 20; lat <= 50; lat += 10) {
+    const p1 = project(MAP.lonMin, lat);
+    const p2 = project(MAP.lonMax, lat);
     ctx.beginPath();
-    ctx.moveTo(0, i * stepY);
-    ctx.lineTo(canvasW, i * stepY);
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
     ctx.stroke();
   }
+  ctx.setLineDash([]);
   ctx.restore();
 }
 
-// 地理参考线（海岸线、河流、长城）
-function drawGeoRef() {
+// 底图（东亚大陆轮廓、河流、长城）
+function drawBaseMap() {
   ctx.save();
 
-  // 海洋区域（东海岸以东）
-  ctx.fillStyle = 'rgba(168, 192, 200, 0.12)';
+  // ---- 大陆填充 ----
+  const land = projectPoly(baseMap.landmass);
   ctx.beginPath();
-  ctx.moveTo(geoRef.coastline[0][0] * canvasW, geoRef.coastline[0][1] * canvasH);
-  geoRef.coastline.forEach(p => ctx.lineTo(p[0] * canvasW, p[1] * canvasH));
+  land.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.closePath();
+
+  // 陆地淡色填充
+  ctx.fillStyle = 'rgba(180, 160, 130, 0.08)';
+  ctx.fill();
+
+  // 海洋区域（大陆右侧/东南）
+  ctx.fillStyle = 'rgba(168, 192, 200, 0.06)';
+  ctx.beginPath();
+  ctx.moveTo(canvasW, 0);
+  // 从大陆轮廓最东北点开始画海洋
+  const nePoint = project(134, 48);
+  ctx.lineTo(nePoint.x, nePoint.y);
+  // 沿大陆东海岸向南
+  for (let i = baseMap.landmass.length - 1; i >= 0; i--) {
+    const p = project(baseMap.landmass[i][0], baseMap.landmass[i][1]);
+    // 只画东海岸部分
+    if (baseMap.landmass[i][0] > 100) {
+      ctx.lineTo(p.x, p.y);
+    }
+  }
   ctx.lineTo(canvasW, canvasH);
-  ctx.lineTo(canvasW, 0);
   ctx.closePath();
   ctx.fill();
 
-  // 海岸线
-  ctx.strokeStyle = 'rgba(90, 79, 63, 0.25)';
+  // 大陆轮廓线
+  ctx.strokeStyle = 'rgba(90, 79, 63, 0.22)';
   ctx.lineWidth = 1.2;
   ctx.beginPath();
-  geoRef.coastline.forEach((p, i) => {
-    if (i === 0) ctx.moveTo(p[0] * canvasW, p[1] * canvasH);
-    else ctx.lineTo(p[0] * canvasW, p[1] * canvasH);
+  land.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
   });
+  ctx.closePath();
   ctx.stroke();
 
-  // 黄河
-  ctx.strokeStyle = 'rgba(184, 146, 60, 0.3)';
+  // ---- 台湾 ----
+  const tw = projectPoly(baseMap.taiwan);
+  ctx.beginPath();
+  tw.forEach((p, i) => { i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(180, 160, 130, 0.08)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90, 79, 63, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // ---- 海南 ----
+  const hn = projectPoly(baseMap.hainan);
+  ctx.beginPath();
+  hn.forEach((p, i) => { i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // ---- 黄河 ----
+  ctx.strokeStyle = 'rgba(184, 146, 60, 0.28)';
   ctx.lineWidth = 1.8;
   ctx.setLineDash([]);
   ctx.beginPath();
-  geoRef.yellowRiver.forEach((p, i) => {
-    if (i === 0) ctx.moveTo(p[0] * canvasW, p[1] * canvasH);
+  baseMap.yellowRiver.forEach((pt, i) => {
+    const p = project(pt[0], pt[1]);
+    if (i === 0) ctx.moveTo(p.x, p.y);
     else {
-      const prev = geoRef.yellowRiver[i - 1];
-      const cpx = (prev[0] + p[0]) / 2 * canvasW;
-      const cpy = (prev[1] + p[1]) / 2 * canvasH;
-      ctx.quadraticCurveTo(prev[0] * canvasW, prev[1] * canvasH, cpx, cpy);
+      const prev = baseMap.yellowRiver[i - 1];
+      const pp = project(prev[0], prev[1]);
+      const cpx = (pp.x + p.x) / 2;
+      const cpy = (pp.y + p.y) / 2;
+      ctx.quadraticCurveTo(pp.x, pp.y, cpx, cpy);
     }
   });
   ctx.stroke();
 
-  // 长江
-  ctx.strokeStyle = 'rgba(120, 160, 170, 0.3)';
+  // ---- 长江 ----
+  ctx.strokeStyle = 'rgba(120, 160, 170, 0.28)';
   ctx.lineWidth = 1.8;
   ctx.beginPath();
-  geoRef.yangtze.forEach((p, i) => {
-    if (i === 0) ctx.moveTo(p[0] * canvasW, p[1] * canvasH);
+  baseMap.yangtze.forEach((pt, i) => {
+    const p = project(pt[0], pt[1]);
+    if (i === 0) ctx.moveTo(p.x, p.y);
     else {
-      const prev = geoRef.yangtze[i - 1];
-      const cpx = (prev[0] + p[0]) / 2 * canvasW;
-      const cpy = (prev[1] + p[1]) / 2 * canvasH;
-      ctx.quadraticCurveTo(prev[0] * canvasW, prev[1] * canvasH, cpx, cpy);
+      const prev = baseMap.yangtze[i - 1];
+      const pp = project(prev[0], prev[1]);
+      const cpx = (pp.x + p.x) / 2;
+      const cpy = (pp.y + p.y) / 2;
+      ctx.quadraticCurveTo(pp.x, pp.y, cpx, cpy);
     }
   });
   ctx.stroke();
 
-  // 长城
-  ctx.strokeStyle = 'rgba(146, 64, 14, 0.2)';
+  // ---- 长城 ----
+  ctx.strokeStyle = 'rgba(146, 64, 14, 0.18)';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 3]);
   ctx.beginPath();
-  geoRef.greatWall.forEach((p, i) => {
-    if (i === 0) ctx.moveTo(p[0] * canvasW, p[1] * canvasH);
-    else ctx.lineTo(p[0] * canvasW, p[1] * canvasH);
+  baseMap.greatWall.forEach((pt, i) => {
+    const p = project(pt[0], pt[1]);
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
   });
   ctx.stroke();
   ctx.setLineDash([]);
@@ -885,35 +990,37 @@ function drawGeoRef() {
   ctx.restore();
 }
 
-// 领土多边形
-function drawTerritory() {
-  const d = dynasties[currentIdx];
+// 疆域多边形
+function drawTerritory(d, opacity, isPrev) {
+  if (opacity < 0.01) return;
+  const pts = projectPoly(d.territory);
   ctx.save();
+  ctx.globalAlpha = opacity;
 
-  // 计算多边形路径
+  // 路径
   const path = new Path2D();
-  currentPoints.forEach((p, i) => {
-    const x = p.x * canvasW;
-    const y = p.y * canvasH;
-    if (i === 0) path.moveTo(x, y);
-    else path.lineTo(x, y);
+  pts.forEach((p, i) => {
+    if (i === 0) path.moveTo(p.x, p.y);
+    else path.lineTo(p.x, p.y);
   });
   path.closePath();
 
   // 填充（径向渐变）
-  const cx = d.center.x * canvasW;
-  const cy = d.center.y * canvasH;
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, canvasW * 0.3);
-  grad.addColorStop(0, 'rgba(180, 83, 9, 0.28)');
-  grad.addColorStop(0.6, 'rgba(180, 83, 9, 0.18)');
-  grad.addColorStop(1, 'rgba(146, 64, 14, 0.08)');
+  const cx = d.capitalPos[0];
+  const cy = d.capitalPos[1];
+  const cp = project(cx, cy);
+  const fillRadius = Math.max(canvasW, canvasH) * 0.4;
+  const grad = ctx.createRadialGradient(cp.x, cp.y, 0, cp.x, cp.y, fillRadius);
+  grad.addColorStop(0, 'rgba(180, 83, 9, 0.32)');
+  grad.addColorStop(0.5, 'rgba(180, 83, 9, 0.20)');
+  grad.addColorStop(1, 'rgba(146, 64, 14, 0.10)');
   ctx.fillStyle = grad;
   ctx.fill(path);
 
   // 填充纹理（斜线）
   ctx.save();
   ctx.clip(path);
-  ctx.strokeStyle = 'rgba(180, 83, 9, 0.06)';
+  ctx.strokeStyle = 'rgba(180, 83, 9, 0.05)';
   ctx.lineWidth = 1;
   for (let i = -canvasH; i < canvasW + canvasH; i += 8) {
     ctx.beginPath();
@@ -923,28 +1030,31 @@ function drawTerritory() {
   }
   ctx.restore();
 
-  // 外发光
-  ctx.shadowColor = 'rgba(180, 83, 9, 0.3)';
-  ctx.shadowBlur = 12;
-  ctx.strokeStyle = 'rgba(180, 83, 9, 0.6)';
-  ctx.lineWidth = 2;
+  // 外发光边线
+  if (!isPrev) {
+    ctx.shadowColor = 'rgba(180, 83, 9, 0.35)';
+    ctx.shadowBlur = 14;
+  }
+  ctx.strokeStyle = isPrev ? 'rgba(146, 64, 14, 0.4)' : 'rgba(180, 83, 9, 0.7)';
+  ctx.lineWidth = isPrev ? 1.5 : 2.2;
   ctx.stroke(path);
   ctx.shadowBlur = 0;
 
-  // 内部细线
-  ctx.strokeStyle = 'rgba(146, 64, 14, 0.4)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 3]);
-  ctx.stroke(path);
-  ctx.setLineDash([]);
+  // 内部虚线
+  if (!isPrev) {
+    ctx.strokeStyle = 'rgba(146, 64, 14, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.stroke(path);
+    ctx.setLineDash([]);
+  }
 
   ctx.restore();
 }
 
 // 都城标记
 function drawCapital() {
-  const x = currentCapital.x * canvasW;
-  const y = currentCapital.y * canvasH;
+  const p = project(capitalState.lon, capitalState.lat);
   const pulse = Math.sin(pulsePhase) * 0.5 + 0.5;
 
   ctx.save();
@@ -952,16 +1062,16 @@ function drawCapital() {
   // 外圈脉冲光晕
   ctx.fillStyle = `rgba(180, 83, 9, ${0.08 + pulse * 0.06})`;
   ctx.beginPath();
-  ctx.arc(x, y, 18 + pulse * 6, 0, Math.PI * 2);
+  ctx.arc(p.x, p.y, 18 + pulse * 6, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = `rgba(180, 83, 9, ${0.12 + pulse * 0.08})`;
   ctx.beginPath();
-  ctx.arc(x, y, 12, 0, Math.PI * 2);
+  ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
   ctx.fill();
 
   // 星形标记
-  drawStar(x, y, 7, 3, 5, '#B45309', '#92400E');
+  drawStar(p.x, p.y, 7, 3, 5, '#B45309', '#92400E');
 
   // 都城名称
   ctx.font = '600 12px "Noto Serif SC", serif';
@@ -969,7 +1079,7 @@ function drawCapital() {
   ctx.textAlign = 'center';
   ctx.shadowColor = 'rgba(247, 240, 224, 0.9)';
   ctx.shadowBlur = 4;
-  ctx.fillText(dynasties[currentIdx].capital, x, y - 16);
+  ctx.fillText(dynasties[currentIdx].capital, p.x, p.y - 16);
   ctx.shadowBlur = 0;
 
   ctx.restore();
@@ -994,18 +1104,22 @@ function drawStar(cx, cy, outerR, innerR, points, fill, stroke) {
   ctx.stroke();
 }
 
-// 领土上的朝代名称
+// 领土上的朝代名称（水印）
 function drawDynastyLabel() {
   const d = dynasties[currentIdx];
-  const x = d.center.x * canvasW;
-  const y = d.center.y * canvasH;
+  // 计算领土质心
+  let cx = 0, cy = 0;
+  d.territory.forEach(([lon, lat]) => { cx += lon; cy += lat; });
+  cx /= d.territory.length;
+  cy /= d.territory.length;
+  const p = project(cx, cy);
 
   ctx.save();
-  ctx.font = '700 28px "Noto Serif SC", serif';
-  ctx.fillStyle = 'rgba(58, 47, 31, 0.15)';
+  ctx.font = '700 32px "Noto Serif SC", serif';
+  ctx.fillStyle = 'rgba(58, 47, 31, 0.12)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(d.name, x, y + 20);
+  ctx.fillText(d.name, p.x, p.y + 22);
   ctx.restore();
 }
 
@@ -1042,10 +1156,10 @@ function buildTimeline() {
   });
 }
 
-// ====== 朝代切换（核心动画） ======
+// ====== 朝代切换（交叉淡入） ======
 function transitionTo(idx) {
   const target = dynasties[idx];
-  const prevIdx = currentIdx;
+  prevIdx = currentIdx;
   currentIdx = idx;
 
   // 显示切换指示器
@@ -1068,24 +1182,23 @@ function transitionTo(idx) {
     seal.classList.remove('changing');
   }, 200);
 
-  // GSAP 动画领土点
-  const tl = gsap.timeline();
-  currentPoints.forEach((pt, i) => {
-    tl.to(pt, {
-      x: target.territory[i].x,
-      y: target.territory[i].y,
-      duration: 1.2,
-      ease: 'power2.inOut'
-    }, 0);
+  // 交叉淡入动画
+  animState.prevOpacity = animState.currentOpacity;
+  animState.currentOpacity = 0;
+  gsap.to(animState, {
+    prevOpacity: 0,
+    currentOpacity: 1,
+    duration: 0.8,
+    ease: 'power2.out'
   });
 
   // 都城位置动画
-  tl.to(currentCapital, {
-    x: target.capitalPos.x,
-    y: target.capitalPos.y,
-    duration: 1.2,
+  gsap.to(capitalState, {
+    lon: target.capitalPos[0],
+    lat: target.capitalPos[1],
+    duration: 0.8,
     ease: 'power2.inOut'
-  }, 0);
+  });
 
   // 更新信息卡片
   updateInfoCard(target);
@@ -1138,31 +1251,13 @@ function togglePlay() {
       let next = currentIdx + 1;
       if (next >= dynasties.length) next = 0;
       transitionTo(next);
-    }, 2800);
+    }, 3000);
   } else {
     icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
     label.textContent = '播放';
     clearInterval(playTimer);
   }
 }
-
-// ====== Canvas 点击交互 ======
-canvas.addEventListener('click', (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const mx = (e.clientX - rect.left) / rect.width;
-  const my = (e.clientY - rect.top) / rect.height;
-
-  // 检测点击是否在领土内
-  dynasties.forEach((d, i) => {
-    const dx = mx - d.center.x;
-    const dy = my - d.center.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const avgRadius = d.radii.reduce((a, b) => a + b, 0) / d.radii.length;
-    if (dist < avgRadius && i !== currentIdx) {
-      transitionTo(i);
-    }
-  });
-});
 
 // ====== 键盘交互 ======
 document.addEventListener('keydown', (e) => {
