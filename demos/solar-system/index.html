@@ -464,6 +464,19 @@
 </footer>
 
 <script type="module">
+// Patch setPointerCapture for iframe compatibility — OrbitControls 调用 setPointerCapture
+// 在 iframe 内可能抛出 NotFoundError，patch 后静默失败，控件仍可通过常规事件监听工作
+const _origSPC = Element.prototype.setPointerCapture;
+Element.prototype.setPointerCapture = function(pointerId) {
+  try { return _origSPC.call(this, pointerId); }
+  catch(e) { /* iframe 内静默失败，不影响拖拽 */ }
+};
+const _origRPC = Element.prototype.releasePointerCapture;
+Element.prototype.releasePointerCapture = function(pointerId) {
+  try { return _origRPC.call(this, pointerId); }
+  catch(e) { /* 静默 */ }
+};
+
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 

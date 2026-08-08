@@ -1306,10 +1306,12 @@
 
     // 每个 demo 的定制 CSS 注入规则 —— 隐藏 UI 外壳，保留画布可交互
     const demoCSS = {
-      // 化学杂化轨道：隐藏全部 UI 外壳（导航、控制面板、图例、信息栏、浮动按钮、提示、轨道标签、角度标签、信息面板）
-      chem: `.navbar, .controls-panel, .legend-panel, .info-bar, .float-btns-left, .float-btns-right, .scene-hint, .info-panel-close, .loading-overlay, .orbital-label, .angle-label, .info-panel { display: none !important; }
+      // 化学杂化轨道：隐藏导航/控制/图例/浮动按钮/提示，保留轨道标签、角度标签、信息面板（知识讲解框）
+      chem: `.navbar, .controls-panel, .legend-panel, .info-bar, .float-btns-left, .float-btns-right, .scene-hint, .info-panel-close, .loading-overlay { display: none !important; }
              body { overflow: hidden !important; }
-             #canvas-container { position: fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; }`,
+             #canvas-container { position: fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; }
+             .info-panel { top: auto !important; bottom: 20px !important; right: 20px !important; width: 260px !important; padding: 16px 18px !important; opacity: 1 !important; transform: translateX(0) !important; }
+             .info-panel-desc { font-size: 12px !important; line-height: 1.7 !important; }`,
       // 生物 DNA：隐藏导航、加载屏、模式面板、图例、底部控制、信息面板、序列条、提示
       bio: `.demo-navbar, #loader, #mode-panel, #legend, #bottom-controls, #info-panel, #sequence-bar, #hint { display: none !important; }
             body { overflow: hidden !important; }
