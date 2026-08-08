@@ -111,9 +111,7 @@ point.position.set(-5, -5, 5);
 ## 参考案例
 
 - [DNA 双螺旋 3D 结构探索](https://jingbo.xyz/demos/dna-double-helix/index.html)
-- [人体器官 3D 解剖](https://jingbo.xyz/demos/human-organs/index.html)
 - [细胞结构 3D 探索](https://jingbo.xyz/demos/cell-structure/index.html)
 - [血液循环3D动态](https://jingbo.xyz/demos/blood-circulation-3d/index.html)
 - [细胞分裂3D动画](https://jingbo.xyz/demos/cell-division-3d/index.html)
-- [人体解剖3D](https://jingbo.xyz/demos/human-anatomy-3d/index.html)
 - [蛋白质合成动画](https://jingbo.xyz/demos/protein-synthesis-animation/index.html)
