@@ -1346,14 +1346,16 @@
       function tryInjectCSS() {
         try {
           const doc = iframe.contentDocument;
-          if (!doc || !doc.head) return false;
+          if (!doc) return false;
+          const target = doc.head || doc.body;
+          if (!target) return false;
           if (doc.querySelectorAll('style[data-jb-injected]').length > 0) return true;
           const subject = slide.dataset.slide;
           const style = doc.createElement('style');
           style.setAttribute('data-jb-injected', '1');
           const customCSS = demoCSS[subject] || '';
           style.textContent = customCSS + '\nbody{margin:0!important;padding:0!important;}';
-          doc.head.appendChild(style);
+          target.appendChild(style);
           return true;
         } catch(e) { return false; }
       }
@@ -1367,39 +1369,48 @@
         setTimeout(() => { try { if (iframe.contentWindow.map && iframe.contentWindow.map.invalidateSize) iframe.contentWindow.map.invalidateSize(); } catch(e) {} }, 3000);
       }
 
+      // 通用注入尝试 —— 合并轮询/DOMContentLoaded/load 三条路径
+      function attemptInject(state) {
+        if (state.injected) return;
+        if (tryInjectCSS()) {
+          state.injected = true;
+          clearInterval(state.poll);
+          onInjected();
+        }
+      }
+
       if (iframe && !iframe.src) {
         iframe.src = iframe.dataset.src;
-        let injected = false;
+        const state = { injected: false, poll: null };
 
-        // 轮询注入 CSS —— DOM ready 后立即注入，不等 load 事件（CDN 脚本可能很慢）
-        const poll = setInterval(() => {
-          if (!injected && tryInjectCSS()) {
-            injected = true;
-            clearInterval(poll);
-            onInjected();
+        // 轮询注入 —— 100ms 高频检测，抢在 CDN 脚本加载前注入
+        state.poll = setInterval(() => attemptInject(state), 100);
+
+        // DOMContentLoaded —— HTML 解析完成即注入，比 load 事件早很多
+        try {
+          const doc = iframe.contentDocument;
+          if (doc && doc.readyState === 'loading') {
+            doc.addEventListener('DOMContentLoaded', () => attemptInject(state));
           }
-        }, 200);
+        } catch(e) {}
 
-        // onload 备用 —— iframe 完全加载后确保 CSS 已注入（修复轮询超时问题）
-        iframe.addEventListener('load', () => {
-          if (!injected && tryInjectCSS()) {
-            injected = true;
-            clearInterval(poll);
-            onInjected();
-          }
-        });
+        // onload 终极备用 —— 所有资源加载完毕后确保注入
+        iframe.addEventListener('load', () => attemptInject(state));
 
-        // 超时保护：15 秒后强制停止轮询
-        setTimeout(() => clearInterval(poll), 15000);
+        // 超时保护：20 秒后停止轮询
+        setTimeout(() => clearInterval(state.poll), 20000);
       } else if (iframe && iframe.src) {
         // 已加载的 iframe，确保 CSS 已注入
-        if (tryInjectCSS()) {
-          onInjected();
-        } else {
-          // doc.head 尚未就绪，等待 load 事件后重试
+        const state = { injected: false, poll: null };
+        attemptInject(state);
+        if (!state.injected) {
+          // doc 尚未就绪，轮询 + load 双保险
+          state.poll = setInterval(() => attemptInject(state), 100);
           iframe.addEventListener('load', () => {
-            if (tryInjectCSS()) onInjected();
+            attemptInject(state);
+            clearInterval(state.poll);
           });
+          setTimeout(() => clearInterval(state.poll), 20000);
         }
       }
     }
