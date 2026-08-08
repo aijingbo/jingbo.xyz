@@ -1341,69 +1341,66 @@
     function loadIframe(slide) {
       const iframe = slide.querySelector('.preview-iframe');
       const loader = slide.querySelector('.preview-loader');
+
+      // CSS 注入辅助函数 —— 返回是否成功
+      function tryInjectCSS() {
+        try {
+          const doc = iframe.contentDocument;
+          if (!doc || !doc.head) return false;
+          if (doc.querySelectorAll('style[data-jb-injected]').length > 0) return true;
+          const subject = slide.dataset.slide;
+          const style = doc.createElement('style');
+          style.setAttribute('data-jb-injected', '1');
+          const customCSS = demoCSS[subject] || '';
+          style.textContent = customCSS + '\nbody{margin:0!important;padding:0!important;}';
+          doc.head.appendChild(style);
+          return true;
+        } catch(e) { return false; }
+      }
+
+      // 注入成功后的通用处理
+      function onInjected() {
+        if (loader) loader.classList.add('hidden');
+        setTimeout(() => { try { iframe.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {} }, 300);
+        setTimeout(() => { try { iframe.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {} }, 1500);
+        setTimeout(() => { try { if (iframe.contentWindow.map && iframe.contentWindow.map.invalidateSize) iframe.contentWindow.map.invalidateSize(); } catch(e) {} }, 1000);
+        setTimeout(() => { try { if (iframe.contentWindow.map && iframe.contentWindow.map.invalidateSize) iframe.contentWindow.map.invalidateSize(); } catch(e) {} }, 3000);
+      }
+
       if (iframe && !iframe.src) {
         iframe.src = iframe.dataset.src;
-        const subject = slide.dataset.slide;
         let injected = false;
 
         // 轮询注入 CSS —— DOM ready 后立即注入，不等 load 事件（CDN 脚本可能很慢）
         const poll = setInterval(() => {
-          try {
-            const doc = iframe.contentDocument;
-            if (doc && doc.head && !injected) {
-              injected = true;
-              clearInterval(poll);
-              const style = doc.createElement('style');
-              style.setAttribute('data-jb-injected', '1');
-              const customCSS = demoCSS[subject] || '';
-              style.textContent = customCSS + '\nbody{margin:0!important;padding:0!important;}';
-              doc.head.appendChild(style);
-              if (loader) loader.classList.add('hidden');
-              // 触发 resize 事件，让 Demo 内部重新计算画布尺寸（修复太阳系不可拖拽问题）
-              setTimeout(() => {
-                try { iframe.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {}
-              }, 300);
-              setTimeout(() => {
-                try { iframe.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {}
-              }, 1500);
-              // 对 Leaflet 地图（历史），额外调用 invalidateSize
-              setTimeout(() => {
-                try {
-                  if (iframe.contentWindow.map && iframe.contentWindow.map.invalidateSize) {
-                    iframe.contentWindow.map.invalidateSize();
-                  }
-                } catch(e) {}
-              }, 1000);
-              setTimeout(() => {
-                try {
-                  if (iframe.contentWindow.map && iframe.contentWindow.map.invalidateSize) {
-                    iframe.contentWindow.map.invalidateSize();
-                  }
-                } catch(e) {}
-              }, 3000);
-            }
-          } catch(e) { /* cross-origin */ }
+          if (!injected && tryInjectCSS()) {
+            injected = true;
+            clearInterval(poll);
+            onInjected();
+          }
         }, 200);
 
-        // 超时保护：10 秒后强制停止轮询
-        setTimeout(() => clearInterval(poll), 10000);
-      } else if (iframe && iframe.src && loader) {
-        // 已加载的 iframe，确保 CSS 已注入
-        try {
-          const doc = iframe.contentDocument;
-          if (doc && doc.head) {
-            const existing = doc.querySelectorAll('style[data-jb-injected]');
-            if (existing.length === 0) {
-              const subject = slide.dataset.slide;
-              const style = doc.createElement('style');
-              style.setAttribute('data-jb-injected', '1');
-              const customCSS = demoCSS[subject] || '';
-              style.textContent = customCSS + '\nbody{margin:0!important;padding:0!important;}';
-              doc.head.appendChild(style);
-            }
+        // onload 备用 —— iframe 完全加载后确保 CSS 已注入（修复轮询超时问题）
+        iframe.addEventListener('load', () => {
+          if (!injected && tryInjectCSS()) {
+            injected = true;
+            clearInterval(poll);
+            onInjected();
           }
-        } catch(e) {}
-        loader.classList.add('hidden');
+        });
+
+        // 超时保护：15 秒后强制停止轮询
+        setTimeout(() => clearInterval(poll), 15000);
+      } else if (iframe && iframe.src) {
+        // 已加载的 iframe，确保 CSS 已注入
+        if (tryInjectCSS()) {
+          onInjected();
+        } else {
+          // doc.head 尚未就绪，等待 load 事件后重试
+          iframe.addEventListener('load', () => {
+            if (tryInjectCSS()) onInjected();
+          });
+        }
       }
     }
 
