@@ -41,6 +41,9 @@ build/
 # === Cloudflare ===
 .wrangler/
 
+# === 图片原始备份 ===
+_original/
+
 # === 临时文件 ===
 tmp-wrappers/
 tmp-capture/
